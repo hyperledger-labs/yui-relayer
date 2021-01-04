@@ -1,5 +1,10 @@
 package relayer
 
+// StrategyCfg defines which relaying strategy to take for a given path
+type StrategyCfg struct {
+	Type string `json:"type" yaml:"type"`
+}
+
 // StrategyI defines
 type StrategyI interface {
 	GetType() string
