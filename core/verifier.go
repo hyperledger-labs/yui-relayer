@@ -1,4 +1,4 @@
-package relayer
+package core
 
 import "golang.org/x/sync/errgroup"
 

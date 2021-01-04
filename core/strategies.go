@@ -1,4 +1,4 @@
-package relayer
+package core
 
 // StrategyCfg defines which relaying strategy to take for a given path
 type StrategyCfg struct {

@@ -1,4 +1,4 @@
-package relayer
+package core
 
 // NaiveStrategy is an implementation of Strategy.
 type NaiveStrategy struct {

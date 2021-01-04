@@ -1,4 +1,6 @@
-package relayer
+package core
+
+import "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
 
 type SyncHeadersI interface {
 	GetHeight(chainID string) uint64
@@ -6,8 +8,8 @@ type SyncHeadersI interface {
 }
 
 type HeaderI interface {
-	GetHeight() uint64
-	Update() error
+	GetHeight() exported.Height
+	// Update() error
 }
 
 // NewSyncHeaders returns a new instance of map[string]*tmclient.Header that can be easily
