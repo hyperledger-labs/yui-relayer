@@ -1,4 +1,4 @@
-package relayer
+package core
 
 // RelaySequences represents unrelayed packets on src and dst
 type RelaySequences struct {
