@@ -9,7 +9,7 @@ import (
 
 // Chain represents the necessary data for connecting to and indentifying a chain and its counterparites
 type Chain struct {
-	relayer.Chain
+	base relayer.Chain
 }
 
 var _ core.ChainI = (*Chain)(nil)
@@ -18,12 +18,25 @@ func (c *Chain) ClientType() string {
 	return "tendermint"
 }
 
+func (c *Chain) ChainID() string {
+	return c.base.ChainID
+}
+
+func (c *Chain) ClientID() string {
+	return c.base.PathEnd.ClientID
+}
+
+// GetAddress returns the sdk.AccAddress associated with the configred key
+func (c *Chain) GetAddress() (sdk.AccAddress, error) {
+	return c.base.GetAddress()
+}
+
 func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
-	return c.Chain.QueryLatestHeader()
+	return c.base.QueryLatestHeader()
 }
 
 func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
-	res, err := c.Chain.SendMsgs(msgs)
+	res, err := c.base.SendMsgs(msgs)
 	if err != nil {
 		return nil, err
 	}
@@ -31,19 +44,15 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 }
 
 func (c *Chain) Send(msgs []sdk.Msg) bool {
-	res, err := c.Chain.SendMsgs(msgs)
+	res, err := c.base.SendMsgs(msgs)
 	if err != nil || res.Code != 0 {
-		c.LogFailedTx(res, err, msgs)
+		c.base.LogFailedTx(res, err, msgs)
 		return false
 	}
 	// NOTE: Add more data to this such as identifiers
-	c.LogSuccessTx(res, msgs)
+	c.base.LogSuccessTx(res, msgs)
 
 	return true
-}
-
-func (c *Chain) CreateClients(dst core.ChainI) (err error) {
-	panic("not implemented error")
 }
 
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
