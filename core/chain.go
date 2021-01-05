@@ -1,6 +1,8 @@
 package core
 
 import (
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 )
@@ -25,4 +27,6 @@ type ChainI interface {
 	MakeMsgCreateClient(clientID string, dstHeader HeaderI, signer sdk.AccAddress) (sdk.Msg, error)
 
 	StartEventListener(dst ChainI, strategy StrategyI)
+
+	Init(homePath string, timeout time.Duration, debug bool) error
 }

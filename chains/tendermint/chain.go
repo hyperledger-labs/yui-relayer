@@ -1,6 +1,8 @@
 package tendermint
 
 import (
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/relayer/relayer"
 
@@ -29,6 +31,10 @@ func (c *Chain) ClientID() string {
 // GetAddress returns the sdk.AccAddress associated with the configred key
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 	return c.base.GetAddress()
+}
+
+func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
+	return c.base.Init(homePath, timeout, debug)
 }
 
 func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
