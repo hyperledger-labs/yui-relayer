@@ -132,6 +132,7 @@ func initConfig(cmd *cobra.Command) error {
 		return err
 	}
 
+	encoding := config.MakeEncodingConfig()
 	configInstance = &config.Config{}
 	cfgPath := path.Join(home, "config", "config.yaml")
 	if _, err := os.Stat(cfgPath); err == nil {
@@ -145,7 +146,7 @@ func initConfig(cmd *cobra.Command) error {
 			}
 
 			// unmarshall them into the struct
-			err = config.UnmarshalJSON(file, configInstance)
+			err = config.UnmarshalJSON(encoding.Marshaler, file, configInstance)
 			if err != nil {
 				fmt.Println("Error unmarshalling config:", err)
 				os.Exit(1)

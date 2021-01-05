@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	relayercmd "github.com/cosmos/relayer/cmd"
 	"github.com/cosmos/relayer/relayer"
 	"github.com/datachainlab/relayer/core"
+	"github.com/gogo/protobuf/proto"
 )
 
 type Config struct {
@@ -17,6 +19,11 @@ type Config struct {
 
 	// cache
 	chains []core.ChainI `yaml:"-" json:"-"`
+}
+
+type ChainConfigI interface {
+	proto.Message
+	GetChain() core.ChainI
 }
 
 func DefaultConfig() Config {
@@ -45,12 +52,13 @@ func (c *Config) GetChain(chainID string) (core.ChainI, error) {
 }
 
 // AddChain adds an additional chain to the config
-func (c *Config) AddChain(chain core.ChainI) error {
+func (c *Config) AddChain(m codec.JSONMarshaler, cconfig ChainConfigI) error {
+	chain := cconfig.GetChain()
 	_, err := c.GetChain(chain.ChainID())
 	if err == nil {
 		return fmt.Errorf("chain with ID %s already exists in config", chain.ChainID())
 	}
-	bz, err := json.Marshal(chain)
+	bz, err := MarshalJSONAny(m, cconfig)
 	if err != nil {
 		return err
 	}
