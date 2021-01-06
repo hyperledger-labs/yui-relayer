@@ -68,3 +68,7 @@ func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 func (c *Chain) SetPath(p *core.PathEnd) error {
 	return c.base.SetPath(p)
 }
+
+func (c *Chain) Base() relayer.Chain {
+	return c.base
+}
