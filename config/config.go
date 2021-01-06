@@ -37,12 +37,11 @@ func newDefaultGlobalConfig() relayercmd.GlobalConfig {
 }
 
 func (c *Config) GetChain(chainID string) (core.ChainI, error) {
-	for _, c := range c.chains {
-		if c.ChainID() == chainID {
-			return c, nil
-		}
-	}
-	return nil, fmt.Errorf("chainID '%v' not found", chainID)
+	return c.chains.Get(chainID)
+}
+
+func (c *Config) GetChains(chainIDs ...string) (map[string]core.ChainI, error) {
+	return c.chains.Gets(chainIDs...)
 }
 
 // AddChain adds an additional chain to the config
