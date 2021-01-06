@@ -104,3 +104,8 @@ func InitChains(c *Config, homePath string, debug bool) error {
 
 	return nil
 }
+
+type ConfigManager interface {
+	Get() *Config
+	Set(Config)
+}

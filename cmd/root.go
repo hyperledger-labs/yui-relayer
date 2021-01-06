@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/datachainlab/relayer/chains/tendermint"
+	tendermintcmd "github.com/datachainlab/relayer/chains/tendermint/cmd"
 	"github.com/datachainlab/relayer/config"
 	"github.com/datachainlab/relayer/encoding"
 	"github.com/spf13/cobra"
@@ -46,7 +46,7 @@ func init() {
 		chainsCmd(),
 		transactionCmd(),
 		flags.LineBreak,
-		tendermint.TendermintCmd(ec.Marshaler),
+		tendermintcmd.TendermintCmd(ec.Marshaler, makeConfigManager()),
 	)
 }
 
@@ -61,4 +61,18 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func makeConfigManager() config.ConfigManager {
+	return configManager{}
+}
+
+type configManager struct{}
+
+func (configManager) Get() *config.Config {
+	return configInstance
+}
+
+func (configManager) Set(config config.Config) {
+	configInstance = &config
 }

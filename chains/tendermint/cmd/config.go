@@ -1,17 +1,18 @@
-package tendermint
+package cmd
 
 import (
 	fmt "fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/datachainlab/relayer/chains/tendermint"
 	"github.com/datachainlab/relayer/config"
 	"github.com/spf13/cobra"
 )
 
-func TendermintCmd(m codec.Marshaler) *cobra.Command {
+func configCmd(m codec.Marshaler) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "tendermint",
-		Short: "manage tendermint configurations",
+		Use:   "config",
+		Short: "manage configuration file",
 	}
 
 	cmd.AddCommand(
@@ -27,7 +28,7 @@ func generateChainConfigCmd(m codec.Marshaler) *cobra.Command {
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			// TODO make it configurable
-			c := ChainConfig{
+			c := tendermint.ChainConfig{
 				Key:            "testkey",
 				ChainId:        args[0],
 				RpcAddr:        "http://localhost:26557",
