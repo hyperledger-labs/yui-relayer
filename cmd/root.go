@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"bufio"
 	"os"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	tendermintcmd "github.com/datachainlab/relayer/chains/tendermint/cmd"
@@ -45,6 +47,7 @@ func init() {
 		configCmd(),
 		chainsCmd(ec.Marshaler),
 		transactionCmd(),
+		pathsCmd(),
 		flags.LineBreak,
 		tendermintcmd.TendermintCmd(ec.Marshaler, makeConfigManager()),
 	)
@@ -75,4 +78,10 @@ func (configManager) Get() *config.Config {
 
 func (configManager) Set(config config.Config) {
 	configInstance = &config
+}
+
+// readLineFromBuf reads one line from stdin.
+func readStdin() (string, error) {
+	str, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	return strings.TrimSpace(str), err
 }
