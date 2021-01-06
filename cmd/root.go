@@ -43,7 +43,7 @@ func init() {
 	// Register subcommands
 	rootCmd.AddCommand(
 		configCmd(),
-		chainsCmd(),
+		chainsCmd(ec.Marshaler),
 		transactionCmd(),
 		flags.LineBreak,
 		tendermintcmd.TendermintCmd(ec.Marshaler, makeConfigManager()),

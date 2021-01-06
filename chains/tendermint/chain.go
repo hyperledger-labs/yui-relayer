@@ -69,6 +69,22 @@ func (c *Chain) SetPath(p *core.PathEnd) error {
 	return c.base.SetPath(p)
 }
 
+func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
+	out, err := c.base.Update(key, value)
+	if err != nil {
+		return nil, err
+	}
+	return &ChainConfig{
+		Key:            out.Key,
+		ChainId:        out.ChainID,
+		RpcAddr:        out.RPCAddr,
+		AccountPrefix:  out.AccountPrefix,
+		GasAdjustment:  float32(out.GasAdjustment),
+		GasPrices:      out.GasPrices,
+		TrustingPeriod: out.TrustingPeriod,
+	}, nil
+}
+
 func (c *Chain) Base() relayer.Chain {
 	return c.base
 }
