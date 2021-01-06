@@ -64,3 +64,7 @@ func (c *Chain) Send(msgs []sdk.Msg) bool {
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 	panic("not implemented error")
 }
+
+func (c *Chain) SetPath(p *core.PathEnd) error {
+	return c.base.SetPath(p)
+}

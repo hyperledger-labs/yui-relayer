@@ -13,6 +13,8 @@ type ChainI interface {
 	ClientID() string
 	GetAddress() (sdk.AccAddress, error)
 
+	SetPath(p *PathEnd) error
+
 	QueryLatestHeader() (out HeaderI, err error)
 	// height represents the height of src chain
 	QueryClientState(height int64) (*clienttypes.QueryClientStateResponse, error)
