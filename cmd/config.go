@@ -9,6 +9,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/datachainlab/relayer/config"
+	"github.com/datachainlab/relayer/encoding"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -132,7 +133,7 @@ func initConfig(cmd *cobra.Command) error {
 		return err
 	}
 
-	encoding := config.MakeEncodingConfig()
+	encoding := encoding.MakeEncodingConfig()
 	configInstance = &config.Config{}
 	cfgPath := path.Join(home, "config", "config.yaml")
 	if _, err := os.Stat(cfgPath); err == nil {

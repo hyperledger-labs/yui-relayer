@@ -1,4 +1,4 @@
-package config
+package encoding
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -7,7 +7,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
-
 	"github.com/datachainlab/relayer/chains/tendermint"
 )
 
@@ -29,10 +28,7 @@ func MakeEncodingConfig() params.EncodingConfig {
 	simapp.ModuleBasics.RegisterLegacyAminoCodec(encodingConfig.Amino)
 	simapp.ModuleBasics.RegisterInterfaces(encodingConfig.InterfaceRegistry)
 
-	encodingConfig.InterfaceRegistry.RegisterImplementations(
-		(*ChainConfigI)(nil),
-		&tendermint.ChainConfig{},
-	)
+	tendermint.RegisterInterfaces(encodingConfig.InterfaceRegistry)
 
 	return encodingConfig
 }

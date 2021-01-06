@@ -9,7 +9,6 @@ import (
 	relayercmd "github.com/cosmos/relayer/cmd"
 	"github.com/cosmos/relayer/relayer"
 	"github.com/datachainlab/relayer/core"
-	"github.com/gogo/protobuf/proto"
 )
 
 type Config struct {
@@ -18,12 +17,7 @@ type Config struct {
 	Paths  relayer.Paths           `yaml:"paths" json:"paths"`
 
 	// cache
-	chains []core.ChainI `yaml:"-" json:"-"`
-}
-
-type ChainConfigI interface {
-	proto.Message
-	GetChain() core.ChainI
+	chains Chains `yaml:"-" json:"-"`
 }
 
 func DefaultConfig() Config {
@@ -70,6 +64,29 @@ func (c *Config) AddChain(m codec.JSONMarshaler, cconfig ChainConfigI) error {
 // AddPath adds an additional path to the config
 func (c *Config) AddPath(name string, path *relayer.Path) (err error) {
 	return c.Paths.Add(name, path)
+}
+
+// ChainsFromPath takes the path name and returns the properly configured chains
+func (c *Config) ChainsFromPath(path string) (map[string]core.ChainI, string, string, error) {
+	pth, err := c.Paths.Get(path)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	src, dst := pth.Src.ChainID, pth.Dst.ChainID
+	chains, err := c.chains.Gets(src, dst)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	if err = chains[src].SetPath(pth.Src); err != nil {
+		return nil, "", "", err
+	}
+	if err = chains[dst].SetPath(pth.Dst); err != nil {
+		return nil, "", "", err
+	}
+
+	return chains, src, dst, nil
 }
 
 // Called to initialize the relayer.Chain types on Config

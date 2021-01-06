@@ -4,7 +4,9 @@ import (
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/datachainlab/relayer/chains/tendermint"
 	"github.com/datachainlab/relayer/config"
+	"github.com/datachainlab/relayer/encoding"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,9 +38,15 @@ func init() {
 		panic(err)
 	}
 
+	ec := encoding.MakeEncodingConfig()
+
 	// Register subcommands
 	rootCmd.AddCommand(
 		configCmd(),
+		chainsCmd(),
+		transactionCmd(),
+		flags.LineBreak,
+		tendermint.TendermintCmd(ec.Marshaler),
 	)
 }
 
