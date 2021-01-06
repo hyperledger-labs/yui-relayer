@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 
+	"github.com/datachainlab/relayer/core"
 	"github.com/gogo/protobuf/proto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -18,7 +19,7 @@ func UnmarshalJSON(m codec.Marshaler, bz []byte, config *Config) error {
 		return err
 	}
 	for _, c := range config.Chains {
-		var cfg ChainConfigI
+		var cfg core.ChainConfigI
 		if err := UnmarshalJSONAny(m, &cfg, c); err != nil {
 			return err
 		}

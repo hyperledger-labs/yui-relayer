@@ -7,13 +7,15 @@ import (
 	"path"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/datachainlab/relayer/config"
+	"github.com/datachainlab/relayer/core"
 	"github.com/datachainlab/relayer/encoding"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func chainsCmd() *cobra.Command {
+func chainsCmd(m codec.Marshaler) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "chains",
 		Aliases: []string{"ch"},
@@ -22,8 +24,36 @@ func chainsCmd() *cobra.Command {
 
 	cmd.AddCommand(
 		chainsAddDirCmd(),
+		chainsEditCmd(m),
 	)
 
+	return cmd
+}
+
+func chainsEditCmd(m codec.Marshaler) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "edit [chain-id] [key] [value]",
+		Aliases: []string{"e"},
+		Short:   "Returns chain configuration data",
+		Args:    cobra.ExactArgs(3),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			chain, err := configInstance.GetChain(args[0])
+			if err != nil {
+				return err
+			}
+
+			c, err := chain.Update(args[1], args[2])
+			if err != nil {
+				return err
+			}
+
+			if err = configInstance.DeleteChain(args[0]).AddChain(m, c); err != nil {
+				return err
+			}
+
+			return overWriteConfig(cmd, configInstance)
+		},
+	}
 	return cmd
 }
 
@@ -65,7 +95,7 @@ func filesAdd(dir string) (cfg *config.Config, err error) {
 			fmt.Printf("failed to read file %s, skipping...\n", pth)
 			continue
 		}
-		var c config.ChainConfigI
+		var c core.ChainConfigI
 		if err = config.UnmarshalJSONAny(encoding.Marshaler, &c, byt); err != nil {
 			fmt.Printf("failed to unmarshal file %s, skipping...\n", pth)
 			continue

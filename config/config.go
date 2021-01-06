@@ -46,7 +46,7 @@ func (c *Config) GetChain(chainID string) (core.ChainI, error) {
 }
 
 // AddChain adds an additional chain to the config
-func (c *Config) AddChain(m codec.JSONMarshaler, cconfig ChainConfigI) error {
+func (c *Config) AddChain(m codec.JSONMarshaler, cconfig core.ChainConfigI) error {
 	chain := cconfig.GetChain()
 	_, err := c.GetChain(chain.ChainID())
 	if err == nil {
@@ -64,6 +64,21 @@ func (c *Config) AddChain(m codec.JSONMarshaler, cconfig ChainConfigI) error {
 // AddPath adds an additional path to the config
 func (c *Config) AddPath(name string, path *relayer.Path) (err error) {
 	return c.Paths.Add(name, path)
+}
+
+// DeleteChain removes a chain from the config
+func (c *Config) DeleteChain(chain string) *Config {
+	var newChains []core.ChainI
+	var newChainConfigs []json.RawMessage
+	for i, ch := range c.chains {
+		if ch.ChainID() != chain {
+			newChains = append(newChains, ch)
+			newChainConfigs = append(newChainConfigs, c.Chains[i])
+		}
+	}
+	c.Chains = newChainConfigs
+	c.chains = newChains
+	return c
 }
 
 // ChainsFromPath takes the path name and returns the properly configured chains

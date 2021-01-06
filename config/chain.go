@@ -4,13 +4,7 @@ import (
 	"fmt"
 
 	"github.com/datachainlab/relayer/core"
-	"github.com/gogo/protobuf/proto"
 )
-
-type ChainConfigI interface {
-	proto.Message
-	GetChain() core.ChainI
-}
 
 type Chains []core.ChainI
 
