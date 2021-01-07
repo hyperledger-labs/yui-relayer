@@ -10,7 +10,7 @@ SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 CHAIN_DATA="$(pwd)/data"
 RELAYER_DIR="$(dirname $SCRIPTDIR)"
 RELAYER_CONF="$HOME/.urelayer"
-RLY_BINARY=../build/uly
+RLY_BINARY=../../build/uly
 
 # Ensure ${CHAIN_BINARY} is installed
 if ! [ -x ${CHAIN_BINARY} ]; then

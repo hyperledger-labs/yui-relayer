@@ -4,7 +4,7 @@ set -eux
 
 source $(cd $(dirname "$0"); pwd)/util
 
-RLY_BINARY=../build/uly
+RLY_BINARY=../../build/uly
 RLY="${RLY_BINARY} --debug"
 
 CHAINID_ONE=ibc0
