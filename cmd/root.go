@@ -5,10 +5,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/datachainlab/relayer/chains/fabric"
 	fabriccmd "github.com/datachainlab/relayer/chains/fabric/cmd"
+	"github.com/datachainlab/relayer/chains/tendermint"
 	tendermintcmd "github.com/datachainlab/relayer/chains/tendermint/cmd"
 	"github.com/datachainlab/relayer/config"
-	"github.com/datachainlab/relayer/encoding"
+	"github.com/datachainlab/relayer/core"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
@@ -42,7 +44,9 @@ func init() {
 		panic(err)
 	}
 
-	ec := encoding.MakeEncodingConfig()
+	ec := core.MakeEncodingConfig()
+	tendermint.RegisterInterfaces(ec.InterfaceRegistry)
+	fabric.RegisterInterfaces(ec.InterfaceRegistry)
 	ctx := &config.Context{Config: &config.Config{}, Marshaler: ec.Marshaler}
 
 	// Register subcommands

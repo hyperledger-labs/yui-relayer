@@ -7,8 +7,5 @@ import (
 var _ core.ChainConfigI = (*ChainConfig)(nil)
 
 func (c ChainConfig) GetChain() core.ChainI {
-	return &Chain{
-		config:  c,
-		gateway: &FabricGateway{},
-	}
+	return NewChain(c)
 }
