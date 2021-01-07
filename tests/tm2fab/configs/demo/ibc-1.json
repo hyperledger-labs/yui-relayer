@@ -1,0 +1,1 @@
+{"@type":"/relayer.fabric.config.ChainConfig","chain_id":"ibc1","msp_id":"","channel":"","chaincode_id":"","connection_profile_path":"","ibc_policies":[],"endorsement_policies":[],"msp_config_paths":[]}
