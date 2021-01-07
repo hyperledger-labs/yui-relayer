@@ -14,13 +14,15 @@ type Chain struct {
 
 	pathEnd  *core.PathEnd
 	homePath string
+
+	gateway *FabricGateway
 }
 
 func NewChain(config ChainConfig) *Chain {
 	return &Chain{config: config}
 }
 
-// var _ core.ChainI = (*Chain)(nil)
+var _ core.ChainI = (*Chain)(nil)
 
 func (c *Chain) ClientType() string {
 	return "fabric"
@@ -49,9 +51,30 @@ func (c *Chain) SetPath(p *core.PathEnd) error {
 	return nil
 }
 
+func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
+	panic("not implemented error")
+	return &c.config, nil
+}
+
 func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
 	c.homePath = homePath
 	return nil
+}
+
+func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
+	panic("not implemented error")
+}
+
+func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
+	panic("not implemented error")
+}
+
+func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
+	panic("not implemented error")
+}
+
+func (c *Chain) Send(msgs []sdk.Msg) bool {
+	panic("not implemented error")
 }
 
 // errCantSetPath returns an error if the path doesn't set properly
