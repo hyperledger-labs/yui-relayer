@@ -1,9 +1,6 @@
 package core
 
 import (
-	"fmt"
-	"strings"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gogo/protobuf/proto"
 )
@@ -71,7 +68,7 @@ func (r *RelayMsgs) Send(src, dst ChainI) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transactions to src chain and update its status
-			r.Succeeded = r.Succeeded && send(src, msgs)
+			r.Succeeded = r.Succeeded && src.Send(msgs)
 
 			// clear the current batch and reset variables
 			msgLen, txSize = 1, uint64(len(bz))
@@ -81,7 +78,7 @@ func (r *RelayMsgs) Send(src, dst ChainI) {
 	}
 
 	// submit leftover msgs
-	if len(msgs) > 0 && !send(src, msgs) {
+	if len(msgs) > 0 && !src.Send(msgs) {
 		r.Succeeded = false
 	}
 
@@ -100,7 +97,7 @@ func (r *RelayMsgs) Send(src, dst ChainI) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transaction to dst chain and update its status
-			r.Succeeded = r.Succeeded && send(dst, msgs)
+			r.Succeeded = r.Succeeded && dst.Send(msgs)
 
 			// clear the current batch and reset variables
 			msgLen, txSize = 1, uint64(len(bz))
@@ -110,31 +107,7 @@ func (r *RelayMsgs) Send(src, dst ChainI) {
 	}
 
 	// submit leftover msgs
-	if len(msgs) > 0 && !send(dst, msgs) {
+	if len(msgs) > 0 && !dst.Send(msgs) {
 		r.Succeeded = false
 	}
-}
-
-// Submits the messages to the provided chain and logs the result of the transaction.
-// Returns true upon success and false otherwise.
-func send(chain ChainI, msgs []sdk.Msg) bool {
-	return chain.Send(msgs)
-
-	// res, err := chain.SendMsgs(msgs)
-	// if err != nil || res.Code != 0 {
-	// 	chain.LogFailedTx(res, err, msgs)
-	// 	return false
-	// }
-	// // NOTE: Add more data to this such as identifiers
-	// chain.LogSuccessTx(res, msgs)
-
-	// return true
-}
-
-func GetMsgAction(msgs []sdk.Msg) string {
-	var out string
-	for i, msg := range msgs {
-		out += fmt.Sprintf("%d:%s,", i, msg.Type())
-	}
-	return strings.TrimSuffix(out, ",")
 }
