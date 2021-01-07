@@ -15,6 +15,7 @@ func FabricCmd(ctx *config.Context) *cobra.Command {
 		configCmd(ctx),
 		walletCmd(ctx),
 		chaincodeCmd(ctx),
+		queryCmd(ctx),
 	)
 
 	return cmd
