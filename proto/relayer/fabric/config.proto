@@ -1,0 +1,18 @@
+syntax = "proto3";
+package relayer.fabric.config;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/datachainlab/relayer/chains/fabric";
+option (gogoproto.goproto_getters_all) = false;
+
+message ChainConfig {
+  string chain_id = 1;
+  string msp_id = 2;
+  string channel = 3;
+  string chaincode_id = 4;
+  string connection_profile_path = 5;
+  repeated string ibc_policies = 6;
+  repeated string endorsement_policies = 7;
+  repeated string msp_config_paths = 8;
+}
