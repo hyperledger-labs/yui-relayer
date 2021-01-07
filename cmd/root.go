@@ -56,8 +56,11 @@ func init() {
 		fabriccmd.FabricCmd(ctx),
 	)
 
-	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
+	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		// reads `homeDir/config/config.yaml` into `var config *Config` before each command
+		if err := viper.BindPFlags(cmd.Flags()); err != nil {
+			return err
+		}
 		return initConfig(ctx, rootCmd)
 	}
 }
