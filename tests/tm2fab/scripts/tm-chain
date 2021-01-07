@@ -54,21 +54,9 @@ killall ${CHAIN_BINARY} &> /dev/null
 set -e
 
 chainid0=ibc0
-chainid1=ibc1
 
 echo "Generating gaia configurations..."
 mkdir -p $CHAIN_DATA && cd $CHAIN_DATA && cd ../
 ./scripts/one-chain ${CHAIN_BINARY} $chainid0 ./data 26657 26656 6060 9090
-./scripts/one-chain ${CHAIN_BINARY} $chainid1 ./data 26557 26556 6061 9091
 
 [ -f $CHAIN_DATA/$chainid0.log ] && echo "$chainid0 initialized. Watch file $CHAIN_DATA/$chainid0.log to see its execution."
-[ -f $CHAIN_DATA/$chainid1.log ] && echo "$chainid1 initialized. Watch file $CHAIN_DATA/$chainid1.log to see its execution."
-
-echo "Generating ${RLY_BINARY} configurations..."
-${RLY_BINARY} config init
-${RLY_BINARY} chains add-dir configs/demo/
-
-SEED0=$(jq -r '.mnemonic' $CHAIN_DATA/ibc0/key_seed.json)
-SEED1=$(jq -r '.mnemonic' $CHAIN_DATA/ibc1/key_seed.json)
-echo "Key $(${RLY_BINARY} tendermint keys restore ibc0 testkey "$SEED0") imported from ibc0 to relayer..."
-echo "Key $(${RLY_BINARY} tendermint keys restore ibc1 testkey "$SEED1") imported from ibc1 to relayer..."

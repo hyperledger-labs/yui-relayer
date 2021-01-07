@@ -18,8 +18,8 @@ type FabricGateway struct {
 	Contract       *gateway.Contract   `yaml:"-" json:"-"`
 }
 
-func (gw *FabricGateway) PopulateWallet(home, mspID, certPath, privateKeyPath string) error {
-	if err := gw.FileSystemWallet(home); err != nil {
+func (gw *FabricGateway) PopulateWallet(walletPath, mspID, certPath, privateKeyPath string) error {
+	if err := gw.fileSystemWallet(walletPath); err != nil {
 		return err
 	}
 
@@ -48,26 +48,15 @@ func (gw *FabricGateway) PopulateWallet(home, mspID, certPath, privateKeyPath st
 	return nil
 }
 
-func (gw *FabricGateway) FileSystemWallet(home string) error {
-	var err error
-
-	walletPath := filepath.Join(home, "wallet")
-	if gw.Wallet, err = gateway.NewFileSystemWallet(filepath.Clean(walletPath)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (gw *FabricGateway) Connect(
-	homePath string,
+	walletPath string,
 	mspID string,
 	ccpPath string,
 	channel string,
 	chaincodeID string,
 ) error {
 	var err error
-	if err = gw.FileSystemWallet(homePath); err != nil {
+	if err = gw.fileSystemWallet(walletPath); err != nil {
 		return err
 	}
 
@@ -94,5 +83,13 @@ func (gw *FabricGateway) Connect(
 		return err
 	}
 
+	return nil
+}
+
+func (gw *FabricGateway) fileSystemWallet(walletPath string) error {
+	var err error
+	if gw.Wallet, err = gateway.NewFileSystemWallet(walletPath); err != nil {
+		return err
+	}
 	return nil
 }
