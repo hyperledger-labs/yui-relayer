@@ -7,6 +7,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+
+	"github.com/datachainlab/relayer/chains/fabric"
 	"github.com/datachainlab/relayer/chains/tendermint"
 )
 
@@ -29,6 +31,7 @@ func MakeEncodingConfig() params.EncodingConfig {
 	simapp.ModuleBasics.RegisterInterfaces(encodingConfig.InterfaceRegistry)
 
 	tendermint.RegisterInterfaces(encodingConfig.InterfaceRegistry)
+	fabric.RegisterInterfaces(encodingConfig.InterfaceRegistry)
 
 	return encodingConfig
 }
