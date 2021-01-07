@@ -3,12 +3,13 @@ package cmd
 import (
 	"strings"
 
+	"github.com/datachainlab/relayer/config"
 	"github.com/datachainlab/relayer/core"
 	"github.com/spf13/cobra"
 )
 
 // transactionCmd represents the tx command
-func transactionCmd() *cobra.Command {
+func transactionCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "transact",
 		Aliases: []string{"tx"},
@@ -20,13 +21,13 @@ func transactionCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		createClientsCmd(),
+		createClientsCmd(ctx),
 	)
 
 	return cmd
 }
 
-func createClientsCmd() *cobra.Command {
+func createClientsCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "clients [path-name]",
 		Aliases: []string{"clnts"},
@@ -35,7 +36,7 @@ func createClientsCmd() *cobra.Command {
 			" path by querying headers from each chain and then sending the corresponding create-client messages",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, src, dst, err := configInstance.ChainsFromPath(args[0])
+			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
 			if err != nil {
 				return err
 			}

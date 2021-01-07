@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	fmt "fmt"
+	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/datachainlab/relayer/chains/tendermint"

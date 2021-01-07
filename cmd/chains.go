@@ -7,7 +7,6 @@ import (
 	"path"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/datachainlab/relayer/config"
 	"github.com/datachainlab/relayer/core"
 	"github.com/datachainlab/relayer/encoding"
@@ -15,29 +14,44 @@ import (
 	"github.com/spf13/viper"
 )
 
-func chainsCmd(m codec.Marshaler) *cobra.Command {
+func chainsCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "chains",
-		Aliases: []string{"ch"},
-		Short:   "manage chain configurations",
+		Use:   "chains",
+		Short: "manage chain configurations",
 	}
 
 	cmd.AddCommand(
-		chainsAddDirCmd(),
-		chainsEditCmd(m),
+		chainsAddDirCmd(ctx),
+		chainsEditCmd(ctx),
 	)
 
 	return cmd
 }
 
-func chainsEditCmd(m codec.Marshaler) *cobra.Command {
+func chainsAddDirCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "edit [chain-id] [key] [value]",
-		Aliases: []string{"e"},
-		Short:   "Returns chain configuration data",
-		Args:    cobra.ExactArgs(3),
+		Use:  "add-dir [dir]",
+		Args: cobra.ExactArgs(1),
+		Short: `Add new chains to the configuration file from a directory 
+		full of chain configuration, useful for adding testnet configurations`,
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			if err := filesAdd(ctx, args[0]); err != nil {
+				return err
+			}
+			return overWriteConfig(cmd, ctx.Config)
+		},
+	}
+
+	return cmd
+}
+
+func chainsEditCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "edit [chain-id] [key] [value]",
+		Short: "Returns chain configuration data",
+		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			chain, err := configInstance.GetChain(args[0])
+			chain, err := ctx.Config.GetChain(args[0])
 			if err != nil {
 				return err
 			}
@@ -47,43 +61,23 @@ func chainsEditCmd(m codec.Marshaler) *cobra.Command {
 				return err
 			}
 
-			if err = configInstance.DeleteChain(args[0]).AddChain(m, c); err != nil {
+			if err = ctx.Config.DeleteChain(args[0]).AddChain(ctx.Marshaler, c); err != nil {
 				return err
 			}
 
-			return overWriteConfig(cmd, configInstance)
+			return overWriteConfig(cmd, ctx.Config)
 		},
 	}
 	return cmd
 }
 
-func chainsAddDirCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "add-dir [dir]",
-		Aliases: []string{"ad"},
-		Args:    cobra.ExactArgs(1),
-		Short: `Add new chains to the configuration file from a directory 
-		full of chain configuration, useful for adding testnet configurations`,
-		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			var out *config.Config
-			if out, err = filesAdd(args[0]); err != nil {
-				return err
-			}
-			return overWriteConfig(cmd, out)
-		},
-	}
-
-	return cmd
-}
-
-func filesAdd(dir string) (cfg *config.Config, err error) {
+func filesAdd(ctx *config.Context, dir string) error {
 	dir = path.Clean(dir)
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	encoding := encoding.MakeEncodingConfig()
-	cfg = configInstance
 	for _, f := range files {
 		pth := fmt.Sprintf("%s/%s", dir, f.Name())
 		if f.IsDir() {
@@ -100,13 +94,13 @@ func filesAdd(dir string) (cfg *config.Config, err error) {
 			fmt.Printf("failed to unmarshal file %s, skipping...\n", pth)
 			continue
 		}
-		if err = cfg.AddChain(encoding.Marshaler, c); err != nil {
+		if err = ctx.Config.AddChain(encoding.Marshaler, c); err != nil {
 			fmt.Printf("%s: %s\n", pth, err.Error())
 			continue
 		}
 		fmt.Printf("added %s...\n", c.GetChain().ChainID())
 	}
-	return cfg, nil
+	return nil
 }
 
 func overWriteConfig(cmd *cobra.Command, cfg *config.Config) error {
@@ -136,9 +130,6 @@ func overWriteConfig(cmd *cobra.Command, cfg *config.Config) error {
 			if err != nil {
 				return err
 			}
-
-			// set the global variable
-			configInstance = cfg
 		}
 	}
 	return err
