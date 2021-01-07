@@ -2,11 +2,13 @@ package fabric
 
 import (
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/datachainlab/relayer/core"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 type Chain struct {
@@ -15,7 +17,9 @@ type Chain struct {
 	pathEnd  *core.PathEnd
 	homePath string
 
-	gateway *FabricGateway
+	encodingConfig params.EncodingConfig
+	gateway        FabricGateway
+	logger         log.Logger
 }
 
 func NewChain(config ChainConfig) *Chain {
@@ -23,6 +27,13 @@ func NewChain(config ChainConfig) *Chain {
 }
 
 var _ core.ChainI = (*Chain)(nil)
+
+func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
+	c.homePath = homePath
+	c.logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+	c.encodingConfig = makeEncodingConfig()
+	return nil
+}
 
 func (c *Chain) ClientType() string {
 	return "fabric"
@@ -56,24 +67,11 @@ func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
 	return &c.config, nil
 }
 
-func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
-	c.homePath = homePath
-	return nil
-}
-
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 	panic("not implemented error")
 }
 
 func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
-	panic("not implemented error")
-}
-
-func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
-	panic("not implemented error")
-}
-
-func (c *Chain) Send(msgs []sdk.Msg) bool {
 	panic("not implemented error")
 }
 

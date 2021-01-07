@@ -9,7 +9,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/datachainlab/relayer/config"
 	"github.com/datachainlab/relayer/core"
-	"github.com/datachainlab/relayer/encoding"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -77,7 +76,6 @@ func filesAdd(ctx *config.Context, dir string) error {
 	if err != nil {
 		return err
 	}
-	encoding := encoding.MakeEncodingConfig()
 	for _, f := range files {
 		pth := fmt.Sprintf("%s/%s", dir, f.Name())
 		if f.IsDir() {
@@ -90,11 +88,11 @@ func filesAdd(ctx *config.Context, dir string) error {
 			continue
 		}
 		var c core.ChainConfigI
-		if err = config.UnmarshalJSONAny(encoding.Marshaler, &c, byt); err != nil {
+		if err = config.UnmarshalJSONAny(ctx.Marshaler, &c, byt); err != nil {
 			fmt.Printf("failed to unmarshal file %s, skipping...\n", pth)
 			continue
 		}
-		if err = ctx.Config.AddChain(encoding.Marshaler, c); err != nil {
+		if err = ctx.Config.AddChain(ctx.Marshaler, c); err != nil {
 			fmt.Printf("%s: %s\n", pth, err.Error())
 			continue
 		}
