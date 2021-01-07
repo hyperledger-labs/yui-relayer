@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TendermintCmd(m codec.Marshaler, cmgr config.ConfigManager) *cobra.Command {
+func TendermintCmd(m codec.Marshaler, ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tendermint",
 		Short: "manage tendermint configurations",
@@ -14,7 +14,7 @@ func TendermintCmd(m codec.Marshaler, cmgr config.ConfigManager) *cobra.Command 
 
 	cmd.AddCommand(
 		configCmd(m),
-		keysCmd(cmgr),
+		keysCmd(ctx),
 	)
 
 	return cmd

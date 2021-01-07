@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func pathsCmd() *cobra.Command {
+func pathsCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "paths",
 		Aliases: []string{"pth"},
@@ -23,14 +23,14 @@ connection, and channel ids from both the source and destination chains as well 
 	}
 
 	cmd.AddCommand(
-		pathsListCmd(),
-		pathsAddCmd(),
+		pathsListCmd(ctx),
+		pathsAddCmd(ctx),
 	)
 
 	return cmd
 }
 
-func pathsListCmd() *cobra.Command {
+func pathsListCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"l"},
@@ -42,14 +42,14 @@ func pathsListCmd() *cobra.Command {
 			case yml && jsn:
 				return fmt.Errorf("can't pass both --json and --yaml, must pick one")
 			case yml:
-				out, err := yaml.Marshal(configInstance.Paths)
+				out, err := yaml.Marshal(ctx.Config.Paths)
 				if err != nil {
 					return err
 				}
 				fmt.Println(string(out))
 				return nil
 			case jsn:
-				out, err := json.Marshal(configInstance.Paths)
+				out, err := json.Marshal(ctx.Config.Paths)
 				if err != nil {
 					return err
 				}
@@ -74,7 +74,7 @@ func pathsListCmd() *cobra.Command {
 	return yamlFlag(jsonFlag(cmd))
 }
 
-func pathsAddCmd() *cobra.Command {
+func pathsAddCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "add [src-chain-id] [dst-chain-id] [path-name]",
 		Aliases: []string{"a"},
@@ -82,7 +82,7 @@ func pathsAddCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			src, dst := args[0], args[1]
-			_, err := configInstance.GetChains(src)
+			_, err := ctx.Config.GetChains(src)
 			if err != nil {
 				return fmt.Errorf("chains need to be configured before paths to them can be added: %w", err)
 			}
@@ -93,16 +93,16 @@ func pathsAddCmd() *cobra.Command {
 			}
 
 			if file != "" {
-				if err := fileInputPathAdd(configInstance, file, args[2]); err != nil {
+				if err := fileInputPathAdd(ctx.Config, file, args[2]); err != nil {
 					return err
 				}
 			} else {
-				if err := userInputPathAdd(configInstance, src, dst, args[2]); err != nil {
+				if err := userInputPathAdd(ctx.Config, src, dst, args[2]); err != nil {
 					return err
 				}
 			}
 
-			return overWriteConfig(cmd, configInstance)
+			return overWriteConfig(cmd, ctx.Config)
 		},
 	}
 	return fileFlag(cmd)

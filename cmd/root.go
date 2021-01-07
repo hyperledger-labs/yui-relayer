@@ -5,19 +5,21 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
+	fabriccmd "github.com/datachainlab/relayer/chains/fabric/cmd"
 	tendermintcmd "github.com/datachainlab/relayer/chains/tendermint/cmd"
 	"github.com/datachainlab/relayer/config"
 	"github.com/datachainlab/relayer/encoding"
+
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
-	homePath       string
-	debug          bool
-	configInstance *config.Config
-	defaultHome    = os.ExpandEnv("$HOME/.urelayer")
+	homePath string
+	debug    bool
+	// configInstance *config.Config
+	defaultHome = os.ExpandEnv("$HOME/.urelayer")
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -41,43 +43,31 @@ func init() {
 	}
 
 	ec := encoding.MakeEncodingConfig()
+	ctx := &config.Context{Config: &config.Config{}, Marshaler: ec.Marshaler}
 
 	// Register subcommands
 	rootCmd.AddCommand(
-		configCmd(),
-		chainsCmd(ec.Marshaler),
-		transactionCmd(),
-		pathsCmd(),
+		configCmd(ctx),
+		chainsCmd(ctx),
+		transactionCmd(ctx),
+		pathsCmd(ctx),
 		flags.LineBreak,
-		tendermintcmd.TendermintCmd(ec.Marshaler, makeConfigManager()),
+		tendermintcmd.TendermintCmd(ec.Marshaler, ctx),
+		fabriccmd.FabricCmd(ctx),
 	)
+
+	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
+		// reads `homeDir/config/config.yaml` into `var config *Config` before each command
+		return initConfig(ctx, rootCmd)
+	}
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
-		// reads `homeDir/config/config.yaml` into `var config *Config` before each command
-		return initConfig(rootCmd)
-	}
-
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-}
-
-func makeConfigManager() config.ConfigManager {
-	return configManager{}
-}
-
-type configManager struct{}
-
-func (configManager) Get() *config.Config {
-	return configInstance
-}
-
-func (configManager) Set(config config.Config) {
-	configInstance = &config
 }
 
 // readLineFromBuf reads one line from stdin.

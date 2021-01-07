@@ -9,12 +9,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/datachainlab/relayer/config"
-	"github.com/datachainlab/relayer/encoding"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func configCmd() *cobra.Command {
+func configCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "config",
 		Aliases: []string{"cfg"},
@@ -22,9 +21,8 @@ func configCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		configShowCmd(),
+		configShowCmd(ctx),
 		configInitCmd(),
-		// configAddDirCmd(),
 	)
 
 	return cmd
@@ -86,7 +84,7 @@ func configInitCmd() *cobra.Command {
 }
 
 // Command for printing current configuration
-func configShowCmd() *cobra.Command {
+func configShowCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "show",
 		Aliases: []string{"s", "list", "l"},
@@ -105,7 +103,7 @@ func configShowCmd() *cobra.Command {
 				return fmt.Errorf("config does not exist: %s", cfgPath)
 			}
 
-			out, err := config.MarshalJSON(*configInstance)
+			out, err := config.MarshalJSON(*ctx.Config)
 			if err != nil {
 				return err
 			}
@@ -127,14 +125,12 @@ func defaultConfig() []byte {
 }
 
 // initConfig reads in config file and ENV variables if set.
-func initConfig(cmd *cobra.Command) error {
+func initConfig(ctx *config.Context, cmd *cobra.Command) error {
 	home, err := cmd.PersistentFlags().GetString(flags.FlagHome)
 	if err != nil {
 		return err
 	}
 
-	encoding := encoding.MakeEncodingConfig()
-	configInstance = &config.Config{}
 	cfgPath := path.Join(home, "config", "config.yaml")
 	if _, err := os.Stat(cfgPath); err == nil {
 		viper.SetConfigFile(cfgPath)
@@ -147,14 +143,14 @@ func initConfig(cmd *cobra.Command) error {
 			}
 
 			// unmarshall them into the struct
-			err = config.UnmarshalJSON(encoding.Marshaler, file, configInstance)
+			err = config.UnmarshalJSON(ctx.Marshaler, file, ctx.Config)
 			if err != nil {
 				fmt.Println("Error unmarshalling config:", err)
 				os.Exit(1)
 			}
 
 			// ensure config has []*relayer.Chain used for all chain operations
-			err = config.InitChains(configInstance, homePath, debug)
+			err = config.InitChains(ctx.Config, homePath, debug)
 			if err != nil {
 				fmt.Println("Error parsing chain config:", err)
 				os.Exit(1)

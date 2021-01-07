@@ -13,29 +13,29 @@ import (
 )
 
 // keysCmd represents the keys command
-func keysCmd(cmgr config.ConfigManager) *cobra.Command {
+func keysCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "keys",
 		Aliases: []string{"k"},
 		Short:   "manage keys held by the relayer for each chain",
 	}
 
-	cmd.AddCommand(keysAddCmd(cmgr))
-	cmd.AddCommand(keysRestoreCmd(cmgr))
-	cmd.AddCommand(keysShowCmd(cmgr))
+	cmd.AddCommand(keysAddCmd(ctx))
+	cmd.AddCommand(keysRestoreCmd(ctx))
+	cmd.AddCommand(keysShowCmd(ctx))
 
 	return cmd
 }
 
 // keysAddCmd respresents the `keys add` command
-func keysAddCmd(cmgr config.ConfigManager) *cobra.Command {
+func keysAddCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "add [chain-id] [[name]]",
 		Aliases: []string{"a"},
 		Short:   "adds a key to the keychain associated with a particular chain",
 		Args:    cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, err := cmgr.Get().GetChain(args[0])
+			c, err := ctx.Config.GetChain(args[0])
 			if err != nil {
 				return err
 			}
@@ -83,7 +83,7 @@ type keyOutput struct {
 }
 
 // keysRestoreCmd respresents the `keys add` command
-func keysRestoreCmd(cmgr config.ConfigManager) *cobra.Command {
+func keysRestoreCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "restore [chain-id] [name] [mnemonic]",
 		Aliases: []string{"r"},
@@ -91,7 +91,7 @@ func keysRestoreCmd(cmgr config.ConfigManager) *cobra.Command {
 		Args:    cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			keyName := args[1]
-			c, err := cmgr.Get().GetChain(args[0])
+			c, err := ctx.Config.GetChain(args[0])
 			if err != nil {
 				return err
 			}
@@ -116,14 +116,14 @@ func keysRestoreCmd(cmgr config.ConfigManager) *cobra.Command {
 }
 
 // keysShowCmd respresents the `keys show` command
-func keysShowCmd(cmgr config.ConfigManager) *cobra.Command {
+func keysShowCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "show [chain-id] [[name]]",
 		Aliases: []string{"s"},
 		Short:   "shows a key from the keychain associated with a particular chain",
 		Args:    cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, err := cmgr.Get().GetChain(args[0])
+			c, err := ctx.Config.GetChain(args[0])
 			if err != nil {
 				return err
 			}
