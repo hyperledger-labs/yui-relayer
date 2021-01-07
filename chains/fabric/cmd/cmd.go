@@ -14,6 +14,7 @@ func FabricCmd(ctx *config.Context) *cobra.Command {
 	cmd.AddCommand(
 		configCmd(ctx),
 		walletCmd(ctx),
+		chaincodeCmd(ctx),
 	)
 
 	return cmd
