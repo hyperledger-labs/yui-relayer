@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/cosmos/cosmos-sdk v0.40.0-rc3
 	github.com/cosmos/relayer v1.0.0-rc1
-	github.com/datachainlab/fabric-ibc v0.0.0-20210105105718-a30033e271b2
+	github.com/datachainlab/fabric-ibc v0.0.0-20210108102243-566420dde41f
 	github.com/gogo/protobuf v1.3.1
 	github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191
 	github.com/hyperledger/fabric-protos-go v0.0.0-20200707132912-fee30f3ccd23
