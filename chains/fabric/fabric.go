@@ -48,6 +48,18 @@ func (c *Chain) GetLocalMspConfigs() ([]msppb.MSPConfig, error) {
 	return res, nil
 }
 
+func (c *Chain) getSerializedIdentity(label string) (*msppb.SerializedIdentity, error) {
+	creds, err := c.gateway.Wallet.Get(label)
+	if err != nil {
+		return nil, err
+	}
+	identity := creds.(*gateway.X509Identity)
+	return &msppb.SerializedIdentity{
+		Mspid:   identity.MspID,
+		IdBytes: []byte(identity.Certificate()),
+	}, nil
+}
+
 // remove SigningIdentity for verifying only purpose.
 func getVerifyingConfig(mconf *msppb.MSPConfig) error {
 	var conf msppb.FabricMSPConfig

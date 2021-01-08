@@ -7,6 +7,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/datachainlab/fabric-ibc/x/auth/types"
 	"github.com/datachainlab/relayer/core"
 	"github.com/tendermint/tendermint/libs/log"
 )
@@ -49,8 +50,11 @@ func (c *Chain) ClientID() string {
 
 // GetAddress returns the sdk.AccAddress associated with the configred key
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
-	// FIXME returns an address correctly
-	return sdk.AccAddress("dummy"), nil
+	sid, err := c.getSerializedIdentity(c.config.MspId)
+	if err != nil {
+		return nil, err
+	}
+	return authtypes.MakeCreatorAddressWithSerializedIdentity(sid)
 }
 
 func (c *Chain) SetPath(p *core.PathEnd) error {
