@@ -16,6 +16,9 @@ type ChainI interface {
 
 	SetPath(p *PathEnd) error
 
+	// QueryLatestHeight queries the chain for the latest height and returns it
+	QueryLatestHeight() (int64, error)
+	// QueryLatestHeader returns the latest header from the chain
 	QueryLatestHeader() (out HeaderI, err error)
 	// height represents the height of src chain
 	QueryClientState(height int64) (*clienttypes.QueryClientStateResponse, error)

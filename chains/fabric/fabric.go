@@ -22,6 +22,11 @@ func (c *Chain) Connect() error {
 }
 
 func (c *Chain) Contract() *gateway.Contract {
+	if c.gateway.Contract == nil {
+		if err := c.Connect(); err != nil {
+			panic(err)
+		}
+	}
 	return c.gateway.Contract
 }
 

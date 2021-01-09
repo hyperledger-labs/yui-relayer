@@ -80,7 +80,7 @@ func createConnectionCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateConnections(c[src], c[dst], to)
+			return core.CreateConnection(c[src], c[dst], to)
 		},
 	}
 

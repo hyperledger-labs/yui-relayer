@@ -1,9 +1,11 @@
 package fabric
 
 import (
+	"encoding/base64"
 	"encoding/json"
 
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
+	"github.com/datachainlab/fabric-ibc/app"
 	"github.com/datachainlab/fabric-ibc/commitment"
 	fabrictypes "github.com/datachainlab/fabric-ibc/x/ibc/light-clients/xx-fabric/types"
 	"github.com/datachainlab/relayer/core"
@@ -11,12 +13,59 @@ import (
 )
 
 const (
+	queryFunc       = "query"
 	getSequenceFunc = "getSequence"
 )
 
+func (c *Chain) Query(req app.RequestQuery) (*app.ResponseQuery, error) {
+	bz, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	r, err := c.Contract().EvaluateTransaction(queryFunc, string(bz))
+	if err != nil {
+		return nil, err
+	}
+	var res app.ResponseQuery
+	if err := json.Unmarshal(r, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
 // QueryClientState retrevies the latest consensus state for a client in state at a given height
 func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateResponse, error) {
-	panic("not implemented error")
+	req := &clienttypes.QueryClientStateRequest{
+		ClientId: c.pathEnd.ClientID,
+	}
+	bz, err := proto.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.Query(app.RequestQuery{
+		Data: string(bz),
+		Path: "/ibc.core.client.v1.Query/ClientState",
+	})
+	if err != nil {
+		return nil, err
+	}
+	bz, err = base64.StdEncoding.DecodeString(res.Value)
+	if err != nil {
+		return nil, err
+	}
+	var cres clienttypes.QueryClientStateResponse
+	if err := cres.Unmarshal(bz); err != nil {
+		return nil, err
+	}
+	return &cres, nil
+}
+
+func (c *Chain) QueryLatestHeight() (int64, error) {
+	seq, err := c.QueryCurrentSequence()
+	if err != nil {
+		return 0, err
+	}
+	return int64(seq.GetValue()), nil
 }
 
 // QueryCurrentSequence returns the current sequence for IBC chaincode
