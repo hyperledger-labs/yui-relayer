@@ -1,14 +1,17 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 const (
-	flagJSON = "json"
-	flagYAML = "yaml"
-	flagFile = "file"
+	flagJSON    = "json"
+	flagYAML    = "yaml"
+	flagFile    = "file"
+	flagTimeout = "timeout"
 )
 
 func fileFlag(cmd *cobra.Command) *cobra.Command {
@@ -33,4 +36,20 @@ func jsonFlag(cmd *cobra.Command) *cobra.Command {
 		panic(err)
 	}
 	return cmd
+}
+
+func timeoutFlag(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().StringP(flagTimeout, "o", "10s", "timeout between relayer runs")
+	if err := viper.BindPFlag(flagTimeout, cmd.Flags().Lookup(flagTimeout)); err != nil {
+		panic(err)
+	}
+	return cmd
+}
+
+func getTimeout(cmd *cobra.Command) (time.Duration, error) {
+	to, err := cmd.Flags().GetString(flagTimeout)
+	if err != nil {
+		return 0, err
+	}
+	return time.ParseDuration(to)
 }
