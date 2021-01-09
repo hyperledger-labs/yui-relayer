@@ -7,60 +7,23 @@ import (
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	fabrictypes "github.com/datachainlab/fabric-ibc/x/ibc/light-clients/xx-fabric/types"
 	"github.com/datachainlab/relayer/core"
-	"github.com/gogo/protobuf/proto"
 )
 
 func (dst *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
-	dstSeq, err := dst.QueryCurrentSequence()
-	if err != nil {
-		return nil, err
-	}
+	h := dstHeader.(*fabrictypes.Header)
 
-	var ccid = fabrictypes.ChaincodeID{
-		Name:    dst.config.ChaincodeId,
-		Version: "1", // TODO add version to config
-	}
-
-	pcBytes, err := makeEndorsementPolicy(dst.config.EndorsementPolicies)
-	if err != nil {
-		return nil, err
-	}
-	ipBytes, err := makeIBCPolicy(dst.config.IbcPolicies)
-	if err != nil {
-		return nil, err
-	}
-	ci := fabrictypes.NewChaincodeInfo(dst.config.Channel, ccid, pcBytes, ipBytes, nil)
-	ch := fabrictypes.NewChaincodeHeader(
-		dstSeq.Value,
-		dstSeq.Timestamp,
-		fabrictypes.CommitmentProof{},
-	)
-
-	mspConfs, err := dst.GetLocalMspConfigs()
-	if err != nil {
-		return nil, err
-	}
-	hs := []fabrictypes.MSPHeader{}
-	for _, mc := range mspConfs {
-		mcBytes, err := proto.Marshal(&mc)
-		if err != nil {
-			return nil, err
-		}
-		hs = append(hs, fabrictypes.NewMSPHeader(fabrictypes.MSPHeaderTypeCreate, dst.config.MspId, mcBytes, ipBytes, &fabrictypes.MessageProof{}))
-	}
-	mhs := fabrictypes.NewMSPHeaders(hs)
-	mspInfos, err := createMSPInitialClientState(mhs.Headers)
+	mspInfos, err := createMSPInitialClientState(h.MSPHeaders.Headers)
 	if err != nil {
 		return nil, err
 	}
 	clientState := &fabrictypes.ClientState{
 		Id:                  clientID,
-		LastChaincodeHeader: ch,
-		LastChaincodeInfo:   ci,
+		LastChaincodeHeader: *h.ChaincodeHeader,
+		LastChaincodeInfo:   *h.ChaincodeInfo,
 		LastMspInfos:        *mspInfos,
 	}
 	consensusState := &fabrictypes.ConsensusState{
-		Timestamp: dstSeq.Timestamp,
+		Timestamp: h.ChaincodeHeader.Sequence.Timestamp,
 	}
 
 	return clienttypes.NewMsgCreateClient(

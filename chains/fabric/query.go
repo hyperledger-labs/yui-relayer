@@ -5,7 +5,9 @@ import (
 
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	"github.com/datachainlab/fabric-ibc/commitment"
+	fabrictypes "github.com/datachainlab/fabric-ibc/x/ibc/light-clients/xx-fabric/types"
 	"github.com/datachainlab/relayer/core"
+	"github.com/gogo/protobuf/proto"
 )
 
 const (
@@ -31,5 +33,48 @@ func (c *Chain) QueryCurrentSequence() (*commitment.Sequence, error) {
 }
 
 func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
-	panic("not implemented error")
+	seq, err := c.QueryCurrentSequence()
+	if err != nil {
+		return nil, err
+	}
+
+	var ccid = fabrictypes.ChaincodeID{
+		Name:    c.config.ChaincodeId,
+		Version: "1", // TODO add version to config
+	}
+
+	pcBytes, err := makeEndorsementPolicy(c.config.EndorsementPolicies)
+	if err != nil {
+		return nil, err
+	}
+	ipBytes, err := makeIBCPolicy(c.config.IbcPolicies)
+	if err != nil {
+		return nil, err
+	}
+	ci := fabrictypes.NewChaincodeInfo(c.config.Channel, ccid, pcBytes, ipBytes, nil)
+	ch := fabrictypes.NewChaincodeHeader(
+		seq.Value,
+		seq.Timestamp,
+		fabrictypes.CommitmentProof{},
+	)
+	mspConfs, err := c.GetLocalMspConfigs()
+	if err != nil {
+		return nil, err
+	}
+	hs := []fabrictypes.MSPHeader{}
+	for _, mc := range mspConfs {
+		mcBytes, err := proto.Marshal(&mc.Config)
+		if err != nil {
+			return nil, err
+		}
+		hs = append(hs, fabrictypes.NewMSPHeader(fabrictypes.MSPHeaderTypeCreate, mc.MSPID, mcBytes, ipBytes, &fabrictypes.MessageProof{}))
+	}
+	mhs := fabrictypes.NewMSPHeaders(hs)
+	header := fabrictypes.NewHeader(&ch, &ci, &mhs)
+
+	if err := header.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	return header, nil
 }

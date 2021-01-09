@@ -25,12 +25,17 @@ func (c *Chain) Contract() *gateway.Contract {
 	return c.gateway.Contract
 }
 
+type MSPConfig struct {
+	MSPID  string
+	Config msppb.MSPConfig
+}
+
 // get MSP Configs for Chain.IBCPolicies
-func (c *Chain) GetLocalMspConfigs() ([]msppb.MSPConfig, error) {
+func (c *Chain) GetLocalMspConfigs() ([]MSPConfig, error) {
 	if len(c.config.IbcPolicies) != len(c.config.MspConfigPaths) {
 		return nil, fmt.Errorf("IBCPolicies and MspConfigPaths must have the same length for now: %v != %v", len(c.config.IbcPolicies), len(c.config.MspConfigPaths))
 	}
-	res := []msppb.MSPConfig{}
+	res := []MSPConfig{}
 	for i, path := range c.config.MspConfigPaths {
 		mspId := c.config.IbcPolicies[i]
 		bccspConfig := factory.GetDefaultOpts()
@@ -43,7 +48,7 @@ func (c *Chain) GetLocalMspConfigs() ([]msppb.MSPConfig, error) {
 				return nil, err
 			}
 		}
-		res = append(res, *mspConf)
+		res = append(res, MSPConfig{MSPID: mspId, Config: *mspConf})
 	}
 	return res, nil
 }

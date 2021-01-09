@@ -1,6 +1,7 @@
 package tendermint
 
 import (
+	"log"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -62,6 +63,7 @@ func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
 }
 
 func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
+	log.Printf("tendermint.SendMsgs: %v", msgs)
 	res, err := c.base.SendMsgs(msgs)
 	if err != nil {
 		return nil, err
@@ -70,6 +72,7 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 }
 
 func (c *Chain) Send(msgs []sdk.Msg) bool {
+	log.Printf("tendermint.Send: %v", msgs)
 	res, err := c.base.SendMsgs(msgs)
 	if err != nil || res.Code != 0 {
 		c.base.LogFailedTx(res, err, msgs)

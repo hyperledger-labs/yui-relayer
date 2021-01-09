@@ -1,6 +1,8 @@
 package fabric
 
 import (
+	"log"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -14,11 +16,14 @@ const (
 )
 
 func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
+	log.Printf("fabric.SendMsgs: %v", msgs)
 	txBytes, err := c.buildTx(c.encodingConfig.InterfaceRegistry, msgs...)
 	if err != nil {
 		return nil, err
 	}
-	return c.gateway.Contract.SubmitTransaction(handleIBCTxFunc, string(txBytes))
+	res, err := c.gateway.Contract.SubmitTransaction(handleIBCTxFunc, string(txBytes))
+	log.Printf("fabric.SendMsgs.result: res='%v' err='%v'", res, err)
+	return res, err
 }
 
 func (c *Chain) Send(msgs []sdk.Msg) bool {
