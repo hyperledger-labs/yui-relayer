@@ -55,7 +55,12 @@ func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
 }
 
 func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
-	return c.base.Init(homePath, timeout, debug)
+	err := c.base.Init(homePath, timeout, debug)
+	if err != nil {
+		return err
+	}
+	c.base.Encoding = core.MakeEncodingConfig()
+	return nil
 }
 
 func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
