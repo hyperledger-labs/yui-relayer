@@ -50,6 +50,12 @@ func (c *Chain) ClientID() string {
 
 // GetAddress returns the sdk.AccAddress associated with the configred key
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
+	if c.gateway.Contract == nil {
+		if err := c.Connect(); err != nil {
+			return nil, err
+		}
+	}
+
 	sid, err := c.getSerializedIdentity(c.config.MspId)
 	if err != nil {
 		return nil, err
@@ -72,10 +78,6 @@ func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
 }
 
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
-	panic("not implemented error")
-}
-
-func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
 	panic("not implemented error")
 }
 

@@ -5,6 +5,7 @@ import (
 
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	"github.com/datachainlab/fabric-ibc/commitment"
+	"github.com/datachainlab/relayer/core"
 )
 
 const (
@@ -27,4 +28,8 @@ func (c *Chain) QueryCurrentSequence() (*commitment.Sequence, error) {
 		return nil, err
 	}
 	return seq, nil
+}
+
+func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
+	panic("not implemented error")
 }
