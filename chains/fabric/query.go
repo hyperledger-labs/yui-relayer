@@ -1,11 +1,11 @@
 package fabric
 
 import (
-	"encoding/base64"
 	"encoding/json"
 
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	"github.com/datachainlab/fabric-ibc/app"
+	"github.com/datachainlab/fabric-ibc/chaincode"
 	"github.com/datachainlab/fabric-ibc/commitment"
 	fabrictypes "github.com/datachainlab/fabric-ibc/x/ibc/light-clients/xx-fabric/types"
 	"github.com/datachainlab/relayer/core"
@@ -49,7 +49,7 @@ func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateRes
 	if err != nil {
 		return nil, err
 	}
-	bz, err = base64.StdEncoding.DecodeString(res.Value)
+	bz, err = chaincode.DecodeResponseToBytes(res.Value)
 	if err != nil {
 		return nil, err
 	}
