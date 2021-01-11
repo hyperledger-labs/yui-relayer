@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/datachainlab/fabric-ibc/x/auth/types"
@@ -48,6 +49,10 @@ func (c *Chain) ClientID() string {
 	return c.pathEnd.ClientID
 }
 
+func (c *Chain) Marshaler() codec.Marshaler {
+	return c.encodingConfig.Marshaler
+}
+
 // GetAddress returns the sdk.AccAddress associated with the configred key
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 	if c.gateway.Contract == nil {
@@ -72,6 +77,10 @@ func (c *Chain) SetPath(p *core.PathEnd) error {
 	return nil
 }
 
+func (c *Chain) Path() *core.PathEnd {
+	return c.pathEnd
+}
+
 func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
 	panic("not implemented error")
 	return &c.config, nil
@@ -84,4 +93,8 @@ func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 // errCantSetPath returns an error if the path doesn't set properly
 func (c *Chain) errCantSetPath(err error) error {
 	return fmt.Errorf("path on chain %s failed to set: %w", c.ChainID(), err)
+}
+
+func (c *Chain) GetLatestLightHeight() (int64, error) {
+	return 0, nil
 }
