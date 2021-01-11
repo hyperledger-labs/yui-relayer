@@ -46,7 +46,7 @@ func queryClientCmd(ctx *config.Context) *cobra.Command {
 					return err
 				}
 			}
-			res, err := c.QueryClientState(height)
+			res, err := c.QueryClientState(height, false)
 			if err != nil {
 				return err
 			}
