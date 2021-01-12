@@ -110,9 +110,9 @@ func (c *Chain) Base() relayer.Chain {
 }
 
 func (srcChain *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
-	// TODO ensure that satisfy above comment
 	// make copy of header stored in mop
-	h := srcHeader.(*tmclient.Header)
+	tmp := srcHeader.(*tmclient.Header)
+	h := *tmp
 
 	dsth, err := dstChain.GetLatestLightHeight()
 	if err != nil {
@@ -141,7 +141,7 @@ func (srcChain *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.
 
 	// inject TrustedValidators into header
 	h.TrustedValidators = valSet
-	return h, nil
+	return &h, nil
 }
 
 func (c *Chain) GetLatestLightHeight() (int64, error) {
