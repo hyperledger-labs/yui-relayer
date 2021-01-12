@@ -7,3 +7,5 @@ RLY="${RLY_BINARY} --debug"
 FIXTURES_DIR=./fixtures
 
 # TODO import setup scripts from fabric-sdk-go-sample
+
+./scripts/prepare-fixtures.sh

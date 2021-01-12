@@ -3,9 +3,10 @@ module github.com/datachainlab/relayer
 go 1.15
 
 require (
+	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/cosmos/cosmos-sdk v0.40.0-rc3
 	github.com/cosmos/relayer v1.0.0-rc1
-	github.com/datachainlab/fabric-ibc v0.0.0-20210108102243-566420dde41f
+	github.com/datachainlab/fabric-ibc v0.0.0-20210112024321-3c95622ad18a
 	github.com/gogo/protobuf v1.3.1
 	github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191
 	github.com/hyperledger/fabric-protos-go v0.0.0-20200707132912-fee30f3ccd23
