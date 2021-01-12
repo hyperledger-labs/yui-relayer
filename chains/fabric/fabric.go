@@ -22,6 +22,11 @@ func (c *Chain) Connect() error {
 }
 
 func (c *Chain) Contract() *gateway.Contract {
+	if c.gateway.Contract == nil {
+		if err := c.Connect(); err != nil {
+			panic(err)
+		}
+	}
 	return c.gateway.Contract
 }
 
@@ -43,10 +48,8 @@ func (c *Chain) GetLocalMspConfigs() ([]MSPConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		if mspId != c.config.MspId {
-			if err := getVerifyingConfig(mspConf); err != nil {
-				return nil, err
-			}
+		if err := getVerifyingConfig(mspConf); err != nil {
+			return nil, err
 		}
 		res = append(res, MSPConfig{MSPID: mspId, Config: *mspConf})
 	}

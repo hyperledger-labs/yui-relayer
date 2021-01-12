@@ -11,10 +11,9 @@ import (
 // queryCmd represents the chain command
 func queryCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "query",
-		Aliases: []string{"q"},
-		Short:   "IBC Query Commands",
-		Long:    "Commands to query IBC primatives, and other useful data on configured chains.",
+		Use:   "query",
+		Short: "IBC Query Commands",
+		Long:  "Commands to query IBC primatives, and other useful data on configured chains.",
 	}
 
 	cmd.AddCommand(

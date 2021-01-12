@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -eux
 
+if ! [ -x ${MSPS_DIR} ]; then
+  echo "Error: ${MSPS_DIR} must be set." >&2
+  exit 1
+fi
+
 FIXTURES_DIR=./fixtures
 
 ## Setup test fixtures
