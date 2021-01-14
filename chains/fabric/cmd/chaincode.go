@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"encoding/json"
+
+	"github.com/datachainlab/fabric-ibc/example"
 	"github.com/datachainlab/relayer/chains/fabric"
 	"github.com/datachainlab/relayer/config"
 	"github.com/spf13/cobra"
@@ -35,7 +38,13 @@ func initChaincodeCmd(ctx *config.Context) *cobra.Command {
 			if err = fc.Connect(); err != nil {
 				return err
 			}
-			_, err = fc.Contract().SubmitTransaction(initChaincodeFunc, "{}")
+			// TODO we should get a genesis state from a given json file
+			genesisState := example.NewDefaultGenesisState()
+			bz, err := json.Marshal(genesisState)
+			if err != nil {
+				return err
+			}
+			_, err = fc.Contract().SubmitTransaction(initChaincodeFunc, string(bz))
 			if err != nil {
 				return err
 			}
