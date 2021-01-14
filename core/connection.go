@@ -23,7 +23,6 @@ func CreateConnection(src, dst ChainI, to time.Duration) error {
 	ticker := time.NewTicker(to)
 
 	failed := 0
-	_ = failed
 	for ; true; <-ticker.C {
 		connSteps, err := createConnectionStep(src, dst)
 		if err != nil {
@@ -151,7 +150,6 @@ func createConnectionStep(src, dst ChainI) (*RelayMsgs, error) {
 		logConnectionStates(dst, src, dstConn, srcConn)
 		addr := mustGetAddress(dst)
 		if srcUpdateHeader != nil {
-			fmt.Println("found: srcUpdatedHeader:", srcUpdateHeader)
 			out.Dst = append(out.Dst, dst.Path().UpdateClient(srcUpdateHeader, addr))
 		}
 		out.Dst = append(out.Dst, dst.Path().ConnTry(src.Path(), srcCsRes, srcConn, srcCons, addr))
