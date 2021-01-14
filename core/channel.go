@@ -37,17 +37,6 @@ func CreateChannel(src, dst ChainI, ordered bool, to time.Duration) error {
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case chanSteps.Success() && chanSteps.Last:
-			// srch, dsth, err := GetLatestLightHeights(src, dst)
-			// if err != nil {
-			// 	return err
-			// }
-			// srcChan, dstChan, err := QueryChannelPair(src, dst, srch, dsth)
-			// if err != nil {
-			// 	return err
-			// }
-			// if c.debug {
-			// 	logChannelStates(c, dst, srcChan, dstChan)
-			// }
 			log.Println(fmt.Sprintf("★ Channel created: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
 				src.ChainID(), src.Path().ChannelID, src.Path().PortID,
 				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID))
@@ -87,7 +76,6 @@ func createChannelStep(src, dst ChainI, ordering chantypes.Order) (*RelayMsgs, e
 	var (
 		srcUpdateHeader, dstUpdateHeader HeaderI
 	)
-	_, _ = srcUpdateHeader, dstUpdateHeader
 
 	err = retry.Do(func() error {
 		srcUpdateHeader, dstUpdateHeader, err = sh.GetTrustedHeaders(src, dst)
