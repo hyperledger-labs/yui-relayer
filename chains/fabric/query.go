@@ -7,6 +7,7 @@ import (
 
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
+	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	committypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
 	"github.com/datachainlab/fabric-ibc/app"
@@ -116,7 +117,7 @@ func (c *Chain) QueryConnection(height int64, prove bool) (*conntypes.QueryConne
 	if prove {
 		if res, err := c.queryConnectioWithProof(c.pathEnd.ConnectionID); err == nil {
 			return res, nil
-		} else if strings.Contains(err.Error(), "connection not found") {
+		} else if strings.Contains(err.Error(), conntypes.ErrConnectionNotFound.Error()) {
 			return emptyConnRes, nil
 		} else {
 			return nil, err
@@ -127,7 +128,7 @@ func (c *Chain) QueryConnection(height int64, prove bool) (*conntypes.QueryConne
 	}
 	var cres conntypes.QueryConnectionResponse
 	if err := c.query("/ibc.core.connection.v1.Query/Connection", req, &cres); err != nil {
-		if strings.Contains(err.Error(), "connection not found: key not found") {
+		if strings.Contains(err.Error(), conntypes.ErrConnectionNotFound.Error()) {
 			return emptyConnRes, nil
 		}
 		return nil, err
@@ -161,6 +162,63 @@ var emptyConnRes = conntypes.NewQueryConnectionResponse(
 			committypes.NewMerklePrefix([]byte{}),
 		),
 		[]*conntypes.Version{},
+	),
+	[]byte{},
+	clienttypes.NewHeight(0, 0),
+)
+
+// QueryChannel returns the channel associated with a channelID
+func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error) {
+	if prove {
+		if res, err := c.queryChannelWithProof(c.pathEnd.PortID, c.pathEnd.ChannelID); err == nil {
+			return res, nil
+		} else if strings.Contains(err.Error(), chantypes.ErrChannelNotFound.Error()) {
+			return emptyChannelRes, nil
+		} else {
+			return nil, err
+		}
+	}
+	req := &chantypes.QueryChannelRequest{
+		PortId:    c.pathEnd.PortID,
+		ChannelId: c.pathEnd.ChannelID,
+	}
+	var cres chantypes.QueryChannelResponse
+	if err := c.query("/ibc.core.channel.v1.Query/Channel", req, &cres); err != nil {
+		if strings.Contains(err.Error(), chantypes.ErrChannelNotFound.Error()) {
+			return emptyChannelRes, nil
+		}
+		return nil, err
+	}
+	return &cres, nil
+
+}
+
+func (c *Chain) queryChannelWithProof(portID, channelID string) (*chantypes.QueryChannelResponse, error) {
+	channel, proof, err := c.endorseChannelState(portID, channelID)
+	if err != nil {
+		return nil, err
+	}
+	proofBytes, err := proto.Marshal(proof)
+	if err != nil {
+		return nil, err
+	}
+	return &chantypes.QueryChannelResponse{
+		Channel:     channel,
+		Proof:       proofBytes,
+		ProofHeight: c.getCurrentHeight(),
+	}, nil
+}
+
+var emptyChannelRes = chantypes.NewQueryChannelResponse(
+	chantypes.NewChannel(
+		chantypes.UNINITIALIZED,
+		chantypes.UNORDERED,
+		chantypes.NewCounterparty(
+			"port",
+			"channel",
+		),
+		[]string{},
+		"version",
 	),
 	[]byte{},
 	clienttypes.NewHeight(0, 0),

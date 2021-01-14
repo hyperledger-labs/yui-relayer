@@ -22,6 +22,7 @@ func transactionCmd(ctx *config.Context) *cobra.Command {
 	cmd.AddCommand(
 		createClientsCmd(ctx),
 		createConnectionCmd(ctx),
+		createChannelCmd(ctx),
 	)
 
 	return cmd
@@ -81,6 +82,39 @@ func createConnectionCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			return core.CreateConnection(c[src], c[dst], to)
+		},
+	}
+
+	return timeoutFlag(cmd)
+}
+
+func createChannelCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "channel [path-name]",
+		Short: "create a channel between two configured chains with a configured path",
+		Long: strings.TrimSpace(`This command is meant to be used to repair or 
+		create a channel between two chains with a configured path in the config file`),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
+			if err != nil {
+				return err
+			}
+
+			to, err := getTimeout(cmd)
+			if err != nil {
+				return err
+			}
+
+			// ensure that keys exist
+			if _, err = c[src].GetAddress(); err != nil {
+				return err
+			}
+			if _, err = c[dst].GetAddress(); err != nil {
+				return err
+			}
+
+			return core.CreateChannel(c[src], c[dst], false, to)
 		},
 	}
 

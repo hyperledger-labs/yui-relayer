@@ -20,6 +20,7 @@ func queryCmd(ctx *config.Context) *cobra.Command {
 	cmd.AddCommand(
 		queryClientCmd(ctx),
 		queryConnection(ctx),
+		queryChannel(ctx),
 	)
 
 	return cmd
@@ -86,6 +87,35 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 				return err
 			}
 			fmt.Println(res.Connection.String())
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func queryChannel(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "channel [path-name] [chain-id]",
+		Short: "Query the connection state for the given connection id",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			chains, _, _, err := ctx.Config.ChainsFromPath(args[0])
+			if err != nil {
+				return err
+			}
+			c := chains[args[1]]
+
+			height, err := c.QueryLatestHeight()
+			if err != nil {
+				return err
+			}
+
+			res, err := c.QueryChannel(height, false)
+			if err != nil {
+				return err
+			}
+			fmt.Println(res.Channel.String())
 			return nil
 		},
 	}
