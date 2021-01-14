@@ -117,7 +117,7 @@ func (c *Chain) QueryConnection(height int64, prove bool) (*conntypes.QueryConne
 	if prove {
 		if res, err := c.queryConnectioWithProof(c.pathEnd.ConnectionID); err == nil {
 			return res, nil
-		} else if strings.Contains(err.Error(), "connection not found") {
+		} else if strings.Contains(err.Error(), conntypes.ErrConnectionNotFound.Error()) {
 			return emptyConnRes, nil
 		} else {
 			return nil, err
@@ -128,7 +128,7 @@ func (c *Chain) QueryConnection(height int64, prove bool) (*conntypes.QueryConne
 	}
 	var cres conntypes.QueryConnectionResponse
 	if err := c.query("/ibc.core.connection.v1.Query/Connection", req, &cres); err != nil {
-		if strings.Contains(err.Error(), "connection not found: key not found") {
+		if strings.Contains(err.Error(), conntypes.ErrConnectionNotFound.Error()) {
 			return emptyConnRes, nil
 		}
 		return nil, err
@@ -172,15 +172,25 @@ func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.Query
 	if prove {
 		if res, err := c.queryChannelWithProof(c.pathEnd.PortID, c.pathEnd.ChannelID); err == nil {
 			return res, nil
-		} else if strings.Contains(err.Error(), "channel not found") {
+		} else if strings.Contains(err.Error(), chantypes.ErrChannelNotFound.Error()) {
 			return emptyChannelRes, nil
 		} else {
 			return nil, err
 		}
-
-	} else {
-		panic("not implemented error")
 	}
+	req := &chantypes.QueryChannelRequest{
+		PortId:    c.pathEnd.PortID,
+		ChannelId: c.pathEnd.ChannelID,
+	}
+	var cres chantypes.QueryChannelResponse
+	if err := c.query("/ibc.core.channel.v1.Query/Channel", req, &cres); err != nil {
+		if strings.Contains(err.Error(), chantypes.ErrChannelNotFound.Error()) {
+			return emptyChannelRes, nil
+		}
+		return nil, err
+	}
+	return &cres, nil
+
 }
 
 func (c *Chain) queryChannelWithProof(portID, channelID string) (*chantypes.QueryChannelResponse, error) {
