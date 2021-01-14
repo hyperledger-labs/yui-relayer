@@ -3,6 +3,7 @@ package core
 import (
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
+	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
 	"golang.org/x/sync/errgroup"
 )
@@ -35,6 +36,21 @@ func QueryConnectionPair(
 	})
 	eg.Go(func() error {
 		dstConn, err = dst.QueryConnection(dstH, true)
+		return err
+	})
+	err = eg.Wait()
+	return
+}
+
+// QueryChannelPair returns a pair of channel responses
+func QueryChannelPair(src, dst ChainI, srcH, dstH int64) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
+	var eg = new(errgroup.Group)
+	eg.Go(func() error {
+		srcChan, err = src.QueryChannel(srcH, true)
+		return err
+	})
+	eg.Go(func() error {
+		dstChan, err = dst.QueryChannel(dstH, true)
 		return err
 	})
 	err = eg.Wait()
