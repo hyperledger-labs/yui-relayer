@@ -7,6 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
+	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
 	"github.com/gogo/protobuf/proto"
 )
@@ -35,6 +36,8 @@ type ChainI interface {
 	QueryClientState(height int64, prove bool) (*clienttypes.QueryClientStateResponse, error)
 	// QueryConnection returns the remote end of a given connection
 	QueryConnection(height int64, prove bool) (*conntypes.QueryConnectionResponse, error)
+	// QueryChannel returns the channel associated with a channelID
+	QueryChannel(height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error)
 
 	SendMsgs(msgs []sdk.Msg) ([]byte, error)
 	// Send sends msgs to the chain and logging a result of it

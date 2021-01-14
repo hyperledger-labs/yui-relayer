@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 )
 
@@ -72,5 +73,63 @@ func CreateChannel(src, dst ChainI, ordered bool, to time.Duration) error {
 }
 
 func createChannelStep(src, dst ChainI, ordering chantypes.Order) (*RelayMsgs, error) {
-	panic("not implemented error")
+	out := NewRelayMsgs()
+	if err := validatePaths(src, dst); err != nil {
+		return nil, err
+	}
+	// First, update the light clients to the latest header and return the header
+	sh, err := NewSyncHeaders(src, dst)
+	if err != nil {
+		return nil, err
+	}
+
+	// Query a number of things all at once
+	var (
+		srcUpdateHeader, dstUpdateHeader HeaderI
+	)
+	_, _ = srcUpdateHeader, dstUpdateHeader
+
+	err = retry.Do(func() error {
+		srcUpdateHeader, dstUpdateHeader, err = sh.GetTrustedHeaders(src, dst)
+		return err
+	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+		// logRetryUpdateHeaders(src, dst, n, err)
+		if err := sh.Updates(src, dst); err != nil {
+			panic(err)
+		}
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	srcChan, dstChan, err := QueryChannelPair(src, dst, int64(sh.GetHeight(src.ChainID()))-1, int64(sh.GetHeight(dst.ChainID()))-1)
+	if err != nil {
+		return nil, err
+	}
+
+	switch {
+	// Handshake hasn't been started on src or dst, relay `chanOpenInit` to src
+	case srcChan.Channel.State == chantypes.UNINITIALIZED && dstChan.Channel.State == chantypes.UNINITIALIZED:
+		logChannelStates(src, dst, srcChan, dstChan)
+		addr := mustGetAddress(src)
+		out.Src = append(out.Src,
+			src.Path().ChanInit(dst.Path(), addr),
+		)
+	default:
+		panic(fmt.Sprintf("not implemeneted error: %v <=> %v", srcChan.Channel.State.String(), dstChan.Channel.State.String()))
+	}
+	return out, nil
+}
+
+func logChannelStates(src, dst ChainI, srcChan, dstChan *chantypes.QueryChannelResponse) {
+	log.Println(fmt.Sprintf("- [%s]@{%d}chan(%s)-{%s} : [%s]@{%d}chan(%s)-{%s}",
+		src.ChainID(),
+		mustGetHeight(srcChan.ProofHeight),
+		src.Path().ChannelID,
+		srcChan.Channel.State,
+		dst.ChainID(),
+		mustGetHeight(dstChan.ProofHeight),
+		dst.Path().ChannelID,
+		dstChan.Channel.State,
+	))
 }

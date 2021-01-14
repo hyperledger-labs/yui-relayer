@@ -7,6 +7,7 @@ import (
 
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
+	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	committypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
 	"github.com/datachainlab/fabric-ibc/app"
@@ -161,6 +162,53 @@ var emptyConnRes = conntypes.NewQueryConnectionResponse(
 			committypes.NewMerklePrefix([]byte{}),
 		),
 		[]*conntypes.Version{},
+	),
+	[]byte{},
+	clienttypes.NewHeight(0, 0),
+)
+
+// QueryChannel returns the channel associated with a channelID
+func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error) {
+	if prove {
+		if res, err := c.queryChannelWithProof(c.pathEnd.PortID, c.pathEnd.ChannelID); err == nil {
+			return res, nil
+		} else if strings.Contains(err.Error(), "channel not found") {
+			return emptyChannelRes, nil
+		} else {
+			return nil, err
+		}
+
+	} else {
+		panic("not implemented error")
+	}
+}
+
+func (c *Chain) queryChannelWithProof(portID, channelID string) (*chantypes.QueryChannelResponse, error) {
+	channel, proof, err := c.endorseChannelState(portID, channelID)
+	if err != nil {
+		return nil, err
+	}
+	proofBytes, err := proto.Marshal(proof)
+	if err != nil {
+		return nil, err
+	}
+	return &chantypes.QueryChannelResponse{
+		Channel:     channel,
+		Proof:       proofBytes,
+		ProofHeight: c.getCurrentHeight(),
+	}, nil
+}
+
+var emptyChannelRes = chantypes.NewQueryChannelResponse(
+	chantypes.NewChannel(
+		chantypes.UNINITIALIZED,
+		chantypes.UNORDERED,
+		chantypes.NewCounterparty(
+			"port",
+			"channel",
+		),
+		[]string{},
+		"version",
 	),
 	[]byte{},
 	clienttypes.NewHeight(0, 0),
