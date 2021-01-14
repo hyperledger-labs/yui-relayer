@@ -6,6 +6,7 @@ import (
 
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
+	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	"github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
 	"github.com/datachainlab/fabric-ibc/commitment"
 	fabrictypes "github.com/datachainlab/fabric-ibc/x/ibc/light-clients/xx-fabric/types"
@@ -16,6 +17,7 @@ const (
 	endorseClientStateFunc     = "endorseClientState"
 	endorseConsensusStateFunc  = "endorseConsensusStateCommitment"
 	endorseConnectionStateFunc = "endorseConnectionState"
+	endorseChannelStateFunc    = "endorseChannelState"
 )
 
 func (chain *Chain) endorseCommitment(fnName string, args []string, result proto.Message) (*fabrictypes.CommitmentProof, error) {
@@ -71,6 +73,15 @@ func (chain *Chain) endorseConsensusState(clientID string, height uint64) (expor
 func (chain *Chain) endorseConnectionState(connectionID string) (*conntypes.ConnectionEnd, *fabrictypes.CommitmentProof, error) {
 	var result conntypes.ConnectionEnd
 	proof, err := chain.endorseCommitment(endorseConnectionStateFunc, []string{connectionID}, &result)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &result, proof, nil
+}
+
+func (chain *Chain) endorseChannelState(portID, channelID string) (*chantypes.Channel, *fabrictypes.CommitmentProof, error) {
+	var result chantypes.Channel
+	proof, err := chain.endorseCommitment(endorseChannelStateFunc, []string{portID, channelID}, &result)
 	if err != nil {
 		return nil, nil, err
 	}

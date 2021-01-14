@@ -3,6 +3,7 @@ package tendermint
 import (
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
+	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
@@ -27,6 +28,12 @@ func (c *Chain) QueryClientState(height int64, prove bool) (*clienttypes.QueryCl
 func (c *Chain) QueryConnection(height int64, prove bool) (*conntypes.QueryConnectionResponse, error) {
 	// TODO use arg `prove` to call the method
 	return c.base.QueryConnection(height)
+}
+
+// QueryChannel returns the channel associated with a channelID
+func (c *Chain) QueryChannel(height int64, prove bool) (*chantypes.QueryChannelResponse, error) {
+	// TODO use arg `prove` to call the method
+	return c.base.QueryChannel(height)
 }
 
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
