@@ -5,6 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
@@ -38,6 +39,10 @@ type ChainI interface {
 	QueryConnection(height int64, prove bool) (*conntypes.QueryConnectionResponse, error)
 	// QueryChannel returns the channel associated with a channelID
 	QueryChannel(height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error)
+	// QueryBalance returns the amount of coins in the relayer account
+	QueryBalance(address sdk.AccAddress) (sdk.Coins, error)
+	// QueryDenomTraces returns all the denom traces from a given chain
+	QueryDenomTraces(offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error)
 
 	SendMsgs(msgs []sdk.Msg) ([]byte, error)
 	// Send sends msgs to the chain and logging a result of it

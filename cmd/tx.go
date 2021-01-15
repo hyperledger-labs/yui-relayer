@@ -3,6 +3,7 @@ package cmd
 import (
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/datachainlab/relayer/config"
 	"github.com/datachainlab/relayer/core"
 	"github.com/spf13/cobra"
@@ -20,6 +21,8 @@ func transactionCmd(ctx *config.Context) *cobra.Command {
 	}
 
 	cmd.AddCommand(
+		xfersend(ctx),
+		flags.LineBreak,
 		createClientsCmd(ctx),
 		createConnectionCmd(ctx),
 		createChannelCmd(ctx),
