@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	querytypes "github.com/cosmos/cosmos-sdk/types/query"
+	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
@@ -290,6 +294,39 @@ func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
 	}
 
 	return header, nil
+}
+
+// QueryBalance returns the amount of coins in the relayer account
+func (c *Chain) QueryBalance(address sdk.AccAddress) (sdk.Coins, error) {
+	req := bankTypes.NewQueryAllBalancesRequest(address, &querytypes.PageRequest{
+		Key:        []byte(""),
+		Offset:     0,
+		Limit:      1000,
+		CountTotal: true,
+	})
+
+	var res bankTypes.QueryAllBalancesResponse
+	if err := c.query("/cosmos.bank.v1beta1.Query/AllBalances", req, &res); err != nil {
+		return nil, err
+	}
+	return res.Balances, nil
+}
+
+// QueryDenomTraces returns all the denom traces from a given chain
+func (c *Chain) QueryDenomTraces(offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error) {
+	req := &transfertypes.QueryDenomTracesRequest{
+		Pagination: &querytypes.PageRequest{
+			Key:        []byte(""),
+			Offset:     offset,
+			Limit:      limit,
+			CountTotal: true,
+		},
+	}
+	var res transfertypes.QueryDenomTracesResponse
+	if err := c.query("/ibc.applications.transfer.v1.Query/DenomTraces", req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
 }
 
 func (c *Chain) query(path string, req proto.Message, res interface{ Unmarshal(bz []byte) error }) error {

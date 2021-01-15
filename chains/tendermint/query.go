@@ -1,6 +1,12 @@
 package tendermint
 
 import (
+	"context"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	querytypes "github.com/cosmos/cosmos-sdk/types/query"
+	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
@@ -40,4 +46,28 @@ func (c *Chain) QueryChannel(height int64, prove bool) (*chantypes.QueryChannelR
 func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibcexported.Height, prove bool) (*clienttypes.QueryConsensusStateResponse, error) {
 	// TODO use arg `prove` to call the method
 	return c.base.QueryClientConsensusState(height, dstClientConsHeight)
+}
+
+// QueryBalance returns the amount of coins in the relayer account
+func (c *Chain) QueryBalance(addr sdk.AccAddress) (sdk.Coins, error) {
+	params := bankTypes.NewQueryAllBalancesRequest(addr, &querytypes.PageRequest{
+		Key:        []byte(""),
+		Offset:     0,
+		Limit:      1000,
+		CountTotal: true,
+	})
+
+	queryClient := bankTypes.NewQueryClient(c.base.CLIContext(0))
+
+	res, err := queryClient.AllBalances(context.Background(), params)
+	if err != nil {
+		return nil, err
+	}
+
+	return res.Balances, nil
+}
+
+// QueryDenomTraces returns all the denom traces from a given chain
+func (c *Chain) QueryDenomTraces(offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error) {
+	return c.base.QueryDenomTraces(offset, limit, height)
 }
