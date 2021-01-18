@@ -2,6 +2,7 @@ package tendermint
 
 import (
 	"context"
+	fmt "fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	querytypes "github.com/cosmos/cosmos-sdk/types/query"
@@ -11,6 +12,7 @@ import (
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	"github.com/datachainlab/relayer/core"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 )
 
@@ -70,4 +72,48 @@ func (c *Chain) QueryBalance(addr sdk.AccAddress) (sdk.Coins, error) {
 // QueryDenomTraces returns all the denom traces from a given chain
 func (c *Chain) QueryDenomTraces(offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error) {
 	return c.base.QueryDenomTraces(offset, limit, height)
+}
+
+// QueryPacketCommitment returns the packet commitment proof at a given height
+func (c *Chain) QueryPacketCommitment(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
+	return c.base.QueryPacketCommitment(height, seq)
+}
+
+// QueryPacketCommitments returns an array of packet commitments
+func (c *Chain) QueryPacketCommitments(offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
+	return c.base.QueryPacketCommitments(offset, limit, height)
+}
+
+// QueryUnrecievedPackets returns a list of unrelayed packet commitments
+func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, error) {
+	return c.base.QueryUnrecievedPackets(height, seqs)
+}
+
+func (src *Chain) QueryPacket(height int64, seq uint64) (*chantypes.Packet, error) {
+	txs, err := src.base.QueryTxs(uint64(height), 1, 1000, rcvPacketQuery(src.Path().ChannelID, int(seq)))
+	switch {
+	case err != nil:
+		return nil, err
+	case len(txs) == 0:
+		return nil, fmt.Errorf("no transactions returned with query")
+	case len(txs) > 1:
+		return nil, fmt.Errorf("more than one transaction returned with query")
+	}
+
+	packets, err := core.GetPacketsFromEvents(txs[0].TxResult.Events)
+	if err != nil {
+		return nil, err
+	}
+	if l := len(packets); l != 1 {
+		return nil, fmt.Errorf("unexpected packets length: %v", l)
+	}
+	return &packets[0], nil
+}
+
+const (
+	spTag = "send_packet"
+)
+
+func rcvPacketQuery(channelID string, seq int) []string {
+	return []string{fmt.Sprintf("%s.packet_src_channel='%s'", spTag, channelID), fmt.Sprintf("%s.packet_sequence='%d'", spTag, seq)}
 }

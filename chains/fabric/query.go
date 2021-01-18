@@ -1,6 +1,7 @@
 package fabric
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -23,8 +24,10 @@ import (
 )
 
 const (
-	queryFunc       = "query"
-	getSequenceFunc = "getSequence"
+	queryFunc                  = "query"
+	getSequenceFunc            = "getSequence"
+	queryPacketFunc            = "queryPacket"
+	queryPacketAcknowledgement = "queryPacketAcknowledgement"
 )
 
 func (c *Chain) Query(req app.RequestQuery) (*app.ResponseQuery, error) {
@@ -327,6 +330,72 @@ func (c *Chain) QueryDenomTraces(offset, limit uint64, height int64) (*transfert
 		return nil, err
 	}
 	return &res, nil
+}
+
+func (c *Chain) QueryPacketCommitment(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
+	req := &chantypes.QueryPacketCommitmentRequest{
+		PortId:    c.Path().PortID,
+		ChannelId: c.Path().ChannelID,
+		Sequence:  seq,
+	}
+	var res chantypes.QueryPacketCommitmentResponse
+	if err := c.query("/ibc.core.channel.v1.Query/PacketCommitment", req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *Chain) QueryPacketCommitments(offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
+	req := &chantypes.QueryPacketCommitmentsRequest{
+		PortId:    c.Path().PortID,
+		ChannelId: c.Path().ChannelID,
+		Pagination: &querytypes.PageRequest{
+			Offset:     offset,
+			Limit:      limit,
+			CountTotal: true,
+		},
+	}
+	var res chantypes.QueryPacketCommitmentsResponse
+	if err := c.query("/ibc.core.channel.v1.Query/PacketCommitments", req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, error) {
+	req := &chantypes.QueryUnreceivedPacketsRequest{
+		PortId:                    c.Path().PortID,
+		ChannelId:                 c.Path().ChannelID,
+		PacketCommitmentSequences: seqs,
+	}
+	var res chantypes.QueryUnreceivedPacketsResponse
+	if err := c.query("/ibc.core.channel.v1.Query/UnreceivedPackets", req, &res); err != nil {
+		return nil, err
+	}
+	return res.Sequences, nil
+}
+
+func (c *Chain) QueryPacket(height int64, sequence uint64) (*chantypes.Packet, error) {
+	var p chantypes.Packet
+
+	bz, err := c.Contract().EvaluateTransaction(queryPacketFunc, c.Path().PortID, c.Path().ChannelID, fmt.Sprint(sequence))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(bz, &p); err != nil {
+		return nil, err
+	}
+
+	return &p, nil
+}
+
+func (c *Chain) QueryPacketAcknowledgemnt(sequence uint64) ([]byte, error) {
+	bz, err := c.Contract().EvaluateTransaction(queryPacketAcknowledgement, c.Path().PortID, c.Path().ChannelID, fmt.Sprint(sequence))
+	if err != nil {
+		return nil, err
+	}
+	return base64.StdEncoding.DecodeString(string(bz))
 }
 
 func (c *Chain) query(path string, req proto.Message, res interface{ Unmarshal(bz []byte) error }) error {
