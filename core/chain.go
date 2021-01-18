@@ -53,8 +53,12 @@ type ChainI interface {
 	QueryPacketAcknowledgements(offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
 	// QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
 	QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([]uint64, error)
+	// QueryPacketAcknowledgementCommitment returns the packet ack proof at a given height
+	QueryPacketAcknowledgementCommitment(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error)
+
 	// QueryPacket returns a packet corresponds to a given sequence
 	QueryPacket(height int64, sequence uint64) (*chantypes.Packet, error)
+	QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error)
 
 	SendMsgs(msgs []sdk.Msg) ([]byte, error)
 	// Send sends msgs to the chain and logging a result of it

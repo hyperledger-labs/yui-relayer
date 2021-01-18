@@ -12,7 +12,7 @@ type StrategyI interface {
 	UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
 	RelayPackets(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
 	UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
-	// RelayAcknowledgements(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
+	RelayAcknowledgements(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
 }
 
 func GetStrategy(cfg relayer.StrategyCfg) (StrategyI, error) {

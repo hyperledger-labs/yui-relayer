@@ -334,16 +334,35 @@ func (c *Chain) QueryDenomTraces(offset, limit uint64, height int64) (*transfert
 }
 
 func (c *Chain) QueryPacketCommitment(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	req := &chantypes.QueryPacketCommitmentRequest{
-		PortId:    c.Path().PortID,
-		ChannelId: c.Path().ChannelID,
-		Sequence:  seq,
-	}
-	var res chantypes.QueryPacketCommitmentResponse
-	if err := c.query("/ibc.core.channel.v1.Query/PacketCommitment", req, &res); err != nil {
+	cm, proof, err := c.endorsePacketCommitment(c.Path().PortID, c.Path().ChannelID, seq)
+	if err != nil {
 		return nil, err
 	}
-	return &res, nil
+	proofBytes, err := proto.Marshal(proof)
+	if err != nil {
+		return nil, err
+	}
+	return &chantypes.QueryPacketCommitmentResponse{
+		Commitment:  cm,
+		Proof:       proofBytes,
+		ProofHeight: c.getCurrentHeight(),
+	}, nil
+}
+
+func (c *Chain) QueryPacketAcknowledgementCommitment(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
+	cm, proof, err := c.endorsePacketAcknowledgement(c.Path().PortID, c.Path().ChannelID, seq)
+	if err != nil {
+		return nil, err
+	}
+	proofBytes, err := proto.Marshal(proof)
+	if err != nil {
+		return nil, err
+	}
+	return &chantypes.QueryPacketAcknowledgementResponse{
+		Acknowledgement: cm,
+		Proof:           proofBytes,
+		ProofHeight:     c.getCurrentHeight(),
+	}, nil
 }
 
 func (c *Chain) QueryPacketCommitments(offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
@@ -421,8 +440,8 @@ func (c *Chain) QueryPacket(height int64, sequence uint64) (*chantypes.Packet, e
 	return &p, nil
 }
 
-func (c *Chain) QueryPacketAcknowledgemnt(sequence uint64) ([]byte, error) {
-	bz, err := c.Contract().EvaluateTransaction(queryPacketAcknowledgement, c.Path().PortID, c.Path().ChannelID, fmt.Sprint(sequence))
+func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error) {
+	bz, err := dst.Contract().EvaluateTransaction(queryPacketAcknowledgement, dst.Path().PortID, dst.Path().ChannelID, fmt.Sprint(sequence))
 	if err != nil {
 		return nil, err
 	}
