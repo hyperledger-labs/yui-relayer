@@ -154,5 +154,5 @@ func rcvPacketQuery(channelID string, seq int) []string {
 }
 
 func ackPacketQuery(channelID string, seq int) []string {
-	return []string{fmt.Sprintf("%s.packet_src_channel='%s'", waTag, channelID), fmt.Sprintf("%s.packet_sequence='%d'", waTag, seq)}
+	return []string{fmt.Sprintf("%s.packet_dst_channel='%s'", waTag, channelID), fmt.Sprintf("%s.packet_sequence='%d'", waTag, seq)}
 }

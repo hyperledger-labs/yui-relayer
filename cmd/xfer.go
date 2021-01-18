@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	"github.com/datachainlab/relayer/config"
 	"github.com/datachainlab/relayer/core"
 	"github.com/spf13/cobra"
@@ -47,6 +48,11 @@ func xfersend(ctx *config.Context) *cobra.Command {
 			amount, err := sdk.ParseCoin(args[3])
 			if err != nil {
 				return err
+			}
+			// XXX want to support all denom format
+			denom := transfertypes.ParseDenomTrace(amount.Denom)
+			if denom.Path != "" {
+				amount.Denom = denom.IBCDenom()
 			}
 
 			dstAddr, err := sdk.AccAddressFromBech32(args[4])
