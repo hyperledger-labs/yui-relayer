@@ -43,6 +43,14 @@ type ChainI interface {
 	QueryBalance(address sdk.AccAddress) (sdk.Coins, error)
 	// QueryDenomTraces returns all the denom traces from a given chain
 	QueryDenomTraces(offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error)
+	// QueryPacketCommitment returns the packet commitment proof at a given height
+	QueryPacketCommitment(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error)
+	// QueryPacketCommitments returns an array of packet commitments
+	QueryPacketCommitments(offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error)
+	// QueryUnrecievedPackets returns a list of unrelayed packet commitments
+	QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, error)
+
+	QueryPacket(height int64, sequence uint64) (*chantypes.Packet, error)
 
 	SendMsgs(msgs []sdk.Msg) ([]byte, error)
 	// Send sends msgs to the chain and logging a result of it

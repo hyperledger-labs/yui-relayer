@@ -22,6 +22,7 @@ func transactionCmd(ctx *config.Context) *cobra.Command {
 
 	cmd.AddCommand(
 		xfersend(ctx),
+		relayMsgsCmd(ctx),
 		flags.LineBreak,
 		createClientsCmd(ctx),
 		createConnectionCmd(ctx),
@@ -122,4 +123,43 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 	}
 
 	return timeoutFlag(cmd)
+}
+
+func relayMsgsCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "relay [path-name]",
+		Short: "relay any packets that remain to be relayed on a given path, in both directions",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
+			if err != nil {
+				return err
+			}
+			path, err := ctx.Config.Paths.Get(args[0])
+			if err != nil {
+				return err
+			}
+			sh, err := core.NewSyncHeaders(c[src], c[dst])
+			if err != nil {
+				return err
+			}
+			st, err := core.GetStrategy(*path.Strategy)
+			if err != nil {
+				return err
+			}
+
+			sp, err := st.UnrelayedSequences(c[src], c[dst], sh)
+			if err != nil {
+				return err
+			}
+
+			if err = st.RelayPackets(c[src], c[dst], sp, sh); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+	// TODO add option support for strategy
+	return cmd
 }
