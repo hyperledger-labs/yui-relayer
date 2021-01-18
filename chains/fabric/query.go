@@ -1,10 +1,15 @@
 package fabric
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	querytypes "github.com/cosmos/cosmos-sdk/types/query"
+	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
@@ -19,8 +24,11 @@ import (
 )
 
 const (
-	queryFunc       = "query"
-	getSequenceFunc = "getSequence"
+	queryFunc                   = "query"
+	getSequenceFunc             = "getSequence"
+	queryPacketFunc             = "queryPacket"
+	queryPacketAcknowledgement  = "queryPacketAcknowledgement"
+	queryPacketAcknowledgements = "queryPacketAcknowledgements"
 )
 
 func (c *Chain) Query(req app.RequestQuery) (*app.ResponseQuery, error) {
@@ -290,6 +298,154 @@ func (c *Chain) QueryLatestHeader() (core.HeaderI, error) {
 	}
 
 	return header, nil
+}
+
+// QueryBalance returns the amount of coins in the relayer account
+func (c *Chain) QueryBalance(address sdk.AccAddress) (sdk.Coins, error) {
+	req := bankTypes.NewQueryAllBalancesRequest(address, &querytypes.PageRequest{
+		Key:        []byte(""),
+		Offset:     0,
+		Limit:      1000,
+		CountTotal: true,
+	})
+
+	var res bankTypes.QueryAllBalancesResponse
+	if err := c.query("/cosmos.bank.v1beta1.Query/AllBalances", req, &res); err != nil {
+		return nil, err
+	}
+	return res.Balances, nil
+}
+
+// QueryDenomTraces returns all the denom traces from a given chain
+func (c *Chain) QueryDenomTraces(offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error) {
+	req := &transfertypes.QueryDenomTracesRequest{
+		Pagination: &querytypes.PageRequest{
+			Key:        []byte(""),
+			Offset:     offset,
+			Limit:      limit,
+			CountTotal: true,
+		},
+	}
+	var res transfertypes.QueryDenomTracesResponse
+	if err := c.query("/ibc.applications.transfer.v1.Query/DenomTraces", req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *Chain) QueryPacketCommitment(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
+	cm, proof, err := c.endorsePacketCommitment(c.Path().PortID, c.Path().ChannelID, seq)
+	if err != nil {
+		return nil, err
+	}
+	proofBytes, err := proto.Marshal(proof)
+	if err != nil {
+		return nil, err
+	}
+	return &chantypes.QueryPacketCommitmentResponse{
+		Commitment:  cm,
+		Proof:       proofBytes,
+		ProofHeight: c.getCurrentHeight(),
+	}, nil
+}
+
+func (c *Chain) QueryPacketAcknowledgementCommitment(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
+	cm, proof, err := c.endorsePacketAcknowledgement(c.Path().PortID, c.Path().ChannelID, seq)
+	if err != nil {
+		return nil, err
+	}
+	proofBytes, err := proto.Marshal(proof)
+	if err != nil {
+		return nil, err
+	}
+	return &chantypes.QueryPacketAcknowledgementResponse{
+		Acknowledgement: cm,
+		Proof:           proofBytes,
+		ProofHeight:     c.getCurrentHeight(),
+	}, nil
+}
+
+func (c *Chain) QueryPacketCommitments(offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
+	req := &chantypes.QueryPacketCommitmentsRequest{
+		PortId:    c.Path().PortID,
+		ChannelId: c.Path().ChannelID,
+		Pagination: &querytypes.PageRequest{
+			Offset:     offset,
+			Limit:      limit,
+			CountTotal: true,
+		},
+	}
+	var res chantypes.QueryPacketCommitmentsResponse
+	if err := c.query("/ibc.core.channel.v1.Query/PacketCommitments", req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, error) {
+	req := &chantypes.QueryUnreceivedPacketsRequest{
+		PortId:                    c.Path().PortID,
+		ChannelId:                 c.Path().ChannelID,
+		PacketCommitmentSequences: seqs,
+	}
+	var res chantypes.QueryUnreceivedPacketsResponse
+	if err := c.query("/ibc.core.channel.v1.Query/UnreceivedPackets", req, &res); err != nil {
+		return nil, err
+	}
+	return res.Sequences, nil
+}
+
+func (c *Chain) QueryPacketAcknowledgements(offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+	req := &chantypes.QueryPacketAcknowledgementsRequest{
+		PortId:    c.Path().PortID,
+		ChannelId: c.Path().ChannelID,
+		Pagination: &querytypes.PageRequest{
+			Offset:     offset,
+			Limit:      limit,
+			CountTotal: true,
+		},
+	}
+	var res chantypes.QueryPacketAcknowledgementsResponse
+	if err := c.query("/ibc.core.channel.v1.Query/PacketAcknowledgements", req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *Chain) QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([]uint64, error) {
+	req := &chantypes.QueryUnreceivedAcksRequest{
+		PortId:             c.Path().PortID,
+		ChannelId:          c.Path().ChannelID,
+		PacketAckSequences: seqs,
+	}
+	var res chantypes.QueryUnreceivedAcksResponse
+	if err := c.query("/ibc.core.channel.v1.Query/UnreceivedAcks", req, &res); err != nil {
+		return nil, err
+	}
+	return res.Sequences, nil
+}
+
+func (c *Chain) QueryPacket(height int64, sequence uint64) (*chantypes.Packet, error) {
+	var p chantypes.Packet
+
+	bz, err := c.Contract().EvaluateTransaction(queryPacketFunc, c.Path().PortID, c.Path().ChannelID, fmt.Sprint(sequence))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(bz, &p); err != nil {
+		return nil, err
+	}
+
+	return &p, nil
+}
+
+func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error) {
+	bz, err := dst.Contract().EvaluateTransaction(queryPacketAcknowledgement, dst.Path().PortID, dst.Path().ChannelID, fmt.Sprint(sequence))
+	if err != nil {
+		return nil, err
+	}
+	return base64.StdEncoding.DecodeString(string(bz))
 }
 
 func (c *Chain) query(path string, req proto.Message, res interface{ Unmarshal(bz []byte) error }) error {

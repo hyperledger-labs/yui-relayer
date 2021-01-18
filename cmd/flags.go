@@ -9,10 +9,13 @@ import (
 )
 
 const (
-	flagJSON    = "json"
-	flagYAML    = "yaml"
-	flagFile    = "file"
-	flagTimeout = "timeout"
+	flagJSON                = "json"
+	flagYAML                = "yaml"
+	flagFile                = "file"
+	flagTimeout             = "timeout"
+	flagTimeoutHeightOffset = "timeout-height-offset"
+	flagTimeoutTimeOffset   = "timeout-time-offset"
+	flagIBCDenoms           = "ibc-denoms"
 )
 
 func heightFlag(cmd *cobra.Command) *cobra.Command {
@@ -61,4 +64,24 @@ func getTimeout(cmd *cobra.Command) (time.Duration, error) {
 		return 0, err
 	}
 	return time.ParseDuration(to)
+}
+
+func timeoutFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().Uint64P(flagTimeoutHeightOffset, "y", 0, "set timeout height offset for ")
+	cmd.Flags().DurationP(flagTimeoutTimeOffset, "c", time.Duration(0), "specify the path to relay over")
+	if err := viper.BindPFlag(flagTimeoutHeightOffset, cmd.Flags().Lookup(flagTimeoutHeightOffset)); err != nil {
+		panic(err)
+	}
+	if err := viper.BindPFlag(flagTimeoutTimeOffset, cmd.Flags().Lookup(flagTimeoutTimeOffset)); err != nil {
+		panic(err)
+	}
+	return cmd
+}
+
+func ibcDenomFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().BoolP(flagIBCDenoms, "i", false, "Display IBC denominations for sending tokens back to other chains")
+	if err := viper.BindPFlag(flagIBCDenoms, cmd.Flags().Lookup(flagIBCDenoms)); err != nil {
+		panic(err)
+	}
+	return cmd
 }

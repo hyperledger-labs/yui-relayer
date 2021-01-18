@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -e
+
+RLY_BINARY=../../build/uly
+RLY="${RLY_BINARY} --debug"
+
+# Ensure ${CHAIN_BINARY} is installed
+if ! [ -x ${CHAIN_BINARY} ]; then
+  echo "Error: ${CHAIN_BINARY} is not installed." >&2
+  exit 1
+fi
+
+# XXX set proper value
+TX_INTERNAL=3
+
+TM_ADDRESS=$(${RLY} tendermint keys show ibc0 testkey)
+FABRIC_ADDRESS=$(${RLY} fabric wallet address ibc1 | tail -n 1)
+
+echo "!!! Tendermint -> Fabric !!!"
+
+echo "Before TM balance: $(${RLY} query balance ibc0 ${TM_ADDRESS})"
+echo "Before Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"
+${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${FABRIC_ADDRESS}
+sleep ${TX_INTERNAL}
+${RLY} tx relay ibc01
+sleep ${TX_INTERNAL}
+${RLY} tx acks ibc01
+sleep ${TX_INTERNAL}
+echo "After TM balance: $(${RLY} query balance ibc0 ${TM_ADDRESS})"
+echo "After Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"
+
+echo "!!! Fabric -> Tendermint !!!"
+
+echo "Before TM balance: $(${RLY} query balance ibc0 ${TM_ADDRESS})"
+echo "Before Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"
+${RLY} tx transfer ibc01 ibc1 ibc0 100transfer/ibczeroxfer/samoleans ${TM_ADDRESS}
+sleep ${TX_INTERNAL}
+${RLY} tx relay ibc01
+sleep ${TX_INTERNAL}
+${RLY} tx acks ibc01
+sleep ${TX_INTERNAL}
+echo "After TM balance: $(${RLY} query balance ibc0 ${TM_ADDRESS})"
+echo "After Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"

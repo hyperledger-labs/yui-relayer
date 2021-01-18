@@ -20,9 +20,12 @@ func keysCmd(ctx *config.Context) *cobra.Command {
 		Short:   "manage keys held by the relayer for each chain",
 	}
 
-	cmd.AddCommand(keysAddCmd(ctx))
-	cmd.AddCommand(keysRestoreCmd(ctx))
-	cmd.AddCommand(keysShowCmd(ctx))
+	cmd.AddCommand(
+		keysAddCmd(ctx),
+		keysRestoreCmd(ctx),
+		keysShowCmd(ctx),
+		keysListCmd(ctx),
+	)
 
 	return cmd
 }
@@ -146,6 +149,35 @@ func keysShowCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			fmt.Println(info.GetAddress().String())
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+// keysListCmd respresents the `keys list` command
+func keysListCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list [chain-id]",
+		Short: "lists keys from the keychain associated with a particular chain",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, err := ctx.Config.GetChain(args[0])
+			if err != nil {
+				return err
+			}
+			chain := c.(*tendermint.Chain).Base()
+
+			info, err := chain.Keybase.List()
+			if err != nil {
+				return err
+			}
+
+			for d, i := range info {
+				fmt.Printf("key(%d): %s -> %s\n", d, i.GetName(), i.GetAddress().String())
+			}
+
 			return nil
 		},
 	}

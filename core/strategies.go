@@ -1,18 +1,27 @@
 package core
 
-// StrategyCfg defines which relaying strategy to take for a given path
-type StrategyCfg struct {
-	Type string `json:"type" yaml:"type"`
-}
+import (
+	"fmt"
+
+	"github.com/cosmos/relayer/relayer"
+)
 
 // StrategyI defines
 type StrategyI interface {
 	GetType() string
-	HandleEvents(src, dst ChainI, sh SyncHeadersI, events map[string][]string)
 	UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
-	UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
 	RelayPackets(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
+	UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
 	RelayAcknowledgements(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
+}
+
+func GetStrategy(cfg relayer.StrategyCfg) (StrategyI, error) {
+	switch cfg.Type {
+	case "naive":
+		return NewNaiveStrategy(), nil
+	default:
+		return nil, fmt.Errorf("unknown strategy type '%v'", cfg.Type)
+	}
 }
 
 // RunStrategy runs a given strategy
