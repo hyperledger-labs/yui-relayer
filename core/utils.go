@@ -76,6 +76,10 @@ type packetAcknowledgement struct {
 	data         []byte
 }
 
+func (ack packetAcknowledgement) Data() []byte {
+	return ack.data
+}
+
 func GetPacketAcknowledgementsFromEvents(events []abci.Event) ([]packetAcknowledgement, error) {
 	var acks []packetAcknowledgement
 	for _, ev := range events {

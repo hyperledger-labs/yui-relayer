@@ -23,6 +23,7 @@ func transactionCmd(ctx *config.Context) *cobra.Command {
 	cmd.AddCommand(
 		xfersend(ctx),
 		relayMsgsCmd(ctx),
+		relayAcksCmd(ctx),
 		flags.LineBreak,
 		createClientsCmd(ctx),
 		createConnectionCmd(ctx),
@@ -161,5 +162,47 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 		},
 	}
 	// TODO add option support for strategy
+	return cmd
+}
+
+func relayAcksCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "relay-acknowledgements [path-name]",
+		Aliases: []string{"acks"},
+		Short:   "relay any acknowledgements that remain to be relayed on a given path, in both directions",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
+			if err != nil {
+				return err
+			}
+			path, err := ctx.Config.Paths.Get(args[0])
+			if err != nil {
+				return err
+			}
+			sh, err := core.NewSyncHeaders(c[src], c[dst])
+			if err != nil {
+				return err
+			}
+			st, err := core.GetStrategy(*path.Strategy)
+			if err != nil {
+				return err
+			}
+
+			// sp.Src contains all sequences acked on SRC but acknowledgement not processed on DST
+			// sp.Dst contains all sequences acked on DST but acknowledgement not processed on SRC
+			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh)
+			if err != nil {
+				return err
+			}
+
+			if err = st.RelayAcknowledgements(c[src], c[dst], sp, sh); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
 	return cmd
 }
