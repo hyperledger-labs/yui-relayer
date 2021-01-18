@@ -23,6 +23,7 @@ func queryCmd(ctx *config.Context) *cobra.Command {
 	cmd.AddCommand(
 		queryBalanceCmd(ctx),
 		queryUnrelayedPackets(ctx),
+		queryUnrelayedAcknowledgements(ctx),
 		flags.LineBreak,
 		queryClientCmd(ctx),
 		queryConnection(ctx),
@@ -220,6 +221,47 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			out, err := json.Marshal(sp)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(string(out))
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func queryUnrelayedAcknowledgements(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "unrelayed-acknowledgements [path]",
+		Short: "Query for the packet sequence numbers that remain to be relayed on a given path",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
+			if err != nil {
+				return err
+			}
+			path, err := ctx.Config.Paths.Get(args[0])
+			if err != nil {
+				return err
+			}
+			sh, err := core.NewSyncHeaders(c[src], c[dst])
+			if err != nil {
+				return err
+			}
+			st, err := core.GetStrategy(*path.Strategy)
+			if err != nil {
+				return err
+			}
+
+			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh)
+			if err != nil {
+				return err
+			}
+
 			out, err := json.Marshal(sp)
 			if err != nil {
 				return err

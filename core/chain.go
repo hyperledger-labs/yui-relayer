@@ -49,7 +49,11 @@ type ChainI interface {
 	QueryPacketCommitments(offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error)
 	// QueryUnrecievedPackets returns a list of unrelayed packet commitments
 	QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, error)
-
+	// QueryPacketAcknowledgements returns an array of packet acks
+	QueryPacketAcknowledgements(offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
+	// QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
+	QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([]uint64, error)
+	// QueryPacket returns a packet corresponds to a given sequence
 	QueryPacket(height int64, sequence uint64) (*chantypes.Packet, error)
 
 	SendMsgs(msgs []sdk.Msg) ([]byte, error)

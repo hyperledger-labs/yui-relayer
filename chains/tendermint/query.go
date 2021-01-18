@@ -89,6 +89,14 @@ func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, 
 	return c.base.QueryUnrecievedPackets(height, seqs)
 }
 
+func (c *Chain) QueryPacketAcknowledgements(offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+	return c.base.QueryPacketAcknowledgements(offset, limit, height)
+}
+
+func (c *Chain) QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([]uint64, error) {
+	return c.base.QueryUnrecievedAcknowledgements(height, seqs)
+}
+
 func (src *Chain) QueryPacket(height int64, seq uint64) (*chantypes.Packet, error) {
 	txs, err := src.base.QueryTxs(uint64(height), 1, 1000, rcvPacketQuery(src.Path().ChannelID, int(seq)))
 	switch {
