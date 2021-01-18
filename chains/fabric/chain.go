@@ -49,6 +49,10 @@ func (c *Chain) ClientID() string {
 	return c.pathEnd.ClientID
 }
 
+func (c *Chain) Config() ChainConfig {
+	return c.config
+}
+
 func (c *Chain) Marshaler() codec.Marshaler {
 	return c.encodingConfig.Marshaler
 }

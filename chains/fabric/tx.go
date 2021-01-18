@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	handleIBCTxFunc = "handleIBCTx"
+	handleTxFunc = "handleTx"
 )
 
 func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
@@ -21,7 +21,7 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.gateway.Contract.SubmitTransaction(handleIBCTxFunc, string(txBytes))
+	res, err := c.gateway.Contract.SubmitTransaction(handleTxFunc, string(txBytes))
 	log.Printf("fabric.SendMsgs.result: res='%v' err='%v'", res, err)
 	return res, err
 }

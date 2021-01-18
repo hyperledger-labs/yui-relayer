@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+
+	fabricauthtypes "github.com/datachainlab/fabric-ibc/x/auth/types"
 	"github.com/datachainlab/relayer/chains/fabric"
 	"github.com/datachainlab/relayer/config"
 	"github.com/spf13/cobra"
@@ -15,6 +18,7 @@ func walletCmd(ctx *config.Context) *cobra.Command {
 
 	cmd.AddCommand(
 		populateWalletCmd(ctx),
+		showAddressCmd(ctx),
 	)
 
 	return cmd
@@ -39,4 +43,34 @@ func populateWalletCmd(ctx *config.Context) *cobra.Command {
 	}
 
 	return populateWalletFlag(cmd)
+}
+
+func showAddressCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "address [chain-id]",
+		Short: "show an address",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, err := ctx.Config.GetChain(args[0])
+			if err != nil {
+				return err
+			}
+			fc := c.(*fabric.Chain)
+			if err := fc.Connect(); err != nil {
+				return err
+			}
+			sid, err := fc.GetSerializedIdentity(fc.Config().MspId)
+			if err != nil {
+				return err
+			}
+			addr, err := fabricauthtypes.MakeCreatorAddressWithSerializedIdentity(sid)
+			if err != nil {
+				return err
+			}
+			fmt.Println(addr.String())
+			return nil
+		},
+	}
+
+	return cmd
 }

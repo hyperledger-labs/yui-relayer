@@ -5,6 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
@@ -38,6 +39,26 @@ type ChainI interface {
 	QueryConnection(height int64, prove bool) (*conntypes.QueryConnectionResponse, error)
 	// QueryChannel returns the channel associated with a channelID
 	QueryChannel(height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error)
+	// QueryBalance returns the amount of coins in the relayer account
+	QueryBalance(address sdk.AccAddress) (sdk.Coins, error)
+	// QueryDenomTraces returns all the denom traces from a given chain
+	QueryDenomTraces(offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error)
+	// QueryPacketCommitment returns the packet commitment proof at a given height
+	QueryPacketCommitment(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error)
+	// QueryPacketCommitments returns an array of packet commitments
+	QueryPacketCommitments(offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error)
+	// QueryUnrecievedPackets returns a list of unrelayed packet commitments
+	QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, error)
+	// QueryPacketAcknowledgements returns an array of packet acks
+	QueryPacketAcknowledgements(offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
+	// QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
+	QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([]uint64, error)
+	// QueryPacketAcknowledgementCommitment returns the packet ack proof at a given height
+	QueryPacketAcknowledgementCommitment(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error)
+
+	// QueryPacket returns a packet corresponds to a given sequence
+	QueryPacket(height int64, sequence uint64) (*chantypes.Packet, error)
+	QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error)
 
 	SendMsgs(msgs []sdk.Msg) ([]byte, error)
 	// Send sends msgs to the chain and logging a result of it
