@@ -24,10 +24,11 @@ import (
 )
 
 const (
-	queryFunc                  = "query"
-	getSequenceFunc            = "getSequence"
-	queryPacketFunc            = "queryPacket"
-	queryPacketAcknowledgement = "queryPacketAcknowledgement"
+	queryFunc                   = "query"
+	getSequenceFunc             = "getSequence"
+	queryPacketFunc             = "queryPacket"
+	queryPacketAcknowledgement  = "queryPacketAcknowledgement"
+	queryPacketAcknowledgements = "queryPacketAcknowledgements"
 )
 
 func (c *Chain) Query(req app.RequestQuery) (*app.ResponseQuery, error) {
@@ -370,6 +371,36 @@ func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, 
 	}
 	var res chantypes.QueryUnreceivedPacketsResponse
 	if err := c.query("/ibc.core.channel.v1.Query/UnreceivedPackets", req, &res); err != nil {
+		return nil, err
+	}
+	return res.Sequences, nil
+}
+
+func (c *Chain) QueryPacketAcknowledgements(offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+	req := &chantypes.QueryPacketAcknowledgementsRequest{
+		PortId:    c.Path().PortID,
+		ChannelId: c.Path().ChannelID,
+		Pagination: &querytypes.PageRequest{
+			Offset:     offset,
+			Limit:      limit,
+			CountTotal: true,
+		},
+	}
+	var res chantypes.QueryPacketAcknowledgementsResponse
+	if err := c.query("/ibc.core.channel.v1.Query/PacketAcknowledgements", req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *Chain) QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([]uint64, error) {
+	req := &chantypes.QueryUnreceivedAcksRequest{
+		PortId:             c.Path().PortID,
+		ChannelId:          c.Path().ChannelID,
+		PacketAckSequences: seqs,
+	}
+	var res chantypes.QueryUnreceivedAcksResponse
+	if err := c.query("/ibc.core.channel.v1.Query/UnreceivedAcks", req, &res); err != nil {
 		return nil, err
 	}
 	return res.Sequences, nil

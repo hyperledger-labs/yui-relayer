@@ -190,6 +190,98 @@ func (st NaiveStrategy) RelayPackets(src, dst ChainI, sp *RelaySequences, sh Syn
 	return nil
 }
 
+func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error) {
+	var (
+		eg           = new(errgroup.Group)
+		srcPacketSeq = []uint64{}
+		dstPacketSeq = []uint64{}
+		err          error
+		rs           = &RelaySequences{Src: []uint64{}, Dst: []uint64{}}
+	)
+
+	eg.Go(func() error {
+		var res *chantypes.QueryPacketAcknowledgementsResponse
+		if err = retry.Do(func() error {
+			// Query the packet commitment
+			res, err = src.QueryPacketAcknowledgements(0, 1000, sh.GetHeight(src.ChainID()))
+			switch {
+			case err != nil:
+				return err
+			case res == nil:
+				return fmt.Errorf("No error on QueryPacketUnrelayedAcknowledgements for %s, however response is nil", src.ChainID())
+			default:
+				return nil
+			}
+		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), sh.GetHeight(src.ChainID()), n+1, rtyAttNum, err)))
+			sh.Updates(src, dst)
+		})); err != nil {
+			return err
+		}
+		for _, pc := range res.Acknowledgements {
+			srcPacketSeq = append(srcPacketSeq, pc.Sequence)
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		var res *chantypes.QueryPacketAcknowledgementsResponse
+		if err = retry.Do(func() error {
+			res, err = dst.QueryPacketAcknowledgements(0, 1000, sh.GetHeight(dst.ChainID()))
+			switch {
+			case err != nil:
+				return err
+			case res == nil:
+				return fmt.Errorf("No error on QueryPacketUnrelayedAcknowledgements for %s, however response is nil", dst.ChainID())
+			default:
+				return nil
+			}
+		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), sh.GetHeight(dst.ChainID()), n+1, rtyAttNum, err)))
+			sh.Updates(src, dst)
+		})); err != nil {
+			return err
+		}
+		for _, pc := range res.Acknowledgements {
+			dstPacketSeq = append(dstPacketSeq, pc.Sequence)
+		}
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	eg.Go(func() error {
+		// Query all packets sent by src that have been received by dst
+		src, err := dst.QueryUnrecievedAcknowledgements(sh.GetHeight(dst.ChainID()), srcPacketSeq)
+		// return err
+		if err != nil {
+			return err
+		} else if src != nil {
+			rs.Src = src
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		// Query all packets sent by dst that have been received by src
+		dst, err := src.QueryUnrecievedAcknowledgements(sh.GetHeight(src.ChainID()), dstPacketSeq)
+		if err != nil {
+			return err
+		} else if dst != nil {
+			rs.Dst = dst
+		}
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	return rs, nil
+}
+
 // TODO add packet-timeout support
 func relayPackets(chain ChainI, seqs []uint64, sh SyncHeadersI, sender sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg

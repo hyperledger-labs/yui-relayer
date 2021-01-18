@@ -11,7 +11,7 @@ type StrategyI interface {
 	GetType() string
 	UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
 	RelayPackets(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
-	// UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
+	UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
 	// RelayAcknowledgements(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
 }
 
