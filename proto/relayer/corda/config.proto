@@ -1,0 +1,12 @@
+syntax = "proto3";
+package relayer.corda.config;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/datachainlab/relayer/chains/corda";
+option (gogoproto.goproto_getters_all) = false;
+
+message ChainConfig {
+  string chain_id = 1;
+  string grpc_addr = 2;
+}
