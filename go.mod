@@ -15,6 +15,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/tendermint/tendermint v0.34.0-rc6
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	google.golang.org/grpc v1.35.0
 	gopkg.in/yaml.v2 v2.3.0
 )
 

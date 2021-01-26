@@ -14,6 +14,8 @@ type Chain struct {
 	config         ChainConfig
 	pathEnd        *core.PathEnd
 	encodingConfig params.EncodingConfig
+
+	client *cordaIbcClient
 }
 
 func NewChain(config ChainConfig) *Chain {
@@ -78,6 +80,11 @@ func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 
 func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
 	c.encodingConfig = makeEncodingConfig()
+	if client, err := createCordaIbcClient(c.config.GrpcAddr); err != nil {
+		return err
+	} else {
+		c.client = client
+	}
 	return nil
 }
 
