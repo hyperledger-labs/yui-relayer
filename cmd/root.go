@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/datachainlab/relayer/chains/corda"
 	"github.com/datachainlab/relayer/chains/fabric"
 	fabriccmd "github.com/datachainlab/relayer/chains/fabric/cmd"
 	"github.com/datachainlab/relayer/chains/tendermint"
@@ -47,6 +48,7 @@ func init() {
 	ec := core.MakeEncodingConfig()
 	tendermint.RegisterInterfaces(ec.InterfaceRegistry)
 	fabric.RegisterInterfaces(ec.InterfaceRegistry)
+	corda.RegisterInterfaces(ec.InterfaceRegistry)
 	ctx := &config.Context{Config: &config.Config{}, Marshaler: ec.Marshaler}
 
 	// Register subcommands
