@@ -2,6 +2,7 @@ package corda
 
 import (
 	"context"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
@@ -69,7 +70,43 @@ func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.Query
 
 // QueryBalance returns the amount of coins in the relayer account
 func (c *Chain) QueryBalance(address sdk.AccAddress) (sdk.Coins, error) {
-	panic("not implemented error")
+	addr := address.String()
+
+	res, err := c.client.hostAndBankQuery.QueryBank(
+		context.TODO(),
+		&QueryBankRequest{},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var coins sdk.Coins
+	for denom, allocated := range res.Allocated.DenomToMap {
+		if amount, ok := allocated.PubkeyToAmount[addr]; ok {
+			amount, err := strconv.Atoi(amount)
+			if err != nil {
+				return nil, err
+			}
+			coins = append(coins, sdk.Coin{
+				Denom:  denom,
+				Amount: sdk.NewInt(int64(amount)),
+			})
+		}
+	}
+	for denom, minted := range res.Minted.DenomToMap {
+		if amount, ok := minted.PubkeyToAmount[addr]; ok {
+			amount, err := strconv.Atoi(amount)
+			if err != nil {
+				return nil, err
+			}
+			coins = append(coins, sdk.Coin{
+				Denom:  denom,
+				Amount: sdk.NewInt(int64(amount)),
+			})
+		}
+	}
+
+	return coins, nil
 }
 
 // QueryDenomTraces returns all the denom traces from a given chain

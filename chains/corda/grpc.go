@@ -11,6 +11,8 @@ import (
 type cordaIbcClient struct {
 	conn *grpc.ClientConn
 
+	hostAndBankQuery QueryServiceClient
+
 	clientQuery   clienttypes.QueryClient
 	connQuery     conntypes.QueryClient
 	chanQuery     chantypes.QueryClient
@@ -30,6 +32,8 @@ func createCordaIbcClient(addr string) (*cordaIbcClient, error) {
 
 	return &cordaIbcClient{
 		conn: conn,
+
+		hostAndBankQuery: NewQueryServiceClient(conn),
 
 		clientQuery:   clienttypes.NewQueryClient(conn),
 		connQuery:     conntypes.NewQueryClient(conn),
