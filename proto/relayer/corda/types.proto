@@ -1,0 +1,51 @@
+syntax = "proto3";
+package relayer.corda.query;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/datachainlab/relayer/chains/corda";
+option (gogoproto.goproto_getters_all) = false;
+
+message SecureHash {
+  bytes bytes = 1;
+}
+
+message StateRef {
+  SecureHash txhash = 1;
+  uint32 index = 2;
+}
+
+message CordaX500Name {
+  string common_name = 1; //opt
+  string organisation_unit = 2; //opt
+  string organisation = 3;
+  string locality = 4;
+  string state = 5; //opt
+  string country = 6;
+}
+
+message PublicKey {
+  bytes encoded = 1;
+}
+
+message Party {
+  CordaX500Name name = 1;
+  PublicKey owningKey = 2;
+}
+
+message SignatureMetadata {
+  int32 platform_version = 1;
+  int32 scheme_number_id = 2;
+}
+
+message TransactionSignature {
+  bytes bytes = 1;
+  PublicKey by = 2;
+  SignatureMetadata signature_metadata = 3;
+}
+
+message SignedTransaction {
+  bytes txBits = 1;
+  repeated TransactionSignature sigs = 2;
+}
+

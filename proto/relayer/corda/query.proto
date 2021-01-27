@@ -1,0 +1,47 @@
+syntax = "proto3";
+package relayer.corda.query;
+
+import "gogoproto/gogo.proto";
+import "relayer/corda/types.proto";
+
+option go_package = "github.com/datachainlab/relayer/chains/corda";
+option (gogoproto.goproto_getters_all) = false;
+
+service QueryService {
+  rpc QueryHost (QueryHostRequest) returns (Host);
+  rpc QueryBank (QueryBankRequest) returns (Bank);
+}
+
+message QueryHostRequest {}
+message QueryBankRequest {}
+
+message Host {
+  message PortChannelIdentifier {
+    string portId = 1;
+    string channelId = 2;
+  }
+  repeated Party participants = 1;
+  StateRef base_id = 2;
+  Party notary = 3;
+  repeated string client_ids = 4;
+  repeated string conn_ids = 5;
+  repeated PortChannelIdentifier port_chan_ids = 6;
+  string id = 7;
+}
+
+message Bank {
+  message BalanceMapPerDenom {
+    map<string, string> pubkeyToAmount = 1;
+  }
+
+  message BalanceMap {
+    map<string, BalanceMapPerDenom> denomToMap = 1;
+  }
+
+  repeated Party participants = 1;
+  StateRef baseId = 2;
+  BalanceMap allocated = 3;
+  BalanceMap locked = 4;
+  BalanceMap minted = 5;
+  string id = 6;
+}
