@@ -1,0 +1,15 @@
+syntax = "proto3";
+package relayer.corda.query;
+
+import "gogoproto/gogo.proto";
+import "relayer/corda/types.proto";
+
+option go_package = "github.com/datachainlab/relayer/chains/corda";
+option (gogoproto.goproto_getters_all) = false;
+
+message ClientState {}
+
+message ConsensusState {
+  StateRef base_id = 1;
+  PublicKey notary_key = 2;
+}
