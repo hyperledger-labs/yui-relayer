@@ -64,11 +64,6 @@ func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
 	panic("not implemented error")
 }
 
-// MakeMsgCreateClient creates a CreateClientMsg to this chain
-func (c *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
-	panic("not implemented error")
-}
-
 // CreateTrustedHeader creates ...
 func (c *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
 	return nil, nil
