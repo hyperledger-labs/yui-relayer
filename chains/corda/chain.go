@@ -37,15 +37,15 @@ func (c *Chain) ClientID() string {
 }
 
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
-	panic("not implemented error")
+	return []byte{}, nil
 }
 
 func (c *Chain) GetLatestLightHeight() (int64, error) {
-	panic("not implemented error")
+	return 0, nil
 }
 
 func (c *Chain) Marshaler() codec.Marshaler {
-	panic("not implemented error")
+	return c.encodingConfig.Marshaler
 }
 
 func (c *Chain) SetPath(p *core.PathEnd) error {
@@ -71,7 +71,7 @@ func (c *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, sig
 
 // CreateTrustedHeader creates ...
 func (c *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
-	panic("not implemented error")
+	return nil, nil
 }
 
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
