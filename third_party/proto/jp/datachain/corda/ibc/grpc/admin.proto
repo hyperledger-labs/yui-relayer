@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_outer_classname = "AdminProto";
+
+package jp.datachain.corda.ibc.grpc;
+
+service AdminService {
+  rpc Shutdown (Void) returns (Void) {}
+}
+
+message Void {}

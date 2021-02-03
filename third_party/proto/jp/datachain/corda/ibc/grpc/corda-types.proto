@@ -1,10 +1,6 @@
 syntax = "proto3";
-package relayer.corda.query;
 
-import "gogoproto/gogo.proto";
-
-option go_package = "github.com/datachainlab/relayer/chains/corda";
-option (gogoproto.goproto_getters_all) = false;
+package jp.datachain.corda.ibc.grpc;
 
 message SecureHash {
   bytes bytes = 1;

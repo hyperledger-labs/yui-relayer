@@ -1,11 +1,8 @@
 syntax = "proto3";
-package relayer.corda.query;
 
-import "gogoproto/gogo.proto";
-import "relayer/corda/types.proto";
+package jp.datachain.corda.ibc.grpc;
 
-option go_package = "github.com/datachainlab/relayer/chains/corda";
-option (gogoproto.goproto_getters_all) = false;
+import "jp/datachain/corda/ibc/grpc/corda-types.proto";
 
 service QueryService {
   rpc QueryHost (QueryHostRequest) returns (Host);
