@@ -12,6 +12,7 @@ import (
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
 	"github.com/datachainlab/relayer/core"
+	"github.com/datachainlab/relayer/jp_datachain_corda_ibc_grpc"
 )
 
 // QueryLatestHeight queries the chain for the latest height and returns it
@@ -74,7 +75,7 @@ func (c *Chain) QueryBalance(address sdk.AccAddress) (sdk.Coins, error) {
 
 	res, err := c.client.hostAndBankQuery.QueryBank(
 		context.TODO(),
-		&QueryBankRequest{},
+		&jp_datachain_corda_ibc_grpc.QueryBankRequest{},
 	)
 	if err != nil {
 		return nil, err

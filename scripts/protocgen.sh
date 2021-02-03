@@ -31,5 +31,14 @@ Mgoogle/protobuf/any.proto=github.com/cosmos/cosmos-sdk/codec/types:. \
 
 done
 
+buf protoc \
+	-I third_party/proto \
+	--gocosmos_out=plugins=interfacetype+grpc,Mgoogle/protobuf/any.proto=github.com/cosmos/cosmos-sdk/codec/types:. \
+	$(find ./third_party/proto/jp -type f -name '*.proto')
+rm -rf ./jp_datachain_corda_ibc_grpc
+mkdir ./jp_datachain_corda_ibc_grpc
+mv jp/datachain/corda/ibc/grpc/*.go jp_datachain_corda_ibc_grpc
+rmdir -p jp/datachain/corda/ibc/grpc
+
 cp -r github.com/datachainlab/relayer/* ./
 rm -rf github.com

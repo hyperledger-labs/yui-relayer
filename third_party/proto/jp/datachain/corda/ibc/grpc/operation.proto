@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package jp.datachain.corda.ibc.grpc;
+
+import "jp/datachain/corda/ibc/grpc/corda-types.proto";
+
+service NodeService {
+  rpc PartiesFromName (PartiesFromNameRequest) returns (PartiesFromNameResponse);
+}
+
+service IbcService {
+  rpc CreateGenesis (CreateGenesisRequest) returns (SignedTransaction);
+  rpc CreateHostAndBank (StateRef) returns (SignedTransaction);
+  rpc AllocateFund (AllocateFundRequest) returns (SignedTransaction);
+}
+
+message PartiesFromNameRequest {
+  string name = 1;
+  bool exact_match = 2;
+}
+
+message PartiesFromNameResponse {
+  repeated Party parties = 1;
+}
+
+message CreateGenesisRequest {
+  repeated Party participants = 1;
+}
+
+message CreateHostAndBankRequest {
+  StateRef base_id = 1;
+}
+
+message AllocateFundRequest {
+  StateRef base_id = 1;
+  PublicKey owner = 2;
+  string denom = 3;
+  string amount = 4;
+}
