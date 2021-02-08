@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/avast/retry-go v2.6.0+incompatible
+	github.com/confio/ics23/go v0.6.3
 	github.com/cosmos/cosmos-sdk v0.40.0-rc3
 	github.com/cosmos/relayer v1.0.0-rc1
 	github.com/datachainlab/fabric-ibc v0.0.0-20210118090849-c2eaee7a3314
