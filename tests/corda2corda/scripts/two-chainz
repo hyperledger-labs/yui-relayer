@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -x
+
+RLY_BINARY=../../build/uly
+RLY="${RLY_BINARY} --debug"
+
+# Ensure ${RLY_BINARY} is installed
+if ! [ -x ${RLY_BINARY} ]; then
+  echo "Error: ${RLY_BINARY} is not installed." >&2
+  exit 1
+fi
+
+echo "Generating ${RLY_BINARY} configurations..."
+
+${RLY} config init
+${RLY} chains add-dir configs/demo/
