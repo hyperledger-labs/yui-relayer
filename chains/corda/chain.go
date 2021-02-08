@@ -37,7 +37,7 @@ func (c *Chain) ClientID() string {
 }
 
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
-	return []byte{}, nil
+	return make([]byte, 20), nil
 }
 
 func (c *Chain) GetLatestLightHeight() (int64, error) {
