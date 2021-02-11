@@ -1,0 +1,26 @@
+syntax = "proto3";
+package relayer.api;
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+import "google/api/annotations.proto";
+import "ibc/core/channel/v1/channel.proto";
+
+option go_package = "github.com/datachainlab/relayer/server";
+option (gogoproto.goproto_getters_all) = false;
+
+service Query {
+  rpc QueryPacket(QueryPacketRequest) returns (QueryPacketResponse) {
+    option (google.api.http).get = "/path/{path}/chain/{chain}/packet/{sequence}";
+  }
+}
+
+message QueryPacketRequest {
+  string path = 1;
+  string chain = 2;
+  uint64 sequence = 3;
+}
+
+message QueryPacketResponse {
+  ibc.core.channel.v1.Packet packet = 1;
+}

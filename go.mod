@@ -7,14 +7,20 @@ require (
 	github.com/cosmos/cosmos-sdk v0.40.0-rc3
 	github.com/cosmos/relayer v1.0.0-rc1
 	github.com/datachainlab/fabric-ibc v0.0.0-20210118090849-c2eaee7a3314
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/gateway v1.1.0
+	github.com/gogo/protobuf v1.3.2
+	github.com/golang/protobuf v1.4.3
+	github.com/grpc-ecosystem/grpc-gateway v1.15.2
 	github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191
 	github.com/hyperledger/fabric-protos-go v0.0.0-20200707132912-fee30f3ccd23
 	github.com/hyperledger/fabric-sdk-go v1.0.0-beta2.0.20200715151216-87f5eb8a655f
+	github.com/regen-network/cosmos-proto v0.3.1 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
 	github.com/tendermint/tendermint v0.34.0-rc6
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	google.golang.org/genproto v0.0.0-20201111145450-ac7456db90a6
+	google.golang.org/grpc v1.33.2
 	gopkg.in/yaml.v2 v2.3.0
 )
 

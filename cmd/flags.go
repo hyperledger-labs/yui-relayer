@@ -16,6 +16,7 @@ const (
 	flagTimeoutHeightOffset = "timeout-height-offset"
 	flagTimeoutTimeOffset   = "timeout-time-offset"
 	flagIBCDenoms           = "ibc-denoms"
+	flagAddr                = "listen-addr"
 )
 
 func heightFlag(cmd *cobra.Command) *cobra.Command {
@@ -81,6 +82,14 @@ func timeoutFlags(cmd *cobra.Command) *cobra.Command {
 func ibcDenomFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().BoolP(flagIBCDenoms, "i", false, "Display IBC denominations for sending tokens back to other chains")
 	if err := viper.BindPFlag(flagIBCDenoms, cmd.Flags().Lookup(flagIBCDenoms)); err != nil {
+		panic(err)
+	}
+	return cmd
+}
+
+func serverFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().StringP(flagAddr, "", ":5000", "server listen address")
+	if err := viper.BindPFlag(flagAddr, cmd.Flags().Lookup(flagAddr)); err != nil {
 		panic(err)
 	}
 	return cmd
