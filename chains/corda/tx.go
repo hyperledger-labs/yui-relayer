@@ -2,6 +2,7 @@ package corda
 
 import (
 	"context"
+	"log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
@@ -51,7 +52,9 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 // Send sends msgs to the chain and logging a result of it
 // It returns a boolean value whether the result is success
 func (c *Chain) Send(msgs []sdk.Msg) bool {
+	log.Printf("corda.SendMsgs: %v", msgs)
 	_, err := c.SendMsgs(msgs)
+	log.Printf("corda.SendMsgs.result: err=%v", err)
 	return err == nil
 }
 

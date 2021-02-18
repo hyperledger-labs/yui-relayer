@@ -11,8 +11,8 @@ import (
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	cordatypes "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/xx-corda/types"
 	"github.com/datachainlab/relayer/core"
-	"github.com/datachainlab/relayer/jp_datachain_corda_ibc_grpc"
 )
 
 // QueryLatestHeight queries the chain for the latest height and returns it
@@ -22,7 +22,7 @@ func (c *Chain) QueryLatestHeight() (int64, error) {
 
 // QueryLatestHeader returns the latest header from the chain
 func (c *Chain) QueryLatestHeader() (out core.HeaderI, err error) {
-	return &cordaHeader{}, nil
+	return &CordaHeader{}, nil
 }
 
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
@@ -75,7 +75,7 @@ func (c *Chain) QueryBalance(address sdk.AccAddress) (sdk.Coins, error) {
 
 	res, err := c.client.hostAndBankQuery.QueryBank(
 		context.TODO(),
-		&jp_datachain_corda_ibc_grpc.QueryBankRequest{},
+		&cordatypes.QueryBankRequest{},
 	)
 	if err != nil {
 		return nil, err
