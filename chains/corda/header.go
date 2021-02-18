@@ -6,18 +6,18 @@ import (
 	"github.com/datachainlab/relayer/core"
 )
 
-type cordaHeader struct{}
+type CordaHeader struct{}
 
-var _ core.HeaderI = (*cordaHeader)(nil)
+var _ core.HeaderI = (*CordaHeader)(nil)
 
-func (*cordaHeader) ClientType() string {
+func (*CordaHeader) ClientType() string {
 	return "corda"
 }
 
-func (*cordaHeader) GetHeight() ibcexported.Height {
+func (*CordaHeader) GetHeight() ibcexported.Height {
 	return clienttypes.Height{}
 }
 
-func (*cordaHeader) ValidateBasic() error {
+func (*CordaHeader) ValidateBasic() error {
 	return nil
 }

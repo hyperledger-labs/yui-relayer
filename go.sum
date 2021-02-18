@@ -172,6 +172,12 @@ github.com/creack/pty v1.1.11/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ
 github.com/daaku/go.zipexe v1.0.0/go.mod h1:z8IiR6TsVLEYKwXAoE/I+8ys/sDkgTzSL0CLnGVd57E=
 github.com/danieljoos/wincred v1.0.2 h1:zf4bhty2iLuwgjgpraD2E9UbvO+fe54XXGJbOwe23fU=
 github.com/danieljoos/wincred v1.0.2/go.mod h1:SnuYRW9lp1oJrZX/dXJqr0cPK5gYXqx3EJbmjhLdK9U=
+github.com/datachainlab/cosmos-sdk v0.34.4-0.20210218080829-0fdbe02ff6db h1:XBVsA1tjPhuNFxToKQOChbmmxxXDyhPWeIWcNjvmw0s=
+github.com/datachainlab/cosmos-sdk v0.34.4-0.20210218080829-0fdbe02ff6db/go.mod h1:eKgbkQO4FEvC+a1+eyRuL7UgluGK1ad4PufPTpQc6ZA=
+github.com/datachainlab/cosmos-sdk v0.34.4-0.20210218130631-a1df1c6bb307 h1:AUDCD5IPzPiNUULm0H6iHvC8RFhGPjQWD4AHPw93Yaw=
+github.com/datachainlab/cosmos-sdk v0.34.4-0.20210218130631-a1df1c6bb307/go.mod h1:eKgbkQO4FEvC+a1+eyRuL7UgluGK1ad4PufPTpQc6ZA=
+github.com/datachainlab/cosmos-sdk v0.34.4-0.20210218184724-b562fbf6575b h1:r9Arp9DjzQ4h0iDit0cUp2Cn70C6uXvcgPy4jcof3jA=
+github.com/datachainlab/cosmos-sdk v0.34.4-0.20210218184724-b562fbf6575b/go.mod h1:eKgbkQO4FEvC+a1+eyRuL7UgluGK1ad4PufPTpQc6ZA=
 github.com/datachainlab/fabric-ibc v0.0.0-20210109115359-e043f579dbae h1:Cr9ijvnWHSngeM4Hp2yjFo2xQF4575SojrW2vXjwZF4=
 github.com/datachainlab/fabric-ibc v0.0.0-20210109115359-e043f579dbae/go.mod h1:jbX5OJSfG4Go9XZTVgflhnOm61u6fLDegPhVp7XtPXg=
 github.com/datachainlab/fabric-ibc v0.0.0-20210111133001-0139ccc6688b h1:06iBadcw4NwM+PeET6lZ7dPk1EmEH0xvfRabrZSv3pY=

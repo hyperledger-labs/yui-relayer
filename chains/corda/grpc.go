@@ -5,14 +5,14 @@ import (
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	"github.com/datachainlab/relayer/jp_datachain_corda_ibc_grpc"
+	cordatypes "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/xx-corda/types"
 	"google.golang.org/grpc"
 )
 
 type cordaIbcClient struct {
 	conn *grpc.ClientConn
 
-	hostAndBankQuery jp_datachain_corda_ibc_grpc.QueryServiceClient
+	hostAndBankQuery cordatypes.QueryServiceClient
 
 	clientQuery   clienttypes.QueryClient
 	connQuery     conntypes.QueryClient
@@ -34,7 +34,7 @@ func createCordaIbcClient(addr string) (*cordaIbcClient, error) {
 	return &cordaIbcClient{
 		conn: conn,
 
-		hostAndBankQuery: jp_datachain_corda_ibc_grpc.NewQueryServiceClient(conn),
+		hostAndBankQuery: cordatypes.NewQueryServiceClient(conn),
 
 		clientQuery:   clienttypes.NewQueryClient(conn),
 		connQuery:     conntypes.NewQueryClient(conn),
