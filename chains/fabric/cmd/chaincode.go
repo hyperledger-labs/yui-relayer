@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
 
-	"github.com/datachainlab/fabric-ibc/example"
+	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/datachainlab/relayer/chains/fabric"
 	"github.com/datachainlab/relayer/config"
 	"github.com/spf13/cobra"
@@ -39,10 +42,19 @@ func initChaincodeCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 			// TODO we should get a genesis state from a given json file
-			genesisState := example.NewDefaultGenesisState()
-			bz, err := json.Marshal(genesisState)
+			file, err := cmd.Flags().GetString(flagFile)
 			if err != nil {
 				return err
+			}
+			if _, err := os.Stat(file); err != nil {
+				return err
+			}
+			bz, err := ioutil.ReadFile(file)
+			if err != nil {
+				return err
+			}
+			if !isGenesisState(bz) {
+				return fmt.Errorf("input file must be a GenesisState")
 			}
 			_, err = fc.Contract().SubmitTransaction(initChaincodeFunc, string(bz))
 			if err != nil {
@@ -51,5 +63,12 @@ func initChaincodeCmd(ctx *config.Context) *cobra.Command {
 			return nil
 		},
 	}
+	cmd = fileFlag(cmd)
+	cmd.MarkFlagRequired(flagFile)
 	return cmd
+}
+
+func isGenesisState(bz []byte) bool {
+	var gs simapp.GenesisState
+	return json.Unmarshal(bz, &gs) == nil
 }
