@@ -10,7 +10,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-func GetPacketsFromEvents(events []abci.Event) ([]channeltypes.Packet, error) {
+func GetPacketsFromEvents(events []abci.Event, seq uint64) ([]channeltypes.Packet, error) {
 	var packets []channeltypes.Packet
 	for _, ev := range events {
 		if ev.Type != channeltypes.EventTypeSendPacket {
@@ -62,7 +62,9 @@ func GetPacketsFromEvents(events []abci.Event) ([]channeltypes.Packet, error) {
 		if err := packet.ValidateBasic(); err != nil {
 			return nil, err
 		}
-		packets = append(packets, packet)
+		if packet.Sequence == seq {
+			packets = append(packets, packet)
+		}
 	}
 	return packets, nil
 }
@@ -80,7 +82,7 @@ func (ack packetAcknowledgement) Data() []byte {
 	return ack.data
 }
 
-func GetPacketAcknowledgementsFromEvents(events []abci.Event) ([]packetAcknowledgement, error) {
+func GetPacketAcknowledgementsFromEvents(events []abci.Event, seq uint64) ([]packetAcknowledgement, error) {
 	var acks []packetAcknowledgement
 	for _, ev := range events {
 		if ev.Type != channeltypes.EventTypeWriteAck {
@@ -116,7 +118,9 @@ func GetPacketAcknowledgementsFromEvents(events []abci.Event) ([]packetAcknowled
 				return nil, err
 			}
 		}
-		acks = append(acks, ack)
+		if ack.sequence == seq {
+			acks = append(acks, ack)
+		}
 	}
 	return acks, nil
 }
