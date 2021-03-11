@@ -25,7 +25,12 @@ func (c *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, sig
 		NotaryKey: host.Notary.OwningKey,
 	}
 
-	if anyClientState, err := types.NewAnyWithValue(&cordatypes.ClientState{}); err != nil {
+	// make client state
+	clientState := cordatypes.ClientState{
+		Id: clientID,
+	}
+
+	if anyClientState, err := types.NewAnyWithValue(&clientState); err != nil {
 		return nil, err
 	} else if anyConsensusState, err := types.NewAnyWithValue(&consensusState); err != nil {
 		return nil, err
