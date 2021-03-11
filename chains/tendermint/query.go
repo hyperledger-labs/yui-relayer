@@ -113,7 +113,7 @@ func (src *Chain) QueryPacket(height int64, seq uint64) (*chantypes.Packet, erro
 		return nil, fmt.Errorf("more than one transaction returned with query")
 	}
 
-	packets, err := core.GetPacketsFromEvents(txs[0].TxResult.Events)
+	packets, err := core.GetPacketsFromEvents(txs[0].TxResult.Events, seq)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]b
 		return nil, fmt.Errorf("more than one transaction returned with query")
 	}
 
-	acks, err := core.GetPacketAcknowledgementsFromEvents(txs[0].TxResult.Events)
+	acks, err := core.GetPacketAcknowledgementsFromEvents(txs[0].TxResult.Events, sequence)
 	if err != nil {
 		return nil, err
 	}
