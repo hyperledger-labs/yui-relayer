@@ -67,6 +67,19 @@ func GetPacketsFromEvents(events []abci.Event) ([]channeltypes.Packet, error) {
 	return packets, nil
 }
 
+func FindPacketFromEventsBySequence(events []abci.Event, seq uint64) (*channeltypes.Packet, error) {
+	packets, err := GetPacketsFromEvents(events)
+	if err != nil {
+		return nil, err
+	}
+	for _, packet := range packets {
+		if packet.Sequence == seq {
+			return &packet, nil
+		}
+	}
+	return nil, nil
+}
+
 type packetAcknowledgement struct {
 	srcPortID    string
 	srcChannelID string
@@ -119,6 +132,19 @@ func GetPacketAcknowledgementsFromEvents(events []abci.Event) ([]packetAcknowled
 		acks = append(acks, ack)
 	}
 	return acks, nil
+}
+
+func FindPacketAcknowledgementFromEventsBySequence(events []abci.Event, seq uint64) (*packetAcknowledgement, error) {
+	acks, err := GetPacketAcknowledgementsFromEvents(events)
+	if err != nil {
+		return nil, err
+	}
+	for _, ack := range acks {
+		if ack.sequence == seq {
+			return &ack, nil
+		}
+	}
+	return nil, nil
 }
 
 func assertIndex(actual, expected int) error {
