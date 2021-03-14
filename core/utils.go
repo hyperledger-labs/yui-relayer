@@ -10,7 +10,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-func GetPacketsFromEvents(events []abci.Event, seq uint64) ([]channeltypes.Packet, error) {
+func GetPacketsFromEvents(events []abci.Event) ([]channeltypes.Packet, error) {
 	var packets []channeltypes.Packet
 	for _, ev := range events {
 		if ev.Type != channeltypes.EventTypeSendPacket {
@@ -62,11 +62,22 @@ func GetPacketsFromEvents(events []abci.Event, seq uint64) ([]channeltypes.Packe
 		if err := packet.ValidateBasic(); err != nil {
 			return nil, err
 		}
-		if packet.Sequence == seq {
-			packets = append(packets, packet)
-		}
+		packets = append(packets, packet)
 	}
 	return packets, nil
+}
+
+func FindPacketFromEventsBySequence(events []abci.Event, seq uint64) (*channeltypes.Packet, error) {
+	packets, err := GetPacketsFromEvents(events)
+	if err != nil {
+		return nil, err
+	}
+	for _, packet := range packets {
+		if packet.Sequence == seq {
+			return &packet, nil
+		}
+	}
+	return nil, nil
 }
 
 type packetAcknowledgement struct {
@@ -82,7 +93,7 @@ func (ack packetAcknowledgement) Data() []byte {
 	return ack.data
 }
 
-func GetPacketAcknowledgementsFromEvents(events []abci.Event, seq uint64) ([]packetAcknowledgement, error) {
+func GetPacketAcknowledgementsFromEvents(events []abci.Event) ([]packetAcknowledgement, error) {
 	var acks []packetAcknowledgement
 	for _, ev := range events {
 		if ev.Type != channeltypes.EventTypeWriteAck {
@@ -118,11 +129,22 @@ func GetPacketAcknowledgementsFromEvents(events []abci.Event, seq uint64) ([]pac
 				return nil, err
 			}
 		}
-		if ack.sequence == seq {
-			acks = append(acks, ack)
-		}
+		acks = append(acks, ack)
 	}
 	return acks, nil
+}
+
+func FindPacketAcknowledgementFromEventsBySequence(events []abci.Event, seq uint64) (*packetAcknowledgement, error) {
+	acks, err := GetPacketAcknowledgementsFromEvents(events)
+	if err != nil {
+		return nil, err
+	}
+	for _, ack := range acks {
+		if ack.sequence == seq {
+			return &ack, nil
+		}
+	}
+	return nil, nil
 }
 
 func assertIndex(actual, expected int) error {
