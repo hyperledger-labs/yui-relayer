@@ -113,14 +113,14 @@ func (src *Chain) QueryPacket(height int64, seq uint64) (*chantypes.Packet, erro
 		return nil, fmt.Errorf("more than one transaction returned with query")
 	}
 
-	packets, err := core.GetPacketsFromEvents(txs[0].TxResult.Events, seq)
+	packet, err := core.FindPacketFromEventsBySequence(txs[0].TxResult.Events, seq)
 	if err != nil {
 		return nil, err
 	}
-	if l := len(packets); l != 1 {
-		return nil, fmt.Errorf("unexpected packets length: %v", l)
+	if packet == nil {
+		return nil, fmt.Errorf("can't find the packet from events")
 	}
-	return &packets[0], nil
+	return packet, nil
 }
 
 func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error) {
@@ -134,14 +134,14 @@ func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]b
 		return nil, fmt.Errorf("more than one transaction returned with query")
 	}
 
-	acks, err := core.GetPacketAcknowledgementsFromEvents(txs[0].TxResult.Events, sequence)
+	ack, err := core.FindPacketAcknowledgementFromEventsBySequence(txs[0].TxResult.Events, sequence)
 	if err != nil {
 		return nil, err
 	}
-	if l := len(acks); l != 1 {
-		return nil, fmt.Errorf("unexpected acks length: %v", l)
+	if ack == nil {
+		return nil, fmt.Errorf("can't find the packet from events")
 	}
-	return acks[0].Data(), nil
+	return ack.Data(), nil
 }
 
 const (
