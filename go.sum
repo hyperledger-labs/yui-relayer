@@ -253,6 +253,8 @@ github.com/datachainlab/cosmos-sdk v0.34.4-0.20210317130226-528db9f5e046 h1:FTvV
 github.com/datachainlab/cosmos-sdk v0.34.4-0.20210317130226-528db9f5e046/go.mod h1:eKgbkQO4FEvC+a1+eyRuL7UgluGK1ad4PufPTpQc6ZA=
 github.com/datachainlab/cosmos-sdk v0.34.4-0.20210317131843-505f6db3d713 h1:GkJLTz0fHtWk1EbDK++k6eVbKovO9DGJ8MK5+AceEAM=
 github.com/datachainlab/cosmos-sdk v0.34.4-0.20210317131843-505f6db3d713/go.mod h1:eKgbkQO4FEvC+a1+eyRuL7UgluGK1ad4PufPTpQc6ZA=
+github.com/datachainlab/cosmos-sdk v0.34.4-0.20210322033710-ab20fd1604f5 h1:QJyVMtyyAa0y1uLwI5VEeeE7AajPKqzwdMbmyUIan5A=
+github.com/datachainlab/cosmos-sdk v0.34.4-0.20210322033710-ab20fd1604f5/go.mod h1:eKgbkQO4FEvC+a1+eyRuL7UgluGK1ad4PufPTpQc6ZA=
 github.com/datachainlab/fabric-ibc v0.0.0-20210109115359-e043f579dbae h1:Cr9ijvnWHSngeM4Hp2yjFo2xQF4575SojrW2vXjwZF4=
 github.com/datachainlab/fabric-ibc v0.0.0-20210109115359-e043f579dbae/go.mod h1:jbX5OJSfG4Go9XZTVgflhnOm61u6fLDegPhVp7XtPXg=
 github.com/datachainlab/fabric-ibc v0.0.0-20210111133001-0139ccc6688b h1:06iBadcw4NwM+PeET6lZ7dPk1EmEH0xvfRabrZSv3pY=
