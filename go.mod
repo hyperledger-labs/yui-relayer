@@ -21,7 +21,7 @@ require (
 )
 
 replace (
-	github.com/cosmos/cosmos-sdk => github.com/datachainlab/cosmos-sdk v0.34.4-0.20210322033710-ab20fd1604f5
+	github.com/cosmos/cosmos-sdk => github.com/datachainlab/cosmos-sdk v0.34.4-0.20210323140005-7c931c37f43c
 	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 	github.com/hyperledger/fabric-sdk-go => github.com/datachainlab/fabric-sdk-go v0.0.0-20200730074927-282a61dcd92e
