@@ -7,7 +7,7 @@ require (
 	github.com/confio/ics23/go v0.6.3
 	github.com/cosmos/cosmos-sdk v0.40.0-rc3
 	github.com/cosmos/relayer v1.0.0-rc1
-	github.com/datachainlab/corda-ibc/go v0.0.0-20210331030043-5d22b56f8260
+	github.com/datachainlab/corda-ibc/go v0.0.0-20210402075556-89ca9bb218b6
 	github.com/datachainlab/fabric-ibc v0.0.0-20210118090849-c2eaee7a3314
 	github.com/gogo/protobuf v1.3.1
 	github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191
