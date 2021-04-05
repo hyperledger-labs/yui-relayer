@@ -11,8 +11,8 @@ import (
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
-	cordatypes "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/xx-corda/types"
 	"github.com/datachainlab/relayer/core"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // QueryLatestHeight queries the chain for the latest height and returns it
@@ -73,9 +73,9 @@ func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.Query
 func (c *Chain) QueryBalance(address sdk.AccAddress) (sdk.Coins, error) {
 	addr := address.String()
 
-	res, err := c.client.hostAndBankQuery.QueryBank(
+	res, err := c.client.hostAndBank.QueryBank(
 		context.TODO(),
-		&cordatypes.QueryBankRequest{},
+		&emptypb.Empty{},
 	)
 	if err != nil {
 		return nil, err
