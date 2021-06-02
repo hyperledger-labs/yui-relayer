@@ -4,11 +4,10 @@ go 1.15
 
 require (
 	github.com/avast/retry-go v2.6.0+incompatible
-	github.com/confio/ics23/go v0.6.3
 	github.com/cosmos/cosmos-sdk v0.40.0-rc3
 	github.com/cosmos/relayer v1.0.0-rc1
-	github.com/datachainlab/corda-ibc/go v0.0.0-20210402075556-89ca9bb218b6
-	github.com/datachainlab/fabric-ibc v0.0.0-20210118090849-c2eaee7a3314
+	github.com/datachainlab/corda-ibc/go v0.0.0-20210402075556-f93f3b20f867
+	github.com/datachainlab/fabric-ibc v0.0.0-20210602031626-eaf32590d3a1
 	github.com/gogo/protobuf v1.3.1
 	github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191
 	github.com/hyperledger/fabric-protos-go v0.0.0-20200707132912-fee30f3ccd23
@@ -18,7 +17,7 @@ require (
 	github.com/tendermint/tendermint v0.34.0-rc6
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	google.golang.org/grpc v1.35.0
-	google.golang.org/protobuf v1.25.0 // indirect
+	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.3.0
 )
 
