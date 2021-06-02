@@ -71,7 +71,6 @@ func (gw *FabricGateway) Connect(
 	if err != nil {
 		return err
 	}
-	defer gw.Gateway.Close()
 
 	gw.Network, err = gw.Gateway.GetNetwork(channel)
 	if err != nil {
