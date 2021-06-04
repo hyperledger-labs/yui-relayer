@@ -6,6 +6,6 @@
 A relayer implementation supports packet relays between various blockchains.
 
 Currently supports:
-- Tendermint
+- Cosmos/Tendermint([ibc-go](https://github.com/cosmos/ibc-go))
 - Hyperledger Fabric([fabric-ibc](https://github.com/datachainlab/fabric-ibc))
 - Corda([corda-ibc](https://github.com/datachainlab/corda-ibc))
