@@ -1,0 +1,87 @@
+version: '3.5'
+networks:
+  fabric-scaffold:
+    name: &network-common fabric-scaffold
+
+services:
+  fabric-orderer.example.com:
+    container_name: fabric-orderer.example.com
+    image: hyperledger/fabric-orderer:${IMAGE_TAG}
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=file
+      - ORDERER_GENERAL_BOOTSTRAPFILE=orderer.block
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/msp
+      - GRPC_TRACE=all=true,
+      - GRPC_VERBOSITY=info
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+      - ./configtx/orderer.yaml:/var/hyperledger/orderer/orderer.yaml
+      - ./organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp:/etc/hyperledger/msp
+      - ./artifacts/orderer.block:/etc/hyperledger/fabric/orderer.block
+    ports:
+      - 7050:7050
+    networks:
+      - *network-common
+
+  fabric-peer0.org1.example.com:
+    container_name: fabric-peer0.org1.example.com
+    image: hyperledger/fabric-peer:${IMAGE_TAG}
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=fabric-peer0.org1.example.com
+      - CORE_PEER_ADDRESS=fabric-peer0.org1.example.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=fabric-peer0.org1.example.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=fabric-peer0.org1.example.com:7051
+      - CORE_PEER_CHAINCODEADDRESS=fabric-peer0.org1.example.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_LOCALMSPID=Org1MSP
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp:/etc/hyperledger/msp
+      - ./configtx/core.yaml:/etc/hyperledger/fabric/core.yaml
+      - ./external-builders/bin:/builders/external/bin
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    ports:
+      - 7051:7051
+      - 7052:7052
+      - 7053:7053
+    depends_on:
+      - fabric-orderer.example.com
+    networks:
+      - *network-common
+
+  fabric-peer0.org2.example.com:
+    container_name: fabric-peer0.org2.example.com
+    image: hyperledger/fabric-peer:${IMAGE_TAG}
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=fabric-peer0.org2.example.com
+      - CORE_PEER_ADDRESS=fabric-peer0.org2.example.com:8051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:8051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=fabric-peer0.org2.example.com:8051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=fabric-peer0.org2.example.com:8051
+      - CORE_PEER_CHAINCODEADDRESS=fabric-peer0.org2.example.com:8052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:8052
+      - CORE_PEER_LOCALMSPID=Org2MSP
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/msp:/etc/hyperledger/msp
+      - ./configtx/core.yaml:/etc/hyperledger/fabric/core.yaml
+      - ./external-builders/bin:/builders/external/bin
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    ports:
+      - 8051:8051
+      - 8052:8052
+      - 8053:8053
+    depends_on:
+      - fabric-orderer.example.com
+    networks:
+      - *network-common

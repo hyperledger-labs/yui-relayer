@@ -1,0 +1,14 @@
+[
+  {
+    "name": "org2",
+    "policy": "OR('Org2MSP.member')",
+    "requiredPeerCount": 1,
+    "maxPeerCount": 1,
+    "blockToLive": 1000000,
+    "memberOnlyRead": true,
+    "memberOnlyWrite": true,
+    "endorsementPolicy": {
+      "signaturePolicy": "OR('Org2MSP.member')"
+    }
+  }
+]

@@ -1,0 +1,60 @@
+---
+# https://github.com/hyperledger/fabric-sdk-go/blob/master/test/fixtures/config/config_e2e.yaml
+name: org2
+version: 1.0.0
+client:
+  organization: Org2
+  logging:
+    level: error
+  connection:
+    timeout:
+      peer:
+        endorser: '300'
+
+organizations:
+  OrdererOrg:
+    mspid: OrdererMSP
+  Org2:
+    mspid: Org2MSP
+    peers:
+      - fabric-peer0.org2.example.com
+
+channels:
+  channel2:
+    orderers:
+      - fabric-orderer.example.com
+    peers:
+      fabric-peer0.org2.example.com:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true
+
+orderers:
+  fabric-orderer.example.com:
+    url: grpc://fabric-orderer.example.com:7050
+    grpcOptions:
+      ssl-target-name-override: fabric-orderer.example.com
+      hostnameOverride: fabric-orderer.example.com
+      allow-insecure: true
+
+peers:
+  fabric-peer0.org2.example.com:
+    url: grpc://fabric-peer0.org2.example.com:8051
+    grpcOptions:
+      ssl-target-name-override: fabric-peer0.org2.example.com
+      hostnameOverride: fabric-peer0.org2.example.com
+      allow-insecure: true
+
+### https://github.com/hyperledger/fabric-sdk-go/blob/master/test/fixtures/config/overrides/local_entity_matchers.yaml
+entityMatchers:
+  peer:
+    - pattern: fabric-peer0.org2.example.com
+      urlSubstitutionExp: localhost:8051
+      sslTargetOverrideUrlSubstitutionExp: fabric-peer0.org2.example.com
+      mappedHost: fabric-peer0.org2.example.com
+  orderer:
+    - pattern: fabric-orderer.example.com
+      urlSubstitutionExp: localhost:7050
+      sslTargetOverrideUrlSubstitutionExp: fabric-orderer.example.com
+      mappedHost: fabric-orderer.example.com

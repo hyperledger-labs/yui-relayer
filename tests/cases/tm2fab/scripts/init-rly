@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -x
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+
+RELAYER_CONF="$HOME/.urelayer"
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
+RLY="${RLY_BINARY} --debug"
+FIXTURES_DIR=${SCRIPT_DIR}/../fixtures
+
+echo "Generating ${RLY_BINARY} configurations..."
+
+# Ensure ${RLY_BINARY} is installed
+if ! [ -x ${RLY_BINARY} ]; then
+  echo "Error: ${RLY_BINARY} is not installed." >&2
+  exit 1
+fi
+
+rm -rf ${RELAYER_CONF} &> /dev/null
+
+${RLY} config init
+${RLY} chains add-dir configs/demo/
+
+# setup key for tendermint client
+SEED0=$(jq -r '.mnemonic' < ${FIXTURES_DIR}/tendermint/ibc0/key_seed.json)
+echo "Key $(${RLY} tendermint keys restore ibc0 testkey "$SEED0") imported from ibc0 to relayer..."
+
+## setup wallet for fabric client
+USER_MSP_CONFIG_PATH="fabric/org1/users/User1@org1.example.com/msp"
+${RLY} fabric wallet populate ibc1 \
+  --cert ${FIXTURES_DIR}/${USER_MSP_CONFIG_PATH}/signcerts/User1@org1.example.com-cert.pem \
+  --key ${FIXTURES_DIR}/${USER_MSP_CONFIG_PATH}/keystore/priv_sk
+## initialize the state of chaincode
+${RLY} fabric chaincode init ibc1

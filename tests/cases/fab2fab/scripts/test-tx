@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -e
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
+RLY="${RLY_BINARY} --debug"
+
+# Ensure ${CHAIN_BINARY} is installed
+if ! [ -x ${CHAIN_BINARY} ]; then
+  echo "Error: ${CHAIN_BINARY} is not installed." >&2
+  exit 1
+fi
+
+# XXX set proper value
+TX_INTERNAL=3
+
+FABRIC_ADDRESS0=$(${RLY} fabric wallet address ibc0 | tail -n 1)
+FABRIC_ADDRESS1=$(${RLY} fabric wallet address ibc1 | tail -n 1)
+
+echo "!!! Fabric -> Fabric !!!"
+
+echo "Before Fab0 balance: $(${RLY} query balance ibc0 ${FABRIC_ADDRESS0} | tail -n 1)"
+echo "Before Fab1 balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS0} | tail -n 1)"

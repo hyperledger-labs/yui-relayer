@@ -1,0 +1,5 @@
+{
+  "address": "fabric-chaincode.org1.example.com:17051",
+  "dial_timeout": "10s",
+  "tls_required": false
+}
