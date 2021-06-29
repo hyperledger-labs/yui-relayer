@@ -69,6 +69,10 @@ func (c *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.HeaderI
 	return nil, nil
 }
 
+func (c *Chain) UpdateLightWithHeader() (core.HeaderI, error) {
+	return c.QueryLatestHeader()
+}
+
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 	panic("not implemented error")
 }

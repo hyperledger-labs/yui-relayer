@@ -6,6 +6,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
 )
 
+type HeaderI interface {
+	exported.Header
+}
+
 type SyncHeadersI interface {
 	GetHeight(chainID string) uint64
 	GetHeader(chainID string) HeaderI
@@ -13,7 +17,23 @@ type SyncHeadersI interface {
 	Updates(ChainI, ChainI) error
 }
 
+type syncHeaders struct {
+	hds map[string]HeaderI
+}
+
 var _ SyncHeadersI = (*syncHeaders)(nil)
+
+// NewSyncHeaders returns a new instance of SyncHeadersI that can be easily
+// kept "reasonably up to date"
+func NewSyncHeaders(src, dst ChainI) (SyncHeadersI, error) {
+	srch, dsth, err := UpdatesWithHeaders(src, dst)
+	if err != nil {
+		return nil, err
+	}
+	return &syncHeaders{
+		hds: map[string]HeaderI{src.ChainID(): srch, dst.ChainID(): dsth},
+	}, nil
+}
 
 func (sh syncHeaders) GetHeight(chainID string) uint64 {
 	return sh.hds[chainID].GetHeight().GetVersionHeight()
@@ -38,36 +58,14 @@ func (sh syncHeaders) GetTrustedHeaders(src, dst ChainI) (HeaderI, HeaderI, erro
 }
 
 func (sh *syncHeaders) Updates(src, dst ChainI) error {
-	// TODO should we introduce light client DB?
-	// original implementation uses it to manage the latest header
-
-	srch, dsth, err := UpdatesWithHeaders(src, dst)
+	srch, err := src.UpdateLightWithHeader()
+	if err != nil {
+		return err
+	}
+	dsth, err := dst.UpdateLightWithHeader()
 	if err != nil {
 		return err
 	}
 	sh.hds = map[string]HeaderI{src.ChainID(): srch, dst.ChainID(): dsth}
-	sh.chains = map[string]ChainI{src.ChainID(): src, dst.ChainID(): dst}
 	return nil
-}
-
-type syncHeaders struct {
-	hds    map[string]HeaderI
-	chains map[string]ChainI
-}
-
-type HeaderI interface {
-	exported.Header
-}
-
-// NewSyncHeaders returns a new instance of SyncHeadersI that can be easily
-// kept "reasonably up to date"
-func NewSyncHeaders(src, dst ChainI) (SyncHeadersI, error) {
-	srch, dsth, err := UpdatesWithHeaders(src, dst)
-	if err != nil {
-		return nil, err
-	}
-	return &syncHeaders{
-		hds:    map[string]HeaderI{src.ChainID(): srch, dst.ChainID(): dsth},
-		chains: map[string]ChainI{src.ChainID(): src, dst.ChainID(): dst},
-	}, nil
 }

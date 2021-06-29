@@ -15,6 +15,7 @@ func TendermintCmd(m codec.Marshaler, ctx *config.Context) *cobra.Command {
 	cmd.AddCommand(
 		configCmd(m),
 		keysCmd(ctx),
+		lightCmd(ctx),
 	)
 
 	return cmd

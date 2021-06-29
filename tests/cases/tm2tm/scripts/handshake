@@ -20,11 +20,11 @@ $RLY tendermint keys show $CHAINID_TWO $RLYKEY
 $RLY chains edit $CHAINID_ONE key $RLYKEY
 $RLY chains edit $CHAINID_TWO key $RLYKEY
 
-# # initialize the light client for {{chain_id}}
-# retry 5 $RLY light init $CHAINID_ONE -f
-# retry 5 $RLY light init $CHAINID_TWO -f
+# initialize the light client for {{chain_id}}
+retry 5 $RLY tendermint light init $CHAINID_ONE -f
+retry 5 $RLY tendermint light init $CHAINID_TWO -f
 
-# # you should see a balance for the rly key now
+# you should see a balance for the rly key now
 # $RLY q bal $CHAINID_ONE
 # $RLY q bal $CHAINID_TWO
 
@@ -32,5 +32,5 @@ $RLY chains edit $CHAINID_TWO key $RLYKEY
 $RLY paths add $CHAINID_ONE $CHAINID_TWO $PATH_NAME --file=./configs/path.json
 
 retry 5 $RLY tx clients $PATH_NAME
-# retry 5 $RLY tx connection $PATH_NAME
-# retry 5 $RLY tx channel $PATH_NAME
+retry 5 $RLY tx connection $PATH_NAME
+retry 5 $RLY tx channel $PATH_NAME

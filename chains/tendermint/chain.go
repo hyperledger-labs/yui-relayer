@@ -147,3 +147,11 @@ func (srcChain *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.
 func (c *Chain) GetLatestLightHeight() (int64, error) {
 	return c.base.GetLatestLightHeight()
 }
+
+func (c *Chain) UpdateLightWithHeader() (core.HeaderI, error) {
+	h, err := c.base.UpdateLightWithHeader()
+	if err != nil {
+		return nil, err
+	}
+	return h, nil
+}
