@@ -1,0 +1,9 @@
+.bin
+/artifacts
+/backup
+/build
+/config
+/external-builders/config/**/code.tar.gz
+/organizations
+log.txt
+!Dockerfiles/data

@@ -1,0 +1,17 @@
+{
+  "@type": "/relayer.fabric.config.ChainConfig",
+  "chain_id": "ibc1",
+  "msp_id": "Org2MSP",
+  "channel": "channel2",
+  "chaincode_id": "fabibc",
+  "connection_profile_path": "./fixtures/fabric/org2/connection-profile/local.yaml",
+  "ibc_policies": [
+    "Org2MSP"
+  ],
+  "endorsement_policies": [
+    "Org2MSP"
+  ],
+  "msp_config_paths": [
+    "./fixtures/fabric/org2/peers/peer0.org2.example.com/msp"
+  ]
+}

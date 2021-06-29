@@ -1,23 +1,206 @@
 name: Test
 on: [push]
+
+env:
+  CACHE_BIN_RELAYER_KEY: bin-relayer
+  CACHE_BIN_RELAYER_PATH: ./build/uly
+  CACHE_DOCKER_FABRIC_KEY: docker-fabric
+  CACHE_DOCKER_FABRIC_DIR: /tmp/fabric
+  CACHE_DOCKER_TENDERMINT_KEY: docker-tendermint
+  CACHE_DOCKER_TENDERMINT_DIR: /tmp/tendermint
+
 jobs:
-
-  build:
-    name: test
-    runs-on: ubuntu-latest
+  relayer-build:
+    name: relayer-build
+    runs-on: ubuntu-20.04
     steps:
+      - name: Set up Go 1.15
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.15
+        id: go
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Run Unit test
+        run: make test
+      - name: Build
+        run: make build
+      - name: Save relayer binary cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_BIN_RELAYER_PATH }}
+          key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
 
-    - name: Set up Go 1.15
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.15
-      id: go
+  tendermint-build:
+    name: tendermint-build
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        id: cache-docker-tendermint
+        with:
+          path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ github.sha }}
+      - name: Build docker images
+        if: steps.cache-docker-tendermint.outputs.cache-hit != 'true'
+        working-directory: ./tests/chains/tendermint
+        run: |
+          make docker-images
+      - name: Save docker images
+        if: steps.cache-docker-tendermint.outputs.cache-hit != 'true'
+        working-directory: ./tests/scripts
+        run: |
+          ./save_docker_images $CACHE_DOCKER_TENDERMINT_DIR tendermint-chain0:latest tendermint-chain1:latest
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+  fabric-build:
+    name: fabric-build
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        id: cache-docker-fabric
+        with:
+          path: ${{ env.CACHE_DOCKER_FABRIC_DIR }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ github.sha }}
+      - name: Download Fabric binaries
+        id: download-fabric-binaries
+        if: steps.cache-docker-fabric.outputs.cache-hit != 'true'
+        working-directory: ./tests/chains/fabric
+        run: make bin
+      - name: Create snapshot
+        id: scaffold
+        if: steps.cache-docker-fabric.outputs.cache-hit != 'true'
+        working-directory: ./tests/chains/fabric
+        run: |
+          make initial-data snapshot
+      - name: Build docker images
+        if: steps.cache-docker-fabric.outputs.cache-hit != 'true'
+        working-directory: ./tests/chains/fabric
+        run: |
+          make docker-images
+      - name: Save docker images
+        if: steps.cache-docker-fabric.outputs.cache-hit != 'true'
+        working-directory: ./tests/scripts
+        run: |
+          ./save_docker_images $CACHE_DOCKER_FABRIC_DIR \
+            fabric-orderer:latest \
+            fabric-data:latest \
+            fabric-peer0-org1:latest \
+            fabric-chaincode-org1:latest \
+            fabric-peer0-org2:latest \
+            fabric-chaincode-org2:latest
 
-    - name: Build
-      run: make build
-    
-    - name: Test
-      run: make test
+  tm2tm-test:
+    name: tm2tm-test
+    runs-on: ubuntu-20.04
+    needs:
+      - relayer-build
+      - tendermint-build
+    steps:
+      - uses: actions/checkout@v2
+      - name: Restore relayer binary cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_BIN_RELAYER_PATH }}
+          key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
+      - name: Restore Tendermint docker image cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ github.sha }}
+      - name: Load Tendermint docker images
+        working-directory: ./tests/scripts
+        run: |
+          ./load_docker_images $CACHE_DOCKER_TENDERMINT_DIR tendermint-chain0:latest tendermint-chain1:latest
+      - name: Run Test
+        working-directory: ./tests/cases/tm2tm
+        run: |
+          make network
+          make test
+          make network-down
+
+  tm2fab-test:
+    name: tm2fab-test
+    runs-on: ubuntu-20.04
+    needs:
+      - relayer-build
+      - tendermint-build
+      - fabric-build
+    steps:
+      - uses: actions/checkout@v2
+      - name: Restore relayer binary cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_BIN_RELAYER_PATH }}
+          key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
+      - name: Restore Tendermint docker image cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ github.sha }}
+      - name: Load Tendermint docker image
+        working-directory: ./tests/scripts
+        run: |
+          ./load_docker_images $CACHE_DOCKER_TENDERMINT_DIR tendermint-chain0:latest
+      - name: Restore Fabric docker image cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_DOCKER_FABRIC_DIR }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ github.sha }}
+      - name: Load Fabric docker images
+        working-directory: ./tests/scripts
+        run: |
+          ./load_docker_images $CACHE_DOCKER_FABRIC_DIR \
+             fabric-orderer:latest \
+             fabric-data:latest \
+             fabric-peer0-org1:latest \
+             fabric-chaincode-org1:latest
+      - name: Run Test
+        working-directory: ./tests/cases/tm2fab
+        run: |
+          make network
+          make test
+          make network-down
+
+  fab2fab-test:
+    name: fab2fab-test
+    runs-on: ubuntu-20.04
+    needs:
+      - relayer-build
+      - fabric-build
+    steps:
+      - uses: actions/checkout@v2
+      - name: Restore relayer binary cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_BIN_RELAYER_PATH }}
+          key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
+      - name: Restore Fabric docker image cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_DOCKER_FABRIC_DIR }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ github.sha }}
+      - name: Load Fabric docker image
+        working-directory: ./tests/scripts
+        run: |
+          ./load_docker_images $CACHE_DOCKER_FABRIC_DIR \
+             fabric-orderer:latest \
+             fabric-data:latest \
+             fabric-peer0-org1:latest \
+             fabric-chaincode-org1:latest \
+             fabric-peer0-org2:latest \
+             fabric-chaincode-org2:latest
+      - name: Run Test
+        working-directory: ./tests/cases/fab2fab
+        run: |
+          make network
+          make test
+          make network-down

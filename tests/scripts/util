@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+createDockerImageCacheKey() {
+  IMAGE=$1
+  ret=${IMAGE//\//_}
+  echo $ret
+}
