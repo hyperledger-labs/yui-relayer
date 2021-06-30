@@ -6,15 +6,13 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	relayercmd "github.com/cosmos/relayer/cmd"
-	"github.com/cosmos/relayer/relayer"
 	"github.com/datachainlab/relayer/core"
 )
 
 type Config struct {
-	Global relayercmd.GlobalConfig `yaml:"global" json:"global"`
-	Chains []json.RawMessage       `yaml:"chains" json:"chains"`
-	Paths  relayer.Paths           `yaml:"paths" json:"paths"`
+	Global GlobalConfig      `yaml:"global" json:"global"`
+	Chains []json.RawMessage `yaml:"chains" json:"chains"`
+	Paths  core.Paths        `yaml:"paths" json:"paths"`
 
 	// cache
 	chains Chains `yaml:"-" json:"-"`
@@ -24,13 +22,19 @@ func DefaultConfig() Config {
 	return Config{
 		Global: newDefaultGlobalConfig(),
 		Chains: []json.RawMessage{},
-		Paths:  relayer.Paths{},
+		Paths:  core.Paths{},
 	}
 }
 
+// GlobalConfig describes any global relayer settings
+type GlobalConfig struct {
+	Timeout        string `yaml:"timeout" json:"timeout"`
+	LightCacheSize int    `yaml:"light-cache-size" json:"light-cache-size"`
+}
+
 // newDefaultGlobalConfig returns a global config with defaults set
-func newDefaultGlobalConfig() relayercmd.GlobalConfig {
-	return relayercmd.GlobalConfig{
+func newDefaultGlobalConfig() GlobalConfig {
+	return GlobalConfig{
 		Timeout:        "10s",
 		LightCacheSize: 20,
 	}
@@ -61,7 +65,7 @@ func (c *Config) AddChain(m codec.JSONMarshaler, cconfig core.ChainConfigI) erro
 }
 
 // AddPath adds an additional path to the config
-func (c *Config) AddPath(name string, path *relayer.Path) (err error) {
+func (c *Config) AddPath(name string, path *core.Path) (err error) {
 	return c.Paths.Add(name, path)
 }
 

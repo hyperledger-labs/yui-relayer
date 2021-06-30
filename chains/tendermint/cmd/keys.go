@@ -8,8 +8,6 @@ import (
 	"github.com/datachainlab/relayer/chains/tendermint"
 	"github.com/datachainlab/relayer/config"
 	"github.com/spf13/cobra"
-
-	"github.com/cosmos/relayer/relayer"
 )
 
 // keysCmd represents the keys command
@@ -42,20 +40,20 @@ func keysAddCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain).Base()
+			chain := c.(*tendermint.Chain)
 
 			var keyName string
 			if len(args) == 2 {
 				keyName = args[1]
 			} else {
-				keyName = chain.Key
+				keyName = chain.Key()
 			}
 
 			if chain.KeyExists(keyName) {
 				return errKeyExists(keyName)
 			}
 
-			mnemonic, err := relayer.CreateMnemonic()
+			mnemonic, err := tendermint.CreateMnemonic()
 			if err != nil {
 				return err
 			}
@@ -98,7 +96,7 @@ func keysRestoreCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain).Base()
+			chain := c.(*tendermint.Chain)
 
 			if chain.KeyExists(keyName) {
 				return errKeyExists(keyName)
@@ -130,13 +128,13 @@ func keysShowCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain).Base()
+			chain := c.(*tendermint.Chain)
 
 			var keyName string
 			if len(args) == 2 {
 				keyName = args[1]
 			} else {
-				keyName = chain.Key
+				keyName = chain.Key()
 			}
 
 			if !chain.KeyExists(keyName) {
@@ -167,7 +165,7 @@ func keysListCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain).Base()
+			chain := c.(*tendermint.Chain)
 
 			info, err := chain.Keybase.List()
 			if err != nil {
