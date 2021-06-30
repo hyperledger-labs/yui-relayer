@@ -109,7 +109,7 @@ func (c *Chain) SetPath(p *core.PathEnd) error {
 
 // ErrCantSetPath returns an error if the path doesn't set properly
 func (c *Chain) ErrCantSetPath(err error) error {
-	return fmt.Errorf("path on chain %s failed to set: %w", c.ChainID, err)
+	return fmt.Errorf("path on chain %s failed to set: %w", c.ChainID(), err)
 }
 
 func (c *Chain) Path() *core.PathEnd {
@@ -168,12 +168,12 @@ func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
 
 	_, err = time.ParseDuration(c.config.TrustingPeriod)
 	if err != nil {
-		return fmt.Errorf("failed to parse trusting period (%s) for chain %s", c.config.TrustingPeriod, c.ChainID)
+		return fmt.Errorf("failed to parse trusting period (%s) for chain %s", c.config.TrustingPeriod, c.ChainID())
 	}
 
 	_, err = sdk.ParseDecCoins(c.config.GasPrices)
 	if err != nil {
-		return fmt.Errorf("failed to parse gas prices (%s) for chain %s", c.config.GasPrices, c.ChainID)
+		return fmt.Errorf("failed to parse gas prices (%s) for chain %s", c.config.GasPrices, c.ChainID())
 	}
 
 	encodingConfig := makeEncodingConfig()

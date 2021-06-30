@@ -179,7 +179,7 @@ func (c *Chain) NewLightDB() (db *dbm.GoLevelDB, df func(), err error) {
 
 // DeleteLightDB removes the light client database on disk, forcing re-initialization
 func (c *Chain) DeleteLightDB() error {
-	return os.RemoveAll(filepath.Join(lightDir(c.HomePath), fmt.Sprintf("%s.db", c.ChainID)))
+	return os.RemoveAll(filepath.Join(lightDir(c.HomePath), fmt.Sprintf("%s.db", c.ChainID())))
 }
 
 // TrustOptions returns light.TrustOptions given a height and hash

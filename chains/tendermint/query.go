@@ -35,7 +35,7 @@ func (c *Chain) QueryLatestHeight() (int64, error) {
 	if err != nil {
 		return -1, err
 	} else if res.SyncInfo.CatchingUp {
-		return -1, fmt.Errorf("node at %s running chain %s not caught up", c.config.RpcAddr, c.ChainID)
+		return -1, fmt.Errorf("node at %s running chain %s not caught up", c.config.RpcAddr, c.ChainID())
 	}
 
 	return res.SyncInfo.LatestBlockHeight, nil
