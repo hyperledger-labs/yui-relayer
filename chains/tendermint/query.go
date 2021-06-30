@@ -213,7 +213,10 @@ func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, 
 		ChannelId:                 c.PathEnd.ChannelID,
 		PacketCommitmentSequences: seqs,
 	})
-	return res.Sequences, err
+	if err != nil {
+		return nil, err
+	}
+	return res.Sequences, nil
 }
 
 // QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
@@ -224,7 +227,10 @@ func (c *Chain) QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([
 		ChannelId:          c.PathEnd.ChannelID,
 		PacketAckSequences: seqs,
 	})
-	return res.Sequences, err
+	if err != nil {
+		return nil, err
+	}
+	return res.Sequences, nil
 }
 
 func (src *Chain) QueryPacket(height int64, seq uint64) (*chantypes.Packet, error) {
