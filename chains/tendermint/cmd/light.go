@@ -6,7 +6,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	tmclient "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
-	"github.com/cosmos/relayer/relayer"
 	"github.com/datachainlab/relayer/chains/tendermint"
 	"github.com/datachainlab/relayer/config"
 	"github.com/spf13/cobra"
@@ -42,7 +41,7 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain).Base()
+			chain := c.(*tendermint.Chain)
 
 			db, df, err := chain.NewLightDB()
 			if err != nil {
@@ -69,7 +68,7 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				fmt.Printf("successfully created light client for %s by trusting endpoint %s...\n", chain.ChainID, chain.RPCAddr)
+				fmt.Printf("successfully created light client for %s by trusting endpoint %s...\n", chain.ChainID(), chain.Config().RpcAddr)
 			case height > 0 && len(hash) > 0: // height and hash are given
 				_, err = chain.LightClientWithTrust(db, chain.TrustOptions(height, hash))
 				if err != nil {
@@ -97,7 +96,7 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain).Base()
+			chain := c.(*tendermint.Chain)
 
 			bh, err := chain.GetLatestLightHeader()
 			if err != nil {
@@ -109,7 +108,7 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("Updated light client for %s from height %d -> height %d\n", args[0], bh.Header.Height, ah.Header.Height)
+			fmt.Printf("Updated light client for %s from height %d -> height %d\n", args[0], bh.Header.Height, ah.(tmclient.Header).Header.Height)
 			return nil
 		},
 	}
@@ -130,7 +129,7 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain).Base()
+			chain := c.(*tendermint.Chain)
 
 			var header *tmclient.Header
 
@@ -154,7 +153,7 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 					}
 
 					if height == -1 {
-						return relayer.ErrLightNotInitialized
+						return tendermint.ErrLightNotInitialized
 					}
 				}
 
@@ -188,7 +187,7 @@ func deleteLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain).Base()
+			chain := c.(*tendermint.Chain)
 
 			err = chain.DeleteLightDB()
 			if err != nil {

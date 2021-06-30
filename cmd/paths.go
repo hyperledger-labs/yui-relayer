@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/cosmos/relayer/relayer"
 	"github.com/datachainlab/relayer/config"
+	"github.com/datachainlab/relayer/core"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -110,7 +110,7 @@ func pathsAddCmd(ctx *config.Context) *cobra.Command {
 
 func fileInputPathAdd(config *config.Config, file, name string) error {
 	// If the user passes in a file, attempt to read the chain config from that file
-	p := &relayer.Path{}
+	p := &core.Path{}
 	if _, err := os.Stat(file); err != nil {
 		return err
 	}
@@ -135,13 +135,13 @@ func userInputPathAdd(config *config.Config, src, dst, name string) error {
 	var (
 		value string
 		err   error
-		path  = &relayer.Path{
-			Strategy: relayer.NewNaiveStrategy(),
-			Src: &relayer.PathEnd{
+		path  = &core.Path{
+			Strategy: &core.StrategyCfg{Type: "naive"},
+			Src: &core.PathEnd{
 				ChainID: src,
 				Order:   "ORDERED",
 			},
-			Dst: &relayer.PathEnd{
+			Dst: &core.PathEnd{
 				ChainID: dst,
 				Order:   "ORDERED",
 			},

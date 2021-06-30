@@ -2,52 +2,110 @@ package tendermint
 
 import (
 	"context"
-	fmt "fmt"
+	"errors"
+	"fmt"
+	"sort"
+	"strings"
+	"time"
 
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	querytypes "github.com/cosmos/cosmos-sdk/types/query"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
+	clientutils "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/client/utils"
 	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
+	connutils "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/client/utils"
 	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
+	chanutils "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/client/utils"
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	committypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/datachainlab/relayer/core"
+	abci "github.com/tendermint/tendermint/abci/types"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // QueryLatestHeight queries the chain for the latest height and returns it
 func (c *Chain) QueryLatestHeight() (int64, error) {
-	return c.base.QueryLatestHeight()
-}
+	res, err := c.Client.Status(context.Background())
+	if err != nil {
+		return -1, err
+	} else if res.SyncInfo.CatchingUp {
+		return -1, fmt.Errorf("node at %s running chain %s not caught up", c.config.RpcAddr, c.ChainID())
+	}
 
-// QueryValsetAtHeight returns the validator set at a given height
-func (c *Chain) QueryValsetAtHeight(height clienttypes.Height) (*tmproto.ValidatorSet, error) {
-	return c.base.QueryValsetAtHeight(height)
+	return res.SyncInfo.LatestBlockHeight, nil
 }
 
 // QueryClientState retrevies the latest consensus state for a client in state at a given height
-func (c *Chain) QueryClientState(height int64, prove bool) (*clienttypes.QueryClientStateResponse, error) {
-	// TODO use arg `prove` to call the method
-	return c.base.QueryClientState(height)
+func (c *Chain) QueryClientState(height int64, _ bool) (*clienttypes.QueryClientStateResponse, error) {
+	return clientutils.QueryClientStateABCI(c.CLIContext(height), c.PathEnd.ClientID)
 }
+
+var emptyConnRes = conntypes.NewQueryConnectionResponse(
+	conntypes.NewConnectionEnd(
+		conntypes.UNINITIALIZED,
+		"client",
+		conntypes.NewCounterparty(
+			"client",
+			"connection",
+			committypes.NewMerklePrefix([]byte{}),
+		),
+		[]*conntypes.Version{},
+	),
+	[]byte{},
+	clienttypes.NewHeight(0, 0),
+)
 
 // QueryConnection returns the remote end of a given connection
 func (c *Chain) QueryConnection(height int64, prove bool) (*conntypes.QueryConnectionResponse, error) {
-	// TODO use arg `prove` to call the method
-	return c.base.QueryConnection(height)
+	res, err := connutils.QueryConnection(c.CLIContext(height), c.PathEnd.ConnectionID, prove)
+	if err != nil && strings.Contains(err.Error(), "not found") {
+		return emptyConnRes, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
+var emptyChannelRes = chantypes.NewQueryChannelResponse(
+	chantypes.NewChannel(
+		chantypes.UNINITIALIZED,
+		chantypes.UNORDERED,
+		chantypes.NewCounterparty(
+			"port",
+			"channel",
+		),
+		[]string{},
+		"version",
+	),
+	[]byte{},
+	clienttypes.NewHeight(0, 0),
+)
+
 // QueryChannel returns the channel associated with a channelID
-func (c *Chain) QueryChannel(height int64, prove bool) (*chantypes.QueryChannelResponse, error) {
-	// TODO use arg `prove` to call the method
-	return c.base.QueryChannel(height)
+func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error) {
+	res, err := chanutils.QueryChannel(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, prove)
+	if err != nil && strings.Contains(err.Error(), "not found") {
+		return emptyChannelRes, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
-func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibcexported.Height, prove bool) (*clienttypes.QueryConsensusStateResponse, error) {
-	// TODO use arg `prove` to call the method
-	return c.base.QueryClientConsensusState(height, dstClientConsHeight)
+func (c *Chain) QueryClientConsensusState(
+	height int64, dstClientConsHeight ibcexported.Height, _ bool) (*clienttypes.QueryConsensusStateResponse, error) {
+	return clientutils.QueryConsensusStateABCI(
+		c.CLIContext(height),
+		c.PathEnd.ClientID,
+		dstClientConsHeight,
+	)
 }
 
 // QueryBalance returns the amount of coins in the relayer account
@@ -59,7 +117,7 @@ func (c *Chain) QueryBalance(addr sdk.AccAddress) (sdk.Coins, error) {
 		CountTotal: true,
 	})
 
-	queryClient := bankTypes.NewQueryClient(c.base.CLIContext(0))
+	queryClient := bankTypes.NewQueryClient(c.CLIContext(0))
 
 	res, err := queryClient.AllBalances(context.Background(), params)
 	if err != nil {
@@ -71,39 +129,112 @@ func (c *Chain) QueryBalance(addr sdk.AccAddress) (sdk.Coins, error) {
 
 // QueryDenomTraces returns all the denom traces from a given chain
 func (c *Chain) QueryDenomTraces(offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error) {
-	return c.base.QueryDenomTraces(offset, limit, height)
+	return transfertypes.NewQueryClient(c.CLIContext(height)).DenomTraces(context.Background(), &transfertypes.QueryDenomTracesRequest{
+		Pagination: &querytypes.PageRequest{
+			Key:        []byte(""),
+			Offset:     offset,
+			Limit:      limit,
+			CountTotal: true,
+		},
+	})
 }
 
 // QueryPacketCommitment returns the packet commitment proof at a given height
-func (c *Chain) QueryPacketCommitment(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	return c.base.QueryPacketCommitment(height, seq)
+func (c *Chain) QueryPacketCommitment(
+	height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
+	return chanutils.QueryPacketCommitment(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, true)
 }
 
 // QueryPacketAcknowledgementCommitment returns the packet ack proof at a given height
 func (c *Chain) QueryPacketAcknowledgementCommitment(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	return c.base.QueryPacketAcknowledgement(height, seq)
+	return chanutils.QueryPacketAcknowledgement(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, true)
+}
+
+func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error) {
+	txs, err := dst.QueryTxs(uint64(height), 1, 1000, ackPacketQuery(dst.Path().ChannelID, int(sequence)))
+	switch {
+	case err != nil:
+		return nil, err
+	case len(txs) == 0:
+		return nil, fmt.Errorf("no transactions returned with query")
+	case len(txs) > 1:
+		return nil, fmt.Errorf("more than one transaction returned with query")
+	}
+
+	ack, err := core.FindPacketAcknowledgementFromEventsBySequence(txs[0].TxResult.Events, sequence)
+	if err != nil {
+		return nil, err
+	}
+	if ack == nil {
+		return nil, fmt.Errorf("can't find the packet from events")
+	}
+	return ack.Data(), nil
+}
+
+// QueryPacketReciept returns the packet reciept proof at a given height
+func (c *Chain) QueryPacketReciept(height int64, seq uint64) (recRes *chantypes.QueryPacketReceiptResponse, err error) {
+	return chanutils.QueryPacketReceipt(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, true)
 }
 
 // QueryPacketCommitments returns an array of packet commitments
-func (c *Chain) QueryPacketCommitments(offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
-	return c.base.QueryPacketCommitments(offset, limit, height)
+func (c *Chain) QueryPacketCommitments(
+	offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
+	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
+	return qc.PacketCommitments(context.Background(), &chantypes.QueryPacketCommitmentsRequest{
+		PortId:    c.PathEnd.PortID,
+		ChannelId: c.PathEnd.ChannelID,
+		Pagination: &querytypes.PageRequest{
+			Offset:     offset,
+			Limit:      limit,
+			CountTotal: true,
+		},
+	})
+}
+
+// QueryPacketAcknowledgements returns an array of packet acks
+func (c *Chain) QueryPacketAcknowledgements(offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
+	return qc.PacketAcknowledgements(context.Background(), &chantypes.QueryPacketAcknowledgementsRequest{
+		PortId:    c.PathEnd.PortID,
+		ChannelId: c.PathEnd.ChannelID,
+		Pagination: &querytypes.PageRequest{
+			Offset:     offset,
+			Limit:      limit,
+			CountTotal: true,
+		},
+	})
 }
 
 // QueryUnrecievedPackets returns a list of unrelayed packet commitments
 func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, error) {
-	return c.base.QueryUnrecievedPackets(height, seqs)
+	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
+	res, err := qc.UnreceivedPackets(context.Background(), &chantypes.QueryUnreceivedPacketsRequest{
+		PortId:                    c.PathEnd.PortID,
+		ChannelId:                 c.PathEnd.ChannelID,
+		PacketCommitmentSequences: seqs,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res.Sequences, nil
 }
 
-func (c *Chain) QueryPacketAcknowledgements(offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
-	return c.base.QueryPacketAcknowledgements(offset, limit, height)
-}
-
+// QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
 func (c *Chain) QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([]uint64, error) {
-	return c.base.QueryUnrecievedAcknowledgements(height, seqs)
+	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
+	res, err := qc.UnreceivedAcks(context.Background(), &chantypes.QueryUnreceivedAcksRequest{
+		PortId:             c.PathEnd.PortID,
+		ChannelId:          c.PathEnd.ChannelID,
+		PacketAckSequences: seqs,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res.Sequences, nil
 }
 
 func (src *Chain) QueryPacket(height int64, seq uint64) (*chantypes.Packet, error) {
-	txs, err := src.base.QueryTxs(uint64(height), 1, 1000, rcvPacketQuery(src.Path().ChannelID, int(seq)))
+	txs, err := src.QueryTxs(uint64(height), 1, 1000, rcvPacketQuery(src.Path().ChannelID, int(seq)))
 	switch {
 	case err != nil:
 		return nil, err
@@ -123,25 +254,109 @@ func (src *Chain) QueryPacket(height int64, seq uint64) (*chantypes.Packet, erro
 	return packet, nil
 }
 
-func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error) {
-	txs, err := dst.base.QueryTxs(uint64(height), 1, 1000, ackPacketQuery(dst.Path().ChannelID, int(sequence)))
-	switch {
-	case err != nil:
-		return nil, err
-	case len(txs) == 0:
-		return nil, fmt.Errorf("no transactions returned with query")
-	case len(txs) > 1:
-		return nil, fmt.Errorf("more than one transaction returned with query")
+// QueryTxs returns an array of transactions given a tag
+func (c *Chain) QueryTxs(height uint64, page, limit int, events []string) ([]*ctypes.ResultTx, error) {
+	if len(events) == 0 {
+		return nil, errors.New("must declare at least one event to search")
 	}
 
-	ack, err := core.FindPacketAcknowledgementFromEventsBySequence(txs[0].TxResult.Events, sequence)
+	if page <= 0 {
+		return nil, errors.New("page must greater than 0")
+	}
+
+	if limit <= 0 {
+		return nil, errors.New("limit must greater than 0")
+	}
+
+	res, err := c.Client.TxSearch(context.Background(), strings.Join(events, " AND "), true, &page, &limit, "")
 	if err != nil {
 		return nil, err
 	}
-	if ack == nil {
-		return nil, fmt.Errorf("can't find the packet from events")
+	return res.Txs, nil
+}
+
+/////////////////////////////////////
+//    STAKING -> HistoricalInfo     //
+/////////////////////////////////////
+
+// QueryHistoricalInfo returns historical header data
+func (c *Chain) QueryHistoricalInfo(height clienttypes.Height) (*stakingtypes.QueryHistoricalInfoResponse, error) {
+	//TODO: use epoch number in query once SDK gets updated
+	qc := stakingtypes.NewQueryClient(c.CLIContext(int64(height.GetVersionHeight())))
+	return qc.HistoricalInfo(context.Background(), &stakingtypes.QueryHistoricalInfoRequest{
+		Height: int64(height.GetVersionHeight()),
+	})
+}
+
+// QueryValsetAtHeight returns the validator set at a given height
+func (c *Chain) QueryValsetAtHeight(height clienttypes.Height) (*tmproto.ValidatorSet, error) {
+	res, err := c.QueryHistoricalInfo(height)
+	if err != nil {
+		return nil, err
 	}
-	return ack.Data(), nil
+
+	// create tendermint ValidatorSet from SDK Validators
+	tmVals, err := c.toTmValidators(res.Hist.Valset)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Sort(tmtypes.ValidatorsByVotingPower(tmVals))
+	tmValSet := &tmtypes.ValidatorSet{
+		Validators: tmVals,
+	}
+	tmValSet.GetProposer()
+
+	return tmValSet.ToProto()
+}
+
+func (c *Chain) toTmValidators(vals stakingtypes.Validators) ([]*tmtypes.Validator, error) {
+	validators := make([]*tmtypes.Validator, len(vals))
+	var err error
+	for i, val := range vals {
+		validators[i], err = c.toTmValidator(val)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return validators, nil
+}
+
+func (c *Chain) toTmValidator(val stakingtypes.Validator) (*tmtypes.Validator, error) {
+	var pk cryptotypes.PubKey
+	if err := c.Encoding.Marshaler.UnpackAny(val.ConsensusPubkey, &pk); err != nil {
+		return nil, err
+	}
+	intoTmPk, ok := pk.(cryptotypes.IntoTmPubKey)
+	if !ok {
+		return nil, fmt.Errorf("pubkey not a pub key *scratches head*")
+	}
+	return tmtypes.NewValidator(intoTmPk.AsTmPubKey(), val.ConsensusPower()), nil
+}
+
+// QueryUnbondingPeriod returns the unbonding period of the chain
+func (c *Chain) QueryUnbondingPeriod() (time.Duration, error) {
+	req := stakingtypes.QueryParamsRequest{}
+
+	queryClient := stakingtypes.NewQueryClient(c.CLIContext(0))
+
+	res, err := queryClient.Params(context.Background(), &req)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.Params.UnbondingTime, nil
+}
+
+// QueryConsensusParams returns the consensus params
+func (c *Chain) QueryConsensusParams() (*abci.ConsensusParams, error) {
+	rg, err := c.Client.Genesis(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return tmtypes.TM2PB.ConsensusParams(rg.Genesis.ConsensusParams), nil
 }
 
 const (

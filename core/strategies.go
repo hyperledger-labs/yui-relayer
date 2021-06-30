@@ -2,8 +2,6 @@ package core
 
 import (
 	"fmt"
-
-	"github.com/cosmos/relayer/relayer"
 )
 
 // StrategyI defines
@@ -15,7 +13,12 @@ type StrategyI interface {
 	RelayAcknowledgements(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
 }
 
-func GetStrategy(cfg relayer.StrategyCfg) (StrategyI, error) {
+// StrategyCfg defines which relaying strategy to take for a given path
+type StrategyCfg struct {
+	Type string `json:"type" yaml:"type"`
+}
+
+func GetStrategy(cfg StrategyCfg) (StrategyI, error) {
 	switch cfg.Type {
 	case "naive":
 		return NewNaiveStrategy(), nil
@@ -50,4 +53,14 @@ func RunStrategy(src, dst ChainI, strategy StrategyI) (func(), error) {
 
 	// Return a function to stop the relayer goroutine
 	return func() { doneChan <- struct{}{} }, nil
+}
+
+// GetStrategy the strategy defined in the relay messages
+func (p *Path) GetStrategy() (StrategyI, error) {
+	switch p.Strategy.Type {
+	case (&NaiveStrategy{}).GetType():
+		return &NaiveStrategy{}, nil
+	default:
+		return nil, fmt.Errorf("invalid strategy: %s", p.Strategy.Type)
+	}
 }

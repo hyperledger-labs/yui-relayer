@@ -14,18 +14,18 @@ import (
 
 // MakeMsgCreateClient creates a Msg to this chain
 func (dst *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
-	ubdPeriod, err := dst.base.QueryUnbondingPeriod()
+	ubdPeriod, err := dst.QueryUnbondingPeriod()
 	if err != nil {
 		return nil, err
 	}
-	consensusParams, err := dst.base.QueryConsensusParams()
+	consensusParams, err := dst.QueryConsensusParams()
 	if err != nil {
 		return nil, err
 	}
 	return createClient(
 		clientID,
 		dstHeader.(*tmclient.Header),
-		dst.base.GetTrustingPeriod(),
+		dst.GetTrustingPeriod(),
 		ubdPeriod,
 		consensusParams,
 		signer,

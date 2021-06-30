@@ -11,7 +11,7 @@ message ChainConfig {
   string chain_id = 2;
   string rpc_addr = 3;
   string account_prefix = 4;
-  float gas_adjustment = 5;
+  double gas_adjustment = 5;
   string gas_prices = 6;
   string trusting_period = 7;
 }
