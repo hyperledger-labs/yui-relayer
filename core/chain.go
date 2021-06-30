@@ -72,6 +72,7 @@ type ChainI interface {
 
 	// CreateTrustedHeader creates ...
 	CreateTrustedHeader(dstChain ChainI, srcHeader HeaderI) (HeaderI, error)
+	UpdateLightWithHeader() (HeaderI, error)
 
 	StartEventListener(dst ChainI, strategy StrategyI)
 

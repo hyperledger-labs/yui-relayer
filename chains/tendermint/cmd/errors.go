@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -15,3 +16,7 @@ func errKeyExists(name string) error {
 func errKeyDoesntExist(name string) error {
 	return fmt.Errorf("a key with name %s doesn't exist", name)
 }
+
+var (
+	errInitWrongFlags = errors.New("expected either (--hash/-x & --height) OR --url/-u OR --force/-f, none given")
+)
