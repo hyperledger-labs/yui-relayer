@@ -6,7 +6,7 @@ import (
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -296,7 +296,7 @@ func relayPackets(chain ChainI, seqs []uint64, sh SyncHeadersI, sender sdk.AccAd
 		if err != nil {
 			return nil, err
 		}
-		msg := chantypes.NewMsgRecvPacket(*p, res.Proof, res.ProofHeight, sender)
+		msg := chantypes.NewMsgRecvPacket(*p, res.Proof, res.ProofHeight, sender.String())
 		msgs = append(msgs, msg)
 	}
 	return msgs, nil
@@ -401,7 +401,7 @@ func relayAcks(receiverChain, senderChain ChainI, seqs []uint64, sh SyncHeadersI
 			return nil, err
 		}
 
-		msg := chantypes.NewMsgAcknowledgement(*p, ack, res.Proof, res.ProofHeight, sender)
+		msg := chantypes.NewMsgAcknowledgement(*p, ack, res.Proof, res.ProofHeight, sender.String())
 		msgs = append(msgs, msg)
 	}
 

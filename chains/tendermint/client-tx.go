@@ -4,9 +4,9 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	commitmenttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
-	tmclient "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
+	tmclient "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
 	"github.com/datachainlab/relayer/core"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/light"
@@ -50,18 +50,16 @@ func createClient(
 		unbondingPeriod,
 		time.Minute*10,
 		dstHeader.GetHeight().(clienttypes.Height),
-		consensusParams,
 		commitmenttypes.GetSDKSpecs(),
-		"upgrade/upgradedClient",
+		[]string{"upgrade", "upgradedIBCState"},
 		false,
 		false,
 	)
 
 	msg, err := clienttypes.NewMsgCreateClient(
-		clientID,
 		clientState,
 		dstHeader.ConsensusState(),
-		signer,
+		signer.String(),
 	)
 
 	if err != nil {

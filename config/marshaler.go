@@ -14,7 +14,7 @@ func MarshalJSON(config Config) ([]byte, error) {
 	return json.Marshal(config)
 }
 
-func UnmarshalJSON(m codec.Marshaler, bz []byte, config *Config) error {
+func UnmarshalJSON(m codec.Codec, bz []byte, config *Config) error {
 	if err := json.Unmarshal(bz, config); err != nil {
 		return err
 	}
@@ -30,13 +30,11 @@ func UnmarshalJSON(m codec.Marshaler, bz []byte, config *Config) error {
 
 // MarshalJSONAny is a convenience function for packing the provided value in an
 // Any and then proto marshaling it to bytes
-func MarshalJSONAny(m codec.JSONMarshaler, msg proto.Message) ([]byte, error) {
-	any := &types.Any{}
-	err := any.Pack(msg)
+func MarshalJSONAny(m codec.JSONCodec, msg proto.Message) ([]byte, error) {
+	any, err := types.NewAnyWithValue(msg)
 	if err != nil {
 		return nil, err
 	}
-
 	return m.MarshalJSON(any)
 }
 
@@ -47,7 +45,7 @@ func MarshalJSONAny(m codec.JSONMarshaler, msg proto.Message) ([]byte, error) {
 // Ex:
 //		var x MyInterface
 //		err := UnmarshalJSONAny(unpacker, &x, bz)
-func UnmarshalJSONAny(m codec.Marshaler, iface interface{}, bz []byte) error {
+func UnmarshalJSONAny(m codec.Codec, iface interface{}, bz []byte) error {
 	any := &types.Any{}
 
 	err := m.UnmarshalJSON(bz, any)

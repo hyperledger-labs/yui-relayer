@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
+	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
 	"github.com/datachainlab/relayer/config"
 	"github.com/datachainlab/relayer/core"
 	"github.com/spf13/cobra"
@@ -45,7 +45,7 @@ func xfersend(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			amount, err := sdk.ParseCoin(args[3])
+			amount, err := sdk.ParseCoinNormalized(args[3])
 			if err != nil {
 				return err
 			}

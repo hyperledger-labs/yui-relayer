@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	tmclient "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
+	tmclient "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
 	"github.com/datachainlab/relayer/chains/tendermint"
 	"github.com/datachainlab/relayer/config"
 	"github.com/spf13/cobra"
@@ -108,7 +108,7 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("Updated light client for %s from height %d -> height %d\n", args[0], bh.Header.Height, ah.(tmclient.Header).Header.Height)
+			fmt.Printf("Updated light client for %s from height %d -> height %d\n", args[0], bh.Header.Height, ah.(*tmclient.Header).Header.Height)
 			return nil
 		},
 	}

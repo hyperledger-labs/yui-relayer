@@ -9,18 +9,18 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	querytypes "github.com/cosmos/cosmos-sdk/types/query"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
-	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	committypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
-	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
-	"github.com/datachainlab/fabric-ibc/app"
-	"github.com/datachainlab/fabric-ibc/chaincode"
-	"github.com/datachainlab/fabric-ibc/commitment"
-	fabrictypes "github.com/datachainlab/fabric-ibc/x/ibc/light-clients/xx-fabric/types"
+	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	committypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
+	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/datachainlab/relayer/core"
 	"github.com/gogo/protobuf/proto"
+	"github.com/hyperledger-labs/yui-fabric-ibc/app"
+	"github.com/hyperledger-labs/yui-fabric-ibc/chaincode"
+	"github.com/hyperledger-labs/yui-fabric-ibc/commitment"
+	fabrictypes "github.com/hyperledger-labs/yui-fabric-ibc/x/ibc/light-clients/xx-fabric/types"
 )
 
 const (
@@ -89,9 +89,9 @@ func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibce
 	}
 	fmt.Println("Try to QueryClientConsensusState:", height, dstClientConsHeight.String())
 	req := &clienttypes.QueryConsensusStateRequest{
-		ClientId:      c.Path().ClientID,
-		VersionNumber: dstClientConsHeight.GetVersionNumber(),
-		VersionHeight: dstClientConsHeight.GetVersionHeight(),
+		ClientId:       c.Path().ClientID,
+		RevisionNumber: dstClientConsHeight.GetRevisionNumber(),
+		RevisionHeight: dstClientConsHeight.GetRevisionHeight(),
 	}
 	var cres clienttypes.QueryConsensusStateResponse
 	if err := c.query("/ibc.core.client.v1.Query/ConsensusState", req, &cres); err != nil {
@@ -101,7 +101,7 @@ func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibce
 }
 
 func (c *Chain) queryClientConsensusStateWithProof(height ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	css, proof, err := c.endorseConsensusState(c.Path().ClientID, height.GetVersionHeight())
+	css, proof, err := c.endorseConsensusState(c.Path().ClientID, height.GetRevisionHeight())
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +170,7 @@ var emptyConnRes = conntypes.NewQueryConnectionResponse(
 			committypes.NewMerklePrefix([]byte{}),
 		),
 		[]*conntypes.Version{},
+		0,
 	),
 	[]byte{},
 	clienttypes.NewHeight(0, 0),

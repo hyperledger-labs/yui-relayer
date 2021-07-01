@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
-	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
 	proto "github.com/gogo/protobuf/proto"
 )
 
@@ -165,13 +165,13 @@ func MustGetHeight(h ibcexported.Height) uint64 {
 	if !ok {
 		panic("height is not an instance of height! wtf")
 	}
-	return height.GetVersionHeight()
+	return height.GetRevisionHeight()
 }
 
 func getMsgAction(msgs []sdk.Msg) string {
 	var out string
 	for i, msg := range msgs {
-		out += fmt.Sprintf("%d:%s,", i, msg.Type())
+		out += fmt.Sprintf("%d:%s,", i, sdk.MsgTypeURL(msg))
 	}
 	return strings.TrimSuffix(out, ",")
 }

@@ -5,20 +5,25 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
-	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	commitmenttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
-	commitmentypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
-	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
-	tmclient "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
+	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
+	commitmentypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
+	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
+	tmclient "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/light"
 )
 
 var (
 	defaultChainPrefix = commitmentypes.NewMerklePrefix([]byte("ibc"))
+)
+
+const (
+	// TODO make it to be configurable
+	DefaultDelayPeriod uint64 = 0
 )
 
 // PathEnd represents the local connection identifers for a relay path
@@ -57,7 +62,7 @@ func (pe *PathEnd) UpdateClient(dstHeader ibcexported.Header, signer sdk.AccAddr
 	msg, err := clienttypes.NewMsgUpdateClient(
 		pe.ClientID,
 		dstHeader,
-		signer,
+		signer.String(),
 	)
 	if err != nil {
 		panic(err)
@@ -83,18 +88,16 @@ func (pe *PathEnd) CreateClient(
 		unbondingPeriod,
 		time.Minute*10,
 		dstHeader.GetHeight().(clienttypes.Height),
-		consensusParams,
 		commitmenttypes.GetSDKSpecs(),
-		"upgrade/upgradedClient",
+		[]string{"upgrade", "upgradedIBCState"},
 		false,
 		false,
 	)
 
 	msg, err := clienttypes.NewMsgCreateClient(
-		pe.ClientID,
 		clientState,
 		dstHeader.ConsensusState(),
-		signer,
+		signer.String(),
 	)
 
 	if err != nil {
@@ -110,13 +113,12 @@ func (pe *PathEnd) CreateClient(
 func (pe *PathEnd) ConnInit(dst *PathEnd, signer sdk.AccAddress) sdk.Msg {
 	var version *conntypes.Version
 	return conntypes.NewMsgConnectionOpenInit(
-		pe.ConnectionID,
 		pe.ClientID,
-		dst.ConnectionID,
 		dst.ClientID,
 		defaultChainPrefix,
 		version,
-		signer,
+		DefaultDelayPeriod,
+		signer.String(),
 	)
 }
 
@@ -134,20 +136,20 @@ func (pe *PathEnd) ConnTry(
 		panic(err)
 	}
 	msg := conntypes.NewMsgConnectionOpenTry(
-		pe.ConnectionID,
-		pe.ConnectionID,
+		"",
 		pe.ClientID,
 		dst.ConnectionID,
 		dst.ClientID,
 		cs,
 		defaultChainPrefix,
 		conntypes.ExportedVersionsToProto(conntypes.GetCompatibleVersions()),
+		DefaultDelayPeriod,
 		dstConnState.Proof,
 		dstClientState.Proof,
 		dstConsState.Proof,
 		dstConnState.ProofHeight,
 		cs.GetLatestHeight().(clienttypes.Height),
-		signer,
+		signer.String(),
 	)
 	if err = msg.ValidateBasic(); err != nil {
 		panic(err)
@@ -178,7 +180,7 @@ func (pe *PathEnd) ConnAck(
 		dstConsState.ProofHeight,
 		cs.GetLatestHeight().(clienttypes.Height),
 		conntypes.ExportedVersionsToProto(conntypes.GetCompatibleVersions())[0],
-		signer,
+		signer.String(),
 	)
 }
 
@@ -189,7 +191,7 @@ func (pe *PathEnd) ConnConfirm(dstConnState *conntypes.QueryConnectionResponse, 
 		pe.ConnectionID,
 		dstConnState.Proof,
 		dstConnState.ProofHeight,
-		signer,
+		signer.String(),
 	)
 }
 
@@ -197,13 +199,11 @@ func (pe *PathEnd) ConnConfirm(dstConnState *conntypes.QueryConnectionResponse, 
 func (pe *PathEnd) ChanInit(dst *PathEnd, signer sdk.AccAddress) sdk.Msg {
 	return chantypes.NewMsgChannelOpenInit(
 		pe.PortID,
-		pe.ChannelID,
 		pe.Version,
 		pe.GetOrder(),
 		[]string{pe.ConnectionID},
 		dst.PortID,
-		dst.ChannelID,
-		signer,
+		signer.String(),
 	)
 }
 
@@ -211,8 +211,7 @@ func (pe *PathEnd) ChanInit(dst *PathEnd, signer sdk.AccAddress) sdk.Msg {
 func (pe *PathEnd) ChanTry(dst *PathEnd, dstChanState *chantypes.QueryChannelResponse, signer sdk.AccAddress) sdk.Msg {
 	return chantypes.NewMsgChannelOpenTry(
 		pe.PortID,
-		pe.ChannelID,
-		pe.ChannelID,
+		"",
 		pe.Version,
 		dstChanState.Channel.Ordering,
 		[]string{pe.ConnectionID},
@@ -221,7 +220,7 @@ func (pe *PathEnd) ChanTry(dst *PathEnd, dstChanState *chantypes.QueryChannelRes
 		dstChanState.Channel.Version,
 		dstChanState.Proof,
 		dstChanState.ProofHeight,
-		signer,
+		signer.String(),
 	)
 }
 
@@ -234,7 +233,7 @@ func (pe *PathEnd) ChanAck(dst *PathEnd, dstChanState *chantypes.QueryChannelRes
 		dstChanState.Channel.Version,
 		dstChanState.Proof,
 		dstChanState.ProofHeight,
-		signer,
+		signer.String(),
 	)
 }
 
@@ -245,7 +244,7 @@ func (pe *PathEnd) ChanConfirm(dstChanState *chantypes.QueryChannelResponse, sig
 		pe.ChannelID,
 		dstChanState.Proof,
 		dstChanState.ProofHeight,
-		signer,
+		signer.String(),
 	)
 }
 
@@ -254,7 +253,7 @@ func (pe *PathEnd) ChanCloseInit(signer sdk.AccAddress) sdk.Msg {
 	return chantypes.NewMsgChannelCloseInit(
 		pe.PortID,
 		pe.ChannelID,
-		signer,
+		signer.String(),
 	)
 }
 
@@ -265,7 +264,7 @@ func (pe *PathEnd) ChanCloseConfirm(dstChanState *chantypes.QueryChannelResponse
 		pe.ChannelID,
 		dstChanState.Proof,
 		dstChanState.ProofHeight,
-		signer,
+		signer.String(),
 	)
 }
 
@@ -278,7 +277,7 @@ func (pe *PathEnd) MsgTransfer(dst *PathEnd, amount sdk.Coin, dstAddr string,
 		pe.PortID,
 		pe.ChannelID,
 		amount,
-		signer,
+		signer.String(),
 		dstAddr,
 		clienttypes.NewHeight(version, timeoutHeight),
 		timeoutTimestamp,

@@ -1,10 +1,10 @@
 package corda
 
 import (
-	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
-	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	cordatypes "github.com/datachainlab/corda-ibc/go/x/ibc/light-clients/xx-corda/types"
 	"google.golang.org/grpc"
 )

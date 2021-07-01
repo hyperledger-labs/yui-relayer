@@ -163,8 +163,8 @@ github.com/danieljoos/wincred v1.0.2 h1:zf4bhty2iLuwgjgpraD2E9UbvO+fe54XXGJbOwe2
 github.com/danieljoos/wincred v1.0.2/go.mod h1:SnuYRW9lp1oJrZX/dXJqr0cPK5gYXqx3EJbmjhLdK9U=
 github.com/datachainlab/cross v0.0.8-0.20210106062451-70e261f7aa8f h1:56ihL19q4fO3xcgTcbRZEJizwzqs+8COJqEN3wUy6G8=
 github.com/datachainlab/cross v0.0.8-0.20210106062451-70e261f7aa8f/go.mod h1:DFvph+0JEU8wLhkEdFMr+8b5fywVzQFDxCdW06hrQzs=
-github.com/datachainlab/fabric-ibc v0.0.0-20210118090849-c2eaee7a3314 h1:1//K2EIH74w+ugFKcBRKG61UomlWmD/OhU9YmieQNZU=
-github.com/datachainlab/fabric-ibc v0.0.0-20210118090849-c2eaee7a3314/go.mod h1:jbX5OJSfG4Go9XZTVgflhnOm61u6fLDegPhVp7XtPXg=
+github.com/hyperledger-labs/yui-fabric-ibc v0.0.0-20210118090849-c2eaee7a3314 h1:1//K2EIH74w+ugFKcBRKG61UomlWmD/OhU9YmieQNZU=
+github.com/hyperledger-labs/yui-fabric-ibc v0.0.0-20210118090849-c2eaee7a3314/go.mod h1:jbX5OJSfG4Go9XZTVgflhnOm61u6fLDegPhVp7XtPXg=
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

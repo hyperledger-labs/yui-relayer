@@ -1,8 +1,8 @@
 package corda
 
 import (
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/datachainlab/relayer/core"
 )
 

@@ -8,20 +8,20 @@ import (
 	"strings"
 	"time"
 
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	querytypes "github.com/cosmos/cosmos-sdk/types/query"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
-	clientutils "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/client/utils"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	connutils "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/client/utils"
-	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
-	chanutils "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/client/utils"
-	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
-	committypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
-	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	"github.com/cosmos/cosmos-sdk/x/staking/teststaking"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
+	clientutils "github.com/cosmos/ibc-go/modules/core/02-client/client/utils"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	connutils "github.com/cosmos/ibc-go/modules/core/03-connection/client/utils"
+	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
+	chanutils "github.com/cosmos/ibc-go/modules/core/04-channel/client/utils"
+	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	committypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
+	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/datachainlab/relayer/core"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -56,6 +56,7 @@ var emptyConnRes = conntypes.NewQueryConnectionResponse(
 			committypes.NewMerklePrefix([]byte{}),
 		),
 		[]*conntypes.Version{},
+		0,
 	),
 	[]byte{},
 	clienttypes.NewHeight(0, 0),
@@ -282,9 +283,9 @@ func (c *Chain) QueryTxs(height uint64, page, limit int, events []string) ([]*ct
 // QueryHistoricalInfo returns historical header data
 func (c *Chain) QueryHistoricalInfo(height clienttypes.Height) (*stakingtypes.QueryHistoricalInfoResponse, error) {
 	//TODO: use epoch number in query once SDK gets updated
-	qc := stakingtypes.NewQueryClient(c.CLIContext(int64(height.GetVersionHeight())))
+	qc := stakingtypes.NewQueryClient(c.CLIContext(int64(height.GetRevisionHeight())))
 	return qc.HistoricalInfo(context.Background(), &stakingtypes.QueryHistoricalInfoRequest{
-		Height: int64(height.GetVersionHeight()),
+		Height: int64(height.GetRevisionHeight()),
 	})
 }
 
@@ -324,15 +325,11 @@ func (c *Chain) toTmValidators(vals stakingtypes.Validators) ([]*tmtypes.Validat
 }
 
 func (c *Chain) toTmValidator(val stakingtypes.Validator) (*tmtypes.Validator, error) {
-	var pk cryptotypes.PubKey
-	if err := c.Encoding.Marshaler.UnpackAny(val.ConsensusPubkey, &pk); err != nil {
+	pub, err := teststaking.GetTmConsPubKey(val)
+	if err != nil {
 		return nil, err
 	}
-	intoTmPk, ok := pk.(cryptotypes.IntoTmPubKey)
-	if !ok {
-		return nil, fmt.Errorf("pubkey not a pub key *scratches head*")
-	}
-	return tmtypes.NewValidator(intoTmPk.AsTmPubKey(), val.ConsensusPower()), nil
+	return tmtypes.NewValidator(pub, val.ConsensusPower(sdk.DefaultPowerReduction)), nil
 }
 
 // QueryUnbondingPeriod returns the unbonding period of the chain

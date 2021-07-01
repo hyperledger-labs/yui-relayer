@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TendermintCmd(m codec.Marshaler, ctx *config.Context) *cobra.Command {
+func TendermintCmd(m codec.Codec, ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tendermint",
 		Short: "manage tendermint configurations",

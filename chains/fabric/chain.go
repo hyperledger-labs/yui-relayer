@@ -8,8 +8,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/datachainlab/fabric-ibc/x/auth/types"
 	"github.com/datachainlab/relayer/core"
+	authtypes "github.com/hyperledger-labs/yui-fabric-ibc/x/auth/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -53,7 +53,7 @@ func (c *Chain) Config() ChainConfig {
 	return c.config
 }
 
-func (c *Chain) Marshaler() codec.Marshaler {
+func (c *Chain) Marshaler() codec.Codec {
 	return c.encodingConfig.Marshaler
 }
 
