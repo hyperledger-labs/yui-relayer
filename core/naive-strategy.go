@@ -288,12 +288,14 @@ func relayPackets(chain ChainI, seqs []uint64, sh SyncHeadersI, sender sdk.AccAd
 	for _, seq := range seqs {
 		p, err := chain.QueryPacket(int64(sh.GetHeight(chain.ChainID())), seq)
 		if err != nil {
+			log.Println("failed to QueryPacket:", int64(sh.GetHeight(chain.ChainID())), seq, err)
 			return nil, err
 		}
 		// TODO must use (latestHeight-1) as height number in tendermint
 		h := sh.GetHeight(chain.ChainID()) - 1
 		res, err := chain.QueryPacketCommitment(int64(h), seq)
 		if err != nil {
+			log.Println("failed to QueryPacketCommitment:", int64(h), seq, err)
 			return nil, err
 		}
 		msg := chantypes.NewMsgRecvPacket(*p, res.Proof, res.ProofHeight, sender.String())

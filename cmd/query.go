@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/datachainlab/relayer/config"
 	"github.com/datachainlab/relayer/core"
+	"github.com/datachainlab/relayer/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -151,41 +152,9 @@ func queryBalanceCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			coins, err := chain.QueryBalance(addr)
+			coins, err := helpers.QueryBalance(chain, addr, showDenoms)
 			if err != nil {
 				return err
-			}
-
-			if showDenoms {
-				fmt.Println(coins)
-				return nil
-			}
-
-			h, err := chain.QueryLatestHeight()
-			if err != nil {
-				return err
-			}
-
-			dts, err := chain.QueryDenomTraces(0, 1000, h)
-			if err != nil {
-				return err
-			}
-
-			if len(dts.DenomTraces) > 0 {
-				out := sdk.Coins{}
-				for _, c := range coins {
-					for _, d := range dts.DenomTraces {
-						switch {
-						case c.Amount.Equal(sdk.NewInt(0)):
-						case c.Denom == d.IBCDenom():
-							out = append(out, sdk.NewCoin(d.GetFullDenomPath(), c.Amount))
-						default:
-							out = append(out, c)
-						}
-					}
-				}
-				fmt.Println(out)
-				return nil
 			}
 
 			fmt.Println(coins)
