@@ -3,7 +3,7 @@ package relayer.tendermint.config;
 
 import "gogoproto/gogo.proto";
 
-option go_package = "github.com/datachainlab/relayer/chains/tendermint";
+option go_package = "github.com/hyperledger-labs/yui-relayer/chains/tendermint";
 option (gogoproto.goproto_getters_all) = false;
 
 message ChainConfig {
