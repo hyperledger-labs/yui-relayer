@@ -13,6 +13,7 @@ require (
 )
 
 replace (
+	github.com/cosmos/ibc-go => github.com/datachainlab/ibc-go v0.0.0-20210701135503-8fd4094ce982
 	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
