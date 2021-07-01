@@ -145,6 +145,8 @@ github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a/go.mod h1:F5haX7
 github.com/coreos/pkg v0.0.0-20160727233714-3ac0863d7acf/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
+github.com/cosmos/cosmos-sdk v0.40.0-rc3 h1:sS9BZ82dOxXiZPZdfrzSniEAzLLN0oTP5lFVyjnq2x4=
+github.com/cosmos/cosmos-sdk v0.40.0-rc3/go.mod h1:eKgbkQO4FEvC+a1+eyRuL7UgluGK1ad4PufPTpQc6ZA=
 github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d h1:49RLWk1j44Xu4fjHb6JFYmeUnDORVwHNkDxaQ0ctCVU=
 github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d/go.mod h1:tSxLoYXyBmiFeKpvmq4dzayMdCjCnu8uqmCysIGBT2Y=
 github.com/cosmos/iavl v0.15.0-rc3.0.20201009144442-230e9bdf52cd/go.mod h1:3xOIaNNX19p0QrX0VqWa6voPRoJRGGYtny+DH8NEPvE=
@@ -161,8 +163,6 @@ github.com/danieljoos/wincred v1.0.2 h1:zf4bhty2iLuwgjgpraD2E9UbvO+fe54XXGJbOwe2
 github.com/danieljoos/wincred v1.0.2/go.mod h1:SnuYRW9lp1oJrZX/dXJqr0cPK5gYXqx3EJbmjhLdK9U=
 github.com/datachainlab/corda-ibc/go v0.0.0-20210402075556-f93f3b20f867 h1:wmf/zI30/xHkVIi/BlYULSGvu8Xkg0gQWOxkSvvqkM0=
 github.com/datachainlab/corda-ibc/go v0.0.0-20210402075556-f93f3b20f867/go.mod h1:gHhvCV/KHwdkZ3uUjBUG+6/8NuMpsM97lQ95eAesn4I=
-github.com/datachainlab/cosmos-sdk v0.34.4-0.20210312160443-1cdc372f98d0 h1:CMysHbRCuebfvRknL5/AnVAdw3hggbLuh1SCOUOd1IQ=
-github.com/datachainlab/cosmos-sdk v0.34.4-0.20210312160443-1cdc372f98d0/go.mod h1:eKgbkQO4FEvC+a1+eyRuL7UgluGK1ad4PufPTpQc6ZA=
 github.com/datachainlab/fabric-ibc v0.0.0-20210602031626-eaf32590d3a1 h1:V5u665XLovmVD3IBqbsYVRIWXmDUZLfyeIA1Xxc5TO8=
 github.com/datachainlab/fabric-ibc v0.0.0-20210602031626-eaf32590d3a1/go.mod h1:jbX5OJSfG4Go9XZTVgflhnOm61u6fLDegPhVp7XtPXg=
 github.com/datachainlab/fabric-sdk-go v0.0.0-20200730074927-282a61dcd92e h1:Vr+tcT4FHYYUwOE4xU/H9XhIHAu+1j7lF6uv83DIjO8=
