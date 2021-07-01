@@ -73,7 +73,7 @@ func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.Query
 func (c *Chain) QueryBalance(address sdk.AccAddress) (sdk.Coins, error) {
 	addr := address.String()
 
-	res, err := c.client.hostAndBank.QueryBank(
+	res, err := c.client.bank.QueryBank(
 		context.TODO(),
 		&emptypb.Empty{},
 	)
