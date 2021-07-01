@@ -90,9 +90,11 @@ import (
 	porttypes "github.com/cosmos/ibc-go/modules/core/05-port/types"
 	ibchost "github.com/cosmos/ibc-go/modules/core/24-host"
 	ibckeeper "github.com/cosmos/ibc-go/modules/core/keeper"
+	ibctypes "github.com/cosmos/ibc-go/modules/core/types"
 	ibcmock "github.com/cosmos/ibc-go/testing/mock"
 
 	fabric "github.com/hyperledger-labs/yui-fabric-ibc/x/ibc/light-clients/xx-fabric"
+	fabrictypes "github.com/hyperledger-labs/yui-fabric-ibc/x/ibc/light-clients/xx-fabric/types"
 
 	// unnamed import of statik for swagger UI support
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
@@ -490,6 +492,9 @@ func (app *SimApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.
 	if err := tmjson.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
 		panic(err)
 	}
+	ibcGenesisState := ibctypes.DefaultGenesisState()
+	ibcGenesisState.ClientGenesis.Params.AllowedClients = append(ibcGenesisState.ClientGenesis.Params.AllowedClients, fabrictypes.Fabric)
+	genesisState[ibc.AppModule{}.Name()] = app.appCodec.MustMarshalJSON(ibcGenesisState)
 	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 }
 
