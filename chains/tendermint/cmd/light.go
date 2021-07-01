@@ -6,8 +6,8 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	tmclient "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
-	"github.com/datachainlab/relayer/chains/tendermint"
-	"github.com/datachainlab/relayer/config"
+	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
+	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/spf13/cobra"
 )
 

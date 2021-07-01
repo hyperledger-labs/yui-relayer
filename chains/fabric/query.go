@@ -15,12 +15,12 @@ import (
 	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 	committypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
 	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
-	"github.com/datachainlab/relayer/core"
 	"github.com/gogo/protobuf/proto"
 	"github.com/hyperledger-labs/yui-fabric-ibc/app"
 	"github.com/hyperledger-labs/yui-fabric-ibc/chaincode"
 	"github.com/hyperledger-labs/yui-fabric-ibc/commitment"
 	fabrictypes "github.com/hyperledger-labs/yui-fabric-ibc/x/ibc/light-clients/xx-fabric/types"
+	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 const (

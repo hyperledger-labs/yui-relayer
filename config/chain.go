@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/datachainlab/relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 type Chains []core.ChainI

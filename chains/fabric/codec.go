@@ -3,7 +3,7 @@ package fabric
 import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/simapp/params"
-	"github.com/datachainlab/relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 // RegisterInterfaces register the ibc transfer module interfaces to protobuf

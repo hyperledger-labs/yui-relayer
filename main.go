@@ -1,6 +1,6 @@
 package main
 
-import "github.com/datachainlab/relayer/cmd"
+import "github.com/hyperledger-labs/yui-relayer/cmd"
 
 func main() {
 	cmd.Execute()

@@ -1,7 +1,7 @@
 package tendermint
 
 import (
-	"github.com/datachainlab/relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 var _ core.ChainConfigI = (*ChainConfig)(nil)
