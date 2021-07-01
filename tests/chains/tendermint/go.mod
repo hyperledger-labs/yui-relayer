@@ -5,11 +5,11 @@ go 1.15
 require (
 	github.com/cosmos/cosmos-sdk v0.40.0-rc3
 	github.com/datachainlab/cross v0.0.8-0.20210106062451-70e261f7aa8f
-	github.com/datachainlab/fabric-ibc v0.0.0-20210118090849-c2eaee7a3314
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.4.3
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.15.2
+	github.com/hyperledger-labs/yui-fabric-ibc v0.1.1-0.20210630081419-b3bd5a5cb1c7
 	github.com/rakyll/statik v0.1.7
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.1

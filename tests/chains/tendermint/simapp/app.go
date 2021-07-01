@@ -104,7 +104,7 @@ import (
 	samplemodkeeper "github.com/hyperledger-labs/yui-relayer/tests/tendermint/simapp/samplemod/keeper"
 	samplemodtypes "github.com/hyperledger-labs/yui-relayer/tests/tendermint/simapp/samplemod/types"
 
-	fabric "github.com/datachainlab/fabric-ibc/x/ibc/light-clients/xx-fabric"
+	fabric "github.com/hyperledger-labs/yui-fabric-ibc/x/ibc/light-clients/xx-fabric"
 
 	// unnamed import of statik for swagger UI support
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
