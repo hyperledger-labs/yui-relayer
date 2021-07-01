@@ -31,7 +31,7 @@ func (c *Chain) Send(msgs []sdk.Msg) bool {
 	return err == nil
 }
 
-// NOTE When uses this tx format, the chaincode must use github.com/datachainlab/fabric-ibc/x/auth/ante/ante.go to validate this.
+// NOTE When uses this tx format, the chaincode must use github.com/hyperledger-labs/yui-fabric-ibc/x/auth/ante/ante.go to validate this.
 func (c *Chain) buildTx(registry codectypes.InterfaceRegistry, msgs ...sdk.Msg) ([]byte, error) {
 	m := codec.NewProtoCodec(registry)
 	cfg := authtx.NewTxConfig(m, []signing.SignMode{signing.SignMode_SIGN_MODE_DIRECT})
