@@ -45,6 +45,10 @@ func xfersend(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
+			// XXX allow `-` in denom traces
+			sdk.SetCoinDenomRegex(func() string {
+				return `[a-zA-Z][a-zA-Z0-9/\-]{2,127}`
+			})
 			amount, err := sdk.ParseCoinNormalized(args[3])
 			if err != nil {
 				return err
