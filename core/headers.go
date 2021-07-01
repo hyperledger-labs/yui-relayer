@@ -51,7 +51,7 @@ func (sh syncHeaders) GetTrustedHeaders(src, dst ChainI) (HeaderI, HeaderI, erro
 	}
 	dstTh, err := dst.CreateTrustedHeader(src, sh.GetHeader(dst.ChainID()))
 	if err != nil {
-		fmt.Println("failed to GetTrustedHeaders(src):", err)
+		fmt.Println("failed to GetTrustedHeaders(dst):", err)
 		return nil, nil, err
 	}
 	return srcTh, dstTh, nil

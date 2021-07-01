@@ -13,7 +13,7 @@ import (
 )
 
 // MakeMsgCreateClient creates a Msg to this chain
-func (dst *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
+func (dst *Chain) MakeMsgCreateClient(_ string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
 	ubdPeriod, err := dst.QueryUnbondingPeriod()
 	if err != nil {
 		return nil, err
@@ -23,7 +23,6 @@ func (dst *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, s
 		return nil, err
 	}
 	return createClient(
-		clientID,
 		dstHeader.(*tmclient.Header),
 		dst.GetTrustingPeriod(),
 		ubdPeriod,
@@ -33,7 +32,6 @@ func (dst *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, s
 }
 
 func createClient(
-	clientID string,
 	dstHeader *tmclient.Header,
 	trustingPeriod, unbondingPeriod time.Duration,
 	consensusParams *abci.ConsensusParams,

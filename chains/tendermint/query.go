@@ -8,10 +8,11 @@ import (
 	"strings"
 	"time"
 
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	querytypes "github.com/cosmos/cosmos-sdk/types/query"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmos/cosmos-sdk/x/staking/teststaking"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
 	clientutils "github.com/cosmos/ibc-go/modules/core/02-client/client/utils"
@@ -325,11 +326,15 @@ func (c *Chain) toTmValidators(vals stakingtypes.Validators) ([]*tmtypes.Validat
 }
 
 func (c *Chain) toTmValidator(val stakingtypes.Validator) (*tmtypes.Validator, error) {
-	pub, err := teststaking.GetTmConsPubKey(val)
-	if err != nil {
+	var pk cryptotypes.PubKey
+	if err := c.Encoding.Marshaler.UnpackAny(val.ConsensusPubkey, &pk); err != nil {
 		return nil, err
 	}
-	return tmtypes.NewValidator(pub, val.ConsensusPower(sdk.DefaultPowerReduction)), nil
+	tmkey, err := cryptocodec.ToTmPubKeyInterface(pk)
+	if err != nil {
+		return nil, fmt.Errorf("pubkey not a tendermint pub key %s", err)
+	}
+	return tmtypes.NewValidator(tmkey, val.ConsensusPower(sdk.DefaultPowerReduction)), nil
 }
 
 // QueryUnbondingPeriod returns the unbonding period of the chain
