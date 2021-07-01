@@ -35,7 +35,7 @@ echo "!!! Fabric -> Tendermint !!!"
 
 echo "Before TM balance: $(${RLY} query balance ibc0 ${TM_ADDRESS})"
 echo "Before Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"
-${RLY} tx transfer ibc01 ibc1 ibc0 100transfer/ibczeroxfer/samoleans ${TM_ADDRESS}
+${RLY} tx transfer ibc01 ibc1 ibc0 100transfer/channel-0/samoleans ${TM_ADDRESS}
 sleep ${TX_INTERNAL}
 ${RLY} tx relay ibc01
 sleep ${TX_INTERNAL}
