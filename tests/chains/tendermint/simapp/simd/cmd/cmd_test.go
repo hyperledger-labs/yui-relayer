@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
+	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 	"github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
+	"github.com/hyperledger-labs/yui-relayer/tests/tendermint/simapp"
 	"github.com/hyperledger-labs/yui-relayer/tests/tendermint/simapp/simd/cmd"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInitCmd(t *testing.T) {
@@ -18,6 +19,5 @@ func TestInitCmd(t *testing.T) {
 		fmt.Sprintf("--%s=%s", cli.FlagOverwrite, "true"), // Overwrite genesis.json, in case it already exists
 	})
 
-	err := cmd.Execute(rootCmd)
-	require.NoError(t, err)
+	require.NoError(t, svrcmd.Execute(rootCmd, simapp.DefaultNodeHome))
 }
