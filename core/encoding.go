@@ -27,8 +27,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
 
-	fabric "github.com/datachainlab/fabric-ibc/x/ibc/light-clients/xx-fabric"
 	corda "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda"
+	fabric "github.com/hyperledger-labs/yui-fabric-ibc/x/ibc/light-clients/xx-fabric"
 )
 
 var moduleBasics = module.NewBasicManager(
