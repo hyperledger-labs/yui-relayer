@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	fabricauthtypes "github.com/datachainlab/fabric-ibc/x/auth/types"
-	"github.com/datachainlab/relayer/chains/fabric"
-	"github.com/datachainlab/relayer/config"
+	fabricauthtypes "github.com/hyperledger-labs/yui-fabric-ibc/x/auth/types"
+	"github.com/hyperledger-labs/yui-relayer/chains/fabric"
+	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

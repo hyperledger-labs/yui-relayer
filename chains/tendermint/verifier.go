@@ -11,7 +11,7 @@ import (
 	"time"
 
 	tmclient "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
-	"github.com/datachainlab/relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/core"
 	dbm "github.com/tendermint/tm-db"
 
 	retry "github.com/avast/retry-go"

@@ -3,8 +3,8 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/datachainlab/relayer/core"
 	"github.com/gogo/protobuf/proto"
+	"github.com/hyperledger-labs/yui-relayer/core"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"

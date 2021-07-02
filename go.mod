@@ -1,4 +1,4 @@
-module github.com/datachainlab/relayer
+module github.com/hyperledger-labs/yui-relayer
 
 go 1.15
 
@@ -6,9 +6,9 @@ require (
 	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/cosmos/cosmos-sdk v0.40.0-rc3
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d
-	github.com/datachainlab/corda-ibc/go v0.0.0-20210402075556-f93f3b20f867
-	github.com/datachainlab/fabric-ibc v0.0.0-20210602031626-eaf32590d3a1
 	github.com/gogo/protobuf v1.3.2
+	github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210701073432-816924a5f8ce
+	github.com/hyperledger-labs/yui-fabric-ibc v0.1.1-0.20210630081419-b3bd5a5cb1c7
 	github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191
 	github.com/hyperledger/fabric-protos-go v0.0.0-20200707132912-fee30f3ccd23
 	github.com/hyperledger/fabric-sdk-go v1.0.0-beta2.0.20200715151216-87f5eb8a655f

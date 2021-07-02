@@ -3,7 +3,7 @@ package relayer.fabric.config;
 
 import "gogoproto/gogo.proto";
 
-option go_package = "github.com/datachainlab/relayer/chains/fabric";
+option go_package = "github.com/hyperledger-labs/yui-relayer/chains/fabric";
 option (gogoproto.goproto_getters_all) = false;
 
 message ChainConfig {
