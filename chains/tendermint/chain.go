@@ -31,7 +31,7 @@ import (
 	libclient "github.com/tendermint/tendermint/rpc/jsonrpc/client"
 	tmtypes "github.com/tendermint/tendermint/types"
 
-	"github.com/datachainlab/relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 var (

@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/datachainlab/relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 type Chain struct {

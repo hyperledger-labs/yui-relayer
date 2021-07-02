@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/datachainlab/relayer/chains/tendermint"
-	"github.com/datachainlab/relayer/config"
+	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
+	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/spf13/cobra"
 )
 

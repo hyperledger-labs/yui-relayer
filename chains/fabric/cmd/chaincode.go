@@ -3,9 +3,9 @@ package cmd
 import (
 	"encoding/json"
 
-	"github.com/datachainlab/relayer/chains/fabric"
-	"github.com/datachainlab/relayer/config"
 	"github.com/hyperledger-labs/yui-fabric-ibc/example"
+	"github.com/hyperledger-labs/yui-relayer/chains/fabric"
+	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/spf13/cobra"
 )
 

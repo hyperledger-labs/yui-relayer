@@ -3,7 +3,7 @@ package relayer.corda.config;
 
 import "gogoproto/gogo.proto";
 
-option go_package = "github.com/datachainlab/relayer/chains/corda";
+option go_package = "github.com/hyperledger-labs/yui-relayer/chains/corda";
 option (gogoproto.goproto_getters_all) = false;
 
 message ChainConfig {

@@ -3,7 +3,7 @@ package corda
 import (
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
-	"github.com/datachainlab/relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 type CordaHeader struct{}

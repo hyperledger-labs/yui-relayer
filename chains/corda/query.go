@@ -11,7 +11,7 @@ import (
 	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
-	"github.com/datachainlab/relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/core"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -73,7 +73,7 @@ func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.Query
 func (c *Chain) QueryBalance(address sdk.AccAddress) (sdk.Coins, error) {
 	addr := address.String()
 
-	res, err := c.client.hostAndBank.QueryBank(
+	res, err := c.client.bank.QueryBank(
 		context.TODO(),
 		&emptypb.Empty{},
 	)

@@ -1,4 +1,4 @@
-module github.com/datachainlab/relayer
+module github.com/hyperledger-labs/yui-relayer
 
 go 1.15
 

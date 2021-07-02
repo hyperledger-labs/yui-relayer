@@ -1,5 +1,3 @@
-GITHUB_USER ?= datachainlab
-
 DOCKER         ?= docker
 DOCKER_COMPOSE ?= docker-compose
 DOCKER_REPO    ?= ""

@@ -27,7 +27,7 @@ import (
 	transfer "github.com/cosmos/ibc-go/modules/apps/transfer"
 	ibc "github.com/cosmos/ibc-go/modules/core"
 
-	// corda "github.com/datachainlab/corda-ibc/go/x/ibc/light-clients/xx-corda"
+	// corda "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda"
 	fabric "github.com/hyperledger-labs/yui-fabric-ibc/x/ibc/light-clients/xx-fabric"
 )
 
