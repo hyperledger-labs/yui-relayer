@@ -27,7 +27,7 @@ import (
 	transfer "github.com/cosmos/ibc-go/modules/apps/transfer"
 	ibc "github.com/cosmos/ibc-go/modules/core"
 
-	// corda "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda"
+	corda "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda"
 	fabric "github.com/hyperledger-labs/yui-fabric-ibc/x/ibc/light-clients/xx-fabric"
 )
 
@@ -47,8 +47,7 @@ var moduleBasics = module.NewBasicManager(
 	slashing.AppModuleBasic{},
 	ibc.AppModuleBasic{},
 	fabric.AppModuleBasic{},
-	// TODO temporarily comment out the corda module for version-update work
-	// corda.AppModuleBasic{},
+	corda.AppModuleBasic{},
 	upgrade.AppModuleBasic{},
 	evidence.AppModuleBasic{},
 	transfer.AppModuleBasic{},
