@@ -11,6 +11,7 @@ import (
 	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
+	cordatypes "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -22,7 +23,7 @@ func (c *Chain) QueryLatestHeight() (int64, error) {
 
 // QueryLatestHeader returns the latest header from the chain
 func (c *Chain) QueryLatestHeader() (out core.HeaderI, err error) {
-	return &CordaHeader{}, nil
+	return &cordatypes.Header{}, nil
 }
 
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
@@ -30,10 +31,10 @@ func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibce
 	return c.client.clientQuery.ConsensusState(
 		context.TODO(),
 		&clienttypes.QueryConsensusStateRequest{
-			ClientId:      c.pathEnd.ClientID,
-			VersionNumber: dstClientConsHeight.GetVersionNumber(),
-			VersionHeight: dstClientConsHeight.GetVersionHeight(),
-			LatestHeight:  false,
+			ClientId:       c.pathEnd.ClientID,
+			RevisionNumber: dstClientConsHeight.GetRevisionNumber(),
+			RevisionHeight: dstClientConsHeight.GetRevisionHeight(),
+			LatestHeight:   false,
 		},
 	)
 }

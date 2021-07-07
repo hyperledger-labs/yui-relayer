@@ -37,7 +37,6 @@ func (c *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, sig
 		return nil, err
 	} else {
 		return &clienttypes.MsgCreateClient{
-			ClientId:       clientID,
 			ClientState:    anyClientState,
 			ConsensusState: anyConsensusState,
 			Signer:         signer.String(),
