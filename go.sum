@@ -462,6 +462,8 @@ github.com/holiman/uint256 v1.1.1/go.mod h1:y4ga/t+u+Xwd7CpDgZESaRcWy0I7XMlTMA25
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/huin/goupnp v1.0.0/go.mod h1:n9v9KO1tAxYH82qOn+UTIFQDmx5n1Zxd/ClZDMX7Bnc=
 github.com/huin/goutil v0.0.0-20170803182201-1ca381bf3150/go.mod h1:PpLOETDnJ0o3iZrZfqZzyLl6l7F3c6L1oWn7OICBi6o=
+github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210708002039-e07ff163f660 h1:jCVvP7zb5vNppMdD+4W5xCyADhKGo54w4zy1U8qf93k=
+github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210708002039-e07ff163f660/go.mod h1:Lzjc/wAuoo0kJ5doB/BIH8L/FZVKjHFfBNOe2oPFDgs=
 github.com/hyperledger-labs/yui-fabric-ibc v0.1.1-0.20210630105531-4c7d6e07d92b h1:2h+C55EHCM+Ez+Rg0CAD6gX97Hl1w63Adlqd0f7CyJQ=
 github.com/hyperledger-labs/yui-fabric-ibc v0.1.1-0.20210630105531-4c7d6e07d92b/go.mod h1:0ey1+ANFpyz+8m9e7XqFk9+75VsECKBWPPp4Yf3cTZI=
 github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191 h1:e2Np9BoOHxufPGnGm3qyTh9sIarBpg57RlIvE62yCYE=
@@ -751,8 +753,6 @@ github.com/sasha-s/go-deadlock v0.2.1-0.20190427202633-1595213edefa/go.mod h1:F7
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/shirou/gopsutil v2.20.5+incompatible/go.mod h1:5b4v6he4MtMOwMlS0TUMTu2PcXUg8+E1lC7eC3UO/RA=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
-github.com/siburu/yui-corda-ibc/go v0.0.0-20210707162209-e88ebe33b3ca h1:AOhROLThE6+gaSK0BR6YxdYvFVud7lnzQMKAQ8b7W3g=
-github.com/siburu/yui-corda-ibc/go v0.0.0-20210707162209-e88ebe33b3ca/go.mod h1:Lzjc/wAuoo0kJ5doB/BIH8L/FZVKjHFfBNOe2oPFDgs=
 github.com/sirupsen/logrus v1.0.4-0.20170822132746-89742aefa4b2/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=
 github.com/sirupsen/logrus v1.0.5/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=

@@ -8,7 +8,7 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/ibc-go v1.0.0-beta1
 	github.com/gogo/protobuf v1.3.3
-	github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210701073432-816924a5f8ce
+	github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210708002039-e07ff163f660
 	github.com/hyperledger-labs/yui-fabric-ibc v0.1.1-0.20210630105531-4c7d6e07d92b
 	github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191
 	github.com/hyperledger/fabric-protos-go v0.0.0-20200707132912-fee30f3ccd23
@@ -26,7 +26,6 @@ require (
 replace (
 	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
-	github.com/hyperledger-labs/yui-corda-ibc/go => github.com/siburu/yui-corda-ibc/go v0.0.0-20210707162209-e88ebe33b3ca
 	github.com/hyperledger/fabric-sdk-go => github.com/datachainlab/fabric-sdk-go v0.0.0-20200730074927-282a61dcd92e
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 )
