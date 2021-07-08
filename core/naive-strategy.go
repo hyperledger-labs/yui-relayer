@@ -6,7 +6,7 @@ import (
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	chantypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
+	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -288,15 +288,17 @@ func relayPackets(chain ChainI, seqs []uint64, sh SyncHeadersI, sender sdk.AccAd
 	for _, seq := range seqs {
 		p, err := chain.QueryPacket(int64(sh.GetHeight(chain.ChainID())), seq)
 		if err != nil {
+			log.Println("failed to QueryPacket:", int64(sh.GetHeight(chain.ChainID())), seq, err)
 			return nil, err
 		}
 		// TODO must use (latestHeight-1) as height number in tendermint
 		h := sh.GetHeight(chain.ChainID()) - 1
 		res, err := chain.QueryPacketCommitment(int64(h), seq)
 		if err != nil {
+			log.Println("failed to QueryPacketCommitment:", int64(h), seq, err)
 			return nil, err
 		}
-		msg := chantypes.NewMsgRecvPacket(*p, res.Proof, res.ProofHeight, sender)
+		msg := chantypes.NewMsgRecvPacket(*p, res.Proof, res.ProofHeight, sender.String())
 		msgs = append(msgs, msg)
 	}
 	return msgs, nil
@@ -401,7 +403,7 @@ func relayAcks(receiverChain, senderChain ChainI, seqs []uint64, sh SyncHeadersI
 			return nil, err
 		}
 
-		msg := chantypes.NewMsgAcknowledgement(*p, ack, res.Proof, res.ProofHeight, sender)
+		msg := chantypes.NewMsgAcknowledgement(*p, ack, res.Proof, res.ProofHeight, sender.String())
 		msgs = append(msgs, msg)
 	}
 

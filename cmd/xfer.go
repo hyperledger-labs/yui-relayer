@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
+	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
@@ -45,7 +45,11 @@ func xfersend(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			amount, err := sdk.ParseCoin(args[3])
+			// XXX allow `-` in denom traces
+			sdk.SetCoinDenomRegex(func() string {
+				return `[a-zA-Z][a-zA-Z0-9/\-]{2,127}`
+			})
+			amount, err := sdk.ParseCoinNormalized(args[3])
 			if err != nil {
 				return err
 			}

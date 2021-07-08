@@ -4,16 +4,16 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	commitmenttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/23-commitment/types"
-	tmclient "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
+	tmclient "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/light"
 )
 
 // MakeMsgCreateClient creates a Msg to this chain
-func (dst *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
+func (dst *Chain) MakeMsgCreateClient(_ string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
 	ubdPeriod, err := dst.QueryUnbondingPeriod()
 	if err != nil {
 		return nil, err
@@ -23,7 +23,6 @@ func (dst *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, s
 		return nil, err
 	}
 	return createClient(
-		clientID,
 		dstHeader.(*tmclient.Header),
 		dst.GetTrustingPeriod(),
 		ubdPeriod,
@@ -33,7 +32,6 @@ func (dst *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, s
 }
 
 func createClient(
-	clientID string,
 	dstHeader *tmclient.Header,
 	trustingPeriod, unbondingPeriod time.Duration,
 	consensusParams *abci.ConsensusParams,
@@ -50,18 +48,16 @@ func createClient(
 		unbondingPeriod,
 		time.Minute*10,
 		dstHeader.GetHeight().(clienttypes.Height),
-		consensusParams,
 		commitmenttypes.GetSDKSpecs(),
-		"upgrade/upgradedClient",
+		[]string{"upgrade", "upgradedIBCState"},
 		false,
 		false,
 	)
 
 	msg, err := clienttypes.NewMsgCreateClient(
-		clientID,
 		clientState,
 		dstHeader.ConsensusState(),
-		signer,
+		signer.String(),
 	)
 
 	if err != nil {

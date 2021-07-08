@@ -7,9 +7,9 @@ import (
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
-	conntypes "github.com/cosmos/cosmos-sdk/x/ibc/core/03-connection/types"
-	ibcexported "github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
+	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
 )
 
 var (
@@ -229,7 +229,7 @@ func mustGetHeight(h ibcexported.Height) uint64 {
 	if !ok {
 		panic("height is not an instance of height! wtf")
 	}
-	return height.GetVersionHeight()
+	return height.GetRevisionHeight()
 }
 
 func mustGetAddress(chain interface {

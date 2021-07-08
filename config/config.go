@@ -49,7 +49,7 @@ func (c *Config) GetChains(chainIDs ...string) (map[string]core.ChainI, error) {
 }
 
 // AddChain adds an additional chain to the config
-func (c *Config) AddChain(m codec.JSONMarshaler, cconfig core.ChainConfigI) error {
+func (c *Config) AddChain(m codec.JSONCodec, cconfig core.ChainConfigI) error {
 	chain := cconfig.GetChain()
 	_, err := c.GetChain(chain.ChainID())
 	if err == nil {

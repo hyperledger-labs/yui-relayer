@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/x/ibc/core/exported"
+	"github.com/cosmos/ibc-go/modules/core/exported"
 )
 
 type HeaderI interface {
@@ -36,7 +36,7 @@ func NewSyncHeaders(src, dst ChainI) (SyncHeadersI, error) {
 }
 
 func (sh syncHeaders) GetHeight(chainID string) uint64 {
-	return sh.hds[chainID].GetHeight().GetVersionHeight()
+	return sh.hds[chainID].GetHeight().GetRevisionHeight()
 }
 
 func (sh syncHeaders) GetHeader(chainID string) HeaderI {
@@ -51,7 +51,7 @@ func (sh syncHeaders) GetTrustedHeaders(src, dst ChainI) (HeaderI, HeaderI, erro
 	}
 	dstTh, err := dst.CreateTrustedHeader(src, sh.GetHeader(dst.ChainID()))
 	if err != nil {
-		fmt.Println("failed to GetTrustedHeaders(src):", err)
+		fmt.Println("failed to GetTrustedHeaders(dst):", err)
 		return nil, nil, err
 	}
 	return srcTh, dstTh, nil

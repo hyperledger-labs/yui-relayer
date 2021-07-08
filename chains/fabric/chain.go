@@ -53,7 +53,7 @@ func (c *Chain) Config() ChainConfig {
 	return c.config
 }
 
-func (c *Chain) Marshaler() codec.Marshaler {
+func (c *Chain) Marshaler() codec.Codec {
 	return c.encodingConfig.Marshaler
 }
 

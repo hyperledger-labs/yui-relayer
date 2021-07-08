@@ -5,7 +5,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	cordatypes "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -37,7 +37,6 @@ func (c *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, sig
 		return nil, err
 	} else {
 		return &clienttypes.MsgCreateClient{
-			ClientId:       clientID,
 			ClientState:    anyClientState,
 			ConsensusState: anyConsensusState,
 			Signer:         signer.String(),

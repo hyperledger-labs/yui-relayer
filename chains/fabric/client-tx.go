@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	fabrictypes "github.com/hyperledger-labs/yui-fabric-ibc/x/ibc/light-clients/xx-fabric/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
@@ -27,10 +27,9 @@ func (dst *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, s
 	}
 
 	return clienttypes.NewMsgCreateClient(
-		clientID,
 		clientState,
 		consensusState,
-		signer,
+		signer.String(),
 	)
 }
 

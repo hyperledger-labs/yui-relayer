@@ -44,7 +44,7 @@ func (c *Chain) GetLatestLightHeight() (int64, error) {
 	return 0, nil
 }
 
-func (c *Chain) Marshaler() codec.Marshaler {
+func (c *Chain) Marshaler() codec.Codec {
 	return c.encodingConfig.Marshaler
 }
 

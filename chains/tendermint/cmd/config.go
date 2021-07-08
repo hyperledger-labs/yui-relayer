@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func configCmd(m codec.Marshaler) *cobra.Command {
+func configCmd(m codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "manage configuration file",
@@ -22,7 +22,7 @@ func configCmd(m codec.Marshaler) *cobra.Command {
 	return cmd
 }
 
-func generateChainConfigCmd(m codec.Marshaler) *cobra.Command {
+func generateChainConfigCmd(m codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "generate",
 		Args: cobra.ExactArgs(1),

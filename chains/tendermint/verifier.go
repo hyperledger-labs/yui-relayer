@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	tmclient "github.com/cosmos/cosmos-sdk/x/ibc/light-clients/07-tendermint/types"
+	tmclient "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	dbm "github.com/tendermint/tm-db"
 
