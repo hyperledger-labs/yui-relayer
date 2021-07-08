@@ -58,6 +58,7 @@ func init() {
 		transactionCmd(ctx),
 		pathsCmd(ctx),
 		queryCmd(ctx),
+		serviceCmd(ctx),
 		flags.LineBreak,
 		tendermintcmd.TendermintCmd(ec.Marshaler, ctx),
 		fabriccmd.FabricCmd(ctx),
