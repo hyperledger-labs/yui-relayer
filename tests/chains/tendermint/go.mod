@@ -6,7 +6,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.43.0-beta1
 	github.com/cosmos/ibc-go v1.0.0-beta1
 	github.com/gorilla/mux v1.8.0
-	github.com/hyperledger-labs/yui-fabric-ibc v0.1.1-0.20210630105531-4c7d6e07d92b
+	github.com/hyperledger-labs/yui-fabric-ibc v0.2.0
 	github.com/rakyll/statik v0.1.7
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.3
