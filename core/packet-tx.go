@@ -1,19 +1,20 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func SendTransferMsg(src, dst ChainI, amount sdk.Coin, dstAddr fmt.Stringer, toHeightOffset uint64, toTimeOffset time.Duration) error {
+func SendTransferMsg(ctx context.Context, src, dst ChainI, amount sdk.Coin, dstAddr fmt.Stringer, toHeightOffset uint64, toTimeOffset time.Duration) error {
 	var (
 		timeoutHeight    uint64
 		timeoutTimestamp uint64
 	)
 
-	h, err := dst.QueryLatestHeader()
+	h, err := dst.QueryLatestHeader(ctx)
 	if err != nil {
 		return err
 	}
@@ -48,7 +49,7 @@ func SendTransferMsg(src, dst ChainI, amount sdk.Coin, dstAddr fmt.Stringer, toH
 		Dst: []sdk.Msg{},
 	}
 
-	if txs.Send(src, dst); !txs.Success() {
+	if txs.Send(ctx, src, dst); !txs.Success() {
 		return fmt.Errorf("failed to send transfer message")
 	}
 	return nil

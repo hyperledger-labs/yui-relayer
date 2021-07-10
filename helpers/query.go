@@ -1,13 +1,15 @@
 package helpers
 
 import (
+	"context"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 // QueryBalance is a helper function for query balance
-func QueryBalance(chain core.ChainI, address sdk.AccAddress, showDenoms bool) (sdk.Coins, error) {
-	coins, err := chain.QueryBalance(address)
+func QueryBalance(ctx context.Context, chain core.ChainI, address sdk.AccAddress, showDenoms bool) (sdk.Coins, error) {
+	coins, err := chain.QueryBalance(ctx, address)
 	if err != nil {
 		return nil, err
 	}
@@ -16,12 +18,12 @@ func QueryBalance(chain core.ChainI, address sdk.AccAddress, showDenoms bool) (s
 		return coins, nil
 	}
 
-	h, err := chain.QueryLatestHeight()
+	h, err := chain.QueryLatestHeight(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	dts, err := chain.QueryDenomTraces(0, 1000, h)
+	dts, err := chain.QueryDenomTraces(ctx, 0, 1000, h)
 	if err != nil {
 		return nil, err
 	}

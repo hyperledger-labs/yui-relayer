@@ -1,6 +1,8 @@
 package core
 
 import (
+	"context"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gogo/protobuf/proto"
 )
@@ -47,7 +49,7 @@ func (r *RelayMsgs) IsMaxTx(msgLen, txSize uint64) bool {
 
 // Send sends the messages with appropriate output
 // TODO: Parallelize? Maybe?
-func (r *RelayMsgs) Send(src, dst ChainI) {
+func (r *RelayMsgs) Send(ctx context.Context, src, dst ChainI) {
 	//nolint:prealloc // can not be pre allocated
 	var (
 		msgLen, txSize uint64
@@ -68,7 +70,7 @@ func (r *RelayMsgs) Send(src, dst ChainI) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transactions to src chain and update its status
-			r.Succeeded = r.Succeeded && src.Send(msgs)
+			r.Succeeded = r.Succeeded && src.Send(ctx, msgs)
 
 			// clear the current batch and reset variables
 			msgLen, txSize = 1, uint64(len(bz))
@@ -78,7 +80,7 @@ func (r *RelayMsgs) Send(src, dst ChainI) {
 	}
 
 	// submit leftover msgs
-	if len(msgs) > 0 && !src.Send(msgs) {
+	if len(msgs) > 0 && !src.Send(ctx, msgs) {
 		r.Succeeded = false
 	}
 
@@ -97,7 +99,7 @@ func (r *RelayMsgs) Send(src, dst ChainI) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transaction to dst chain and update its status
-			r.Succeeded = r.Succeeded && dst.Send(msgs)
+			r.Succeeded = r.Succeeded && dst.Send(ctx, msgs)
 
 			// clear the current batch and reset variables
 			msgLen, txSize = 1, uint64(len(bz))
@@ -107,7 +109,7 @@ func (r *RelayMsgs) Send(src, dst ChainI) {
 	}
 
 	// submit leftover msgs
-	if len(msgs) > 0 && !dst.Send(msgs) {
+	if len(msgs) > 0 && !dst.Send(ctx, msgs) {
 		r.Succeeded = false
 	}
 }

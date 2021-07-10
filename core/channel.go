@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -11,7 +12,7 @@ import (
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
-func CreateChannel(src, dst ChainI, ordered bool, to time.Duration) error {
+func CreateChannel(ctx context.Context, src, dst ChainI, ordered bool, to time.Duration) error {
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -22,7 +23,7 @@ func CreateChannel(src, dst ChainI, ordered bool, to time.Duration) error {
 	ticker := time.NewTicker(to)
 	failures := 0
 	for ; true; <-ticker.C {
-		chanSteps, err := createChannelStep(src, dst, order)
+		chanSteps, err := createChannelStep(ctx, src, dst, order)
 		if err != nil {
 			return err
 		}
@@ -31,7 +32,7 @@ func CreateChannel(src, dst ChainI, ordered bool, to time.Duration) error {
 			break
 		}
 
-		chanSteps.Send(src, dst)
+		chanSteps.Send(ctx, src, dst)
 
 		switch {
 		// In the case of success and this being the last transaction
@@ -61,7 +62,7 @@ func CreateChannel(src, dst ChainI, ordered bool, to time.Duration) error {
 	return nil
 }
 
-func createChannelStep(src, dst ChainI, ordering chantypes.Order) (*RelayMsgs, error) {
+func createChannelStep(ctx context.Context, src, dst ChainI, ordering chantypes.Order) (*RelayMsgs, error) {
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
@@ -82,7 +83,7 @@ func createChannelStep(src, dst ChainI, ordering chantypes.Order) (*RelayMsgs, e
 		return err
 	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)
-		if err := sh.Updates(src, dst); err != nil {
+		if err := sh.Updates(ctx, src, dst); err != nil {
 			panic(err)
 		}
 	}))
@@ -90,7 +91,7 @@ func createChannelStep(src, dst ChainI, ordering chantypes.Order) (*RelayMsgs, e
 		return nil, err
 	}
 
-	srcChan, dstChan, err := QueryChannelPair(src, dst, int64(sh.GetHeight(src.ChainID()))-1, int64(sh.GetHeight(dst.ChainID()))-1)
+	srcChan, dstChan, err := QueryChannelPair(ctx, src, dst, int64(sh.GetHeight(src.ChainID()))-1, int64(sh.GetHeight(dst.ChainID()))-1)
 	if err != nil {
 		return nil, err
 	}

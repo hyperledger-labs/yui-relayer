@@ -30,9 +30,12 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
+// TODO Currently, context.Context support is partial.
+// We believe it can be achieved by maintaining ibc-go's the codebase of the query client that uses ABCIQuery in our repo.
+
 // QueryLatestHeight queries the chain for the latest height and returns it
-func (c *Chain) QueryLatestHeight() (int64, error) {
-	res, err := c.Client.Status(context.Background())
+func (c *Chain) QueryLatestHeight(ctx context.Context) (int64, error) {
+	res, err := c.Client.Status(ctx)
 	if err != nil {
 		return -1, err
 	} else if res.SyncInfo.CatchingUp {
@@ -43,7 +46,7 @@ func (c *Chain) QueryLatestHeight() (int64, error) {
 }
 
 // QueryClientState retrevies the latest consensus state for a client in state at a given height
-func (c *Chain) QueryClientState(height int64, _ bool) (*clienttypes.QueryClientStateResponse, error) {
+func (c *Chain) QueryClientState(_ context.Context, height int64, _ bool) (*clienttypes.QueryClientStateResponse, error) {
 	return clientutils.QueryClientStateABCI(c.CLIContext(height), c.PathEnd.ClientID)
 }
 
@@ -64,7 +67,7 @@ var emptyConnRes = conntypes.NewQueryConnectionResponse(
 )
 
 // QueryConnection returns the remote end of a given connection
-func (c *Chain) QueryConnection(height int64, prove bool) (*conntypes.QueryConnectionResponse, error) {
+func (c *Chain) QueryConnection(_ context.Context, height int64, prove bool) (*conntypes.QueryConnectionResponse, error) {
 	res, err := connutils.QueryConnection(c.CLIContext(height), c.PathEnd.ConnectionID, prove)
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		return emptyConnRes, nil
@@ -90,7 +93,7 @@ var emptyChannelRes = chantypes.NewQueryChannelResponse(
 )
 
 // QueryChannel returns the channel associated with a channelID
-func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error) {
+func (c *Chain) QueryChannel(_ context.Context, height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error) {
 	res, err := chanutils.QueryChannel(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, prove)
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		return emptyChannelRes, nil
@@ -102,7 +105,7 @@ func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.Query
 
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
 func (c *Chain) QueryClientConsensusState(
-	height int64, dstClientConsHeight ibcexported.Height, _ bool) (*clienttypes.QueryConsensusStateResponse, error) {
+	_ context.Context, height int64, dstClientConsHeight ibcexported.Height, _ bool) (*clienttypes.QueryConsensusStateResponse, error) {
 	return clientutils.QueryConsensusStateABCI(
 		c.CLIContext(height),
 		c.PathEnd.ClientID,
@@ -111,7 +114,7 @@ func (c *Chain) QueryClientConsensusState(
 }
 
 // QueryBalance returns the amount of coins in the relayer account
-func (c *Chain) QueryBalance(addr sdk.AccAddress) (sdk.Coins, error) {
+func (c *Chain) QueryBalance(ctx context.Context, addr sdk.AccAddress) (sdk.Coins, error) {
 	params := bankTypes.NewQueryAllBalancesRequest(addr, &querytypes.PageRequest{
 		Key:        []byte(""),
 		Offset:     0,
@@ -121,7 +124,7 @@ func (c *Chain) QueryBalance(addr sdk.AccAddress) (sdk.Coins, error) {
 
 	queryClient := bankTypes.NewQueryClient(c.CLIContext(0))
 
-	res, err := queryClient.AllBalances(context.Background(), params)
+	res, err := queryClient.AllBalances(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +133,7 @@ func (c *Chain) QueryBalance(addr sdk.AccAddress) (sdk.Coins, error) {
 }
 
 // QueryDenomTraces returns all the denom traces from a given chain
-func (c *Chain) QueryDenomTraces(offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error) {
+func (c *Chain) QueryDenomTraces(_ context.Context, offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error) {
 	return transfertypes.NewQueryClient(c.CLIContext(height)).DenomTraces(context.Background(), &transfertypes.QueryDenomTracesRequest{
 		Pagination: &querytypes.PageRequest{
 			Key:        []byte(""),
@@ -143,17 +146,17 @@ func (c *Chain) QueryDenomTraces(offset, limit uint64, height int64) (*transfert
 
 // QueryPacketCommitment returns the packet commitment proof at a given height
 func (c *Chain) QueryPacketCommitment(
-	height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
+	_ context.Context, height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
 	return chanutils.QueryPacketCommitment(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, true)
 }
 
 // QueryPacketAcknowledgementCommitment returns the packet ack proof at a given height
-func (c *Chain) QueryPacketAcknowledgementCommitment(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
+func (c *Chain) QueryPacketAcknowledgementCommitment(_ context.Context, height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
 	return chanutils.QueryPacketAcknowledgement(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, true)
 }
 
-func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error) {
-	txs, err := dst.QueryTxs(uint64(height), 1, 1000, ackPacketQuery(dst.Path().ChannelID, int(sequence)))
+func (dst *Chain) QueryPacketAcknowledgement(ctx context.Context, height int64, sequence uint64) ([]byte, error) {
+	txs, err := dst.QueryTxs(ctx, uint64(height), 1, 1000, ackPacketQuery(dst.Path().ChannelID, int(sequence)))
 	switch {
 	case err != nil:
 		return nil, err
@@ -174,15 +177,15 @@ func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]b
 }
 
 // QueryPacketReciept returns the packet reciept proof at a given height
-func (c *Chain) QueryPacketReciept(height int64, seq uint64) (recRes *chantypes.QueryPacketReceiptResponse, err error) {
+func (c *Chain) QueryPacketReciept(_ context.Context, height int64, seq uint64) (recRes *chantypes.QueryPacketReceiptResponse, err error) {
 	return chanutils.QueryPacketReceipt(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, true)
 }
 
 // QueryPacketCommitments returns an array of packet commitments
 func (c *Chain) QueryPacketCommitments(
-	offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
+	ctx context.Context, offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
-	return qc.PacketCommitments(context.Background(), &chantypes.QueryPacketCommitmentsRequest{
+	return qc.PacketCommitments(ctx, &chantypes.QueryPacketCommitmentsRequest{
 		PortId:    c.PathEnd.PortID,
 		ChannelId: c.PathEnd.ChannelID,
 		Pagination: &querytypes.PageRequest{
@@ -194,9 +197,9 @@ func (c *Chain) QueryPacketCommitments(
 }
 
 // QueryPacketAcknowledgements returns an array of packet acks
-func (c *Chain) QueryPacketAcknowledgements(offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+func (c *Chain) QueryPacketAcknowledgements(ctx context.Context, offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
-	return qc.PacketAcknowledgements(context.Background(), &chantypes.QueryPacketAcknowledgementsRequest{
+	return qc.PacketAcknowledgements(ctx, &chantypes.QueryPacketAcknowledgementsRequest{
 		PortId:    c.PathEnd.PortID,
 		ChannelId: c.PathEnd.ChannelID,
 		Pagination: &querytypes.PageRequest{
@@ -208,9 +211,9 @@ func (c *Chain) QueryPacketAcknowledgements(offset, limit, height uint64) (comRe
 }
 
 // QueryUnrecievedPackets returns a list of unrelayed packet commitments
-func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, error) {
+func (c *Chain) QueryUnrecievedPackets(ctx context.Context, height uint64, seqs []uint64) ([]uint64, error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
-	res, err := qc.UnreceivedPackets(context.Background(), &chantypes.QueryUnreceivedPacketsRequest{
+	res, err := qc.UnreceivedPackets(ctx, &chantypes.QueryUnreceivedPacketsRequest{
 		PortId:                    c.PathEnd.PortID,
 		ChannelId:                 c.PathEnd.ChannelID,
 		PacketCommitmentSequences: seqs,
@@ -222,9 +225,9 @@ func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, 
 }
 
 // QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
-func (c *Chain) QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([]uint64, error) {
+func (c *Chain) QueryUnrecievedAcknowledgements(ctx context.Context, height uint64, seqs []uint64) ([]uint64, error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
-	res, err := qc.UnreceivedAcks(context.Background(), &chantypes.QueryUnreceivedAcksRequest{
+	res, err := qc.UnreceivedAcks(ctx, &chantypes.QueryUnreceivedAcksRequest{
 		PortId:             c.PathEnd.PortID,
 		ChannelId:          c.PathEnd.ChannelID,
 		PacketAckSequences: seqs,
@@ -235,8 +238,8 @@ func (c *Chain) QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([
 	return res.Sequences, nil
 }
 
-func (src *Chain) QueryPacket(height int64, seq uint64) (*chantypes.Packet, error) {
-	txs, err := src.QueryTxs(uint64(height), 1, 1000, rcvPacketQuery(src.Path().ChannelID, int(seq)))
+func (src *Chain) QueryPacket(ctx context.Context, height int64, seq uint64) (*chantypes.Packet, error) {
+	txs, err := src.QueryTxs(ctx, uint64(height), 1, 1000, rcvPacketQuery(src.Path().ChannelID, int(seq)))
 	switch {
 	case err != nil:
 		return nil, err
@@ -257,7 +260,7 @@ func (src *Chain) QueryPacket(height int64, seq uint64) (*chantypes.Packet, erro
 }
 
 // QueryTxs returns an array of transactions given a tag
-func (c *Chain) QueryTxs(height uint64, page, limit int, events []string) ([]*ctypes.ResultTx, error) {
+func (c *Chain) QueryTxs(ctx context.Context, height uint64, page, limit int, events []string) ([]*ctypes.ResultTx, error) {
 	if len(events) == 0 {
 		return nil, errors.New("must declare at least one event to search")
 	}
@@ -282,17 +285,17 @@ func (c *Chain) QueryTxs(height uint64, page, limit int, events []string) ([]*ct
 /////////////////////////////////////
 
 // QueryHistoricalInfo returns historical header data
-func (c *Chain) QueryHistoricalInfo(height clienttypes.Height) (*stakingtypes.QueryHistoricalInfoResponse, error) {
+func (c *Chain) QueryHistoricalInfo(ctx context.Context, height clienttypes.Height) (*stakingtypes.QueryHistoricalInfoResponse, error) {
 	//TODO: use epoch number in query once SDK gets updated
 	qc := stakingtypes.NewQueryClient(c.CLIContext(int64(height.GetRevisionHeight())))
-	return qc.HistoricalInfo(context.Background(), &stakingtypes.QueryHistoricalInfoRequest{
+	return qc.HistoricalInfo(ctx, &stakingtypes.QueryHistoricalInfoRequest{
 		Height: int64(height.GetRevisionHeight()),
 	})
 }
 
 // QueryValsetAtHeight returns the validator set at a given height
-func (c *Chain) QueryValsetAtHeight(height clienttypes.Height) (*tmproto.ValidatorSet, error) {
-	res, err := c.QueryHistoricalInfo(height)
+func (c *Chain) QueryValsetAtHeight(ctx context.Context, height clienttypes.Height) (*tmproto.ValidatorSet, error) {
+	res, err := c.QueryHistoricalInfo(ctx, height)
 	if err != nil {
 		return nil, err
 	}

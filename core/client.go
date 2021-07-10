@@ -1,18 +1,19 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func CreateClients(src, dst ChainI) error {
+func CreateClients(ctx context.Context, src, dst ChainI) error {
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 
-	srcH, dstH, err := UpdatesWithHeaders(src, dst)
+	srcH, dstH, err := UpdatesWithHeaders(ctx, src, dst)
 	if err != nil {
 		return err
 	}
@@ -45,7 +46,7 @@ func CreateClients(src, dst ChainI) error {
 	// Send msgs to both chains
 	if clients.Ready() {
 		// TODO: Add retry here for out of gas or other errors
-		if clients.Send(src, dst); clients.Success() {
+		if clients.Send(ctx, src, dst); clients.Success() {
 			log.Println(fmt.Sprintf("★ Clients created: [%s]client(%s) and [%s]client(%s)",
 				src.ChainID(), src.ClientID(), dst.ChainID(), dst.ClientID()))
 		}

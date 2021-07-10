@@ -1,16 +1,17 @@
 package core
 
 import (
+	"context"
 	"fmt"
 )
 
 // StrategyI defines
 type StrategyI interface {
 	GetType() string
-	UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
-	RelayPackets(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
-	UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
-	RelayAcknowledgements(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
+	UnrelayedSequences(ctx context.Context, src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
+	RelayPackets(ctx context.Context, src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
+	UnrelayedAcknowledgements(ctx context.Context, src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
+	RelayAcknowledgements(ctx context.Context, src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
 }
 
 // StrategyCfg defines which relaying strategy to take for a given path
@@ -28,7 +29,7 @@ func GetStrategy(cfg StrategyCfg) (StrategyI, error) {
 }
 
 // RunStrategy runs a given strategy
-func RunStrategy(src, dst ChainI, strategy StrategyI) (func(), error) {
+func RunStrategy(ctx context.Context, src, dst ChainI, strategy StrategyI) (func(), error) {
 	doneChan := make(chan struct{})
 
 	// Fetch latest headers for each chain and store them in sync headers
@@ -42,12 +43,12 @@ func RunStrategy(src, dst ChainI, strategy StrategyI) (func(), error) {
 	go dst.StartEventListener(src, strategy)
 
 	// Fetch any unrelayed sequences depending on the channel order
-	sp, err := strategy.UnrelayedSequences(src, dst, sh)
+	sp, err := strategy.UnrelayedSequences(ctx, src, dst, sh)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = strategy.RelayPackets(src, dst, sp, sh); err != nil {
+	if err = strategy.RelayPackets(ctx, src, dst, sp, sh); err != nil {
 		return nil, err
 	}
 

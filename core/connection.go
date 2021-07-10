@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -19,12 +20,12 @@ var (
 	rtyErr    = retry.LastErrorOnly(true)
 )
 
-func CreateConnection(src, dst ChainI, to time.Duration) error {
+func CreateConnection(ctx context.Context, src, dst ChainI, to time.Duration) error {
 	ticker := time.NewTicker(to)
 
 	failed := 0
 	for ; true; <-ticker.C {
-		connSteps, err := createConnectionStep(src, dst)
+		connSteps, err := createConnectionStep(ctx, src, dst)
 		if err != nil {
 			return err
 		}
@@ -33,7 +34,7 @@ func CreateConnection(src, dst ChainI, to time.Duration) error {
 			break
 		}
 
-		connSteps.Send(src, dst)
+		connSteps.Send(ctx, src, dst)
 
 		switch {
 		// In the case of success and this being the last transaction
@@ -64,7 +65,7 @@ func CreateConnection(src, dst ChainI, to time.Duration) error {
 	return nil
 }
 
-func createConnectionStep(src, dst ChainI) (*RelayMsgs, error) {
+func createConnectionStep(ctx context.Context, src, dst ChainI) (*RelayMsgs, error) {
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
@@ -88,7 +89,7 @@ func createConnectionStep(src, dst ChainI) (*RelayMsgs, error) {
 		return err
 	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)
-		if err := sh.Updates(src, dst); err != nil {
+		if err := sh.Updates(ctx, src, dst); err != nil {
 			panic(err)
 		}
 	}))
@@ -97,7 +98,7 @@ func createConnectionStep(src, dst ChainI) (*RelayMsgs, error) {
 	}
 
 	fmt.Println("Try to QueryConnectionPair:", src.Path().ConnectionID, dst.Path().ConnectionID)
-	srcConn, dstConn, err := QueryConnectionPair(src, dst, int64(sh.GetHeight(src.ChainID()))-1, int64(sh.GetHeight(dst.ChainID()))-1)
+	srcConn, dstConn, err := QueryConnectionPair(ctx, src, dst, int64(sh.GetHeight(src.ChainID()))-1, int64(sh.GetHeight(dst.ChainID()))-1)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func createConnectionStep(src, dst ChainI) (*RelayMsgs, error) {
 
 	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
 		// Query client state from each chain's client
-		srcCsRes, dstCsRes, err = QueryClientStatePair(src, dst, int64(sh.GetHeight(src.ChainID()))-1, int64(sh.GetHeight(dst.ChainID()))-1)
+		srcCsRes, dstCsRes, err = QueryClientStatePair(ctx, src, dst, int64(sh.GetHeight(src.ChainID()))-1, int64(sh.GetHeight(dst.ChainID()))-1)
 		if err != nil && (srcCsRes == nil || dstCsRes == nil) {
 			return nil, err
 		}
@@ -122,7 +123,7 @@ func createConnectionStep(src, dst ChainI) (*RelayMsgs, error) {
 		// NOTE: We query connection at height - 1 because of the way tendermint returns
 		// proofs the commit for height n is contained in the header of height n + 1
 		srcCons, dstCons, err = QueryClientConsensusStatePair(
-			src, dst, int64(sh.GetHeight(src.ChainID()))-1, int64(sh.GetHeight(dst.ChainID()))-1, srcConsH, dstConsH)
+			ctx, src, dst, int64(sh.GetHeight(src.ChainID()))-1, int64(sh.GetHeight(dst.ChainID()))-1, srcConsH, dstConsH)
 		if err != nil {
 			return nil, err
 		}

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -45,19 +46,18 @@ func queryClientCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 			c := chains[args[1]]
-
+			goctx := context.TODO()
 			height, err := cmd.Flags().GetInt64(flags.FlagHeight)
 			if err != nil {
 				return err
 			}
-
 			if height == 0 {
-				height, err = c.QueryLatestHeight()
+				height, err = c.QueryLatestHeight(goctx)
 				if err != nil {
 					return err
 				}
 			}
-			res, err := c.QueryClientState(height, false)
+			res, err := c.QueryClientState(goctx, height, false)
 			if err != nil {
 				return err
 			}
@@ -84,13 +84,13 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 				return err
 			}
 			c := chains[args[1]]
-
-			height, err := c.QueryLatestHeight()
+			goctx := context.TODO()
+			height, err := c.QueryLatestHeight(goctx)
 			if err != nil {
 				return err
 			}
 
-			res, err := c.QueryConnection(height, false)
+			res, err := c.QueryConnection(goctx, height, false)
 			if err != nil {
 				return err
 			}
@@ -113,13 +113,14 @@ func queryChannel(ctx *config.Context) *cobra.Command {
 				return err
 			}
 			c := chains[args[1]]
+			ctx := context.TODO()
 
-			height, err := c.QueryLatestHeight()
+			height, err := c.QueryLatestHeight(ctx)
 			if err != nil {
 				return err
 			}
 
-			res, err := c.QueryChannel(height, false)
+			res, err := c.QueryChannel(ctx, height, false)
 			if err != nil {
 				return err
 			}
@@ -152,7 +153,7 @@ func queryBalanceCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			coins, err := helpers.QueryBalance(chain, addr, showDenoms)
+			coins, err := helpers.QueryBalance(context.TODO(), chain, addr, showDenoms)
 			if err != nil {
 				return err
 			}
@@ -186,7 +187,7 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sp, err := st.UnrelayedSequences(c[src], c[dst], sh)
+			sp, err := st.UnrelayedSequences(context.TODO(), c[src], c[dst], sh)
 			if err != nil {
 				return err
 			}
@@ -226,7 +227,7 @@ func queryUnrelayedAcknowledgements(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh)
+			sp, err := st.UnrelayedAcknowledgements(context.TODO(), c[src], c[dst], sh)
 			if err != nil {
 				return err
 			}

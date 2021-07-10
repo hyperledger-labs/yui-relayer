@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"math/big"
@@ -213,7 +214,7 @@ type PathWithStatus struct {
 
 // QueryPathStatus returns an instance of the path struct with some attached data about
 // the current status of the path
-func (p *Path) QueryPathStatus(src, dst ChainI) *PathWithStatus {
+func (p *Path) QueryPathStatus(ctx context.Context, src, dst ChainI) *PathWithStatus {
 	var (
 		err              error
 		eg               errgroup.Group
@@ -225,11 +226,11 @@ func (p *Path) QueryPathStatus(src, dst ChainI) *PathWithStatus {
 		out = &PathWithStatus{Path: p, Status: PathStatus{false, false, false, false}}
 	)
 	eg.Go(func() error {
-		srch, err = src.QueryLatestHeight()
+		srch, err = src.QueryLatestHeight(ctx)
 		return err
 	})
 	eg.Go(func() error {
-		dsth, err = dst.QueryLatestHeight()
+		dsth, err = dst.QueryLatestHeight(ctx)
 		return err
 	})
 	if eg.Wait(); err != nil {
@@ -244,11 +245,11 @@ func (p *Path) QueryPathStatus(src, dst ChainI) *PathWithStatus {
 	}
 
 	eg.Go(func() error {
-		srcCs, err = src.QueryClientState(srch, true)
+		srcCs, err = src.QueryClientState(ctx, srch, true)
 		return err
 	})
 	eg.Go(func() error {
-		dstCs, err = dst.QueryClientState(dsth, true)
+		dstCs, err = dst.QueryClientState(ctx, dsth, true)
 		return err
 	})
 	if err = eg.Wait(); err != nil || srcCs == nil || dstCs == nil {
@@ -257,11 +258,11 @@ func (p *Path) QueryPathStatus(src, dst ChainI) *PathWithStatus {
 	out.Status.Clients = true
 
 	eg.Go(func() error {
-		srcConn, err = src.QueryConnection(srch, true)
+		srcConn, err = src.QueryConnection(ctx, srch, true)
 		return err
 	})
 	eg.Go(func() error {
-		dstConn, err = dst.QueryConnection(dsth, true)
+		dstConn, err = dst.QueryConnection(ctx, dsth, true)
 		return err
 	})
 	if err = eg.Wait(); err != nil || srcConn.Connection.State != conntypes.OPEN || dstConn.Connection.State != conntypes.OPEN {
@@ -270,11 +271,11 @@ func (p *Path) QueryPathStatus(src, dst ChainI) *PathWithStatus {
 	out.Status.Connection = true
 
 	eg.Go(func() error {
-		srcChan, err = src.QueryChannel(srch, true)
+		srcChan, err = src.QueryChannel(ctx, srch, true)
 		return err
 	})
 	eg.Go(func() error {
-		dstChan, err = dst.QueryChannel(dsth, true)
+		dstChan, err = dst.QueryChannel(ctx, dsth, true)
 		return err
 	})
 	if err = eg.Wait(); err != nil || srcChan.Channel.State != chantypes.OPEN || dstChan.Channel.State != chantypes.OPEN {

@@ -34,7 +34,7 @@ var logger = light.Logger(log.NewTMLogger(log.NewSyncWriter(ioutil.Discard)))
 func lightError(err error) error { return fmt.Errorf("light client: %w", err) }
 
 // UpdateLightWithHeader calls client.Update and then .
-func (c *Chain) UpdateLightWithHeader() (core.HeaderI, error) {
+func (c *Chain) UpdateLightWithHeader(ctx context.Context) (core.HeaderI, error) {
 	// create database connection
 	db, df, err := c.NewLightDB()
 	if err != nil {
@@ -47,7 +47,7 @@ func (c *Chain) UpdateLightWithHeader() (core.HeaderI, error) {
 		return nil, lightError(err)
 	}
 
-	sh, err := client.Update(context.Background(), time.Now())
+	sh, err := client.Update(ctx, time.Now())
 	if err != nil {
 		return nil, lightError(err)
 	}
@@ -89,7 +89,7 @@ func (c *Chain) LightClientWithoutTrust(db dbm.DB) (*light.Client, error) {
 	prov := c.LightHTTP()
 
 	if err := retry.Do(func() error {
-		height, err = c.QueryLatestHeight()
+		height, err = c.QueryLatestHeight(context.Background())
 		switch {
 		case err != nil:
 			return err

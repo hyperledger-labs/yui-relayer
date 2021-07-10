@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -103,7 +104,7 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			ah, err := chain.UpdateLightWithHeader()
+			ah, err := chain.UpdateLightWithHeader(context.TODO())
 			if err != nil {
 				return err
 			}

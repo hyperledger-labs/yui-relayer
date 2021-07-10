@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cosmos/ibc-go/modules/core/exported"
@@ -14,7 +15,7 @@ type SyncHeadersI interface {
 	GetHeight(chainID string) uint64
 	GetHeader(chainID string) HeaderI
 	GetTrustedHeaders(src, dst ChainI) (srcHeader HeaderI, dstHeader HeaderI, err error)
-	Updates(ChainI, ChainI) error
+	Updates(context.Context, ChainI, ChainI) error
 }
 
 type syncHeaders struct {
@@ -26,7 +27,7 @@ var _ SyncHeadersI = (*syncHeaders)(nil)
 // NewSyncHeaders returns a new instance of SyncHeadersI that can be easily
 // kept "reasonably up to date"
 func NewSyncHeaders(src, dst ChainI) (SyncHeadersI, error) {
-	srch, dsth, err := UpdatesWithHeaders(src, dst)
+	srch, dsth, err := UpdatesWithHeaders(context.TODO(), src, dst)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +45,13 @@ func (sh syncHeaders) GetHeader(chainID string) HeaderI {
 }
 
 func (sh syncHeaders) GetTrustedHeaders(src, dst ChainI) (HeaderI, HeaderI, error) {
-	srcTh, err := src.CreateTrustedHeader(dst, sh.GetHeader(src.ChainID()))
+	ctx := context.Background()
+	srcTh, err := src.CreateTrustedHeader(ctx, dst, sh.GetHeader(src.ChainID()))
 	if err != nil {
 		fmt.Println("failed to GetTrustedHeaders(src):", err)
 		return nil, nil, err
 	}
-	dstTh, err := dst.CreateTrustedHeader(src, sh.GetHeader(dst.ChainID()))
+	dstTh, err := dst.CreateTrustedHeader(ctx, src, sh.GetHeader(dst.ChainID()))
 	if err != nil {
 		fmt.Println("failed to GetTrustedHeaders(dst):", err)
 		return nil, nil, err
@@ -57,12 +59,12 @@ func (sh syncHeaders) GetTrustedHeaders(src, dst ChainI) (HeaderI, HeaderI, erro
 	return srcTh, dstTh, nil
 }
 
-func (sh *syncHeaders) Updates(src, dst ChainI) error {
-	srch, err := src.UpdateLightWithHeader()
+func (sh *syncHeaders) Updates(ctx context.Context, src, dst ChainI) error {
+	srch, err := src.UpdateLightWithHeader(ctx)
 	if err != nil {
 		return err
 	}
-	dsth, err := dst.UpdateLightWithHeader()
+	dsth, err := dst.UpdateLightWithHeader(ctx)
 	if err != nil {
 		return err
 	}

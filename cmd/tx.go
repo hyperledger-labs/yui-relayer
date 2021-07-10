@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -54,7 +55,7 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateClients(c[src], c[dst])
+			return core.CreateClients(context.TODO(), c[src], c[dst])
 		},
 	}
 	return cmd
@@ -86,7 +87,7 @@ func createConnectionCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateConnection(c[src], c[dst], to)
+			return core.CreateConnection(context.TODO(), c[src], c[dst], to)
 		},
 	}
 
@@ -119,7 +120,7 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateChannel(c[src], c[dst], false, to)
+			return core.CreateChannel(context.TODO(), c[src], c[dst], false, to)
 		},
 	}
 
@@ -148,13 +149,14 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			ctx := context.TODO()
 
-			sp, err := st.UnrelayedSequences(c[src], c[dst], sh)
+			sp, err := st.UnrelayedSequences(ctx, c[src], c[dst], sh)
 			if err != nil {
 				return err
 			}
 
-			if err = st.RelayPackets(c[src], c[dst], sp, sh); err != nil {
+			if err = st.RelayPackets(ctx, c[src], c[dst], sp, sh); err != nil {
 				return err
 			}
 
@@ -188,15 +190,16 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			ctx := context.TODO()
 
 			// sp.Src contains all sequences acked on SRC but acknowledgement not processed on DST
 			// sp.Dst contains all sequences acked on DST but acknowledgement not processed on SRC
-			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh)
+			sp, err := st.UnrelayedAcknowledgements(ctx, c[src], c[dst], sh)
 			if err != nil {
 				return err
 			}
 
-			if err = st.RelayAcknowledgements(c[src], c[dst], sp, sh); err != nil {
+			if err = st.RelayAcknowledgements(ctx, c[src], c[dst], sp, sh); err != nil {
 				return err
 			}
 

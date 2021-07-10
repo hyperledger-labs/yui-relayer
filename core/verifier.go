@@ -1,16 +1,20 @@
 package core
 
-import "golang.org/x/sync/errgroup"
+import (
+	"context"
+
+	"golang.org/x/sync/errgroup"
+)
 
 // UpdatesWithHeaders calls UpdateLightWithHeader on the passed chains concurrently
-func UpdatesWithHeaders(src, dst ChainI) (srch, dsth HeaderI, err error) {
+func UpdatesWithHeaders(ctx context.Context, src, dst ChainI) (srch, dsth HeaderI, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
-		srch, err = src.QueryLatestHeader()
+		srch, err = src.QueryLatestHeader(ctx)
 		return err
 	})
 	eg.Go(func() error {
-		dsth, err = dst.QueryLatestHeader()
+		dsth, err = dst.QueryLatestHeader(ctx)
 		return err
 	})
 	if err := eg.Wait(); err != nil {

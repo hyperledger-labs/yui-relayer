@@ -192,9 +192,9 @@ func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
 }
 
 // QueryLatestHeader returns the latest header from the chain
-func (c *Chain) QueryLatestHeader() (out core.HeaderI, err error) {
+func (c *Chain) QueryLatestHeader(ctx context.Context) (out core.HeaderI, err error) {
 	var h int64
-	if h, err = c.QueryLatestHeight(); err != nil {
+	if h, err = c.QueryLatestHeight(ctx); err != nil {
 		return nil, err
 	}
 	return c.QueryHeaderAtHeight(h)
@@ -385,7 +385,7 @@ func CalculateGas(
 	return simRes, uint64(txf.GasAdjustment() * float64(simRes.GasInfo.GasUsed)), nil
 }
 
-func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
+func (c *Chain) SendMsgs(_ context.Context, msgs []sdk.Msg) ([]byte, error) {
 	// Broadcast those bytes
 	res, err := c.sendMsgs(msgs)
 	if err != nil {
@@ -394,7 +394,7 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 	return []byte(res.Logs.String()), nil
 }
 
-func (c *Chain) Send(msgs []sdk.Msg) bool {
+func (c *Chain) Send(_ context.Context, msgs []sdk.Msg) bool {
 	res, err := c.sendMsgs(msgs)
 	if err != nil || res.Code != 0 {
 		c.LogFailedTx(res, err, msgs)
@@ -410,7 +410,7 @@ func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 	panic("not implemented error")
 }
 
-func (srcChain *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
+func (srcChain *Chain) CreateTrustedHeader(ctx context.Context, dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
 	// make copy of header stored in mop
 	tmp := srcHeader.(*tmclient.Header)
 	h := *tmp
@@ -421,7 +421,7 @@ func (srcChain *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.
 	}
 
 	// retrieve counterparty client from dst chain
-	counterpartyClientRes, err := dstChain.QueryClientState(dsth, true)
+	counterpartyClientRes, err := dstChain.QueryClientState(ctx, dsth, true)
 	if err != nil {
 		return nil, err
 	}
@@ -435,7 +435,7 @@ func (srcChain *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.
 	h.TrustedHeight = cs.GetLatestHeight().(clienttypes.Height)
 
 	// query TrustedValidators at Trusted Height from srcChain
-	valSet, err := srcChain.QueryValsetAtHeight(h.TrustedHeight)
+	valSet, err := srcChain.QueryValsetAtHeight(ctx, h.TrustedHeight)
 	if err != nil {
 		return nil, err
 	}

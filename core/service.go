@@ -60,27 +60,27 @@ func (srv *RelayService) Start(ctx context.Context) error {
 // Serve performs packet-relay
 func (srv *RelayService) Serve(ctx context.Context) error {
 	// First, update the latest headers for src and dst
-	if err := srv.sh.Updates(srv.src, srv.dst); err != nil {
+	if err := srv.sh.Updates(ctx, srv.src, srv.dst); err != nil {
 		return err
 	}
 
 	// relay packets if unrelayed seqs exist
 
-	pseqs, err := srv.st.UnrelayedSequences(srv.src, srv.dst, srv.sh)
+	pseqs, err := srv.st.UnrelayedSequences(ctx, srv.src, srv.dst, srv.sh)
 	if err != nil {
 		return err
 	}
-	if err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh); err != nil {
+	if err := srv.st.RelayPackets(ctx, srv.src, srv.dst, pseqs, srv.sh); err != nil {
 		return err
 	}
 
 	// relay acks if unrelayed seqs exist
 
-	aseqs, err := srv.st.UnrelayedAcknowledgements(srv.src, srv.dst, srv.sh)
+	aseqs, err := srv.st.UnrelayedAcknowledgements(ctx, srv.src, srv.dst, srv.sh)
 	if err != nil {
 		return err
 	}
-	if err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh); err != nil {
+	if err := srv.st.RelayAcknowledgements(ctx, srv.src, srv.dst, aseqs, srv.sh); err != nil {
 		return err
 	}
 
