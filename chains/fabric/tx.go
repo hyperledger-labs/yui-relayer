@@ -1,6 +1,7 @@
 package fabric
 
 import (
+	"context"
 	"log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -15,7 +16,7 @@ const (
 	handleTxFunc = "handleTx"
 )
 
-func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
+func (c *Chain) SendMsgs(_ context.Context, msgs []sdk.Msg) ([]byte, error) {
 	log.Printf("fabric.SendMsgs: %v", msgs)
 	txBytes, err := c.buildTx(c.encodingConfig.InterfaceRegistry, msgs...)
 	if err != nil {
@@ -26,8 +27,8 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 	return res, err
 }
 
-func (c *Chain) Send(msgs []sdk.Msg) bool {
-	_, err := c.SendMsgs(msgs)
+func (c *Chain) Send(ctx context.Context, msgs []sdk.Msg) bool {
+	_, err := c.SendMsgs(ctx, msgs)
 	return err == nil
 }
 
