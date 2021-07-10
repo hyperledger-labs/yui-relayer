@@ -1,6 +1,7 @@
 package corda
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -65,12 +66,12 @@ func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
 }
 
 // CreateTrustedHeader creates ...
-func (c *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
+func (c *Chain) CreateTrustedHeader(_ context.Context, dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
 	return nil, nil
 }
 
-func (c *Chain) UpdateLightWithHeader() (core.HeaderI, error) {
-	return c.QueryLatestHeader()
+func (c *Chain) UpdateLightWithHeader(ctx context.Context) (core.HeaderI, error) {
+	return c.QueryLatestHeader(ctx)
 }
 
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
