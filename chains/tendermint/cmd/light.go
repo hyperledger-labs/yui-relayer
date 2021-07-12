@@ -29,9 +29,8 @@ func lightCmd(ctx *config.Context) *cobra.Command {
 
 func initLightCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "init [chain-id]",
-		Aliases: []string{"i"},
-		Short:   "Initiate the light client",
+		Use:   "init [chain-id]",
+		Short: "Initiate the light client",
 		Long: `Initiate the light client by:
 	1. passing it a root of trust as a --hash/-x and --height
 	2. Use --force/-f to initialize from the configured node`,
@@ -41,9 +40,10 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain)
+			chain := c.ChainI.(*tendermint.Chain)
+			prover := c.ProverI.(*tendermint.Prover)
 
-			db, df, err := chain.NewLightDB()
+			db, df, err := prover.NewLightDB()
 			if err != nil {
 				return err
 			}
@@ -64,13 +64,13 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 
 			switch {
 			case force: // force initialization from trusted node
-				_, err := chain.LightClientWithoutTrust(db)
+				_, err := prover.LightClientWithoutTrust(db)
 				if err != nil {
 					return err
 				}
 				fmt.Printf("successfully created light client for %s by trusting endpoint %s...\n", chain.ChainID(), chain.Config().RpcAddr)
 			case height > 0 && len(hash) > 0: // height and hash are given
-				_, err = chain.LightClientWithTrust(db, chain.TrustOptions(height, hash))
+				_, err = prover.LightClientWithTrust(db, prover.TrustOptions(height, hash))
 				if err != nil {
 					return wrapInitFailed(err)
 				}
@@ -96,14 +96,14 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain)
+			prover := c.ProverI.(*tendermint.Prover)
 
-			bh, err := chain.GetLatestLightHeader()
+			bh, err := prover.GetLatestLightHeader()
 			if err != nil {
 				return err
 			}
 
-			ah, err := chain.UpdateLightWithHeader()
+			ah, _, err := prover.UpdateLightWithHeader()
 			if err != nil {
 				return err
 			}
@@ -129,13 +129,14 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain)
+			chain := c.ChainI.(*tendermint.Chain)
+			prover := c.ProverI.(*tendermint.Prover)
 
 			var header *tmclient.Header
 
 			switch len(args) {
 			case 1:
-				header, err = chain.GetLatestLightHeader()
+				header, err = prover.GetLatestLightHeader()
 				if err != nil {
 					return err
 				}
@@ -147,7 +148,7 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 				}
 
 				if height == 0 {
-					height, err = chain.GetLatestLightHeight()
+					height, err = prover.GetLatestLightHeight()
 					if err != nil {
 						return err
 					}
@@ -157,7 +158,7 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 					}
 				}
 
-				header, err = chain.GetLightSignedHeaderAtHeight(height)
+				header, err = prover.GetLightSignedHeaderAtHeight(height)
 				if err != nil {
 					return err
 				}
@@ -187,9 +188,9 @@ func deleteLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain)
+			prover := c.ProverI.(*tendermint.Prover)
 
-			err = chain.DeleteLightDB()
+			err = prover.DeleteLightDB()
 			if err != nil {
 				return err
 			}

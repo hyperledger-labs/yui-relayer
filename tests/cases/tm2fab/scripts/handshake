@@ -10,7 +10,13 @@ RLY="${RLY_BINARY} --debug"
 
 CHAINID_ONE=ibc0
 CHAINID_TWO=ibc1
+RLYKEY=testkey
 PATH_NAME=ibc01
+
+$RLY tendermint keys show $CHAINID_ONE $RLYKEY
+
+# initialize the light client for {{chain_id}}
+retry 5 $RLY tendermint light init $CHAINID_ONE -f
 
 # add a path between chain0 and chain1
 $RLY paths add $CHAINID_ONE $CHAINID_TWO $PATH_NAME --file=./configs/path.json

@@ -40,7 +40,7 @@ func keysAddCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain)
+			chain := c.ChainI.(*tendermint.Chain)
 
 			var keyName string
 			if len(args) == 2 {
@@ -96,7 +96,7 @@ func keysRestoreCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain)
+			chain := c.ChainI.(*tendermint.Chain)
 
 			if chain.KeyExists(keyName) {
 				return errKeyExists(keyName)
@@ -128,7 +128,7 @@ func keysShowCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain)
+			chain := c.ChainI.(*tendermint.Chain)
 
 			var keyName string
 			if len(args) == 2 {
@@ -165,7 +165,7 @@ func keysListCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.(*tendermint.Chain)
+			chain := c.ChainI.(*tendermint.Chain)
 
 			info, err := chain.Keybase.List()
 			if err != nil {

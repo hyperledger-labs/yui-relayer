@@ -52,12 +52,12 @@ func queryClientCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			if height == 0 {
-				height, err = c.QueryLatestHeight()
+				height, err = c.GetLatestHeight()
 				if err != nil {
 					return err
 				}
 			}
-			res, err := c.QueryClientState(height, false)
+			res, err := c.QueryClientState(height)
 			if err != nil {
 				return err
 			}
@@ -85,12 +85,12 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 			}
 			c := chains[args[1]]
 
-			height, err := c.QueryLatestHeight()
+			height, err := c.GetLatestHeight()
 			if err != nil {
 				return err
 			}
 
-			res, err := c.QueryConnection(height, false)
+			res, err := c.QueryConnection(height)
 			if err != nil {
 				return err
 			}
@@ -114,12 +114,12 @@ func queryChannel(ctx *config.Context) *cobra.Command {
 			}
 			c := chains[args[1]]
 
-			height, err := c.QueryLatestHeight()
+			height, err := c.GetLatestHeight()
 			if err != nil {
 				return err
 			}
 
-			res, err := c.QueryChannel(height, false)
+			res, err := c.QueryChannel(height)
 			if err != nil {
 				return err
 			}

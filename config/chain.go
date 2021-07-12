@@ -6,11 +6,11 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
-type Chains []core.ChainI
+type Chains []*core.ProvableChain
 
 // Get returns the configuration for a given chain
-func (c Chains) Get(chainID string) (core.ChainI, error) {
-	for _, chain := range c {
+func (cs Chains) Get(chainID string) (*core.ProvableChain, error) {
+	for _, chain := range cs {
 		if chainID == chain.ChainID() {
 			return chain, nil
 		}
@@ -19,10 +19,10 @@ func (c Chains) Get(chainID string) (core.ChainI, error) {
 }
 
 // Gets returns a map chainIDs to their chains
-func (c Chains) Gets(chainIDs ...string) (map[string]core.ChainI, error) {
-	out := make(map[string]core.ChainI)
+func (cs Chains) Gets(chainIDs ...string) (map[string]*core.ProvableChain, error) {
+	out := make(map[string]*core.ProvableChain)
 	for _, cid := range chainIDs {
-		chain, err := c.Get(cid)
+		chain, err := cs.Get(cid)
 		if err != nil {
 			return out, err
 		}

@@ -37,8 +37,9 @@ func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
 	return nil
 }
 
-func (c *Chain) ClientType() string {
-	return "fabric"
+// QueryLatestHeight queries the chain for the latest height and returns it
+func (c *Chain) GetLatestHeight() (int64, error) {
+	return -1, nil
 }
 
 func (c *Chain) ChainID() string {
@@ -65,7 +66,7 @@ func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 		}
 	}
 
-	sid, err := c.getSerializedIdentity(c.config.MspId)
+	sid, err := c.getSerializedIdentity(c.config.WalletLabel)
 	if err != nil {
 		return nil, err
 	}
@@ -85,11 +86,6 @@ func (c *Chain) Path() *core.PathEnd {
 	return c.pathEnd
 }
 
-func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
-	panic("not implemented error")
-	return &c.config, nil
-}
-
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 	panic("not implemented error")
 }
@@ -97,8 +93,4 @@ func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 // errCantSetPath returns an error if the path doesn't set properly
 func (c *Chain) errCantSetPath(err error) error {
 	return fmt.Errorf("path on chain %s failed to set: %w", c.ChainID(), err)
-}
-
-func (c *Chain) GetLatestLightHeight() (int64, error) {
-	return 0, nil
 }

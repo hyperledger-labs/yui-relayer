@@ -28,7 +28,7 @@ func (st NaiveStrategy) GetType() string {
 	return "naive"
 }
 
-func (st NaiveStrategy) UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error) {
+func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeadersI) (*RelaySequences, error) {
 	var (
 		eg           = new(errgroup.Group)
 		srcPacketSeq = []uint64{}
@@ -41,7 +41,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*R
 		var res *chantypes.QueryPacketCommitmentsResponse
 		if err = retry.Do(func() error {
 			// Query the packet commitment
-			res, err = src.QueryPacketCommitments(0, 1000, sh.GetHeight(src.ChainID()))
+			res, err = src.QueryPacketCommitments(0, 1000, sh.GetChainHeight(src.ChainID()))
 			switch {
 			case err != nil:
 				return err
@@ -51,7 +51,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*R
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", src.ChainID(), sh.GetHeight(src.ChainID()), n+1, rtyAttNum, err))
+			log.Println(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", src.ChainID(), sh.GetChainHeight(src.ChainID()), n+1, rtyAttNum, err))
 		})); err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*R
 	eg.Go(func() error {
 		var res *chantypes.QueryPacketCommitmentsResponse
 		if err = retry.Do(func() error {
-			res, err = dst.QueryPacketCommitments(0, 1000, sh.GetHeight(dst.ChainID()))
+			res, err = dst.QueryPacketCommitments(0, 1000, sh.GetChainHeight(dst.ChainID()))
 			switch {
 			case err != nil:
 				return err
@@ -74,7 +74,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*R
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", dst.ChainID(), sh.GetHeight(dst.ChainID()), n+1, rtyAttNum, err))
+			log.Println(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", dst.ChainID(), sh.GetChainHeight(dst.ChainID()), n+1, rtyAttNum, err))
 		})); err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*R
 
 	eg.Go(func() error {
 		// Query all packets sent by src that have been received by dst
-		src, err := dst.QueryUnrecievedPackets(sh.GetHeight(dst.ChainID()), srcPacketSeq)
+		src, err := dst.QueryUnrecievedPackets(sh.GetChainHeight(dst.ChainID()), srcPacketSeq)
 		if err != nil {
 			return err
 		} else if src != nil {
@@ -101,7 +101,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*R
 
 	eg.Go(func() error {
 		// Query all packets sent by dst that have been received by src
-		dst, err := src.QueryUnrecievedPackets(sh.GetHeight(src.ChainID()), dstPacketSeq)
+		dst, err := src.QueryUnrecievedPackets(sh.GetChainHeight(src.ChainID()), dstPacketSeq)
 		if err != nil {
 			return err
 		} else if dst != nil {
@@ -117,7 +117,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*R
 	return rs, nil
 }
 
-func (st NaiveStrategy) RelayPackets(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error {
+func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeadersI) error {
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -150,7 +150,7 @@ func (st NaiveStrategy) RelayPackets(src, dst ChainI, sp *RelaySequences, sh Syn
 	// Prepend non-empty msg lists with UpdateClient
 	if len(msgs.Dst) != 0 {
 		// Sending an update from src to dst
-		h, err := src.CreateTrustedHeader(dst, sh.GetHeader(src.ChainID()))
+		h, err := sh.GetHeader(src, dst)
 		if err != nil {
 			return err
 		}
@@ -164,7 +164,7 @@ func (st NaiveStrategy) RelayPackets(src, dst ChainI, sp *RelaySequences, sh Syn
 	}
 
 	if len(msgs.Src) != 0 {
-		h, err := dst.CreateTrustedHeader(src, sh.GetHeader(dst.ChainID()))
+		h, err := sh.GetHeader(dst, src)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func (st NaiveStrategy) RelayPackets(src, dst ChainI, sp *RelaySequences, sh Syn
 	return nil
 }
 
-func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error) {
+func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeadersI) (*RelaySequences, error) {
 	var (
 		eg           = new(errgroup.Group)
 		srcPacketSeq = []uint64{}
@@ -203,7 +203,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeader
 		var res *chantypes.QueryPacketAcknowledgementsResponse
 		if err = retry.Do(func() error {
 			// Query the packet commitment
-			res, err = src.QueryPacketAcknowledgements(0, 1000, sh.GetHeight(src.ChainID()))
+			res, err = src.QueryPacketAcknowledgements(0, 1000, sh.GetChainHeight(src.ChainID()))
 			switch {
 			case err != nil:
 				return err
@@ -213,7 +213,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeader
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), sh.GetHeight(src.ChainID()), n+1, rtyAttNum, err)))
+			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), sh.GetChainHeight(src.ChainID()), n+1, rtyAttNum, err)))
 			sh.Updates(src, dst)
 		})); err != nil {
 			return err
@@ -227,7 +227,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeader
 	eg.Go(func() error {
 		var res *chantypes.QueryPacketAcknowledgementsResponse
 		if err = retry.Do(func() error {
-			res, err = dst.QueryPacketAcknowledgements(0, 1000, sh.GetHeight(dst.ChainID()))
+			res, err = dst.QueryPacketAcknowledgements(0, 1000, sh.GetChainHeight(dst.ChainID()))
 			switch {
 			case err != nil:
 				return err
@@ -237,7 +237,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeader
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), sh.GetHeight(dst.ChainID()), n+1, rtyAttNum, err)))
+			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), sh.GetChainHeight(dst.ChainID()), n+1, rtyAttNum, err)))
 			sh.Updates(src, dst)
 		})); err != nil {
 			return err
@@ -254,7 +254,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeader
 
 	eg.Go(func() error {
 		// Query all packets sent by src that have been received by dst
-		src, err := dst.QueryUnrecievedAcknowledgements(sh.GetHeight(dst.ChainID()), srcPacketSeq)
+		src, err := dst.QueryUnrecievedAcknowledgements(sh.GetChainHeight(dst.ChainID()), srcPacketSeq)
 		// return err
 		if err != nil {
 			return err
@@ -266,7 +266,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeader
 
 	eg.Go(func() error {
 		// Query all packets sent by dst that have been received by src
-		dst, err := src.QueryUnrecievedAcknowledgements(sh.GetHeight(src.ChainID()), dstPacketSeq)
+		dst, err := src.QueryUnrecievedAcknowledgements(sh.GetChainHeight(src.ChainID()), dstPacketSeq)
 		if err != nil {
 			return err
 		} else if dst != nil {
@@ -283,17 +283,17 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeader
 }
 
 // TODO add packet-timeout support
-func relayPackets(chain ChainI, seqs []uint64, sh SyncHeadersI, sender sdk.AccAddress) ([]sdk.Msg, error) {
+func relayPackets(chain *ProvableChain, seqs []uint64, sh SyncHeadersI, sender sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
 	for _, seq := range seqs {
-		p, err := chain.QueryPacket(int64(sh.GetHeight(chain.ChainID())), seq)
+		p, err := chain.QueryPacket(int64(sh.GetChainHeight(chain.ChainID())), seq)
 		if err != nil {
-			log.Println("failed to QueryPacket:", int64(sh.GetHeight(chain.ChainID())), seq, err)
+			log.Println("failed to QueryPacket:", int64(sh.GetChainHeight(chain.ChainID())), seq, err)
 			return nil, err
 		}
 		// TODO must use (latestHeight-1) as height number in tendermint
-		h := sh.GetHeight(chain.ChainID()) - 1
-		res, err := chain.QueryPacketCommitment(int64(h), seq)
+		h := sh.GetChainHeight(chain.ChainID()) - 1
+		res, err := chain.QueryPacketCommitmentWithProof(int64(h), seq)
 		if err != nil {
 			log.Println("failed to QueryPacketCommitment:", int64(h), seq, err)
 			return nil, err
@@ -309,7 +309,7 @@ func logPacketsRelayed(src, dst ChainI, num int) {
 		num, dst.ChainID(), dst.Path().PortID, src.ChainID(), src.Path().PortID))
 }
 
-func (st NaiveStrategy) RelayAcknowledgements(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error {
+func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeadersI) error {
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -342,8 +342,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst ChainI, sp *RelaySequence
 
 	// Prepend non-empty msg lists with UpdateClient
 	if len(msgs.Dst) != 0 {
-		// Sending an update from src to dst
-		h, err := src.CreateTrustedHeader(dst, sh.GetHeader(src.ChainID()))
+		h, err := sh.GetHeader(src, dst)
 		if err != nil {
 			return err
 		}
@@ -357,7 +356,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst ChainI, sp *RelaySequence
 	}
 
 	if len(msgs.Src) != 0 {
-		h, err := dst.CreateTrustedHeader(src, sh.GetHeader(dst.ChainID()))
+		h, err := sh.GetHeader(dst, src)
 		if err != nil {
 			return err
 		}
@@ -383,22 +382,22 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst ChainI, sp *RelaySequence
 	return nil
 }
 
-func relayAcks(receiverChain, senderChain ChainI, seqs []uint64, sh SyncHeadersI, sender sdk.AccAddress) ([]sdk.Msg, error) {
+func relayAcks(receiverChain, senderChain *ProvableChain, seqs []uint64, sh SyncHeadersI, sender sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
 
 	for _, seq := range seqs {
-		p, err := senderChain.QueryPacket(int64(sh.GetHeight(senderChain.ChainID())), seq)
+		p, err := senderChain.QueryPacket(int64(sh.GetChainHeight(senderChain.ChainID())), seq)
 		if err != nil {
 			return nil, err
 		}
-		ack, err := receiverChain.QueryPacketAcknowledgement(int64(sh.GetHeight(receiverChain.ChainID())), seq)
+		ack, err := receiverChain.QueryPacketAcknowledgement(int64(sh.GetChainHeight(receiverChain.ChainID())), seq)
 		if err != nil {
 			return nil, err
 		}
 		// TODO must use (latestHeight-1) as height number in tendermint
-		h := sh.GetHeight(receiverChain.ChainID()) - 1
+		h := sh.GetChainHeight(receiverChain.ChainID()) - 1
 
-		res, err := receiverChain.QueryPacketAcknowledgementCommitment(int64(h), seq)
+		res, err := receiverChain.QueryPacketAcknowledgementCommitmentWithProof(int64(h), seq)
 		if err != nil {
 			return nil, err
 		}

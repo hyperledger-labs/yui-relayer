@@ -10,15 +10,15 @@ import (
 
 // QueryClientStatePair returns a pair of connection responses
 func QueryClientStatePair(
-	src, dst ChainI,
+	src, dst IBCProvableQuerierI,
 	srch, dsth int64) (srcCsRes, dstCsRes *clienttypes.QueryClientStateResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
-		srcCsRes, err = src.QueryClientState(srch, true)
+		srcCsRes, err = src.QueryClientStateWithProof(srch)
 		return err
 	})
 	eg.Go(func() error {
-		dstCsRes, err = dst.QueryClientState(dsth, true)
+		dstCsRes, err = dst.QueryClientStateWithProof(dsth)
 		return err
 	})
 	err = eg.Wait()
@@ -27,15 +27,15 @@ func QueryClientStatePair(
 
 // QueryConnectionPair returns a pair of connection responses
 func QueryConnectionPair(
-	src, dst ChainI,
+	src, dst IBCProvableQuerierI,
 	srcH, dstH int64) (srcConn, dstConn *conntypes.QueryConnectionResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
-		srcConn, err = src.QueryConnection(srcH, true)
+		srcConn, err = src.QueryConnectionWithProof(srcH)
 		return err
 	})
 	eg.Go(func() error {
-		dstConn, err = dst.QueryConnection(dstH, true)
+		dstConn, err = dst.QueryConnectionWithProof(dstH)
 		return err
 	})
 	err = eg.Wait()
@@ -43,14 +43,14 @@ func QueryConnectionPair(
 }
 
 // QueryChannelPair returns a pair of channel responses
-func QueryChannelPair(src, dst ChainI, srcH, dstH int64) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
+func QueryChannelPair(src, dst IBCProvableQuerierI, srcH, dstH int64) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
-		srcChan, err = src.QueryChannel(srcH, true)
+		srcChan, err = src.QueryChannelWithProof(srcH)
 		return err
 	})
 	eg.Go(func() error {
-		dstChan, err = dst.QueryChannel(dstH, true)
+		dstChan, err = dst.QueryChannelWithProof(dstH)
 		return err
 	})
 	err = eg.Wait()
@@ -59,16 +59,16 @@ func QueryChannelPair(src, dst ChainI, srcH, dstH int64) (srcChan, dstChan *chan
 
 // QueryClientConsensusStatePair allows for the querying of multiple client states at the same time
 func QueryClientConsensusStatePair(
-	src, dst ChainI,
+	src, dst IBCProvableQuerierI,
 	srch, dsth int64, srcClientConsH,
 	dstClientConsH ibcexported.Height) (srcCsRes, dstCsRes *clienttypes.QueryConsensusStateResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
-		srcCsRes, err = src.QueryClientConsensusState(srch, srcClientConsH, true)
+		srcCsRes, err = src.QueryClientConsensusStateWithProof(srch, srcClientConsH)
 		return err
 	})
 	eg.Go(func() error {
-		dstCsRes, err = dst.QueryClientConsensusState(dsth, dstClientConsH, true)
+		dstCsRes, err = dst.QueryClientConsensusStateWithProof(dsth, dstClientConsH)
 		return err
 	})
 	err = eg.Wait()

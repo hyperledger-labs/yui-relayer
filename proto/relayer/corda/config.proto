@@ -10,3 +10,5 @@ message ChainConfig {
   string chain_id = 1;
   string grpc_addr = 2;
 }
+
+message ProverConfig {}

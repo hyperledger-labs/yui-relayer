@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hyperledger-labs/yui-relayer/chains/corda"
+	// "github.com/hyperledger-labs/yui-relayer/chains/corda"
 	"github.com/hyperledger-labs/yui-relayer/chains/fabric"
 	fabriccmd "github.com/hyperledger-labs/yui-relayer/chains/fabric/cmd"
 	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
@@ -48,7 +48,7 @@ func init() {
 	ec := core.MakeEncodingConfig()
 	tendermint.RegisterInterfaces(ec.InterfaceRegistry)
 	fabric.RegisterInterfaces(ec.InterfaceRegistry)
-	corda.RegisterInterfaces(ec.InterfaceRegistry)
+	// corda.RegisterInterfaces(ec.InterfaceRegistry)
 	ctx := &config.Context{Config: &config.Config{}, Marshaler: ec.Marshaler}
 
 	// Register subcommands

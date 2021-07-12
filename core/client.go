@@ -7,7 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func CreateClients(src, dst ChainI) error {
+func CreateClients(src, dst *ProvableChain) error {
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
@@ -27,7 +27,7 @@ func CreateClients(src, dst ChainI) error {
 	}
 
 	{
-		msg, err := dst.MakeMsgCreateClient(src.ClientID(), dstH, srcAddr)
+		msg, err := dst.CreateMsgCreateClient(src.Path().ClientID, dstH, srcAddr)
 		if err != nil {
 			return err
 		}
@@ -35,7 +35,7 @@ func CreateClients(src, dst ChainI) error {
 	}
 
 	{
-		msg, err := src.MakeMsgCreateClient(dst.ClientID(), srcH, dstAddr)
+		msg, err := src.CreateMsgCreateClient(dst.Path().ClientID, srcH, dstAddr)
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ func CreateClients(src, dst ChainI) error {
 		// TODO: Add retry here for out of gas or other errors
 		if clients.Send(src, dst); clients.Success() {
 			log.Println(fmt.Sprintf("★ Clients created: [%s]client(%s) and [%s]client(%s)",
-				src.ChainID(), src.ClientID(), dst.ChainID(), dst.ClientID()))
+				src.ChainID(), src.Path().ClientID, dst.ChainID(), dst.Path().ClientID))
 		}
 	}
 	return nil

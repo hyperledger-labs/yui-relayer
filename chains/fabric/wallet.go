@@ -8,7 +8,7 @@ import (
 )
 
 func (c *Chain) PopulateWallet(certPath, privateKeyPath string) error {
-	return c.gateway.PopulateWallet(c.getWalletPath(), c.config.MspId, certPath, privateKeyPath)
+	return c.gateway.PopulateWallet(c.getWalletPath(), c.config.WalletLabel, certPath, privateKeyPath)
 }
 
 func (c *Chain) getWalletPath() string {

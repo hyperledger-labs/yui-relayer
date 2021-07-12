@@ -22,8 +22,8 @@ const (
 	endorsePacketAcknowledgementFunc = "endorsePacketAcknowledgement"
 )
 
-func (chain *Chain) endorseCommitment(fnName string, args []string, result proto.Message) (*fabrictypes.CommitmentProof, error) {
-	v, proof, err := chain.endorseCommitmentRaw(fnName, args)
+func (pr *Prover) endorseCommitment(fnName string, args []string, result proto.Message) (*fabrictypes.CommitmentProof, error) {
+	v, proof, err := pr.endorseCommitmentRaw(fnName, args)
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +33,8 @@ func (chain *Chain) endorseCommitment(fnName string, args []string, result proto
 	return proof, nil
 }
 
-func (chain *Chain) endorseCommitmentRaw(fnName string, args []string) ([]byte, *fabrictypes.CommitmentProof, error) {
-	txn, err := chain.Contract().CreateTransaction(fnName)
+func (pr *Prover) endorseCommitmentRaw(fnName string, args []string) ([]byte, *fabrictypes.CommitmentProof, error) {
+	txn, err := pr.chain.Contract().CreateTransaction(fnName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -53,60 +53,60 @@ func (chain *Chain) endorseCommitmentRaw(fnName string, args []string) ([]byte, 
 	return entry.Value, proof, nil
 }
 
-func (chain *Chain) endorseClientState(clientID string) (exported.ClientState, *fabrictypes.CommitmentProof, error) {
+func (pr *Prover) endorseClientState(clientID string) (exported.ClientState, *fabrictypes.CommitmentProof, error) {
 	var (
 		any    codectypes.Any
 		result exported.ClientState
 	)
-	proof, err := chain.endorseCommitment(endorseClientStateFunc, []string{clientID}, &any)
+	proof, err := pr.endorseCommitment(endorseClientStateFunc, []string{clientID}, &any)
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := chain.Marshaler().UnpackAny(&any, &result); err != nil {
+	if err := pr.chain.Marshaler().UnpackAny(&any, &result); err != nil {
 		return nil, nil, err
 	}
 	return result, proof, nil
 }
 
-func (chain *Chain) endorseConsensusState(clientID string, height uint64) (exported.ConsensusState, *fabrictypes.CommitmentProof, error) {
+func (pr *Prover) endorseConsensusState(clientID string, height uint64) (exported.ConsensusState, *fabrictypes.CommitmentProof, error) {
 	var (
 		any    codectypes.Any
 		result exported.ConsensusState
 	)
-	proof, err := chain.endorseCommitment(endorseConsensusStateFunc, []string{clientID, fmt.Sprint(height)}, &any)
+	proof, err := pr.endorseCommitment(endorseConsensusStateFunc, []string{clientID, fmt.Sprint(height)}, &any)
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := chain.Marshaler().UnpackAny(&any, &result); err != nil {
+	if err := pr.chain.Marshaler().UnpackAny(&any, &result); err != nil {
 		return nil, nil, err
 	}
 	return result, proof, nil
 }
 
-func (chain *Chain) endorseConnectionState(connectionID string) (*conntypes.ConnectionEnd, *fabrictypes.CommitmentProof, error) {
+func (pr *Prover) endorseConnectionState(connectionID string) (*conntypes.ConnectionEnd, *fabrictypes.CommitmentProof, error) {
 	var result conntypes.ConnectionEnd
-	proof, err := chain.endorseCommitment(endorseConnectionStateFunc, []string{connectionID}, &result)
+	proof, err := pr.endorseCommitment(endorseConnectionStateFunc, []string{connectionID}, &result)
 	if err != nil {
 		return nil, nil, err
 	}
 	return &result, proof, nil
 }
 
-func (chain *Chain) endorseChannelState(portID, channelID string) (*chantypes.Channel, *fabrictypes.CommitmentProof, error) {
+func (pr *Prover) endorseChannelState(portID, channelID string) (*chantypes.Channel, *fabrictypes.CommitmentProof, error) {
 	var result chantypes.Channel
-	proof, err := chain.endorseCommitment(endorseChannelStateFunc, []string{portID, channelID}, &result)
+	proof, err := pr.endorseCommitment(endorseChannelStateFunc, []string{portID, channelID}, &result)
 	if err != nil {
 		return nil, nil, err
 	}
 	return &result, proof, nil
 }
 
-func (chain *Chain) endorsePacketCommitment(portID, channelID string, sequence uint64) ([]byte, *fabrictypes.CommitmentProof, error) {
-	return chain.endorseCommitmentRaw(endorsePacketCommitmentFunc, []string{portID, channelID, fmt.Sprint(sequence)})
+func (pr *Prover) endorsePacketCommitment(portID, channelID string, sequence uint64) ([]byte, *fabrictypes.CommitmentProof, error) {
+	return pr.endorseCommitmentRaw(endorsePacketCommitmentFunc, []string{portID, channelID, fmt.Sprint(sequence)})
 }
 
-func (chain *Chain) endorsePacketAcknowledgement(portID, channelID string, sequence uint64) ([]byte, *fabrictypes.CommitmentProof, error) {
-	return chain.endorseCommitmentRaw(endorsePacketAcknowledgementFunc, []string{portID, channelID, fmt.Sprint(sequence)})
+func (pr *Prover) endorsePacketAcknowledgement(portID, channelID string, sequence uint64) ([]byte, *fabrictypes.CommitmentProof, error) {
+	return pr.endorseCommitmentRaw(endorsePacketAcknowledgementFunc, []string{portID, channelID, fmt.Sprint(sequence)})
 }
 
 func unmarshalCommitmentEntry(payload []byte) (*commitment.Entry, error) {

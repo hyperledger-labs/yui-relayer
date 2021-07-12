@@ -24,10 +24,6 @@ func NewChain(config ChainConfig) *Chain {
 
 var _ core.ChainI = (*Chain)(nil)
 
-func (*Chain) ClientType() string {
-	return "corda"
-}
-
 func (c *Chain) ChainID() string {
 	return c.config.ChainId
 }
@@ -64,8 +60,8 @@ func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
 	panic("not implemented error")
 }
 
-// CreateTrustedHeader creates ...
-func (c *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
+// SetupHeader creates ...
+func (c *Chain) SetupHeader(dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
 	return nil, nil
 }
 

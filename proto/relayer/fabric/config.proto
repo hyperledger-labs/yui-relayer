@@ -8,11 +8,14 @@ option (gogoproto.goproto_getters_all) = false;
 
 message ChainConfig {
   string chain_id = 1;
-  string msp_id = 2;
-  string channel = 3;
-  string chaincode_id = 4;
-  string connection_profile_path = 5;
-  repeated string ibc_policies = 6;
-  repeated string endorsement_policies = 7;
-  repeated string msp_config_paths = 8;
+  string wallet_label = 2;
+  string connection_profile_path = 3;
+  string channel = 4;
+  string chaincode_id = 5;
+}
+
+message ProverConfig {
+  repeated string ibc_policies = 1;
+  repeated string endorsement_policies = 2;
+  repeated string msp_config_paths = 3;
 }

@@ -11,8 +11,8 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-// MakeMsgCreateClient creates a CreateClientMsg to this chain
-func (c *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
+// CreateMsgCreateClient creates a CreateClientMsg to this chain
+func (c *Chain) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
 	// information for building consensus state can be obtained from host state
 	host, err := c.client.host.QueryHost(
 		context.TODO(),

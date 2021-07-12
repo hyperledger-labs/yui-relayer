@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -10,9 +9,9 @@ import (
 )
 
 type Config struct {
-	Global GlobalConfig      `yaml:"global" json:"global"`
-	Chains []json.RawMessage `yaml:"chains" json:"chains"`
-	Paths  core.Paths        `yaml:"paths" json:"paths"`
+	Global GlobalConfig             `yaml:"global" json:"global"`
+	Chains []core.ChainProverConfig `yaml:"chains" json:"chains"`
+	Paths  core.Paths               `yaml:"paths" json:"paths"`
 
 	// cache
 	chains Chains `yaml:"-" json:"-"`
@@ -21,7 +20,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Global: newDefaultGlobalConfig(),
-		Chains: []json.RawMessage{},
+		Chains: []core.ChainProverConfig{},
 		Paths:  core.Paths{},
 	}
 }
@@ -40,26 +39,24 @@ func newDefaultGlobalConfig() GlobalConfig {
 	}
 }
 
-func (c *Config) GetChain(chainID string) (core.ChainI, error) {
+func (c *Config) GetChain(chainID string) (*core.ProvableChain, error) {
 	return c.chains.Get(chainID)
 }
 
-func (c *Config) GetChains(chainIDs ...string) (map[string]core.ChainI, error) {
+func (c *Config) GetChains(chainIDs ...string) (map[string]*core.ProvableChain, error) {
 	return c.chains.Gets(chainIDs...)
 }
 
 // AddChain adds an additional chain to the config
-func (c *Config) AddChain(m codec.JSONCodec, cconfig core.ChainConfigI) error {
-	chain := cconfig.GetChain()
-	_, err := c.GetChain(chain.ChainID())
-	if err == nil {
-		return fmt.Errorf("chain with ID %s already exists in config", chain.ChainID())
-	}
-	bz, err := MarshalJSONAny(m, cconfig)
+func (c *Config) AddChain(m codec.JSONCodec, config core.ChainProverConfig) error {
+	chain, err := config.Build()
 	if err != nil {
 		return err
 	}
-	c.Chains = append(c.Chains, bz)
+	if _, err := c.GetChain(chain.ChainID()); err == nil {
+		return fmt.Errorf("chain with ID %s already exists in config", chain.ChainID())
+	}
+	c.Chains = append(c.Chains, config)
 	c.chains = append(c.chains, chain)
 	return nil
 }
@@ -71,8 +68,8 @@ func (c *Config) AddPath(name string, path *core.Path) (err error) {
 
 // DeleteChain removes a chain from the config
 func (c *Config) DeleteChain(chain string) *Config {
-	var newChains []core.ChainI
-	var newChainConfigs []json.RawMessage
+	var newChains []*core.ProvableChain
+	var newChainConfigs []core.ChainProverConfig
 	for i, ch := range c.chains {
 		if ch.ChainID() != chain {
 			newChains = append(newChains, ch)
@@ -85,7 +82,7 @@ func (c *Config) DeleteChain(chain string) *Config {
 }
 
 // ChainsFromPath takes the path name and returns the properly configured chains
-func (c *Config) ChainsFromPath(path string) (map[string]core.ChainI, string, string, error) {
+func (c *Config) ChainsFromPath(path string) (map[string]*core.ProvableChain, string, string, error) {
 	pth, err := c.Paths.Get(path)
 	if err != nil {
 		return nil, "", "", err
