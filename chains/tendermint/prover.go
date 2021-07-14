@@ -29,30 +29,37 @@ func NewProver(chain *Chain, config ProverConfig) *Prover {
 	return &Prover{chain: chain, config: config}
 }
 
+// GetChainID returns the chain ID
 func (pr *Prover) GetChainID() string {
 	return pr.chain.ChainID()
 }
 
+// QueryClientConsensusState returns the ClientConsensusState and its proof
 func (pr *Prover) QueryClientConsensusStateWithProof(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
 	return pr.chain.queryClientConsensusState(height, dstClientConsHeight, true)
 }
 
+// QueryClientStateWithProof returns the ClientState and its proof
 func (pr *Prover) QueryClientStateWithProof(height int64) (*clienttypes.QueryClientStateResponse, error) {
 	return pr.chain.queryClientState(height, true)
 }
 
+// QueryConnectionWithProof returns the Connection and its proof
 func (pr *Prover) QueryConnectionWithProof(height int64) (*conntypes.QueryConnectionResponse, error) {
 	return pr.chain.queryConnection(height, true)
 }
 
+// QueryChannelWithProof returns the Channel and its proof
 func (pr *Prover) QueryChannelWithProof(height int64) (chanRes *chantypes.QueryChannelResponse, err error) {
 	return pr.chain.queryChannel(height, true)
 }
 
+// QueryPacketCommitmentWithProof returns the packet commitment and its proof
 func (pr *Prover) QueryPacketCommitmentWithProof(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
 	return pr.chain.queryPacketCommitment(height, seq, true)
 }
 
+// QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
 func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
 	return pr.chain.queryPacketAcknowledgementCommitment(height, seq, true)
 }
@@ -101,7 +108,7 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI,
 	), nil
 }
 
-// SetupHeader creates ...
+// SetupHeader creates a new header based on a given header
 func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader core.HeaderI) (core.HeaderI, error) {
 	srcChain := pr.chain
 	// make copy of header stored in mop
