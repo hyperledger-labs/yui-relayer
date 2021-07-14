@@ -34,6 +34,7 @@ func (pr *Prover) GetChainID() string {
 	return pr.chain.ChainID()
 }
 
+// QueryClientStateWithProof returns the ClientState and its proof
 func (pr *Prover) QueryClientStateWithProof(_ int64) (*clienttypes.QueryClientStateResponse, error) {
 	cs, proof, err := pr.endorseClientState(pr.chain.pathEnd.ClientID)
 	if err != nil {
@@ -54,6 +55,7 @@ func (pr *Prover) QueryClientStateWithProof(_ int64) (*clienttypes.QueryClientSt
 	}, nil
 }
 
+// QueryClientConsensusState returns the ClientConsensusState and its proof
 func (pr *Prover) QueryClientConsensusStateWithProof(_ int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
 	css, proof, err := pr.endorseConsensusState(pr.chain.Path().ClientID, dstClientConsHeight.GetRevisionHeight())
 	if err != nil {
@@ -74,6 +76,7 @@ func (pr *Prover) QueryClientConsensusStateWithProof(_ int64, dstClientConsHeigh
 	}, nil
 }
 
+// QueryConnectionWithProof returns the Connection and its proof
 func (pr *Prover) QueryConnectionWithProof(_ int64) (*conntypes.QueryConnectionResponse, error) {
 	conn, proof, err := pr.endorseConnectionState(pr.chain.pathEnd.ConnectionID)
 	if err != nil {
@@ -109,6 +112,7 @@ var emptyChannelRes = chantypes.NewQueryChannelResponse(
 	clienttypes.NewHeight(0, 0),
 )
 
+// QueryChannelWithProof returns the Channel and its proof
 func (pr *Prover) QueryChannelWithProof(_ int64) (chanRes *chantypes.QueryChannelResponse, err error) {
 	channel, proof, err := pr.endorseChannelState(pr.chain.pathEnd.PortID, pr.chain.pathEnd.ChannelID)
 	if err != nil {
@@ -129,6 +133,7 @@ func (pr *Prover) QueryChannelWithProof(_ int64) (chanRes *chantypes.QueryChanne
 	}, nil
 }
 
+// QueryPacketCommitmentWithProof returns the packet commitment and its proof
 func (pr *Prover) QueryPacketCommitmentWithProof(_ int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
 	cm, proof, err := pr.endorsePacketCommitment(pr.chain.Path().PortID, pr.chain.Path().ChannelID, seq)
 	if err != nil {
@@ -145,6 +150,7 @@ func (pr *Prover) QueryPacketCommitmentWithProof(_ int64, seq uint64) (comRes *c
 	}, nil
 }
 
+// QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
 func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(_ int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
 	cm, proof, err := pr.endorsePacketAcknowledgement(pr.chain.Path().PortID, pr.chain.Path().ChannelID, seq)
 	if err != nil {
@@ -215,7 +221,7 @@ func (pr *Prover) GetLatestLightHeight() (int64, error) {
 	return -1, nil
 }
 
-// SetupHeader creates ...
+// SetupHeader creates a new header based on a given header
 func (*Prover) SetupHeader(dst core.LightClientIBCQueryierI, baseSrcHeader core.HeaderI) (core.HeaderI, error) {
 	return nil, nil
 }
