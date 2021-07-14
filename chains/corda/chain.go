@@ -36,10 +36,6 @@ func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 	return make([]byte, 20), nil
 }
 
-func (c *Chain) GetLatestLightHeight() (int64, error) {
-	return 0, nil
-}
-
 func (c *Chain) Marshaler() codec.Codec {
 	return c.encodingConfig.Marshaler
 }
@@ -54,19 +50,6 @@ func (c *Chain) SetPath(p *core.PathEnd) error {
 
 func (c *Chain) Path() *core.PathEnd {
 	return c.pathEnd
-}
-
-func (c *Chain) Update(key, value string) (core.ChainConfigI, error) {
-	panic("not implemented error")
-}
-
-// SetupHeader creates ...
-func (c *Chain) SetupHeader(dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
-	return nil, nil
-}
-
-func (c *Chain) UpdateLightWithHeader() (core.HeaderI, error) {
-	return c.QueryLatestHeader()
 }
 
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {

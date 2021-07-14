@@ -12,9 +12,9 @@ import (
 )
 
 // CreateMsgCreateClient creates a CreateClientMsg to this chain
-func (c *Chain) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
+func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
 	// information for building consensus state can be obtained from host state
-	host, err := c.client.host.QueryHost(
+	host, err := pr.chain.client.host.QueryHost(
 		context.TODO(),
 		&emptypb.Empty{},
 	)
