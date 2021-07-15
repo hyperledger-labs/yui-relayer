@@ -10,7 +10,7 @@ type ModuleI interface {
 	// Name returns the name of the module
 	Name() string
 
-	// RegisterInterfaces register the ibc transfer module interfaces to protobuf Any.
+	// RegisterInterfaces register the module interfaces to protobuf Any.
 	RegisterInterfaces(registry codectypes.InterfaceRegistry)
 
 	// GetCmd returns the command

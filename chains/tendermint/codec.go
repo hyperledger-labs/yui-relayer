@@ -6,7 +6,7 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
-// RegisterInterfaces register the ibc transfer module interfaces to protobuf
+// RegisterInterfaces register the module interfaces to protobuf
 // Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(

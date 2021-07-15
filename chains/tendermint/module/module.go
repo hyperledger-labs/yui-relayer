@@ -17,7 +17,7 @@ func (Module) Name() string {
 	return "tendermint"
 }
 
-// RegisterInterfaces register the ibc transfer module interfaces to protobuf Any.
+// RegisterInterfaces register the module interfaces to protobuf Any.
 func (Module) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	tendermint.RegisterInterfaces(registry)
 }
