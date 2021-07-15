@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Module defines an interface of Module
+// ModuleI defines an interface of Module
 type ModuleI interface {
 	// Name returns the name of the module
 	Name() string
