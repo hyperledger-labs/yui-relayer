@@ -5,11 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hyperledger-labs/yui-relayer/chains/corda"
-	"github.com/hyperledger-labs/yui-relayer/chains/fabric"
-	fabriccmd "github.com/hyperledger-labs/yui-relayer/chains/fabric/cmd"
-	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
-	tendermintcmd "github.com/hyperledger-labs/yui-relayer/chains/tendermint/cmd"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 
@@ -19,19 +14,20 @@ import (
 )
 
 var (
-	homePath string
-	debug    bool
-	// configInstance *config.Config
+	homePath    string
+	debug       bool
 	defaultHome = os.ExpandEnv("$HOME/.urelayer")
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "uly",
-	Short: "This application relays data between configured IBC enabled chains",
-}
+// Execute adds all child commands to the root command and sets flags appropriately.
+// It can support any chain by giving modules.
+func Execute(modules ...config.ModuleI) error {
+	// rootCmd represents the base command when called without any subcommands
+	var rootCmd = &cobra.Command{
+		Use:   "uly",
+		Short: "This application relays data between configured IBC enabled chains",
+	}
 
-func init() {
 	cobra.EnableCommandSorting = false
 	rootCmd.SilenceUsage = true
 
@@ -39,19 +35,22 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&homePath, flags.FlagHome, defaultHome, "set home directory")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "debug output")
 	if err := viper.BindPFlag(flags.FlagHome, rootCmd.Flags().Lookup(flags.FlagHome)); err != nil {
-		panic(err)
+		return err
 	}
 	if err := viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug")); err != nil {
-		panic(err)
+		return err
 	}
 
+	// Register interfaces
+
 	ec := core.MakeEncodingConfig()
-	tendermint.RegisterInterfaces(ec.InterfaceRegistry)
-	fabric.RegisterInterfaces(ec.InterfaceRegistry)
-	corda.RegisterInterfaces(ec.InterfaceRegistry)
+	for _, module := range modules {
+		module.RegisterInterfaces(ec.InterfaceRegistry)
+	}
 	ctx := &config.Context{Config: &config.Config{}, Marshaler: ec.Marshaler}
 
 	// Register subcommands
+
 	rootCmd.AddCommand(
 		configCmd(ctx),
 		chainsCmd(ctx),
@@ -60,9 +59,12 @@ func init() {
 		queryCmd(ctx),
 		serviceCmd(ctx),
 		flags.LineBreak,
-		tendermintcmd.TendermintCmd(ec.Marshaler, ctx),
-		fabriccmd.FabricCmd(ctx),
 	)
+	for _, module := range modules {
+		if cmd := module.GetCmd(ctx); cmd != nil {
+			rootCmd.AddCommand(cmd)
+		}
+	}
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		// reads `homeDir/config/config.yaml` into `var config *Config` before each command
@@ -71,14 +73,8 @@ func init() {
 		}
 		return initConfig(ctx, rootCmd)
 	}
-}
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+	return rootCmd.Execute()
 }
 
 // readLineFromBuf reads one line from stdin.
