@@ -34,7 +34,7 @@ func populateWalletCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fc := c.(*fabric.Chain)
+			fc := c.ChainI.(*fabric.Chain)
 			return fc.PopulateWallet(
 				viper.GetString(flagFabClientCertPath),
 				viper.GetString(flagFabClientPrivateKeyPath),
@@ -55,11 +55,11 @@ func showAddressCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fc := c.(*fabric.Chain)
+			fc := c.ChainI.(*fabric.Chain)
 			if err := fc.Connect(); err != nil {
 				return err
 			}
-			sid, err := fc.GetSerializedIdentity(fc.Config().MspId)
+			sid, err := fc.GetSerializedIdentity(fc.Config().WalletLabel)
 			if err != nil {
 				return err
 			}

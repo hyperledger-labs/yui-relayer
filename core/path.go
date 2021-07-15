@@ -213,7 +213,7 @@ type PathWithStatus struct {
 
 // QueryPathStatus returns an instance of the path struct with some attached data about
 // the current status of the path
-func (p *Path) QueryPathStatus(src, dst ChainI) *PathWithStatus {
+func (p *Path) QueryPathStatus(src, dst *ProvableChain) *PathWithStatus {
 	var (
 		err              error
 		eg               errgroup.Group
@@ -225,30 +225,24 @@ func (p *Path) QueryPathStatus(src, dst ChainI) *PathWithStatus {
 		out = &PathWithStatus{Path: p, Status: PathStatus{false, false, false, false}}
 	)
 	eg.Go(func() error {
-		srch, err = src.QueryLatestHeight()
+		srch, err = src.GetLatestHeight()
 		return err
 	})
 	eg.Go(func() error {
-		dsth, err = dst.QueryLatestHeight()
+		dsth, err = dst.GetLatestHeight()
 		return err
 	})
 	if eg.Wait(); err != nil {
 		return out
 	}
 	out.Status.Chains = true
-	if err = src.SetPath(p.Src); err != nil {
-		return out
-	}
-	if err = dst.SetPath(p.Dst); err != nil {
-		return out
-	}
 
 	eg.Go(func() error {
-		srcCs, err = src.QueryClientState(srch, true)
+		srcCs, err = src.QueryClientStateWithProof(srch)
 		return err
 	})
 	eg.Go(func() error {
-		dstCs, err = dst.QueryClientState(dsth, true)
+		dstCs, err = dst.QueryClientStateWithProof(dsth)
 		return err
 	})
 	if err = eg.Wait(); err != nil || srcCs == nil || dstCs == nil {
@@ -257,11 +251,11 @@ func (p *Path) QueryPathStatus(src, dst ChainI) *PathWithStatus {
 	out.Status.Clients = true
 
 	eg.Go(func() error {
-		srcConn, err = src.QueryConnection(srch, true)
+		srcConn, err = src.QueryConnectionWithProof(srch)
 		return err
 	})
 	eg.Go(func() error {
-		dstConn, err = dst.QueryConnection(dsth, true)
+		dstConn, err = dst.QueryConnectionWithProof(dsth)
 		return err
 	})
 	if err = eg.Wait(); err != nil || srcConn.Connection.State != conntypes.OPEN || dstConn.Connection.State != conntypes.OPEN {
@@ -270,11 +264,11 @@ func (p *Path) QueryPathStatus(src, dst ChainI) *PathWithStatus {
 	out.Status.Connection = true
 
 	eg.Go(func() error {
-		srcChan, err = src.QueryChannel(srch, true)
+		srcChan, err = src.QueryChannelWithProof(srch)
 		return err
 	})
 	eg.Go(func() error {
-		dstChan, err = dst.QueryChannel(dsth, true)
+		dstChan, err = dst.QueryChannelWithProof(dsth)
 		return err
 	})
 	if err = eg.Wait(); err != nil || srcChan.Channel.State != chantypes.OPEN || dstChan.Channel.State != chantypes.OPEN {

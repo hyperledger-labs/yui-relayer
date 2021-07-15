@@ -11,7 +11,7 @@ import (
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
-func CreateChannel(src, dst ChainI, ordered bool, to time.Duration) error {
+func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -61,7 +61,7 @@ func CreateChannel(src, dst ChainI, ordered bool, to time.Duration) error {
 	return nil
 }
 
-func createChannelStep(src, dst ChainI, ordering chantypes.Order) (*RelayMsgs, error) {
+func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*RelayMsgs, error) {
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func createChannelStep(src, dst ChainI, ordering chantypes.Order) (*RelayMsgs, e
 	)
 
 	err = retry.Do(func() error {
-		srcUpdateHeader, dstUpdateHeader, err = sh.GetTrustedHeaders(src, dst)
+		srcUpdateHeader, dstUpdateHeader, err = sh.GetHeaders(src, dst)
 		return err
 	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)
@@ -90,7 +90,7 @@ func createChannelStep(src, dst ChainI, ordering chantypes.Order) (*RelayMsgs, e
 		return nil, err
 	}
 
-	srcChan, dstChan, err := QueryChannelPair(src, dst, int64(sh.GetHeight(src.ChainID()))-1, int64(sh.GetHeight(dst.ChainID()))-1)
+	srcChan, dstChan, err := QueryChannelPair(src, dst, int64(sh.GetChainHeight(src.ChainID()))-1, int64(sh.GetChainHeight(dst.ChainID()))-1)
 	if err != nil {
 		return nil, err
 	}

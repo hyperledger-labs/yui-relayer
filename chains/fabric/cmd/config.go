@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/hyperledger-labs/yui-relayer/chains/fabric"
 	"github.com/hyperledger-labs/yui-relayer/config"
+	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
 )
 
@@ -29,15 +31,21 @@ func generateChainConfigCmd(ctx *config.Context) *cobra.Command {
 			// TODO make it configurable
 			c := fabric.ChainConfig{
 				ChainId:               args[0],
-				MspId:                 "",
+				WalletLabel:           "",
 				Channel:               "",
 				ChaincodeId:           "",
 				ConnectionProfilePath: "",
-				IbcPolicies:           []string{},
-				EndorsementPolicies:   []string{},
-				MspConfigPaths:        []string{},
 			}
-			bz, err := config.MarshalJSONAny(ctx.Marshaler, &c)
+			p := fabric.ProverConfig{
+				IbcPolicies:         []string{},
+				EndorsementPolicies: []string{},
+				MspConfigPaths:      []string{},
+			}
+			config, err := core.NewChainProverConfig(ctx.Marshaler, &c, &p)
+			if err != nil {
+				return err
+			}
+			bz, err := json.Marshal(config)
 			if err != nil {
 				return err
 			}

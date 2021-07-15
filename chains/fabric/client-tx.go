@@ -9,7 +9,8 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
-func (dst *Chain) MakeMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (sdk.Msg, error) {
+// CreateMsgCreateClient creates a CreateClientMsg to this chain
+func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
 	h := dstHeader.(*fabrictypes.Header)
 
 	mspInfos, err := createMSPInitialClientState(h.MSPHeaders.Headers)

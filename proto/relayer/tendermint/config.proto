@@ -13,5 +13,8 @@ message ChainConfig {
   string account_prefix = 4;
   double gas_adjustment = 5;
   string gas_prices = 6;
-  string trusting_period = 7;
+}
+
+message ProverConfig {
+  string trusting_period = 1;
 }

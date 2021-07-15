@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strconv"
 	"sync"
 	"time"
 
@@ -22,14 +21,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/go-bip39"
-	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/modules/core/exported"
-	tmclient "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
 	"github.com/tendermint/tendermint/libs/log"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 	libclient "github.com/tendermint/tendermint/rpc/jsonrpc/client"
-	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
@@ -62,10 +57,6 @@ type Chain struct {
 }
 
 var _ core.ChainI = (*Chain)(nil)
-
-func (c *Chain) ClientType() string {
-	return "tendermint"
-}
 
 func (c *Chain) ChainID() string {
 	return c.config.ChainId
@@ -118,45 +109,6 @@ func (c *Chain) Path() *core.PathEnd {
 	return c.PathEnd
 }
 
-// Update returns a new chain with updated values
-func (c Chain) Update(key, value string) (core.ChainConfigI, error) {
-	out := c.config
-	switch key {
-	case "key":
-		out.Key = value
-	case "chain-id":
-		out.ChainId = value
-	case "rpc-addr":
-		if _, err := rpchttp.New(value, "/websocket"); err != nil {
-			return nil, err
-		}
-		out.RpcAddr = value
-	case "gas-adjustment":
-		adj, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			return nil, err
-		}
-		out.GasAdjustment = adj
-	case "gas-prices":
-		_, err := sdk.ParseDecCoins(value)
-		if err != nil {
-			return nil, err
-		}
-		out.GasPrices = value
-	case "account-prefix":
-		out.AccountPrefix = value
-	case "trusting-period":
-		if _, err := time.ParseDuration(value); err != nil {
-			return nil, err
-		}
-		out.TrustingPeriod = value
-	default:
-		return &out, fmt.Errorf("key %s not found", key)
-	}
-
-	return &out, nil
-}
-
 func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
 	keybase, err := keys.New(c.config.ChainId, "test", keysDir(homePath, c.config.ChainId), nil)
 	if err != nil {
@@ -166,11 +118,6 @@ func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
 	client, err := newRPCClient(c.config.RpcAddr, timeout)
 	if err != nil {
 		return err
-	}
-
-	_, err = time.ParseDuration(c.config.TrustingPeriod)
-	if err != nil {
-		return fmt.Errorf("failed to parse trusting period (%s) for chain %s", c.config.TrustingPeriod, c.ChainID())
 	}
 
 	_, err = sdk.ParseDecCoins(c.config.GasPrices)
@@ -191,46 +138,16 @@ func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
 	return nil
 }
 
-// QueryLatestHeader returns the latest header from the chain
-func (c *Chain) QueryLatestHeader() (out core.HeaderI, err error) {
-	var h int64
-	if h, err = c.QueryLatestHeight(); err != nil {
-		return nil, err
-	}
-	return c.QueryHeaderAtHeight(h)
-}
-
-// QueryHeaderAtHeight returns the header at a given height
-func (c *Chain) QueryHeaderAtHeight(height int64) (*tmclient.Header, error) {
-	var (
-		page    int = 1
-		perPage int = 100000
-	)
-	if height <= 0 {
-		return nil, fmt.Errorf("must pass in valid height, %d not valid", height)
-	}
-
-	res, err := c.Client.Commit(context.Background(), &height)
+// QueryLatestHeight queries the chain for the latest height and returns it
+func (c *Chain) GetLatestHeight() (int64, error) {
+	res, err := c.Client.Status(context.Background())
 	if err != nil {
-		return nil, err
+		return -1, err
+	} else if res.SyncInfo.CatchingUp {
+		return -1, fmt.Errorf("node at %s running chain %s not caught up", c.config.RpcAddr, c.ChainID())
 	}
 
-	val, err := c.Client.Validators(context.Background(), &height, &page, &perPage)
-	if err != nil {
-		return nil, err
-	}
-
-	protoVal, err := tmtypes.NewValidatorSet(val.Validators).ToProto()
-	if err != nil {
-		return nil, err
-	}
-
-	return &tmclient.Header{
-		// NOTE: This is not a SignedHeader
-		// We are missing a light.Commit type here
-		SignedHeader: res.SignedHeader.ToProto(),
-		ValidatorSet: protoVal,
-	}, nil
+	return res.SyncInfo.LatestBlockHeight, nil
 }
 
 func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
@@ -410,41 +327,6 @@ func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 	panic("not implemented error")
 }
 
-func (srcChain *Chain) CreateTrustedHeader(dstChain core.ChainI, srcHeader core.HeaderI) (core.HeaderI, error) {
-	// make copy of header stored in mop
-	tmp := srcHeader.(*tmclient.Header)
-	h := *tmp
-
-	dsth, err := dstChain.GetLatestLightHeight()
-	if err != nil {
-		return nil, err
-	}
-
-	// retrieve counterparty client from dst chain
-	counterpartyClientRes, err := dstChain.QueryClientState(dsth, true)
-	if err != nil {
-		return nil, err
-	}
-
-	var cs exported.ClientState
-	if err := srcChain.Encoding.Marshaler.UnpackAny(counterpartyClientRes.ClientState, &cs); err != nil {
-		return nil, err
-	}
-
-	// inject TrustedHeight as latest height stored on counterparty client
-	h.TrustedHeight = cs.GetLatestHeight().(clienttypes.Height)
-
-	// query TrustedValidators at Trusted Height from srcChain
-	valSet, err := srcChain.QueryValsetAtHeight(h.TrustedHeight)
-	if err != nil {
-		return nil, err
-	}
-
-	// inject TrustedValidators into header
-	h.TrustedValidators = valSet
-	return &h, nil
-}
-
 // ------------------------------- //
 
 func (c *Chain) Key() string {
@@ -459,12 +341,6 @@ func (c *Chain) KeyExists(name string) bool {
 	}
 
 	return k.GetName() == name
-}
-
-// GetTrustingPeriod returns the trusting period for the chain
-func (c *Chain) GetTrustingPeriod() time.Duration {
-	tp, _ := time.ParseDuration(c.config.TrustingPeriod)
-	return tp
 }
 
 // MustGetAddress used for brevity

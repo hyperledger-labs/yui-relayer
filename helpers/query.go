@@ -6,7 +6,7 @@ import (
 )
 
 // QueryBalance is a helper function for query balance
-func QueryBalance(chain core.ChainI, address sdk.AccAddress, showDenoms bool) (sdk.Coins, error) {
+func QueryBalance(chain *core.ProvableChain, address sdk.AccAddress, showDenoms bool) (sdk.Coins, error) {
 	coins, err := chain.QueryBalance(address)
 	if err != nil {
 		return nil, err
@@ -16,7 +16,7 @@ func QueryBalance(chain core.ChainI, address sdk.AccAddress, showDenoms bool) (s
 		return coins, nil
 	}
 
-	h, err := chain.QueryLatestHeight()
+	h, err := chain.GetLatestHeight()
 	if err != nil {
 		return nil, err
 	}

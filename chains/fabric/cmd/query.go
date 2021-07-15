@@ -33,7 +33,7 @@ func querySequenceCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fc := c.(*fabric.Chain)
+			fc := c.ChainI.(*fabric.Chain)
 			if err = fc.Connect(); err != nil {
 				return err
 			}

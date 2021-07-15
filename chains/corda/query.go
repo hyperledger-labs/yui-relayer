@@ -11,23 +11,16 @@ import (
 	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
-	cordatypes "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda/types"
-	"github.com/hyperledger-labs/yui-relayer/core"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // QueryLatestHeight queries the chain for the latest height and returns it
-func (c *Chain) QueryLatestHeight() (int64, error) {
+func (c *Chain) GetLatestHeight() (int64, error) {
 	return 0, nil
 }
 
-// QueryLatestHeader returns the latest header from the chain
-func (c *Chain) QueryLatestHeader() (out core.HeaderI, err error) {
-	return &cordatypes.Header{}, nil
-}
-
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
-func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibcexported.Height, prove bool) (*clienttypes.QueryConsensusStateResponse, error) {
+func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
 	return c.client.clientQuery.ConsensusState(
 		context.TODO(),
 		&clienttypes.QueryConsensusStateRequest{
@@ -40,7 +33,7 @@ func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibce
 }
 
 // height represents the height of src chain
-func (c *Chain) QueryClientState(height int64, prove bool) (*clienttypes.QueryClientStateResponse, error) {
+func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateResponse, error) {
 	return c.client.clientQuery.ClientState(
 		context.TODO(),
 		&clienttypes.QueryClientStateRequest{
@@ -50,7 +43,7 @@ func (c *Chain) QueryClientState(height int64, prove bool) (*clienttypes.QueryCl
 }
 
 // QueryConnection returns the remote end of a given connection
-func (c *Chain) QueryConnection(height int64, prove bool) (*conntypes.QueryConnectionResponse, error) {
+func (c *Chain) QueryConnection(height int64) (*conntypes.QueryConnectionResponse, error) {
 	return c.client.connQuery.Connection(
 		context.TODO(),
 		&conntypes.QueryConnectionRequest{
@@ -60,7 +53,7 @@ func (c *Chain) QueryConnection(height int64, prove bool) (*conntypes.QueryConne
 }
 
 // QueryChannel returns the channel associated with a channelID
-func (c *Chain) QueryChannel(height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error) {
+func (c *Chain) QueryChannel(height int64) (chanRes *chantypes.QueryChannelResponse, err error) {
 	return c.client.chanQuery.Channel(
 		context.TODO(),
 		&chantypes.QueryChannelRequest{
@@ -132,7 +125,7 @@ func (c *Chain) QueryPacketCommitment(height int64, seq uint64) (comRes *chantyp
 }
 
 // QueryPacketCommitments returns an array of packet commitments
-func (c *Chain) QueryPacketCommitments(offset, limit, height uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
+func (c *Chain) QueryPacketCommitments(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
 	return c.client.chanQuery.PacketCommitments(
 		context.TODO(),
 		&chantypes.QueryPacketCommitmentsRequest{
@@ -144,7 +137,7 @@ func (c *Chain) QueryPacketCommitments(offset, limit, height uint64) (comRes *ch
 }
 
 // QueryUnrecievedPackets returns a list of unrelayed packet commitments
-func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, error) {
+func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, error) {
 	res, err := c.client.chanQuery.UnreceivedPackets(
 		context.TODO(),
 		&chantypes.QueryUnreceivedPacketsRequest{
@@ -160,7 +153,7 @@ func (c *Chain) QueryUnrecievedPackets(height uint64, seqs []uint64) ([]uint64, 
 }
 
 // QueryPacketAcknowledgements returns an array of packet acks
-func (c *Chain) QueryPacketAcknowledgements(offset, limit, height uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+func (c *Chain) QueryPacketAcknowledgements(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
 	return c.client.chanQuery.PacketAcknowledgements(
 		context.TODO(),
 		&chantypes.QueryPacketAcknowledgementsRequest{
@@ -172,7 +165,7 @@ func (c *Chain) QueryPacketAcknowledgements(offset, limit, height uint64) (comRe
 }
 
 // QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
-func (c *Chain) QueryUnrecievedAcknowledgements(height uint64, seqs []uint64) ([]uint64, error) {
+func (c *Chain) QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]uint64, error) {
 	res, err := c.client.chanQuery.UnreceivedAcks(
 		context.TODO(),
 		&chantypes.QueryUnreceivedAcksRequest{

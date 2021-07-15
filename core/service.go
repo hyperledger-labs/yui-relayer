@@ -10,7 +10,7 @@ import (
 )
 
 // StartService starts a relay service
-func StartService(ctx context.Context, st StrategyI, src, dst ChainI, relayInterval time.Duration) error {
+func StartService(ctx context.Context, st StrategyI, src, dst *ProvableChain, relayInterval time.Duration) error {
 	sh, err := NewSyncHeaders(src, dst)
 	if err != nil {
 		return err
@@ -20,15 +20,15 @@ func StartService(ctx context.Context, st StrategyI, src, dst ChainI, relayInter
 }
 
 type RelayService struct {
-	src      ChainI
-	dst      ChainI
+	src      *ProvableChain
+	dst      *ProvableChain
 	st       StrategyI
 	sh       SyncHeadersI
 	interval time.Duration
 }
 
 // NewRelayService returns a new service
-func NewRelayService(st StrategyI, src, dst ChainI, sh SyncHeadersI, interval time.Duration) *RelayService {
+func NewRelayService(st StrategyI, src, dst *ProvableChain, sh SyncHeadersI, interval time.Duration) *RelayService {
 	return &RelayService{
 		src:      src,
 		dst:      dst,

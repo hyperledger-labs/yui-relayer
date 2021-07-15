@@ -7,10 +7,10 @@ import (
 // StrategyI defines
 type StrategyI interface {
 	GetType() string
-	UnrelayedSequences(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
-	RelayPackets(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
-	UnrelayedAcknowledgements(src, dst ChainI, sh SyncHeadersI) (*RelaySequences, error)
-	RelayAcknowledgements(src, dst ChainI, sp *RelaySequences, sh SyncHeadersI) error
+	UnrelayedSequences(src, dst *ProvableChain, sh SyncHeadersI) (*RelaySequences, error)
+	RelayPackets(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeadersI) error
+	UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeadersI) (*RelaySequences, error)
+	RelayAcknowledgements(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeadersI) error
 }
 
 // StrategyCfg defines which relaying strategy to take for a given path
@@ -28,7 +28,7 @@ func GetStrategy(cfg StrategyCfg) (StrategyI, error) {
 }
 
 // RunStrategy runs a given strategy
-func RunStrategy(src, dst ChainI, strategy StrategyI) (func(), error) {
+func RunStrategy(src, dst *ProvableChain, strategy StrategyI) (func(), error) {
 	doneChan := make(chan struct{})
 
 	// Fetch latest headers for each chain and store them in sync headers
