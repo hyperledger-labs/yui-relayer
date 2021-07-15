@@ -5,11 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hyperledger-labs/yui-relayer/chains/corda"
-	"github.com/hyperledger-labs/yui-relayer/chains/fabric"
-	fabriccmd "github.com/hyperledger-labs/yui-relayer/chains/fabric/cmd"
-	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
-	tendermintcmd "github.com/hyperledger-labs/yui-relayer/chains/tendermint/cmd"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 
@@ -31,7 +26,9 @@ var rootCmd = &cobra.Command{
 	Short: "This application relays data between configured IBC enabled chains",
 }
 
-func init() {
+// Execute adds all child commands to the root command and sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute(modules ...config.ModuleI) {
 	cobra.EnableCommandSorting = false
 	rootCmd.SilenceUsage = true
 
@@ -46,11 +43,10 @@ func init() {
 	}
 
 	ec := core.MakeEncodingConfig()
-	tendermint.RegisterInterfaces(ec.InterfaceRegistry)
-	fabric.RegisterInterfaces(ec.InterfaceRegistry)
-	corda.RegisterInterfaces(ec.InterfaceRegistry)
+	for _, module := range modules {
+		module.RegisterInterfaces(ec.InterfaceRegistry)
+	}
 	ctx := &config.Context{Config: &config.Config{}, Marshaler: ec.Marshaler}
-
 	// Register subcommands
 	rootCmd.AddCommand(
 		configCmd(ctx),
@@ -60,10 +56,12 @@ func init() {
 		queryCmd(ctx),
 		serviceCmd(ctx),
 		flags.LineBreak,
-		tendermintcmd.TendermintCmd(ec.Marshaler, ctx),
-		fabriccmd.FabricCmd(ctx),
 	)
-
+	for _, module := range modules {
+		if cmd := module.GetCmd(ctx); cmd != nil {
+			rootCmd.AddCommand(cmd)
+		}
+	}
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		// reads `homeDir/config/config.yaml` into `var config *Config` before each command
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
@@ -71,11 +69,7 @@ func init() {
 		}
 		return initConfig(ctx, rootCmd)
 	}
-}
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
