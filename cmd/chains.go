@@ -22,7 +22,6 @@ func chainsCmd(ctx *config.Context) *cobra.Command {
 
 	cmd.AddCommand(
 		chainsAddDirCmd(ctx),
-		// chainsEditCmd(ctx),
 	)
 
 	return cmd
@@ -44,32 +43,6 @@ func chainsAddDirCmd(ctx *config.Context) *cobra.Command {
 
 	return cmd
 }
-
-// func chainsEditCmd(ctx *config.Context) *cobra.Command {
-// 	cmd := &cobra.Command{
-// 		Use:   "edit [chain-id] [key] [value]",
-// 		Short: "Returns chain configuration data",
-// 		Args:  cobra.ExactArgs(3),
-// 		RunE: func(cmd *cobra.Command, args []string) error {
-// 			chain, err := ctx.Config.GetChain(args[0])
-// 			if err != nil {
-// 				return err
-// 			}
-
-// 			c, err := chain.Update(args[1], args[2])
-// 			if err != nil {
-// 				return err
-// 			}
-
-// 			if err = ctx.Config.DeleteChain(args[0]).AddChain(ctx.Marshaler, c); err != nil {
-// 				return err
-// 			}
-
-// 			return overWriteConfig(cmd, ctx.Config)
-// 		},
-// 	}
-// 	return cmd
-// }
 
 func filesAdd(ctx *config.Context, dir string) error {
 	dir = path.Clean(dir)
