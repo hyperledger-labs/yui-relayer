@@ -1,0 +1,12 @@
+syntax = "proto3";
+package relayer.ethereum.config;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/hyperledger-labs/yui-relayer/chains/ethereum";
+option (gogoproto.goproto_getters_all) = false;
+
+message ChainConfig {
+  string chain_id = 1;
+  string rpc_addr = 2;
+}
