@@ -1,30 +1,42 @@
 package ethereum
 
 import (
-	fmt "fmt"
+	"context"
+	"fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
+	ethclient "github.com/hyperledger-labs/yui-ibc-solidity/pkg/client"
+	ethclienttypes "github.com/hyperledger-labs/yui-ibc-solidity/pkg/ibc/client"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 type Chain struct {
 	config ChainConfig
 
-	PathEnd *core.PathEnd `yaml:"-" json:"-"`
+	pathEnd        *core.PathEnd
+	homePath       string
+	client         *ethclient.Client
+	encodingConfig params.EncodingConfig
 }
 
 var _ core.ChainI = (*Chain)(nil)
 
 func NewChain(config ChainConfig) *Chain {
+	client, err := ethclient.NewETHClient(config.RpcAddr, ethclienttypes.MockClient)
+	if err != nil {
+		panic(err)
+	}
 	return &Chain{
 		config: config,
+		client: client,
 	}
 }
 
@@ -35,17 +47,22 @@ func (c *Chain) ChainID() string {
 
 // GetLatestHeight gets the chain for the latest height and returns it
 func (c *Chain) GetLatestHeight() (int64, error) {
-	panic("not implemented") // TODO: Implement
+	block, err := c.client.BlockByNumber(context.Background(), nil)
+	if err != nil {
+		return 0, err
+	}
+	return int64(block.NumberU64()), nil
 }
 
 // GetAddress returns the address of relayer
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
+	// TODO generate the address from mnemonic
 	panic("not implemented") // TODO: Implement
 }
 
 // Marshaler returns the marshaler
 func (c *Chain) Marshaler() codec.Codec {
-	panic("not implemented") // TODO: Implement
+	return c.encodingConfig.Marshaler
 }
 
 // SetPath sets the path and validates the identifiers
@@ -54,7 +71,7 @@ func (c *Chain) SetPath(p *core.PathEnd) error {
 	if err != nil {
 		return c.ErrCantSetPath(err)
 	}
-	c.PathEnd = p
+	c.pathEnd = p
 	return nil
 }
 
@@ -64,7 +81,7 @@ func (c *Chain) ErrCantSetPath(err error) error {
 }
 
 func (c *Chain) Path() *core.PathEnd {
-	return c.PathEnd
+	return c.pathEnd
 }
 
 // SendMsgs sends msgs to the chain
@@ -85,7 +102,9 @@ func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 
 // Init ...
 func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
-	panic("not implemented") // TODO: Implement
+	c.encodingConfig = makeEncodingConfig()
+	c.homePath = homePath
+	return nil
 }
 
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
