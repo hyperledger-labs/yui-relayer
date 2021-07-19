@@ -204,14 +204,35 @@ func (c *Chain) QueryPacketAcknowledgementCommitment(height int64, seq uint64) (
 	return chantypes.NewQueryPacketAcknowledgementResponse(commitment[:], nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
+// NOTE: The current implementation returns all packets, including those for that acknowledgement has already received.
 // QueryPacketCommitments returns an array of packet commitments
 func (c *Chain) QueryPacketCommitments(offset uint64, limit uint64, height int64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
-	panic("not implemented") // TODO: Implement
+	// WARNING: It may be slow to use in the production. Instead of it, it might be better to use an external event indexer to get all packet commitments.
+	packets, err := c.getAllPackets(context.Background(), c.pathEnd.PortID, c.pathEnd.ChannelID)
+	if err != nil {
+		return nil, err
+	}
+	var res chantypes.QueryPacketCommitmentsResponse
+	for _, p := range packets {
+		ps := chantypes.NewPacketState(c.pathEnd.PortID, c.pathEnd.ChannelID, p.Sequence, chantypes.CommitPacket(c.Marshaler(), p))
+		res.Commitments = append(res.Commitments, &ps)
+	}
+	res.Height = clienttypes.NewHeight(0, uint64(height))
+	return &res, nil
 }
 
 // QueryUnrecievedPackets returns a list of unrelayed packet commitments
 func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, error) {
-	panic("not implemented") // TODO: Implement
+	var ret []uint64
+	for _, seq := range seqs {
+		found, err := c.ibcHost.HasPacketReceipt(c.CallOpts(context.Background(), height), c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+		if err != nil {
+			return nil, err
+		} else if !found {
+			ret = append(ret, seq)
+		}
+	}
+	return ret, nil
 }
 
 // QueryPacketAcknowledgements returns an array of packet acks

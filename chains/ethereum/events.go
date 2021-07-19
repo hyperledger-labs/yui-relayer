@@ -92,3 +92,60 @@ func (chain *Chain) findPacket(
 
 	return nil, fmt.Errorf("packet not found: sourcePortID=%v sourceChannel=%v sequence=%v", sourcePortID, sourceChannel, sequence)
 }
+
+// getAllPackets returns all packets from events
+func (chain *Chain) getAllPackets(
+	ctx context.Context,
+	sourcePortID string,
+	sourceChannel string,
+) ([]*chantypes.Packet, error) {
+	var packets []*chantypes.Packet
+
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(0),
+		Addresses: []common.Address{
+			chain.config.IBCHandlerAddress(),
+		},
+		Topics: [][]common.Hash{{
+			abiSendPacket.ID,
+		}},
+	}
+	logs, err := chain.client.FilterLogs(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, log := range logs {
+		if values, err := abiSendPacket.Inputs.Unpack(log.Data); err != nil {
+			return nil, err
+		} else {
+			p := values[0].(struct {
+				Sequence           uint64  "json:\"sequence\""
+				SourcePort         string  "json:\"source_port\""
+				SourceChannel      string  "json:\"source_channel\""
+				DestinationPort    string  "json:\"destination_port\""
+				DestinationChannel string  "json:\"destination_channel\""
+				Data               []uint8 "json:\"data\""
+				TimeoutHeight      struct {
+					RevisionNumber uint64 "json:\"revision_number\""
+					RevisionHeight uint64 "json:\"revision_height\""
+				} "json:\"timeout_height\""
+				TimeoutTimestamp uint64 "json:\"timeout_timestamp\""
+			})
+			if p.SourcePort == sourcePortID && p.SourceChannel == sourceChannel {
+				packet := &chantypes.Packet{
+					Sequence:           p.Sequence,
+					SourcePort:         p.SourcePort,
+					SourceChannel:      p.SourceChannel,
+					DestinationPort:    p.DestinationPort,
+					DestinationChannel: p.DestinationChannel,
+					Data:               p.Data,
+					TimeoutHeight:      clienttypes.Height(p.TimeoutHeight),
+					TimeoutTimestamp:   p.TimeoutTimestamp,
+				}
+				packets = append(packets, packet)
+			}
+		}
+	}
+	return packets, nil
+}
