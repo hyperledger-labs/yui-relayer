@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
@@ -52,10 +53,11 @@ func NewChain(config ChainConfig) (*Chain, error) {
 		return nil, err
 	}
 	return &Chain{
-		config:        config,
-		client:        client,
-		relayerPrvKey: key,
-		chainID:       id,
+		config:         config,
+		client:         client,
+		relayerPrvKey:  key,
+		chainID:        id,
+		encodingConfig: makeEncodingConfig(),
 
 		ibcHost: ibcHost,
 	}, nil
@@ -118,25 +120,44 @@ func (c *Chain) Send(msgs []sdk.Msg) bool {
 
 // StartEventListener ...
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
-	panic("not implemented") // TODO: Implement
+	return
 }
 
 // Init ...
 func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
-	c.encodingConfig = makeEncodingConfig()
 	c.homePath = homePath
 	return nil
 }
 
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
 func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	panic("not implemented") // TODO: Implement
+	s, found, err := c.ibcHost.GetConsensusState(c.CallOpts(context.Background(), height), c.pathEnd.ClientID, dstClientConsHeight.GetRevisionHeight())
+	if err != nil {
+		return nil, err
+	} else if !found {
+		return nil, fmt.Errorf("client consensus not found: %v", c.pathEnd.ClientID)
+	}
+	var any codectypes.Any
+	if err := c.Marshaler().Unmarshal(s, &any); err != nil {
+		return nil, err
+	}
+	return clienttypes.NewQueryConsensusStateResponse(&any, nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
 // QueryClientState returns the client state of dst chain
 // height represents the height of dst chain
 func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateResponse, error) {
-	panic("not implemented") // TODO: Implement
+	s, found, err := c.ibcHost.GetClientState(c.CallOpts(context.Background(), height), c.pathEnd.ClientID)
+	if err != nil {
+		return nil, err
+	} else if !found {
+		return nil, fmt.Errorf("client not found: %v", c.pathEnd.ClientID)
+	}
+	var any codectypes.Any
+	if err := c.Marshaler().Unmarshal(s, &any); err != nil {
+		return nil, err
+	}
+	return clienttypes.NewQueryClientStateResponse(&any, nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
 // QueryConnection returns the remote end of a given connection
@@ -147,24 +168,40 @@ func (c *Chain) QueryConnection(height int64) (*conntypes.QueryConnectionRespons
 	} else if !found {
 		return nil, fmt.Errorf("connection not found: %v", c.pathEnd.ConnectionID)
 	}
-	return &conntypes.QueryConnectionResponse{
-		Connection: connectionEndToPB(conn),
-	}, nil
+	return conntypes.NewQueryConnectionResponse(connectionEndToPB(conn), nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
 // QueryChannel returns the channel associated with a channelID
 func (c *Chain) QueryChannel(height int64) (chanRes *chantypes.QueryChannelResponse, err error) {
-	panic("not implemented") // TODO: Implement
+	chann, found, err := c.ibcHost.GetChannel(c.CallOpts(context.Background(), height), c.pathEnd.PortID, c.pathEnd.ChannelID)
+	if err != nil {
+		return nil, err
+	} else if !found {
+		return nil, fmt.Errorf("channel not found: %v:%v", c.pathEnd.PortID, c.pathEnd.ChannelID)
+	}
+	return chantypes.NewQueryChannelResponse(channelToPB(chann), nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
 // QueryPacketCommitment returns the packet commitment corresponding to a given sequence
 func (c *Chain) QueryPacketCommitment(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	panic("not implemented") // TODO: Implement
+	commitment, found, err := c.ibcHost.GetPacketCommitment(c.CallOpts(context.Background(), height), c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+	if err != nil {
+		return nil, err
+	} else if !found {
+		return nil, fmt.Errorf("packet commitment not found: %v:%v:%v", c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+	}
+	return chantypes.NewQueryPacketCommitmentResponse(commitment[:], nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
 // QueryPacketAcknowledgementCommitment returns the acknowledgement corresponding to a given sequence
 func (c *Chain) QueryPacketAcknowledgementCommitment(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	panic("not implemented") // TODO: Implement
+	commitment, found, err := c.ibcHost.GetPacketAcknowledgementCommitment(c.CallOpts(context.Background(), height), c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+	if err != nil {
+		return nil, err
+	} else if !found {
+		return nil, fmt.Errorf("packet commitment not found: %v:%v:%v", c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+	}
+	return chantypes.NewQueryPacketAcknowledgementResponse(commitment[:], nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
 // QueryPacketCommitments returns an array of packet commitments
