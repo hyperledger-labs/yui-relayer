@@ -9,4 +9,8 @@ option (gogoproto.goproto_getters_all) = false;
 message ChainConfig {
   string chain_id = 1;
   string rpc_addr = 2;
+  string hdw_mnemonic = 3;
+  string hdw_path = 4;
+  string ibc_host_address = 5;
+  string ibc_handler_address = 6;
 }

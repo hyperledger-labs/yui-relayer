@@ -2,7 +2,9 @@ package ethereum
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -13,8 +15,10 @@ import (
 	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
-	ethclient "github.com/hyperledger-labs/yui-ibc-solidity/pkg/client"
-	ethclienttypes "github.com/hyperledger-labs/yui-ibc-solidity/pkg/ibc/client"
+	"github.com/ethereum/go-ethereum/ethclient"
+
+	"github.com/hyperledger-labs/yui-ibc-solidity/pkg/contract/ibchost"
+	"github.com/hyperledger-labs/yui-ibc-solidity/pkg/wallet"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
@@ -23,21 +27,41 @@ type Chain struct {
 
 	pathEnd        *core.PathEnd
 	homePath       string
-	client         *ethclient.Client
 	encodingConfig params.EncodingConfig
+	chainID        *big.Int
+
+	relayerPrvKey *ecdsa.PrivateKey
+	client        *ethclient.Client
+	ibcHost       *ibchost.Ibchost
 }
 
 var _ core.ChainI = (*Chain)(nil)
 
-func NewChain(config ChainConfig) *Chain {
-	client, err := ethclient.NewETHClient(config.RpcAddr, ethclienttypes.MockClient)
+func NewChain(config ChainConfig) (*Chain, error) {
+	id, err := parseChainID(config.ChainId)
 	if err != nil {
-		panic(err)
+		return nil, err
+	}
+	client, err := NewETHClient(config.RpcAddr)
+	if err != nil {
+		return nil, err
+	}
+	key, err := wallet.GetPrvKeyFromMnemonicAndHDWPath(config.HdwMnemonic, config.HdwPath)
+	if err != nil {
+		return nil, err
+	}
+	ibcHost, err := ibchost.NewIbchost(config.IBCHostAddress(), client)
+	if err != nil {
+		return nil, err
 	}
 	return &Chain{
-		config: config,
-		client: client,
-	}
+		config:        config,
+		client:        client,
+		relayerPrvKey: key,
+		chainID:       id,
+
+		ibcHost: ibcHost,
+	}, nil
 }
 
 // ChainID returns ID of the chain
@@ -47,17 +71,17 @@ func (c *Chain) ChainID() string {
 
 // GetLatestHeight gets the chain for the latest height and returns it
 func (c *Chain) GetLatestHeight() (int64, error) {
-	block, err := c.client.BlockByNumber(context.Background(), nil)
+	bn, err := c.client.BlockNumber(context.TODO())
 	if err != nil {
 		return 0, err
 	}
-	return int64(block.NumberU64()), nil
+	return int64(bn), nil
 }
 
 // GetAddress returns the address of relayer
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
-	// TODO generate the address from mnemonic
-	panic("not implemented") // TODO: Implement
+	addr := make([]byte, 20)
+	return addr, nil
 }
 
 // Marshaler returns the marshaler
@@ -120,7 +144,15 @@ func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateRes
 
 // QueryConnection returns the remote end of a given connection
 func (c *Chain) QueryConnection(height int64) (*conntypes.QueryConnectionResponse, error) {
-	panic("not implemented") // TODO: Implement
+	conn, found, err := c.ibcHost.GetConnection(c.CallOpts(context.Background()), c.pathEnd.ConnectionID)
+	if err != nil {
+		return nil, err
+	} else if !found {
+		return nil, fmt.Errorf("connection not found: %v", c.pathEnd.ConnectionID)
+	}
+	return &conntypes.QueryConnectionResponse{
+		Connection: connectionEndToPB(conn),
+	}, nil
 }
 
 // QueryChannel returns the channel associated with a channelID
