@@ -31,11 +31,15 @@ func parseChainID(idStr string) (*big.Int, error) {
 	return n, nil
 }
 
-func (chain *Chain) CallOpts(ctx context.Context) *bind.CallOpts {
-	return &bind.CallOpts{
+func (chain *Chain) CallOpts(ctx context.Context, height int64) *bind.CallOpts {
+	opts := &bind.CallOpts{
 		From:    gethcrypto.PubkeyToAddress(chain.relayerPrvKey.PublicKey),
 		Context: ctx,
 	}
+	if height > 0 {
+		opts.BlockNumber = big.NewInt(height)
+	}
+	return opts
 }
 
 func (chain *Chain) TxOpts(ctx context.Context) *bind.TransactOpts {

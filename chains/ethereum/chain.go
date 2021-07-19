@@ -144,7 +144,7 @@ func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateRes
 
 // QueryConnection returns the remote end of a given connection
 func (c *Chain) QueryConnection(height int64) (*conntypes.QueryConnectionResponse, error) {
-	conn, found, err := c.ibcHost.GetConnection(c.CallOpts(context.Background()), c.pathEnd.ConnectionID)
+	conn, found, err := c.ibcHost.GetConnection(c.CallOpts(context.Background(), height), c.pathEnd.ConnectionID)
 	if err != nil {
 		return nil, err
 	} else if !found {
