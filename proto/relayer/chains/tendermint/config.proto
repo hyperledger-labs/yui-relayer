@@ -1,5 +1,5 @@
 syntax = "proto3";
-package relayer.tendermint.config;
+package relayer.chains.tendermint.config;
 
 import "gogoproto/gogo.proto";
 

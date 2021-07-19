@@ -1,5 +1,5 @@
 syntax = "proto3";
-package relayer.corda.config;
+package relayer.chains.corda.config;
 
 import "gogoproto/gogo.proto";
 

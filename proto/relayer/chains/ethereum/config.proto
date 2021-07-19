@@ -1,5 +1,5 @@
 syntax = "proto3";
-package relayer.ethereum.config;
+package relayer.chains.ethereum.config;
 
 import "gogoproto/gogo.proto";
 

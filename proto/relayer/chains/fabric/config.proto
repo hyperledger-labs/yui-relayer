@@ -1,5 +1,5 @@
 syntax = "proto3";
-package relayer.fabric.config;
+package relayer.chains.fabric.config;
 
 import "gogoproto/gogo.proto";
 

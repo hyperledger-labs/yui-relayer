@@ -1,6 +1,6 @@
 {
   "chain": {
-    "@type": "/relayer.fabric.config.ChainConfig",
+    "@type": "/relayer.chains.fabric.config.ChainConfig",
     "chain_id": "ibc1",
     "wallet_label": "Org2MSP",
     "channel": "channel2",
@@ -8,7 +8,7 @@
     "connection_profile_path": "./fixtures/fabric/org2/connection-profile/local.yaml"
   },
   "prover": {
-    "@type": "/relayer.fabric.config.ProverConfig",
+    "@type": "/relayer.chains.fabric.config.ProverConfig",
     "ibc_policies": [
       "Org2MSP"
     ],
