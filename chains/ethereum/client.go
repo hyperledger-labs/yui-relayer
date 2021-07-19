@@ -3,7 +3,6 @@ package ethereum
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -20,15 +19,6 @@ func NewETHClient(endpoint string) (*ethclient.Client, error) {
 		return nil, err
 	}
 	return ethclient.NewClient(conn), nil
-}
-
-func parseChainID(idStr string) (*big.Int, error) {
-	n := &big.Int{}
-	n, ok := n.SetString(idStr, 10)
-	if !ok {
-		return nil, fmt.Errorf("the chainID is invalid format: %v", idStr)
-	}
-	return n, nil
 }
 
 func (chain *Chain) CallOpts(ctx context.Context, height int64) *bind.CallOpts {

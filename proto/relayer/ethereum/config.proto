@@ -7,7 +7,7 @@ option go_package = "github.com/hyperledger-labs/yui-relayer/chains/ethereum";
 option (gogoproto.goproto_getters_all) = false;
 
 message ChainConfig {
-  string chain_id = 1;
+  int64  chain_id = 1;
   string rpc_addr = 2;
   string hdw_mnemonic = 3;
   string hdw_path = 4;
