@@ -7,6 +7,7 @@ import (
 	fabric "github.com/hyperledger-labs/yui-relayer/chains/fabric/module"
 	tendermint "github.com/hyperledger-labs/yui-relayer/chains/tendermint/module"
 	"github.com/hyperledger-labs/yui-relayer/cmd"
+	mock "github.com/hyperledger-labs/yui-relayer/provers/mock/module"
 )
 
 func main() {
@@ -14,6 +15,7 @@ func main() {
 		tendermint.Module{},
 		fabric.Module{},
 		corda.Module{},
+		mock.Module{},
 	); err != nil {
 		log.Fatal(err)
 	}
