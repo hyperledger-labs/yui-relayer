@@ -18,6 +18,7 @@ import (
 	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/ethereum/go-ethereum/ethclient"
 
+	"github.com/hyperledger-labs/yui-ibc-solidity/pkg/contract/ibchandler"
 	"github.com/hyperledger-labs/yui-ibc-solidity/pkg/contract/ibchost"
 	"github.com/hyperledger-labs/yui-ibc-solidity/pkg/wallet"
 	"github.com/hyperledger-labs/yui-relayer/core"
@@ -35,6 +36,7 @@ type Chain struct {
 	relayerPrvKey *ecdsa.PrivateKey
 	client        *ethclient.Client
 	ibcHost       *ibchost.Ibchost
+	ibcHandler    *ibchandler.Ibchandler
 }
 
 var _ core.ChainI = (*Chain)(nil)
@@ -53,13 +55,18 @@ func NewChain(config ChainConfig) (*Chain, error) {
 	if err != nil {
 		return nil, err
 	}
+	ibcHandler, err := ibchandler.NewIbchandler(config.IBCHandlerAddress(), client)
+	if err != nil {
+		return nil, err
+	}
 	return &Chain{
 		config:        config,
 		client:        client,
 		relayerPrvKey: key,
 		chainID:       id,
 
-		ibcHost: ibcHost,
+		ibcHost:    ibcHost,
+		ibcHandler: ibcHandler,
 	}, nil
 }
 
@@ -112,17 +119,6 @@ func (c *Chain) ErrCantSetPath(err error) error {
 
 func (c *Chain) Path() *core.PathEnd {
 	return c.pathEnd
-}
-
-// SendMsgs sends msgs to the chain
-func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
-	panic("not implemented") // TODO: Implement
-}
-
-// Send sends msgs to the chain and logging a result of it
-// It returns a boolean value whether the result is success
-func (c *Chain) Send(msgs []sdk.Msg) bool {
-	panic("not implemented") // TODO: Implement
 }
 
 // StartEventListener ...
