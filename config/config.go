@@ -105,14 +105,14 @@ func (c *Config) ChainsFromPath(path string) (map[string]*core.ProvableChain, st
 }
 
 // Called to initialize the relayer.Chain types on Config
-func InitChains(c *Config, homePath string, debug bool) error {
-	to, err := time.ParseDuration(c.Global.Timeout)
+func InitChains(ctx *Context, homePath string, debug bool) error {
+	to, err := time.ParseDuration(ctx.Config.Global.Timeout)
 	if err != nil {
 		return fmt.Errorf("did you remember to run 'rly config init' error:%w", err)
 	}
 
-	for _, chain := range c.chains {
-		if err := chain.Init(homePath, to, debug); err != nil {
+	for _, chain := range ctx.Config.chains {
+		if err := chain.Init(homePath, to, ctx.Codec, debug); err != nil {
 			return fmt.Errorf("did you remember to run 'rly config init' error:%w", err)
 		}
 	}

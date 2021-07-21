@@ -341,7 +341,7 @@ func (c *Chain) toTmValidators(vals stakingtypes.Validators) ([]*tmtypes.Validat
 
 func (c *Chain) toTmValidator(val stakingtypes.Validator) (*tmtypes.Validator, error) {
 	var pk cryptotypes.PubKey
-	if err := c.Encoding.Marshaler.UnpackAny(val.ConsensusPubkey, &pk); err != nil {
+	if err := c.codec.UnpackAny(val.ConsensusPubkey, &pk); err != nil {
 		return nil, err
 	}
 	tmkey, err := cryptocodec.ToTmPubKeyInterface(pk)

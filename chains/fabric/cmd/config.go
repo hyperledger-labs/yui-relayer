@@ -41,7 +41,7 @@ func generateChainConfigCmd(ctx *config.Context) *cobra.Command {
 				EndorsementPolicies: []string{},
 				MspConfigPaths:      []string{},
 			}
-			config, err := core.NewChainProverConfig(ctx.Marshaler, &c, &p)
+			config, err := core.NewChainProverConfig(ctx.Codec, &c, &p)
 			if err != nil {
 				return err
 			}

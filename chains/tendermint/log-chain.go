@@ -143,7 +143,7 @@ func (c *Chain) Print(toPrint proto.Message, text, indent bool) error {
 		// TODO: This isn't really a good option,
 		out = []byte(fmt.Sprintf("%v", toPrint))
 	default:
-		out, err = c.Encoding.Marshaler.MarshalJSON(toPrint)
+		out, err = c.codec.MarshalJSON(toPrint)
 	}
 
 	if err != nil {

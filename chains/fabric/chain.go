@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/hyperledger-labs/yui-fabric-ibc/x/auth/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
@@ -19,9 +18,9 @@ type Chain struct {
 	pathEnd  *core.PathEnd
 	homePath string
 
-	encodingConfig params.EncodingConfig
-	gateway        FabricGateway
-	logger         log.Logger
+	codec   codec.ProtoCodecMarshaler
+	gateway FabricGateway
+	logger  log.Logger
 }
 
 func NewChain(config ChainConfig) *Chain {
@@ -30,10 +29,10 @@ func NewChain(config ChainConfig) *Chain {
 
 var _ core.ChainI = (*Chain)(nil)
 
-func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
+func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
 	c.homePath = homePath
+	c.codec = codec
 	c.logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-	c.encodingConfig = makeEncodingConfig()
 	return nil
 }
 
@@ -54,8 +53,8 @@ func (c *Chain) Config() ChainConfig {
 	return c.config
 }
 
-func (c *Chain) Marshaler() codec.Codec {
-	return c.encodingConfig.Marshaler
+func (c *Chain) Codec() codec.ProtoCodecMarshaler {
+	return c.codec
 }
 
 // GetAddress returns the sdk.AccAddress associated with the configred key

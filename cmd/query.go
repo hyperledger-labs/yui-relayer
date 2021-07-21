@@ -62,7 +62,7 @@ func queryClientCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 			var cs exported.ClientState
-			if err := c.Marshaler().UnpackAny(res.ClientState, &cs); err != nil {
+			if err := c.Codec().UnpackAny(res.ClientState, &cs); err != nil {
 				return err
 			}
 			fmt.Println(cs)

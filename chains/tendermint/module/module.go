@@ -24,5 +24,5 @@ func (Module) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 
 // GetCmd returns the command
 func (Module) GetCmd(ctx *config.Context) *cobra.Command {
-	return cmd.TendermintCmd(ctx.Marshaler, ctx)
+	return cmd.TendermintCmd(ctx.Codec, ctx)
 }

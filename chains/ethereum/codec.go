@@ -2,7 +2,6 @@ package ethereum
 
 import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
@@ -12,10 +11,4 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		(*core.ChainConfigI)(nil),
 		&ChainConfig{},
 	)
-}
-
-func makeEncodingConfig() params.EncodingConfig {
-	encodingConfig := core.MakeEncodingConfig()
-	RegisterInterfaces(encodingConfig.InterfaceRegistry)
-	return encodingConfig
 }

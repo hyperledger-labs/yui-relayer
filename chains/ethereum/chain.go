@@ -30,6 +30,7 @@ type Chain struct {
 	homePath       string
 	encodingConfig params.EncodingConfig
 	chainID        *big.Int
+	codec          codec.ProtoCodecMarshaler
 
 	relayerPrvKey *ecdsa.PrivateKey
 	client        *ethclient.Client
@@ -53,14 +54,20 @@ func NewChain(config ChainConfig) (*Chain, error) {
 		return nil, err
 	}
 	return &Chain{
-		config:         config,
-		client:         client,
-		relayerPrvKey:  key,
-		chainID:        id,
-		encodingConfig: makeEncodingConfig(),
+		config:        config,
+		client:        client,
+		relayerPrvKey: key,
+		chainID:       id,
 
 		ibcHost: ibcHost,
 	}, nil
+}
+
+// Init ...
+func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
+	c.homePath = homePath
+	c.codec = codec
+	return nil
 }
 
 // ChainID returns ID of the chain
@@ -84,8 +91,8 @@ func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 }
 
 // Marshaler returns the marshaler
-func (c *Chain) Marshaler() codec.Codec {
-	return c.encodingConfig.Marshaler
+func (c *Chain) Codec() codec.ProtoCodecMarshaler {
+	return c.codec
 }
 
 // SetPath sets the path and validates the identifiers
@@ -123,12 +130,6 @@ func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 	return
 }
 
-// Init ...
-func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
-	c.homePath = homePath
-	return nil
-}
-
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
 func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
 	s, found, err := c.ibcHost.GetConsensusState(c.CallOpts(context.Background(), height), c.pathEnd.ClientID, dstClientConsHeight.GetRevisionHeight())
@@ -138,7 +139,7 @@ func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibce
 		return nil, fmt.Errorf("client consensus not found: %v", c.pathEnd.ClientID)
 	}
 	var any codectypes.Any
-	if err := c.Marshaler().Unmarshal(s, &any); err != nil {
+	if err := c.Codec().Unmarshal(s, &any); err != nil {
 		return nil, err
 	}
 	return clienttypes.NewQueryConsensusStateResponse(&any, nil, clienttypes.NewHeight(0, uint64(height))), nil
@@ -154,7 +155,7 @@ func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateRes
 		return nil, fmt.Errorf("client not found: %v", c.pathEnd.ClientID)
 	}
 	var any codectypes.Any
-	if err := c.Marshaler().Unmarshal(s, &any); err != nil {
+	if err := c.Codec().Unmarshal(s, &any); err != nil {
 		return nil, err
 	}
 	return clienttypes.NewQueryClientStateResponse(&any, nil, clienttypes.NewHeight(0, uint64(height))), nil
@@ -214,7 +215,7 @@ func (c *Chain) QueryPacketCommitments(offset uint64, limit uint64, height int64
 	}
 	var res chantypes.QueryPacketCommitmentsResponse
 	for _, p := range packets {
-		ps := chantypes.NewPacketState(c.pathEnd.PortID, c.pathEnd.ChannelID, p.Sequence, chantypes.CommitPacket(c.Marshaler(), p))
+		ps := chantypes.NewPacketState(c.pathEnd.PortID, c.pathEnd.ChannelID, p.Sequence, chantypes.CommitPacket(c.Codec(), p))
 		res.Commitments = append(res.Commitments, &ps)
 	}
 	res.Height = clienttypes.NewHeight(0, uint64(height))
