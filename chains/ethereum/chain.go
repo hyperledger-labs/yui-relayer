@@ -238,7 +238,16 @@ func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, e
 
 // QueryPacketAcknowledgements returns an array of packet acks
 func (c *Chain) QueryPacketAcknowledgements(offset uint64, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
-	panic("not implemented") // TODO: Implement
+	acks, err := c.getAllAcknowledgements(context.Background(), c.pathEnd.PortID, c.pathEnd.ChannelID)
+	if err != nil {
+		return nil, err
+	}
+	var res chantypes.QueryPacketAcknowledgementsResponse
+	for _, a := range acks {
+		ps := chantypes.NewPacketState(c.pathEnd.PortID, c.pathEnd.ChannelID, a.Sequence, chantypes.CommitAcknowledgement(a.Data))
+		res.Acknowledgements = append(res.Acknowledgements, &ps)
+	}
+	return &res, nil
 }
 
 // QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks

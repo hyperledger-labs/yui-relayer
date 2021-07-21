@@ -187,3 +187,45 @@ func (chain *Chain) findAcknowledgement(
 
 	return nil, fmt.Errorf("ack not found: dstPortID=%v dstChannel=%v sequence=%v", dstPortID, dstChannel, sequence)
 }
+
+type PacketAcknowledgement struct {
+	Sequence uint64
+	Data     []byte
+}
+
+func (chain *Chain) getAllAcknowledgements(
+	ctx context.Context,
+	dstPortID string,
+	dstChannel string,
+) ([]PacketAcknowledgement, error) {
+	var acks []PacketAcknowledgement
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(0),
+		Addresses: []common.Address{
+			chain.config.IBCHandlerAddress(),
+		},
+		Topics: [][]common.Hash{{
+			abiWriteAcknowledgement.ID,
+		}},
+	}
+	logs, err := chain.client.FilterLogs(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	for _, log := range logs {
+		if values, err := abiWriteAcknowledgement.Inputs.Unpack(log.Data); err != nil {
+			return nil, err
+		} else {
+			if len(values) != 4 {
+				return nil, fmt.Errorf("unexpected values: %v", values)
+			}
+			if dstPortID == values[0].(string) && dstChannel == values[1].(string) {
+				acks = append(acks, PacketAcknowledgement{
+					Sequence: values[2].(uint64),
+					Data:     values[3].([]byte),
+				})
+			}
+		}
+	}
+	return acks, nil
+}
