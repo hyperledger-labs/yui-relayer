@@ -198,6 +198,8 @@ github.com/danieljoos/wincred v1.0.2 h1:zf4bhty2iLuwgjgpraD2E9UbvO+fe54XXGJbOwe2
 github.com/danieljoos/wincred v1.0.2/go.mod h1:SnuYRW9lp1oJrZX/dXJqr0cPK5gYXqx3EJbmjhLdK9U=
 github.com/datachainlab/fabric-sdk-go v0.0.0-20200730074927-282a61dcd92e h1:Vr+tcT4FHYYUwOE4xU/H9XhIHAu+1j7lF6uv83DIjO8=
 github.com/datachainlab/fabric-sdk-go v0.0.0-20200730074927-282a61dcd92e/go.mod h1:qWE9Syfg1KbwNjtILk70bJLilnmCvllIYFCSY/pa1RU=
+github.com/datachainlab/ibc-mock-client v0.0.0-20210721053426-34371a0cbbf4 h1:kKlAVkdNMrQ8Mwm1r3sETEd3SJN/yxyGkrnJGAtT+lQ=
+github.com/datachainlab/ibc-mock-client v0.0.0-20210721053426-34371a0cbbf4/go.mod h1:yz5E2DpB3FJZZjagC4HcW51km5HesF1tFQRr6k0HQvA=
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
