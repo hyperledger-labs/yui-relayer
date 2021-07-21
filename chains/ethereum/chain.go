@@ -252,7 +252,16 @@ func (c *Chain) QueryPacketAcknowledgements(offset uint64, limit uint64, height 
 
 // QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
 func (c *Chain) QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]uint64, error) {
-	panic("not implemented") // TODO: Implement
+	var ret []uint64
+	for _, seq := range seqs {
+		_, found, err := c.ibcHost.GetPacketCommitment(c.CallOpts(context.Background(), height), c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+		if err != nil {
+			return nil, err
+		} else if found {
+			ret = append(ret, seq)
+		}
+	}
+	return ret, nil
 }
 
 // QueryPacket returns the packet corresponding to a sequence
