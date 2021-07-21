@@ -248,12 +248,14 @@ func (c *Chain) QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]
 
 // QueryPacket returns the packet corresponding to a sequence
 func (c *Chain) QueryPacket(height int64, sequence uint64) (*chantypes.Packet, error) {
+	// TODO give the height as max block number
 	return c.findPacket(context.Background(), c.pathEnd.PortID, c.pathEnd.ChannelID, sequence)
 }
 
 // QueryPacketAcknowledgement returns the acknowledgement corresponding to a sequence
 func (c *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error) {
-	panic("not implemented") // TODO: Implement
+	// TODO give the height as max block number
+	return c.findAcknowledgement(context.Background(), c.pathEnd.PortID, c.pathEnd.ChannelID, sequence)
 }
 
 // QueryBalance returns the amount of coins in the relayer account

@@ -18,6 +18,7 @@ import (
 
 var (
 	abiSendPacket,
+	abiWriteAcknowledgement,
 	abiGeneratedClientIdentifier,
 	abiGeneratedConnectionIdentifier,
 	abiGeneratedChannelIdentifier abi.Event
@@ -33,6 +34,7 @@ func init() {
 		panic(err)
 	}
 	abiSendPacket = parsedHandlerABI.Events["SendPacket"]
+	abiWriteAcknowledgement = parsedHandlerABI.Events["WriteAcknowledgement"]
 	abiGeneratedClientIdentifier = parsedHostABI.Events["GeneratedClientIdentifier"]
 	abiGeneratedConnectionIdentifier = parsedHostABI.Events["GeneratedConnectionIdentifier"]
 	abiGeneratedChannelIdentifier = parsedHostABI.Events["GeneratedChannelIdentifier"]
@@ -148,4 +150,40 @@ func (chain *Chain) getAllPackets(
 		}
 	}
 	return packets, nil
+}
+
+func (chain *Chain) findAcknowledgement(
+	ctx context.Context,
+	dstPortID string,
+	dstChannel string,
+	sequence uint64,
+) ([]byte, error) {
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(0),
+		Addresses: []common.Address{
+			chain.config.IBCHandlerAddress(),
+		},
+		Topics: [][]common.Hash{{
+			abiWriteAcknowledgement.ID,
+		}},
+	}
+	logs, err := chain.client.FilterLogs(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, log := range logs {
+		if values, err := abiWriteAcknowledgement.Inputs.Unpack(log.Data); err != nil {
+			return nil, err
+		} else {
+			if len(values) != 4 {
+				return nil, fmt.Errorf("unexpected values: %v", values)
+			}
+			if dstPortID == values[0].(string) && dstChannel == values[1].(string) && sequence == values[2].(uint64) {
+				return values[3].([]byte), nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("ack not found: dstPortID=%v dstChannel=%v sequence=%v", dstPortID, dstChannel, sequence)
 }
