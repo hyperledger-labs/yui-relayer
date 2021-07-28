@@ -207,8 +207,8 @@ func (c *Chain) QueryPacketCommitments(
 	})
 }
 
-// QueryPacketAcknowledgements returns an array of packet acks
-func (c *Chain) QueryPacketAcknowledgements(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+// QueryPacketAcknowledgementCommitments returns an array of packet acks
+func (c *Chain) QueryPacketAcknowledgementCommitments(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
 	return qc.PacketAcknowledgements(context.Background(), &chantypes.QueryPacketAcknowledgementsRequest{
 		PortId:    c.PathEnd.PortID,

@@ -86,8 +86,8 @@ type IBCQuerierI interface {
 	// QueryUnrecievedPackets returns a list of unrelayed packet commitments
 	QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, error)
 
-	// QueryPacketAcknowledgements returns an array of packet acks
-	QueryPacketAcknowledgements(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
+	// QueryPacketAcknowledgementCommitments returns an array of packet acks
+	QueryPacketAcknowledgementCommitments(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
 
 	// QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
 	QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]uint64, error)

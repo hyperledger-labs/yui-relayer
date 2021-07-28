@@ -232,8 +232,9 @@ func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, e
 	return ret, nil
 }
 
-// QueryPacketAcknowledgements returns an array of packet acks
-func (c *Chain) QueryPacketAcknowledgements(offset uint64, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+// QueryPacketAcknowledgementCommitments returns an array of packet acks
+func (c *Chain) QueryPacketAcknowledgementCommitments(offset uint64, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+	// WARNING: It may be slow to use in the production. Instead of it, it might be better to use an external event indexer to get all packet acknowledgements.
 	acks, err := c.getAllAcknowledgements(context.Background(), c.pathEnd.PortID, c.pathEnd.ChannelID)
 	if err != nil {
 		return nil, err

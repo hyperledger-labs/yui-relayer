@@ -203,7 +203,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 		var res *chantypes.QueryPacketAcknowledgementsResponse
 		if err = retry.Do(func() error {
 			// Query the packet commitment
-			res, err = src.QueryPacketAcknowledgements(0, 1000, sh.GetChainHeight(src.ChainID()))
+			res, err = src.QueryPacketAcknowledgementCommitments(0, 1000, sh.GetChainHeight(src.ChainID()))
 			switch {
 			case err != nil:
 				return err
@@ -227,7 +227,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 	eg.Go(func() error {
 		var res *chantypes.QueryPacketAcknowledgementsResponse
 		if err = retry.Do(func() error {
-			res, err = dst.QueryPacketAcknowledgements(0, 1000, sh.GetChainHeight(dst.ChainID()))
+			res, err = dst.QueryPacketAcknowledgementCommitments(0, 1000, sh.GetChainHeight(dst.ChainID()))
 			switch {
 			case err != nil:
 				return err
