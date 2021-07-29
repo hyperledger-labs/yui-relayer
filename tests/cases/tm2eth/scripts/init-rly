@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -x
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+
+RELAYER_CONF="$HOME/.urelayer"
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
+RLY="${RLY_BINARY} --debug"
+FIXTURES_DIR=${SCRIPT_DIR}/../fixtures
+CHAINID_ONE=ibc0
+
+echo "Generating ${RLY_BINARY} configurations..."
+
+# Ensure ${RLY_BINARY} is installed
+if ! [ -x ${RLY_BINARY} ]; then
+  echo "Error: ${RLY_BINARY} is not installed." >&2
+  exit 1
+fi
+
+rm -rf ${RELAYER_CONF} &> /dev/null
+
+${RLY} config init
+${RLY} chains add-dir configs/demo/
+
+# A setup for tendermint client
+
+SEED0=$(jq -r '.mnemonic' < ${FIXTURES_DIR}/tendermint/ibc0/key_seed.json)
+echo "Key $(${RLY} tendermint keys restore ibc0 testkey "$SEED0") imported from ibc0 to relayer..."
+
+# A setup for ethereum client
+
+# initialize the light client for {{chain_id}}
+retry 5 $RLY tendermint light init $CHAINID_ONE -f

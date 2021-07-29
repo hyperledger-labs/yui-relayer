@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -eux
+
+DOCKER=docker
+FIXTURES_DIR=./fixtures
+
+# Setup test fixtures
+
+# first, remove the old fixtures
+rm -rf ${FIXTURES_DIR}
+
+# for tendermint
+
+mkdir -p ${FIXTURES_DIR}/tendermint/ibc0
+# retrive the mnemonic from the container to the local
+${DOCKER} cp tendermint-chain0:/root/data/ibc0/key_seed.json  ${FIXTURES_DIR}/tendermint/ibc0/key_seed.json
+
+# for ethereum
+# TODO implements
