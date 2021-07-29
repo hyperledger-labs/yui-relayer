@@ -47,7 +47,18 @@ func (pr *Prover) GetLatestLightHeight() (int64, error) {
 
 // CreateMsgCreateClient creates a CreateClientMsg to this chain
 func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
-	panic("not implemented") // TODO: Implement
+	h := dstHeader.(*mocktypes.Header)
+	clientState := &mocktypes.ClientState{
+		LatestHeight: h.Height,
+	}
+	consensusState := &mocktypes.ConsensusState{
+		Timestamp: h.Timestamp,
+	}
+	return clienttypes.NewMsgCreateClient(
+		clientState,
+		consensusState,
+		signer.String(),
+	)
 }
 
 // SetupHeader creates a new header based on a given header
