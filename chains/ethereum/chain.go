@@ -42,7 +42,7 @@ type Chain struct {
 var _ core.ChainI = (*Chain)(nil)
 
 func NewChain(config ChainConfig) (*Chain, error) {
-	id := big.NewInt(config.ChainId)
+	id := big.NewInt(config.EthChainId)
 	client, err := NewETHClient(config.RpcAddr)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 
 // ChainID returns ID of the chain
 func (c *Chain) ChainID() string {
-	return fmt.Sprint(c.config.ChainId)
+	return c.config.ChainId
 }
 
 // GetLatestHeight gets the chain for the latest height and returns it
