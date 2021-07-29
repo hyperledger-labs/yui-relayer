@@ -8,9 +8,7 @@ import (
 var _ core.ChainConfigI = (*ChainConfig)(nil)
 
 func (c ChainConfig) Build() (core.ChainI, error) {
-	return &Chain{
-		config: c,
-	}, nil
+	return NewChain(c)
 }
 
 func (c ChainConfig) IBCHostAddress() common.Address {
