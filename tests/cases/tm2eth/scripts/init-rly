@@ -8,7 +8,6 @@ RELAYER_CONF="$HOME/.urelayer"
 RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
 RLY="${RLY_BINARY} --debug"
 FIXTURES_DIR=${SCRIPT_DIR}/../fixtures
-CHAINID_ONE=ibc0
 
 echo "Generating ${RLY_BINARY} configurations..."
 
@@ -29,6 +28,4 @@ SEED0=$(jq -r '.mnemonic' < ${FIXTURES_DIR}/tendermint/ibc0/key_seed.json)
 echo "Key $(${RLY} tendermint keys restore ibc0 testkey "$SEED0") imported from ibc0 to relayer..."
 
 # A setup for ethereum client
-
-# initialize the light client for {{chain_id}}
-retry 5 $RLY tendermint light init $CHAINID_ONE -f
+## TODO implements
