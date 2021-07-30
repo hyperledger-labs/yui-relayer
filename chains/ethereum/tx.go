@@ -3,6 +3,7 @@ package ethereum
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/avast/retry-go"
@@ -71,6 +72,9 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 // It returns a boolean value whether the result is success
 func (c *Chain) Send(msgs []sdk.Msg) bool {
 	_, err := c.SendMsgs(msgs)
+	if err != nil {
+		log.Println("ethereum: failed to send:", err)
+	}
 	return err == nil
 }
 
