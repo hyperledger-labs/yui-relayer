@@ -15,6 +15,7 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	committypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
 	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/ethereum/go-ethereum/ethclient"
 
@@ -157,16 +158,47 @@ func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateRes
 	return clienttypes.NewQueryClientStateResponse(&any, nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
+var emptyConnRes = conntypes.NewQueryConnectionResponse(
+	conntypes.NewConnectionEnd(
+		conntypes.UNINITIALIZED,
+		"client",
+		conntypes.NewCounterparty(
+			"client",
+			"connection",
+			committypes.NewMerklePrefix([]byte{}),
+		),
+		[]*conntypes.Version{},
+		0,
+	),
+	[]byte{},
+	clienttypes.NewHeight(0, 0),
+)
+
 // QueryConnection returns the remote end of a given connection
 func (c *Chain) QueryConnection(height int64) (*conntypes.QueryConnectionResponse, error) {
 	conn, found, err := c.ibcHost.GetConnection(c.CallOpts(context.Background(), height), c.pathEnd.ConnectionID)
 	if err != nil {
 		return nil, err
 	} else if !found {
-		return nil, fmt.Errorf("connection not found: %v", c.pathEnd.ConnectionID)
+		return emptyConnRes, nil
 	}
 	return conntypes.NewQueryConnectionResponse(connectionEndToPB(conn), nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
+
+var emptyChannelRes = chantypes.NewQueryChannelResponse(
+	chantypes.NewChannel(
+		chantypes.UNINITIALIZED,
+		chantypes.UNORDERED,
+		chantypes.NewCounterparty(
+			"port",
+			"channel",
+		),
+		[]string{},
+		"version",
+	),
+	[]byte{},
+	clienttypes.NewHeight(0, 0),
+)
 
 // QueryChannel returns the channel associated with a channelID
 func (c *Chain) QueryChannel(height int64) (chanRes *chantypes.QueryChannelResponse, err error) {
@@ -174,7 +206,7 @@ func (c *Chain) QueryChannel(height int64) (chanRes *chantypes.QueryChannelRespo
 	if err != nil {
 		return nil, err
 	} else if !found {
-		return nil, fmt.Errorf("channel not found: %v:%v", c.pathEnd.PortID, c.pathEnd.ChannelID)
+		return emptyChannelRes, nil
 	}
 	return chantypes.NewQueryChannelResponse(channelToPB(chann), nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
