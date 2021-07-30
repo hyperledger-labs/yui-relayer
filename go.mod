@@ -7,12 +7,12 @@ require (
 	github.com/cosmos/cosmos-sdk v0.43.0-beta1
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/ibc-go v1.0.0-beta1
-	github.com/datachainlab/ibc-mock-client v0.0.0-20210721053426-34371a0cbbf4 // indirect
+	github.com/datachainlab/ibc-mock-client v0.0.0-20210729090421-a068e70e733b
 	github.com/ethereum/go-ethereum v1.9.25
 	github.com/gogo/protobuf v1.3.3
 	github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210708002039-e07ff163f660
 	github.com/hyperledger-labs/yui-fabric-ibc v0.2.0
-	github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210721061523-33c02913bc54
+	github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210729081912-2f7ddf319320
 	github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191
 	github.com/hyperledger/fabric-protos-go v0.0.0-20200707132912-fee30f3ccd23
 	github.com/hyperledger/fabric-sdk-go v1.0.0-beta2.0.20200715151216-87f5eb8a655f
