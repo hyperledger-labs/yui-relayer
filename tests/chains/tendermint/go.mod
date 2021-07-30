@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/cosmos/cosmos-sdk v0.43.0-beta1
 	github.com/cosmos/ibc-go v1.0.0-beta1
-	github.com/datachainlab/ibc-mock-client v0.0.0-20210729054247-94ed99665e76 // indirect
+	github.com/datachainlab/ibc-mock-client v0.0.0-20210730150559-e9334c30b8c6 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/hyperledger-labs/yui-fabric-ibc v0.2.0
 	github.com/rakyll/statik v0.1.7
