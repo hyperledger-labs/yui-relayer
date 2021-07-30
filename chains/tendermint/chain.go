@@ -15,10 +15,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	keys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
-	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/go-bip39"
 	"github.com/tendermint/tendermint/libs/log"
@@ -41,11 +41,12 @@ type Chain struct {
 	config ChainConfig
 
 	// TODO: make these private
-	HomePath string                `yaml:"-" json:"-"`
-	PathEnd  *core.PathEnd         `yaml:"-" json:"-"`
-	Keybase  keys.Keyring          `yaml:"-" json:"-"`
-	Client   rpcclient.Client      `yaml:"-" json:"-"`
-	Encoding params.EncodingConfig `yaml:"-" json:"-"`
+	HomePath string           `yaml:"-" json:"-"`
+	PathEnd  *core.PathEnd    `yaml:"-" json:"-"`
+	Keybase  keys.Keyring     `yaml:"-" json:"-"`
+	Client   rpcclient.Client `yaml:"-" json:"-"`
+
+	codec codec.ProtoCodecMarshaler `yaml:"-" json:"-"`
 
 	address sdk.AccAddress
 	logger  log.Logger
@@ -70,8 +71,8 @@ func (c *Chain) ClientID() string {
 	return c.PathEnd.ClientID
 }
 
-func (c *Chain) Marshaler() codec.Codec {
-	return c.Encoding.Marshaler
+func (c *Chain) Codec() codec.ProtoCodecMarshaler {
+	return c.codec
 }
 
 // GetAddress returns the sdk.AccAddress associated with the configred key
@@ -109,7 +110,7 @@ func (c *Chain) Path() *core.PathEnd {
 	return c.PathEnd
 }
 
-func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
+func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
 	keybase, err := keys.New(c.config.ChainId, "test", keysDir(homePath, c.config.ChainId), nil)
 	if err != nil {
 		return err
@@ -125,12 +126,10 @@ func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
 		return fmt.Errorf("failed to parse gas prices (%s) for chain %s", c.config.GasPrices, c.ChainID())
 	}
 
-	encodingConfig := makeEncodingConfig()
-
 	c.Keybase = keybase
 	c.Client = client
 	c.HomePath = homePath
-	c.Encoding = encodingConfig
+	c.codec = codec
 	c.logger = defaultChainLogger()
 	c.timeout = timeout
 	c.debug = debug
@@ -377,10 +376,9 @@ func (c *Chain) UseSDKContext() func() {
 func (c *Chain) CLIContext(height int64) sdkCtx.Context {
 	return sdkCtx.Context{}.
 		WithChainID(c.config.ChainId).
-		WithJSONCodec(newContextualStdCodec(c.Encoding.Marshaler, c.UseSDKContext)).
-		WithInterfaceRegistry(c.Encoding.InterfaceRegistry).
-		WithTxConfig(c.Encoding.TxConfig).
-		WithLegacyAmino(c.Encoding.Amino).
+		WithJSONCodec(newContextualStdCodec(c.codec, c.UseSDKContext)).
+		WithInterfaceRegistry(c.codec.InterfaceRegistry()).
+		WithTxConfig(authtx.NewTxConfig(c.codec, authtx.DefaultSignModes)).
 		WithInput(os.Stdin).
 		WithNodeURI(c.config.RpcAddr).
 		WithClient(c.Client).

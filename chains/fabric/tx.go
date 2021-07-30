@@ -17,7 +17,7 @@ const (
 
 func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 	log.Printf("fabric.SendMsgs: %v", msgs)
-	txBytes, err := c.buildTx(c.encodingConfig.InterfaceRegistry, msgs...)
+	txBytes, err := c.buildTx(c.codec.InterfaceRegistry(), msgs...)
 	if err != nil {
 		return nil, err
 	}

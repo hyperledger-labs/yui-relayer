@@ -37,7 +37,7 @@ func chainsAddDirCmd(ctx *config.Context) *cobra.Command {
 			if err := filesAdd(ctx, args[0]); err != nil {
 				return err
 			}
-			return overWriteConfig(cmd, ctx.Config)
+			return overWriteConfig(ctx, cmd)
 		},
 	}
 
@@ -66,10 +66,10 @@ func filesAdd(ctx *config.Context, dir string) error {
 			fmt.Printf("failed to unmarshal file %s, skipping...\n", pth)
 			continue
 		}
-		if err := c.Init(ctx.Marshaler); err != nil {
+		if err := c.Init(ctx.Codec); err != nil {
 			return err
 		}
-		if err = ctx.Config.AddChain(ctx.Marshaler, c); err != nil {
+		if err = ctx.Config.AddChain(ctx.Codec, c); err != nil {
 			fmt.Printf("%s: %s\n", pth, err.Error())
 			continue
 		}
@@ -82,7 +82,7 @@ func filesAdd(ctx *config.Context, dir string) error {
 	return nil
 }
 
-func overWriteConfig(cmd *cobra.Command, cfg *config.Config) error {
+func overWriteConfig(ctx *config.Context, cmd *cobra.Command) error {
 	home, err := cmd.Flags().GetString(flags.FlagHome)
 	if err != nil {
 		return err
@@ -93,13 +93,13 @@ func overWriteConfig(cmd *cobra.Command, cfg *config.Config) error {
 		viper.SetConfigFile(cfgPath)
 		if err = viper.ReadInConfig(); err == nil {
 			// ensure validateConfig runs properly
-			err = config.InitChains(cfg, homePath, debug)
+			err = config.InitChains(ctx, homePath, debug)
 			if err != nil {
 				return err
 			}
 
 			// marshal the new config
-			out, err := config.MarshalJSON(*cfg)
+			out, err := config.MarshalJSON(*ctx.Config)
 			if err != nil {
 				return err
 			}

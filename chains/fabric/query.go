@@ -219,7 +219,7 @@ func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, e
 	return res.Sequences, nil
 }
 
-func (c *Chain) QueryPacketAcknowledgements(offset, limit uint64, _ int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+func (c *Chain) QueryPacketAcknowledgementCommitments(offset, limit uint64, _ int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
 	req := &chantypes.QueryPacketAcknowledgementsRequest{
 		PortId:    c.Path().PortID,
 		ChannelId: c.Path().ChannelID,

@@ -34,8 +34,8 @@ type ChainI interface {
 	// GetAddress returns the address of relayer
 	GetAddress() (sdk.AccAddress, error)
 
-	// Marshaler returns the marshaler
-	Marshaler() codec.Codec
+	// Codec returns the codec
+	Codec() codec.ProtoCodecMarshaler
 
 	// SetPath sets a given path to the chain
 	SetPath(p *PathEnd) error
@@ -54,7 +54,7 @@ type ChainI interface {
 	StartEventListener(dst ChainI, strategy StrategyI)
 
 	// Init ...
-	Init(homePath string, timeout time.Duration, debug bool) error
+	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
 
 	IBCQuerierI
 }
@@ -86,8 +86,8 @@ type IBCQuerierI interface {
 	// QueryUnrecievedPackets returns a list of unrelayed packet commitments
 	QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, error)
 
-	// QueryPacketAcknowledgements returns an array of packet acks
-	QueryPacketAcknowledgements(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
+	// QueryPacketAcknowledgementCommitments returns an array of packet acks
+	QueryPacketAcknowledgementCommitments(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
 
 	// QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
 	QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]uint64, error)

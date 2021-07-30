@@ -127,7 +127,7 @@ func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader c
 	}
 
 	var cs exported.ClientState
-	if err := srcChain.Encoding.Marshaler.UnpackAny(counterpartyClientRes.ClientState, &cs); err != nil {
+	if err := srcChain.codec.UnpackAny(counterpartyClientRes.ClientState, &cs); err != nil {
 		return nil, err
 	}
 

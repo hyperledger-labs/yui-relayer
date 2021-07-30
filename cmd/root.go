@@ -43,11 +43,11 @@ func Execute(modules ...config.ModuleI) error {
 
 	// Register interfaces
 
-	ec := core.MakeEncodingConfig()
+	codec := core.MakeCodec()
 	for _, module := range modules {
-		module.RegisterInterfaces(ec.InterfaceRegistry)
+		module.RegisterInterfaces(codec.InterfaceRegistry())
 	}
-	ctx := &config.Context{Config: &config.Config{}, Marshaler: ec.Marshaler}
+	ctx := &config.Context{Config: &config.Config{}, Codec: codec}
 
 	// Register subcommands
 

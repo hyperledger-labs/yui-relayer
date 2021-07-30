@@ -143,14 +143,14 @@ func initConfig(ctx *config.Context, cmd *cobra.Command) error {
 			}
 
 			// unmarshall them into the struct
-			err = config.UnmarshalJSON(ctx.Marshaler, file, ctx.Config)
+			err = config.UnmarshalJSON(ctx.Codec, file, ctx.Config)
 			if err != nil {
 				fmt.Println("Error unmarshalling config:", err)
 				os.Exit(1)
 			}
 
 			// ensure config has []*relayer.Chain used for all chain operations
-			err = config.InitChains(ctx.Config, homePath, debug)
+			err = config.InitChains(ctx, homePath, debug)
 			if err != nil {
 				fmt.Println("Error parsing chain config:", err)
 				os.Exit(1)

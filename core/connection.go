@@ -106,10 +106,10 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		if err != nil && (srcCsRes == nil || dstCsRes == nil) {
 			return nil, err
 		}
-		if err := src.Marshaler().UnpackAny(srcCsRes.ClientState, &srcCS); err != nil {
+		if err := src.Codec().UnpackAny(srcCsRes.ClientState, &srcCS); err != nil {
 			return nil, err
 		}
-		if err := dst.Marshaler().UnpackAny(dstCsRes.ClientState, &dstCS); err != nil {
+		if err := dst.Codec().UnpackAny(dstCsRes.ClientState, &dstCS); err != nil {
 			return nil, err
 		}
 

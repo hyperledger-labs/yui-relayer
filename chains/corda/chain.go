@@ -5,15 +5,14 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 type Chain struct {
-	config         ChainConfig
-	pathEnd        *core.PathEnd
-	encodingConfig params.EncodingConfig
+	config  ChainConfig
+	pathEnd *core.PathEnd
+	codec   codec.ProtoCodecMarshaler
 
 	client *cordaIbcClient
 }
@@ -36,8 +35,8 @@ func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 	return make([]byte, 20), nil
 }
 
-func (c *Chain) Marshaler() codec.Codec {
-	return c.encodingConfig.Marshaler
+func (c *Chain) Codec() codec.ProtoCodecMarshaler {
+	return c.codec
 }
 
 func (c *Chain) SetPath(p *core.PathEnd) error {
@@ -56,13 +55,13 @@ func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
 	panic("not implemented error")
 }
 
-func (c *Chain) Init(homePath string, timeout time.Duration, debug bool) error {
-	c.encodingConfig = makeEncodingConfig()
+func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
 	if client, err := createCordaIbcClient(c.config.GrpcAddr); err != nil {
 		return err
 	} else {
 		c.client = client
 	}
+	c.codec = codec
 	return nil
 }
 

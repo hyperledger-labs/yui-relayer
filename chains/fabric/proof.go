@@ -62,7 +62,7 @@ func (pr *Prover) endorseClientState(clientID string) (exported.ClientState, *fa
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := pr.chain.Marshaler().UnpackAny(&any, &result); err != nil {
+	if err := pr.chain.Codec().UnpackAny(&any, &result); err != nil {
 		return nil, nil, err
 	}
 	return result, proof, nil
@@ -77,7 +77,7 @@ func (pr *Prover) endorseConsensusState(clientID string, height uint64) (exporte
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := pr.chain.Marshaler().UnpackAny(&any, &result); err != nil {
+	if err := pr.chain.Codec().UnpackAny(&any, &result); err != nil {
 		return nil, nil, err
 	}
 	return result, proof, nil

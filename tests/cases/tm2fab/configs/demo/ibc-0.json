@@ -1,6 +1,6 @@
 {
   "chain": {
-    "@type": "/relayer.tendermint.config.ChainConfig",
+    "@type": "/relayer.chains.tendermint.config.ChainConfig",
     "key": "testkey",
     "chain_id": "ibc0",
     "rpc_addr": "http://localhost:26657",
@@ -9,7 +9,7 @@
     "gas_prices": "0.025stake"
   },
   "prover": {
-    "@type": "/relayer.tendermint.config.ProverConfig",
+    "@type": "/relayer.chains.tendermint.config.ProverConfig",
     "trusting_period": "336h"
   }
 }

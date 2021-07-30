@@ -102,7 +102,7 @@ func pathsAddCmd(ctx *config.Context) *cobra.Command {
 				}
 			}
 
-			return overWriteConfig(cmd, ctx.Config)
+			return overWriteConfig(ctx, cmd)
 		},
 	}
 	return fileFlag(cmd)
