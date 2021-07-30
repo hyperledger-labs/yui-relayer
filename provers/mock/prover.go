@@ -63,7 +63,7 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI,
 
 // SetupHeader creates a new header based on a given header
 func (pr *Prover) SetupHeader(dst core.LightClientIBCQueryierI, baseSrcHeader core.HeaderI) (core.HeaderI, error) {
-	return nil, nil
+	return baseSrcHeader.(*mocktypes.Header), nil
 }
 
 // UpdateLightWithHeader updates a header on the light client and returns the header and height corresponding to the chain
@@ -72,7 +72,11 @@ func (pr *Prover) UpdateLightWithHeader() (core.HeaderI, int64, error) {
 	if err != nil {
 		return nil, -1, err
 	}
-	return h, -1, nil
+	chainHeight, err := pr.chain.GetLatestHeight()
+	if err != nil {
+		return nil, -1, err
+	}
+	return h, chainHeight, nil
 }
 
 // QueryClientConsensusState returns the ClientConsensusState and its proof
