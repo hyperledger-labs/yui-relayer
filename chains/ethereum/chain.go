@@ -9,7 +9,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
@@ -28,11 +27,10 @@ import (
 type Chain struct {
 	config ChainConfig
 
-	pathEnd        *core.PathEnd
-	homePath       string
-	encodingConfig params.EncodingConfig
-	chainID        *big.Int
-	codec          codec.ProtoCodecMarshaler
+	pathEnd  *core.PathEnd
+	homePath string
+	chainID  *big.Int
+	codec    codec.ProtoCodecMarshaler
 
 	relayerPrvKey *ecdsa.PrivateKey
 	client        *ethclient.Client
