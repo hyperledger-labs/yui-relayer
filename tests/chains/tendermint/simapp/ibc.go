@@ -38,7 +38,7 @@ func NewClientKeeper(k clientkeeper.Keeper) ClientKeeper {
 func (k ClientKeeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientState) error {
 	switch cs := clientState.(type) {
 	case *tenderminttypes.ClientState:
-		return k.ValidateSelfClient(ctx, cs)
+		return k.Keeper.ValidateSelfClient(ctx, cs)
 	case *mocktypes.ClientState:
 		return nil
 	default:
