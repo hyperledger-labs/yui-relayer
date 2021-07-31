@@ -148,41 +148,45 @@ func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader c
 func lightError(err error) error { return fmt.Errorf("light client: %w", err) }
 
 // UpdateLightWithHeader calls client.Update and then .
-func (pr *Prover) UpdateLightWithHeader() (core.HeaderI, int64, error) {
+func (pr *Prover) UpdateLightWithHeader() (header core.HeaderI, provableHeight int64, queryableHeight int64, err error) {
 	// create database connection
 	db, df, err := pr.NewLightDB()
 	if err != nil {
-		return nil, 0, lightError(err)
+		return nil, 0, 0, lightError(err)
 	}
 	defer df()
 
 	client, err := pr.LightClient(db)
 	if err != nil {
-		return nil, 0, lightError(err)
+		return nil, 0, 0, lightError(err)
 	}
 
 	sh, err := client.Update(context.Background(), time.Now())
 	if err != nil {
-		return nil, 0, lightError(err)
+		return nil, 0, 0, lightError(err)
 	}
 
 	if sh == nil {
 		sh, err = client.TrustedLightBlock(0)
 		if err != nil {
-			return nil, 0, lightError(err)
+			return nil, 0, 0, lightError(err)
 		}
 	}
 
 	protoVal, err := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators).ToProto()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, 0, err
 	}
 
 	h := &tmclient.Header{
 		SignedHeader: sh.SignedHeader.ToProto(),
 		ValidatorSet: protoVal,
 	}
-	return h, int64(h.GetHeight().GetRevisionHeight()), nil
+	queryableHeight = int64(h.GetHeight().GetRevisionHeight())
+	// NOTE: We query connection at height - 1 because of the way tendermint returns
+	// proofs the commit for height n is contained in the header of height n + 1
+	provableHeight = queryableHeight - 1
+	return h, provableHeight, queryableHeight, nil
 }
 
 // TrustOptions returns light.TrustOptions given a height and hash

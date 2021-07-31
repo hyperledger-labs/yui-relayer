@@ -95,14 +95,14 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		return nil, err
 	}
 
-	srcConn, dstConn, err := QueryConnectionPair(src, dst, int64(sh.GetChainHeight(src.ChainID()))-1, int64(sh.GetChainHeight(dst.ChainID()))-1)
+	srcConn, dstConn, err := QueryConnectionPair(src, dst, sh.GetProvableHeight(src.ChainID()), sh.GetProvableHeight(dst.ChainID()))
 	if err != nil {
 		return nil, err
 	}
 
 	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
 		// Query client state from each chain's client
-		srcCsRes, dstCsRes, err = QueryClientStatePair(src, dst, int64(sh.GetChainHeight(src.ChainID()))-1, int64(sh.GetChainHeight(dst.ChainID()))-1)
+		srcCsRes, dstCsRes, err = QueryClientStatePair(src, dst, sh.GetProvableHeight(src.ChainID()), sh.GetProvableHeight(dst.ChainID()))
 		if err != nil && (srcCsRes == nil || dstCsRes == nil) {
 			return nil, err
 		}
@@ -115,11 +115,8 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 
 		// Store the heights
 		srcConsH, dstConsH = srcCS.GetLatestHeight(), dstCS.GetLatestHeight()
-
-		// NOTE: We query connection at height - 1 because of the way tendermint returns
-		// proofs the commit for height n is contained in the header of height n + 1
 		srcCons, dstCons, err = QueryClientConsensusStatePair(
-			src, dst, int64(sh.GetChainHeight(src.ChainID()))-1, int64(sh.GetChainHeight(dst.ChainID()))-1, srcConsH, dstConsH)
+			src, dst, sh.GetProvableHeight(src.ChainID()), sh.GetProvableHeight(dst.ChainID()), srcConsH, dstConsH)
 		if err != nil {
 			return nil, err
 		}

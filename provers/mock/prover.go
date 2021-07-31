@@ -67,16 +67,16 @@ func (pr *Prover) SetupHeader(dst core.LightClientIBCQueryierI, baseSrcHeader co
 }
 
 // UpdateLightWithHeader updates a header on the light client and returns the header and height corresponding to the chain
-func (pr *Prover) UpdateLightWithHeader() (core.HeaderI, int64, error) {
+func (pr *Prover) UpdateLightWithHeader() (header core.HeaderI, provableHeight int64, queryableHeight int64, err error) {
 	h, err := pr.QueryLatestHeader()
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, -1, err
 	}
 	chainHeight, err := pr.chain.GetLatestHeight()
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, -1, err
 	}
-	return h, chainHeight, nil
+	return h, chainHeight, chainHeight, nil
 }
 
 // QueryClientConsensusState returns the ClientConsensusState and its proof

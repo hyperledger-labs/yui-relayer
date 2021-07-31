@@ -41,7 +41,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 		var res *chantypes.QueryPacketCommitmentsResponse
 		if err = retry.Do(func() error {
 			// Query the packet commitment
-			res, err = src.QueryPacketCommitments(0, 1000, sh.GetChainHeight(src.ChainID()))
+			res, err = src.QueryPacketCommitments(0, 1000, sh.GetQueryableHeight(src.ChainID()))
 			switch {
 			case err != nil:
 				return err
@@ -51,7 +51,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", src.ChainID(), sh.GetChainHeight(src.ChainID()), n+1, rtyAttNum, err))
+			log.Println(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", src.ChainID(), sh.GetQueryableHeight(src.ChainID()), n+1, rtyAttNum, err))
 		})); err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 	eg.Go(func() error {
 		var res *chantypes.QueryPacketCommitmentsResponse
 		if err = retry.Do(func() error {
-			res, err = dst.QueryPacketCommitments(0, 1000, sh.GetChainHeight(dst.ChainID()))
+			res, err = dst.QueryPacketCommitments(0, 1000, sh.GetQueryableHeight(dst.ChainID()))
 			switch {
 			case err != nil:
 				return err
@@ -74,7 +74,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", dst.ChainID(), sh.GetChainHeight(dst.ChainID()), n+1, rtyAttNum, err))
+			log.Println(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", dst.ChainID(), sh.GetQueryableHeight(dst.ChainID()), n+1, rtyAttNum, err))
 		})); err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 
 	eg.Go(func() error {
 		// Query all packets sent by src that have been received by dst
-		src, err := dst.QueryUnrecievedPackets(sh.GetChainHeight(dst.ChainID()), srcPacketSeq)
+		src, err := dst.QueryUnrecievedPackets(sh.GetQueryableHeight(dst.ChainID()), srcPacketSeq)
 		if err != nil {
 			return err
 		} else if src != nil {
@@ -101,7 +101,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 
 	eg.Go(func() error {
 		// Query all packets sent by dst that have been received by src
-		dst, err := src.QueryUnrecievedPackets(sh.GetChainHeight(src.ChainID()), dstPacketSeq)
+		dst, err := src.QueryUnrecievedPackets(sh.GetQueryableHeight(src.ChainID()), dstPacketSeq)
 		if err != nil {
 			return err
 		} else if dst != nil {
@@ -203,7 +203,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 		var res *chantypes.QueryPacketAcknowledgementsResponse
 		if err = retry.Do(func() error {
 			// Query the packet commitment
-			res, err = src.QueryPacketAcknowledgementCommitments(0, 1000, sh.GetChainHeight(src.ChainID()))
+			res, err = src.QueryPacketAcknowledgementCommitments(0, 1000, sh.GetQueryableHeight(src.ChainID()))
 			switch {
 			case err != nil:
 				return err
@@ -213,7 +213,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), sh.GetChainHeight(src.ChainID()), n+1, rtyAttNum, err)))
+			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), sh.GetQueryableHeight(src.ChainID()), n+1, rtyAttNum, err)))
 			sh.Updates(src, dst)
 		})); err != nil {
 			return err
@@ -227,7 +227,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 	eg.Go(func() error {
 		var res *chantypes.QueryPacketAcknowledgementsResponse
 		if err = retry.Do(func() error {
-			res, err = dst.QueryPacketAcknowledgementCommitments(0, 1000, sh.GetChainHeight(dst.ChainID()))
+			res, err = dst.QueryPacketAcknowledgementCommitments(0, 1000, sh.GetQueryableHeight(dst.ChainID()))
 			switch {
 			case err != nil:
 				return err
@@ -237,7 +237,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), sh.GetChainHeight(dst.ChainID()), n+1, rtyAttNum, err)))
+			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), sh.GetQueryableHeight(dst.ChainID()), n+1, rtyAttNum, err)))
 			sh.Updates(src, dst)
 		})); err != nil {
 			return err
@@ -254,7 +254,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 
 	eg.Go(func() error {
 		// Query all packets sent by src that have been received by dst
-		src, err := dst.QueryUnrecievedAcknowledgements(sh.GetChainHeight(dst.ChainID()), srcPacketSeq)
+		src, err := dst.QueryUnrecievedAcknowledgements(sh.GetQueryableHeight(dst.ChainID()), srcPacketSeq)
 		// return err
 		if err != nil {
 			return err
@@ -266,7 +266,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 
 	eg.Go(func() error {
 		// Query all packets sent by dst that have been received by src
-		dst, err := src.QueryUnrecievedAcknowledgements(sh.GetChainHeight(src.ChainID()), dstPacketSeq)
+		dst, err := src.QueryUnrecievedAcknowledgements(sh.GetQueryableHeight(src.ChainID()), dstPacketSeq)
 		if err != nil {
 			return err
 		} else if dst != nil {
@@ -286,16 +286,15 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 func relayPackets(chain *ProvableChain, seqs []uint64, sh SyncHeadersI, sender sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
 	for _, seq := range seqs {
-		p, err := chain.QueryPacket(int64(sh.GetChainHeight(chain.ChainID())), seq)
+		p, err := chain.QueryPacket(int64(sh.GetQueryableHeight(chain.ChainID())), seq)
 		if err != nil {
-			log.Println("failed to QueryPacket:", int64(sh.GetChainHeight(chain.ChainID())), seq, err)
+			log.Println("failed to QueryPacket:", int64(sh.GetQueryableHeight(chain.ChainID())), seq, err)
 			return nil, err
 		}
-		// TODO must use (latestHeight-1) as height number in tendermint
-		h := sh.GetChainHeight(chain.ChainID()) - 1
-		res, err := chain.QueryPacketCommitmentWithProof(int64(h), seq)
+		provableHeight := sh.GetProvableHeight(chain.ChainID())
+		res, err := chain.QueryPacketCommitmentWithProof(provableHeight, seq)
 		if err != nil {
-			log.Println("failed to QueryPacketCommitment:", int64(h), seq, err)
+			log.Println("failed to QueryPacketCommitment:", provableHeight, seq, err)
 			return nil, err
 		}
 		msg := chantypes.NewMsgRecvPacket(*p, res.Proof, res.ProofHeight, sender.String())
@@ -386,18 +385,16 @@ func relayAcks(receiverChain, senderChain *ProvableChain, seqs []uint64, sh Sync
 	var msgs []sdk.Msg
 
 	for _, seq := range seqs {
-		p, err := senderChain.QueryPacket(int64(sh.GetChainHeight(senderChain.ChainID())), seq)
+		p, err := senderChain.QueryPacket(sh.GetQueryableHeight(senderChain.ChainID()), seq)
 		if err != nil {
 			return nil, err
 		}
-		ack, err := receiverChain.QueryPacketAcknowledgement(int64(sh.GetChainHeight(receiverChain.ChainID())), seq)
+		ack, err := receiverChain.QueryPacketAcknowledgement(sh.GetQueryableHeight(receiverChain.ChainID()), seq)
 		if err != nil {
 			return nil, err
 		}
-		// TODO must use (latestHeight-1) as height number in tendermint
-		h := sh.GetChainHeight(receiverChain.ChainID()) - 1
-
-		res, err := receiverChain.QueryPacketAcknowledgementCommitmentWithProof(int64(h), seq)
+		provableHeight := sh.GetProvableHeight(receiverChain.ChainID())
+		res, err := receiverChain.QueryPacketAcknowledgementCommitmentWithProof(provableHeight, seq)
 		if err != nil {
 			return nil, err
 		}

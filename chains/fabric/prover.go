@@ -227,12 +227,12 @@ func (*Prover) SetupHeader(dst core.LightClientIBCQueryierI, baseSrcHeader core.
 }
 
 // UpdateLightWithHeader returns the light header and its height
-func (pr *Prover) UpdateLightWithHeader() (core.HeaderI, int64, error) {
+func (pr *Prover) UpdateLightWithHeader() (header core.HeaderI, provableHeight int64, queryableHeight int64, err error) {
 	h, err := pr.QueryLatestHeader()
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, -1, err
 	}
-	return h, -1, nil
+	return h, -1, -1, nil
 }
 
 func (prv *Prover) getCurrentHeight() clienttypes.Height {

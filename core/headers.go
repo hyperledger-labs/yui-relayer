@@ -9,8 +9,10 @@ type HeaderI interface {
 }
 
 type SyncHeadersI interface {
-	// GetChainHeight returns the height of chain
-	GetChainHeight(chainID string) int64
+	// GetProvableHeight returns the provable height of chain
+	GetProvableHeight(chainID string) int64
+	// GetQueryableHeight returns the queryable height of chain
+	GetQueryableHeight(chainID string) int64
 	// GetHeader returns the latest header of light client
 	GetHeader(src, dst LightClientIBCQueryierI) (HeaderI, error)
 	// GetHeaders returns the latest headers for both src and dst client.
@@ -20,8 +22,9 @@ type SyncHeadersI interface {
 }
 
 type syncHeaders struct {
-	latestHeaders      map[string]HeaderI // chainID => HeaderI
-	latestChainHeights map[string]int64   // chainID => height
+	latestHeaders          map[string]HeaderI // chainID => HeaderI
+	latestProvableHeights  map[string]int64   // chainID => height
+	latestQueryableHeights map[string]int64   // chainID => height
 }
 
 var _ SyncHeadersI = (*syncHeaders)(nil)
@@ -30,8 +33,9 @@ var _ SyncHeadersI = (*syncHeaders)(nil)
 // kept "reasonably up to date"
 func NewSyncHeaders(src, dst LightClientI) (SyncHeadersI, error) {
 	sh := &syncHeaders{
-		latestHeaders:      map[string]HeaderI{src.GetChainID(): nil, dst.GetChainID(): nil},
-		latestChainHeights: map[string]int64{src.GetChainID(): 0, dst.GetChainID(): 0},
+		latestHeaders:          map[string]HeaderI{src.GetChainID(): nil, dst.GetChainID(): nil},
+		latestProvableHeights:  map[string]int64{src.GetChainID(): 0, dst.GetChainID(): 0},
+		latestQueryableHeights: map[string]int64{src.GetChainID(): 0, dst.GetChainID(): 0},
 	}
 	if err := sh.Updates(src, dst); err != nil {
 		return nil, err
@@ -39,9 +43,14 @@ func NewSyncHeaders(src, dst LightClientI) (SyncHeadersI, error) {
 	return sh, nil
 }
 
-// GetChainHeight implements SyncHeadersI
-func (sh syncHeaders) GetChainHeight(chainID string) int64 {
-	return sh.latestChainHeights[chainID]
+// GetProvableHeight implements SyncHeadersI
+func (sh syncHeaders) GetProvableHeight(chainID string) int64 {
+	return sh.latestProvableHeights[chainID]
+}
+
+// GetQueryableHeight implements SyncHeadersI
+func (sh syncHeaders) GetQueryableHeight(chainID string) int64 {
+	return sh.latestQueryableHeights[chainID]
 }
 
 // GetHeader implements SyncHeadersI
@@ -64,11 +73,11 @@ func (sh syncHeaders) GetHeaders(src, dst LightClientIBCQueryierI) (HeaderI, Hea
 
 // Updates implements SyncHeadersI
 func (sh *syncHeaders) Updates(src, dst LightClientI) error {
-	srcHeader, srcHeight, err := src.UpdateLightWithHeader()
+	srcHeader, srcPHeight, srcQHeight, err := src.UpdateLightWithHeader()
 	if err != nil {
 		return err
 	}
-	dstHeader, dstHeight, err := dst.UpdateLightWithHeader()
+	dstHeader, dstPHeight, dstQHeight, err := dst.UpdateLightWithHeader()
 	if err != nil {
 		return err
 	}
@@ -76,7 +85,10 @@ func (sh *syncHeaders) Updates(src, dst LightClientI) error {
 	sh.latestHeaders[src.GetChainID()] = srcHeader
 	sh.latestHeaders[dst.GetChainID()] = dstHeader
 
-	sh.latestChainHeights[src.GetChainID()] = srcHeight
-	sh.latestChainHeights[dst.GetChainID()] = dstHeight
+	sh.latestProvableHeights[src.GetChainID()] = srcPHeight
+	sh.latestProvableHeights[dst.GetChainID()] = dstPHeight
+
+	sh.latestQueryableHeights[src.GetChainID()] = srcQHeight
+	sh.latestQueryableHeights[dst.GetChainID()] = dstQHeight
 	return nil
 }
