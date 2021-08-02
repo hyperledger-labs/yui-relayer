@@ -198,12 +198,8 @@ github.com/danieljoos/wincred v1.0.2 h1:zf4bhty2iLuwgjgpraD2E9UbvO+fe54XXGJbOwe2
 github.com/danieljoos/wincred v1.0.2/go.mod h1:SnuYRW9lp1oJrZX/dXJqr0cPK5gYXqx3EJbmjhLdK9U=
 github.com/datachainlab/fabric-sdk-go v0.0.0-20200730074927-282a61dcd92e h1:Vr+tcT4FHYYUwOE4xU/H9XhIHAu+1j7lF6uv83DIjO8=
 github.com/datachainlab/fabric-sdk-go v0.0.0-20200730074927-282a61dcd92e/go.mod h1:qWE9Syfg1KbwNjtILk70bJLilnmCvllIYFCSY/pa1RU=
-github.com/datachainlab/ibc-mock-client v0.0.0-20210729090421-a068e70e733b h1:XnQRHEkBL1ZgHupeYc2E2c9xzxpoXROOmZBYlBI7fbE=
-github.com/datachainlab/ibc-mock-client v0.0.0-20210729090421-a068e70e733b/go.mod h1:yz5E2DpB3FJZZjagC4HcW51km5HesF1tFQRr6k0HQvA=
-github.com/datachainlab/ibc-mock-client v0.0.0-20210730150559-e9334c30b8c6 h1:o3WWUALD3GtjszeTApmfqVDh2KRmfQuAvrlkkxYR0eQ=
-github.com/datachainlab/ibc-mock-client v0.0.0-20210730150559-e9334c30b8c6/go.mod h1:yz5E2DpB3FJZZjagC4HcW51km5HesF1tFQRr6k0HQvA=
-github.com/datachainlab/ibc-mock-client v0.0.0-20210801010718-05f8b1087574 h1:5m6ylWxSPVPawO7yEdvxjeKixNN4X2ueYs7g+i9JGTM=
-github.com/datachainlab/ibc-mock-client v0.0.0-20210801010718-05f8b1087574/go.mod h1:yz5E2DpB3FJZZjagC4HcW51km5HesF1tFQRr6k0HQvA=
+github.com/datachainlab/ibc-mock-client v0.0.0-20210801020446-f9dbe7320294 h1:pRUeO7K9GreilvFiasPyV5Ia5eGHrH/A5qWCnOUoeis=
+github.com/datachainlab/ibc-mock-client v0.0.0-20210801020446-f9dbe7320294/go.mod h1:yz5E2DpB3FJZZjagC4HcW51km5HesF1tFQRr6k0HQvA=
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
@@ -486,10 +482,6 @@ github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210708002039-e07ff163f660 
 github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210708002039-e07ff163f660/go.mod h1:Lzjc/wAuoo0kJ5doB/BIH8L/FZVKjHFfBNOe2oPFDgs=
 github.com/hyperledger-labs/yui-fabric-ibc v0.2.0 h1:ARJ7Rxse9sP6Wf/UGuUnsOV3nS8er78Rit7slmz9OcE=
 github.com/hyperledger-labs/yui-fabric-ibc v0.2.0/go.mod h1:0ey1+ANFpyz+8m9e7XqFk9+75VsECKBWPPp4Yf3cTZI=
-github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210729081912-2f7ddf319320 h1:cddCtPiav/ci0gF9a/xRAlQfJCpj/idW28LNdYDeKEE=
-github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210729081912-2f7ddf319320/go.mod h1:Y3rEZX46slCFPSXzTRZsbj6F3OgbM+6VvDnnUBmi2mI=
-github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210731143941-601d9e76a859 h1:lok/BOFV/oyt1AyEhSRAqthmUZ39glZPRzmg4Noair0=
-github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210731143941-601d9e76a859/go.mod h1:Y3rEZX46slCFPSXzTRZsbj6F3OgbM+6VvDnnUBmi2mI=
 github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210801023756-05047b73f120 h1:Fz5GVT+paFhLpUNK+odK0r11rqhHcPX/DaCguAmFlVE=
 github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210801023756-05047b73f120/go.mod h1:Y3rEZX46slCFPSXzTRZsbj6F3OgbM+6VvDnnUBmi2mI=
 github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191 h1:e2Np9BoOHxufPGnGm3qyTh9sIarBpg57RlIvE62yCYE=

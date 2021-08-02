@@ -6,17 +6,18 @@ network:
 		-f ../docker-compose-test.yaml \
 		up -d \
 		tendermint-chain0 \
-		# ganache0
+		ethereum-ganache0
+	make wait-for-launch ATTEMPT=10 CONTAINER=ethereum-ganache0
 
 .PHONY: test
 test:
 	./scripts/fixture
 	./scripts/init-rly
 	./scripts/handshake
-	./scripts/test-tx
+	#./scripts/test-tx
 
 .PHONY: network-down
 network-down:
 	TAG=${DOCKER_TAG} $(DOCKER_COMPOSE) \
 		-f ../docker-compose-test.yaml \
-		down --volume --remove-orphans
+		down -v --remove-orphans
