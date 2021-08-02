@@ -150,3 +150,21 @@ services:
       - 18051:18051
     networks:
       - *network-common
+
+  # Ethereum - ganache
+  ethereum-ganache0:
+    container_name: ethereum-ganache0
+    image: ethereum-ganache0:${TAG}
+    ports:
+      - 8545:8545
+      - 8546:8546
+    networks:
+      - *network-common
+  ethereum-ganache1:
+    container_name: ethereum-ganache1
+    image: ethereum-ganache1:${TAG}
+    ports:
+      - 8645:8545
+      - 8646:8546
+    networks:
+      - *network-common

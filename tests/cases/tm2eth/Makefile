@@ -6,7 +6,7 @@ network:
 		-f ../docker-compose-test.yaml \
 		up -d \
 		tendermint-chain0 \
-		# ganache0
+		ethereum-ganache0
 
 .PHONY: test
 test:
