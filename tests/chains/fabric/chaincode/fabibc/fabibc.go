@@ -7,10 +7,12 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	ibc "github.com/cosmos/ibc-go/modules/core"
 	ibckeeper "github.com/cosmos/ibc-go/modules/core/keeper"
 	ibctypes "github.com/cosmos/ibc-go/modules/core/types"
+	corda "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda"
 	"github.com/hyperledger-labs/yui-fabric-ibc/app"
 	"github.com/hyperledger-labs/yui-fabric-ibc/chaincode"
 	"github.com/hyperledger-labs/yui-fabric-ibc/commitment"
@@ -23,6 +25,14 @@ import (
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	tmdb "github.com/tendermint/tm-db"
 )
+
+func init() {
+	ms := []module.AppModuleBasic{corda.AppModuleBasic{}}
+	for _, m := range example.ModuleBasics {
+		ms = append(ms, m)
+	}
+	example.ModuleBasics = module.NewBasicManager(ms...)
+}
 
 func main() {
 	cc := chaincode.NewIBCChaincode(
