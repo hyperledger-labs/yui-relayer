@@ -1,0 +1,38 @@
+version: '3.5'
+networks:
+  ethereum-scaffold:
+    name: &network-common ethereum-scaffold
+
+services:
+  ganache0-scaffold:
+    container_name: ethereum-ganache0-scaffold
+    build:
+      context: ./Dockerfiles/ganache
+      args:
+        - CHAINID=2018
+        - NETWORKID=${NETWORK_ID0}
+    ports:
+      - "8545:8545"
+      - "8546:8546"
+    networks:
+      - *network-common
+    healthcheck: &healthcheck
+      test: [ "CMD", "wget", "--spider", "--proxy", "off", "http://localhost:8545" ]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+  ganache1-scaffold:
+    container_name: ethereum-ganache1-scaffold
+    build:
+      context: ./Dockerfiles/ganache
+      args:
+        - CHAINID=2019
+        - NETWORKID=${NETWORK_ID1}
+    ports:
+      - "8645:8545"
+      - "8646:8546"
+    networks:
+      - *network-common
+    healthcheck: *healthcheck
+
