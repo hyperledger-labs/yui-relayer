@@ -12,12 +12,11 @@ services:
         - CHAINID=2018
         - NETWORKID=${NETWORK_ID0}
     ports:
-      - "8545:8545"
-      - "8546:8546"
+      - 8545:8545
     networks:
       - *network-common
-    healthcheck: &healthcheck
-      test: [ "CMD", "wget", "--spider", "--proxy", "off", "http://localhost:8545" ]
+    healthcheck: &healthcheck-ganache
+      test: ["CMD", "wget", "--spider", "--post-data", '{"jsonrpc": "2.0", "id": 1, "method": "net_version"}', "http://localhost:8545"]
       interval: 3s
       timeout: 3s
       retries: 10
@@ -30,9 +29,8 @@ services:
         - CHAINID=2019
         - NETWORKID=${NETWORK_ID1}
     ports:
-      - "8645:8545"
-      - "8646:8546"
+      - 8645:8545
     networks:
       - *network-common
-    healthcheck: *healthcheck
+    healthcheck: *healthcheck-ganache
 

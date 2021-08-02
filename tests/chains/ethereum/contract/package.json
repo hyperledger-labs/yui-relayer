@@ -1,6 +1,10 @@
 {
   "name": "contract",
   "version": "1.0.0",
+  "engines": {
+    "node": "12",
+    "npm": "6"
+  },
   "scripts": {
     "migrate": "run-s migrate:chain0 migrate:chain1",
     "migrate:chain0": "truffle migrate --reset --network=chain0",
