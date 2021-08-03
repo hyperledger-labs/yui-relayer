@@ -29,6 +29,7 @@ require (
 replace (
 	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
+	github.com/hyperledger-labs/yui-corda-ibc/go => github.com/siburu/yui-corda-ibc/go v0.0.0-20210803083131-26a2c06b0680
 	github.com/hyperledger/fabric-sdk-go => github.com/datachainlab/fabric-sdk-go v0.0.0-20200730074927-282a61dcd92e
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 )

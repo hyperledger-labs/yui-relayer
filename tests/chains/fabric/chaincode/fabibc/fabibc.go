@@ -13,6 +13,7 @@ import (
 	ibckeeper "github.com/cosmos/ibc-go/modules/core/keeper"
 	ibctypes "github.com/cosmos/ibc-go/modules/core/types"
 	corda "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda"
+	cordatypes "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda/types"
 	"github.com/hyperledger-labs/yui-fabric-ibc/app"
 	"github.com/hyperledger-labs/yui-fabric-ibc/chaincode"
 	"github.com/hyperledger-labs/yui-fabric-ibc/commitment"
@@ -101,7 +102,7 @@ func (app *IBCApp) InitChainer(ctx sdk.Context, appStateBytes []byte) error {
 		return err
 	}
 	ibcGenesisState := ibctypes.DefaultGenesisState()
-	ibcGenesisState.ClientGenesis.Params.AllowedClients = append(ibcGenesisState.ClientGenesis.Params.AllowedClients, fabrictypes.Fabric)
+	ibcGenesisState.ClientGenesis.Params.AllowedClients = append(ibcGenesisState.ClientGenesis.Params.AllowedClients, fabrictypes.Fabric, cordatypes.CordaClientType)
 	genesisState[ibc.AppModule{}.Name()] = app.AppCodec().MustMarshalJSON(ibcGenesisState)
 	bz, err := tmjson.Marshal(genesisState)
 	if err != nil {

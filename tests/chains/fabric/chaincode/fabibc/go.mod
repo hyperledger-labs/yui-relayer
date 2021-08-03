@@ -17,6 +17,6 @@ replace (
 	github.com/cosmos/ibc-go => github.com/datachainlab/ibc-go v0.0.0-20210701135503-8fd4094ce982
 	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
-	github.com/hyperledger-labs/yui-corda-ibc/go => github.com/siburu/yui-corda-ibc/go v0.0.0-20210802085530-ae80e40ac5d1
+	github.com/hyperledger-labs/yui-corda-ibc/go => github.com/siburu/yui-corda-ibc/go v0.0.0-20210803083131-26a2c06b0680
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 )
