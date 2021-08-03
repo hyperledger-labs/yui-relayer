@@ -151,6 +151,15 @@ services:
     networks:
       - *network-common
 
+  # Corda network
+  yui-corda-ibc:
+    container_name: yui-corda-ibc
+    image: yui-corda-ibc:${TAG}
+    ports:
+      - 9999:9999
+    networks:
+      - *network-common
+
   # Ethereum - ganache
   ethereum-ganache0:
     container_name: ethereum-ganache0

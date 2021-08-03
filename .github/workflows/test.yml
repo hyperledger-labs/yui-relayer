@@ -141,8 +141,6 @@ jobs:
         run: |
           ./save_docker_images $CACHE_DOCKER_CORDA_DIR \
             yui-corda-ibc:latest \
-            yui-corda-ibc-client:latest \
-            yui-corda-ibc-lightclientd:latest \
             fabric-chaincode-org1:latest \
             fabric-chaincode-org2:latest
 
