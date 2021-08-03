@@ -324,7 +324,7 @@ jobs:
         working-directory: ./tests/scripts
         run: |
           ./load_docker_images $CACHE_DOCKER_CORDA_DIR \
-             yui-corda-ibc-orderer:latest \
+             yui-corda-ibc:latest \
              fabric-chaincode-org1:latest
       - name: Run Test
         working-directory: ./tests/cases/corda2fab
