@@ -1,0 +1,10 @@
+{
+  "chain": {
+    "@type": "/relayer.corda.config.ChainConfig",
+    "chain_id": "ibc0",
+    "grpc_addr": "localhost:9999"
+  },
+  "prover": {
+    "@type": "/relayer.corda.config.ProverConfig"
+  }
+}

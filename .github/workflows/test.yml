@@ -330,6 +330,7 @@ jobs:
         working-directory: ./tests/cases/corda2fab
         run: |
           make network
+          make test
           make network-down
 
   tm2eth-test:
