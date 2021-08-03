@@ -8,6 +8,7 @@ network:
 		tendermint-chain0 \
 		fabric-orderer.example.com fabric-data.example.com \
 		fabric-peer0.org1.example.com fabric-chaincode.org1.example.com
+	while ! wget -q -O - 'localhost:17051'; do sleep 1; done
 
 .PHONY: test
 test:
