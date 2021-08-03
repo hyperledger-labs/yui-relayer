@@ -288,6 +288,50 @@ jobs:
           make test
           make network-down
 
+  corda2fab-test:
+    name: corda2fab-test
+    runs-on: ubuntu-20.04
+    needs:
+      - relayer-build
+      - corda-build
+      - fabric-build
+    steps:
+      - uses: actions/checkout@v2
+      - name: Restore relayer binary cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_BIN_RELAYER_PATH }}
+          key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
+      - name: Restore Fabric docker image cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_DOCKER_FABRIC_DIR }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ github.sha }}
+      - name: Load Fabric docker images
+        working-directory: ./tests/scripts
+        run: |
+          ./load_docker_images $CACHE_DOCKER_FABRIC_DIR \
+             fabric-orderer:latest \
+             fabric-data:latest \
+             fabric-peer0-org1:latest \
+             fabric-chaincode-org1:latest
+      - name: Restore Corda docker image cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_DOCKER_CORDA_DIR }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_CORDA_KEY }}-${{ github.sha }}
+      - name: Load Corda docker images
+        working-directory: ./tests/scripts
+        run: |
+          ./load_docker_images $CACHE_DOCKER_CORDA_DIR \
+             yui-corda-ibc-orderer:latest \
+             fabric-chaincode-org1:latest
+      - name: Run Test
+        working-directory: ./tests/cases/corda2fab
+        run: |
+          make network
+          make network-down
+
   tm2eth-test:
     name: tm2eth-test
     runs-on: ubuntu-20.04
