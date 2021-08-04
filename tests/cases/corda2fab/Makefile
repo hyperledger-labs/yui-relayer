@@ -9,6 +9,7 @@ network:
 		fabric-orderer.example.com fabric-data.example.com \
 		fabric-peer0.org1.example.com fabric-chaincode.org1.example.com
 	while ! wget -q -O - 'localhost:9999'; do sleep 1; done
+	while ! wget -q -O - 'localhost:29999'; do sleep 1; done
 	while ! wget -q -O - 'localhost:17051'; do sleep 1; done
 
 .PHONY: test
