@@ -6,6 +6,9 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd)
 RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
 RLY="${RLY_BINARY} --debug"
 
+CORDA_CLI_DIR="${SCRIPT_DIR}/../../../chains/corda/yui-corda-ibc/rust"
+CORDA_CLI="${CORDA_CLI_DIR}/target/release/yui-corda-ibc-client"
+
 # Ensure ${CHAIN_BINARY} is installed
 if ! [ -x ${CHAIN_BINARY} ]; then
   echo "Error: ${CHAIN_BINARY} is not installed." >&2
@@ -15,14 +18,14 @@ fi
 # XXX set proper value
 TX_INTERNAL=3
 
-CORDA_ADDRESS=???
+CORDA_ADDRESS=$(${CORDA_CLI} node address-from-name -e http://localhost:9999 -n PartyA)
 FABRIC_ADDRESS=$(${RLY} fabric wallet address ibc1 | tail -n 1)
 
 echo "!!! Corda -> Fabric !!!"
 
 echo "Before Cor balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS})"
 echo "Before Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"
-${RLY} tx transfer ibc01 ibc0 ibc1 100USD ${FABRIC_ADDRESS}
+${RLY} tx transfer ibc01 ibc0 ibc1 100USD$(${CORDA_CLI} node pubkey-from-name -e http://localhost:9999 -n Bank) ${FABRIC_ADDRESS}
 sleep ${TX_INTERNAL}
 ${RLY} tx relay ibc01
 sleep ${TX_INTERNAL}

@@ -9,6 +9,16 @@ RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
 RLY="${RLY_BINARY} --debug"
 FIXTURES_DIR=${SCRIPT_DIR}/../fixtures
 
+CORDA_CLI_DIR="${SCRIPT_DIR}/../../../chains/corda/yui-corda-ibc/rust"
+CORDA_CLI="${CORDA_CLI_DIR}/target/release/yui-corda-ibc-client"
+
+# Ensure ${RLY_BINARY} is installed
+(cd ${CORDA_CLI_DIR} && cargo build --release)
+if ! [ -x ${CORDA_CLI} ]; then
+  echo "Error: ${CORDA_CLI} is not installed." >&2
+  exit 1
+fi
+
 echo "Generating ${RLY_BINARY} configurations..."
 
 # Ensure ${RLY_BINARY} is installed
