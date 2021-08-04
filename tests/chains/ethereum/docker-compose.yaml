@@ -9,7 +9,7 @@ services:
     build:
       context: ./Dockerfiles/ganache
       args:
-        - CHAINID=2018
+        - CHAINID=1337
         - NETWORKID=${NETWORK_ID0}
     ports:
       - 8545:8545
@@ -26,7 +26,7 @@ services:
     build:
       context: ./Dockerfiles/ganache
       args:
-        - CHAINID=2019
+        - CHAINID=1338
         - NETWORKID=${NETWORK_ID1}
     ports:
       - 8645:8545

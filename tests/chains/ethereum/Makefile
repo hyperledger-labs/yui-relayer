@@ -2,8 +2,8 @@ include ../../docker.mk
 
 SCRIPT_DIR ?= $(CURDIR)/scripts
 
-NETWORK_ID0 ?= 12018
-NETWORK_ID1 ?= 12019
+NETWORK_ID0 ?= 13370
+NETWORK_ID1 ?= 13380
 
 export NETWORK_ID0
 export NETWORK_ID1
