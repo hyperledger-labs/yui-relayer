@@ -157,6 +157,7 @@ services:
     image: yui-corda-ibc:${TAG}
     ports:
       - 9999:9999
+      - 29999:29999
     networks:
       - *network-common
 
