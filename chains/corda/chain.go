@@ -1,11 +1,13 @@
 package corda
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	cordatypes "github.com/hyperledger-labs/yui-corda-ibc/go/x/ibc/light-clients/xx-corda/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
@@ -32,7 +34,19 @@ func (c *Chain) ClientID() string {
 }
 
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
-	return make([]byte, 20), nil
+	req := cordatypes.AddressFromNameRequest{
+		Name:       c.config.PartyName,
+		ExactMatch: false,
+	}
+	resp, err := c.client.node.AddressFromName(context.TODO(), &req)
+	if err != nil {
+		return nil, err
+	}
+	addr, err := sdk.AccAddressFromBech32(resp.Address)
+	if err != nil {
+		return nil, err
+	}
+	return addr, nil
 }
 
 func (c *Chain) Codec() codec.ProtoCodecMarshaler {
