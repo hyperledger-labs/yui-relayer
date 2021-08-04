@@ -21,11 +21,13 @@ TX_INTERNAL=3
 CORDA_ADDRESS=$(${CORDA_CLI} node address-from-name -e http://localhost:9999 -n PartyA)
 FABRIC_ADDRESS=$(${RLY} fabric wallet address ibc1 | tail -n 1)
 
+DENOM=USD$(${CORDA_CLI} node pubkey-from-name -e http://localhost:9999 -n Bank)
+
 echo "!!! Corda -> Fabric !!!"
 
 echo "Before Cor balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS})"
 echo "Before Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"
-${RLY} tx transfer ibc01 ibc0 ibc1 100USD$(${CORDA_CLI} node pubkey-from-name -e http://localhost:9999 -n Bank) ${FABRIC_ADDRESS}
+${RLY} tx transfer ibc01 ibc0 ibc1 100${DENOM} ${FABRIC_ADDRESS}
 sleep ${TX_INTERNAL}
 ${RLY} tx relay ibc01
 sleep ${TX_INTERNAL}
@@ -38,7 +40,7 @@ echo "!!! Fabric -> Corda !!!"
 
 echo "Before Cor balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS})"
 echo "Before Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"
-${RLY} tx transfer ibc01 ibc1 ibc0 100transfer/channel-0/USD ${CORDA_ADDRESS}
+${RLY} tx transfer ibc01 ibc1 ibc0 100transfer/channel-0/${DENOM} ${CORDA_ADDRESS}
 sleep ${TX_INTERNAL}
 ${RLY} tx relay ibc01
 sleep ${TX_INTERNAL}
