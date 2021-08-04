@@ -7,7 +7,7 @@ network:
 		up -d \
 		tendermint-chain0 \
 		ethereum-ganache0
-	make wait-for-launch ATTEMPT=10 CONTAINER=ethereum-ganache0
+	make wait-for-launch ATTEMPT=30 CONTAINER=ethereum-ganache0
 
 .PHONY: test
 test:

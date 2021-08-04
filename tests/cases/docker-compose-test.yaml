@@ -161,10 +161,10 @@ services:
       - *network-common
     healthcheck: &healthcheck-ganache
       test: ["CMD", "wget", "--spider", "--post-data", '{"jsonrpc": "2.0", "id": 1, "method": "net_version"}', "http://localhost:8545"]
-      interval: 5s
+      start_period: 3s
+      interval: 1s
       timeout: 3s
-      retries: 10
-      start_period: 5s
+      retries: 30
   ethereum-ganache1:
     container_name: ethereum-ganache1
     image: ethereum-ganache1:${TAG}

@@ -18,7 +18,7 @@ docker-images:
 
 .PHONY: deploy-contract
 deploy-contract:
-	make wait-for-launch ATTEMPT=10 CONTAINER=ethereum-ganache0-scaffold
+	make wait-for-launch ATTEMPT=30 CONTAINER=ethereum-ganache0-scaffold
 	cd contract && npm run migrate
 
 .PHONY: up-scaffold

@@ -8,4 +8,4 @@ MAKEFILE_DIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 .PHONY: wait-for-launch
 wait-for-launch:
-	$(MAKEFILE_DIR)/scripts/wait-for-launch $(ATTEMPT) $(CONTAINER)
+	$(MAKEFILE_DIR)scripts/wait-for-launch $(ATTEMPT) $(CONTAINER)
