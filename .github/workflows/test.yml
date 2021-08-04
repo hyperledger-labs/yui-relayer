@@ -297,6 +297,8 @@ jobs:
       - fabric-build
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Restore relayer binary cache
         uses: actions/cache@v2
         with:
