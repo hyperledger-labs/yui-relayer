@@ -34,7 +34,7 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 		case *chantypes.MsgChannelOpenConfirm:
 			err = c.client.chanOpenConfirm(msg)
 		case *chantypes.MsgRecvPacket:
-			err = c.client.recvPacket(msg)
+			err = c.bankNodeClient.recvPacket(msg)
 		case *chantypes.MsgAcknowledgement:
 			err = c.client.acknowledgement(msg)
 		case *transfertypes.MsgTransfer:

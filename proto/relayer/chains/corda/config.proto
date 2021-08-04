@@ -10,6 +10,7 @@ message ChainConfig {
   string chain_id = 1;
   string grpc_addr = 2;
   string party_name = 3;
+  string bank_grpc_addr = 4;
 }
 
 message ProverConfig {}

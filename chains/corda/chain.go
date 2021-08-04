@@ -16,7 +16,8 @@ type Chain struct {
 	pathEnd *core.PathEnd
 	codec   codec.ProtoCodecMarshaler
 
-	client *cordaIbcClient
+	client         *cordaIbcClient
+	bankNodeClient *cordaIbcClient
 }
 
 func NewChain(config ChainConfig) *Chain {
@@ -74,6 +75,11 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 		return err
 	} else {
 		c.client = client
+	}
+	if client, err := createCordaIbcClient(c.config.BankGrpcAddr); err != nil {
+		return err
+	} else {
+		c.bankNodeClient = client
 	}
 	c.codec = codec
 	return nil
