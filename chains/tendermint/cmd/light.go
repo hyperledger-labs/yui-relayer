@@ -103,7 +103,7 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			ah, _, err := prover.UpdateLightWithHeader()
+			ah, _, _, err := prover.UpdateLightWithHeader()
 			if err != nil {
 				return err
 			}

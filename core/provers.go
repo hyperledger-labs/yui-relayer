@@ -29,7 +29,7 @@ type LightClientI interface {
 	SetupHeader(dst LightClientIBCQueryierI, baseSrcHeader HeaderI) (HeaderI, error)
 
 	// UpdateLightWithHeader updates a header on the light client and returns the header and height corresponding to the chain
-	UpdateLightWithHeader() (HeaderI, int64, error)
+	UpdateLightWithHeader() (header HeaderI, provableHeight int64, queryableHeight int64, err error)
 }
 
 // LightClientIBCQueryierI is LightClientI + IBCQuerierI

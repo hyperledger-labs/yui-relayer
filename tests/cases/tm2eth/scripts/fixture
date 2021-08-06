@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -eux
+
+DOCKER=docker
+FIXTURES_DIR=./fixtures
+
+# Setup test fixtures
+
+# first, remove the old fixtures
+rm -rf ${FIXTURES_DIR}
+
+# for tendermint
+
+mkdir -p ${FIXTURES_DIR}/tendermint/ibc0
+# retrieve the mnemonic from the container to the local
+${DOCKER} cp tendermint-chain0:/root/data/ibc0/key_seed.json  ${FIXTURES_DIR}/tendermint/ibc0/key_seed.json
+
+# for ethereum
+mkdir -p ${FIXTURES_DIR}/ethereum/chain0/contracts
+# retrieve the mnemonic and files with contract address from the container to the local
+${DOCKER} cp ethereum-ganache0:/root/mnemonic ${FIXTURES_DIR}/ethereum/chain0/
+${DOCKER} cp ethereum-ganache0:/root/contracts ${FIXTURES_DIR}/ethereum/chain0/
+
+# generate a json file for Relayer configuration from a template file
+IBCHostAddress=$(cat ${FIXTURES_DIR}/ethereum/chain0/contracts/IBCHost)
+IBCHandlerAddress=$(cat ${FIXTURES_DIR}/ethereum/chain0/contracts/IBCHandler)
+
+sed -e "s/\"ibc_host_address\": \"\"/\"ibc_host_address\": \"${IBCHostAddress}\"/" \
+    -e "s/\"ibc_handler_address\": \"\"/\"ibc_handler_address\": \"${IBCHandlerAddress}\"/" \
+    configs/tpl/ibc-1.json.tpl > configs/demo/ibc-1.json

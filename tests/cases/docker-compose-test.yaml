@@ -15,7 +15,7 @@ services:
       - 6060:6060
       - 9090:9090
     healthcheck:
-      test: "wget -q -O - http://localhost:26657/health || exit1"
+      test: "wget -q -O - http://localhost:26657/health || exit 1"
       interval: 30s
       timeout: 10s
       retries: 5
@@ -30,7 +30,7 @@ services:
       - 6061:6060
       - 9091:9090
     healthcheck:
-      test: "wget -q -O - http://localhost:26657/health || exit1"
+      test: "wget -q -O - http://localhost:26657/health || exit 1"
       interval: 30s
       timeout: 10s
       retries: 5
@@ -57,7 +57,7 @@ services:
       - 7050:7050
       - 8443:8443
     healthcheck:
-      test: "wget -q -O - http://localhost:8443/healthz || exit1"
+      test: "wget -q -O - http://localhost:8443/healthz || exit 1"
       interval: 30s
       timeout: 10s
       retries: 5
@@ -97,7 +97,7 @@ services:
       - 7053:7053
       - 9443:9443
     healthcheck:
-      test: "wget -q -O - http://localhost:9443/healthz || exit1"
+      test: "wget -q -O - http://localhost:9443/healthz || exit 1"
       interval: 30s
       timeout: 10s
       retries: 5
@@ -136,7 +136,7 @@ services:
       - 8053:8053
       - 9444:9443
     healthcheck:
-      test: "wget -q -O - http://localhost:9443/healthz || exit1"
+      test: "wget -q -O - http://localhost:9443/healthz || exit 1"
       interval: 30s
       timeout: 10s
       retries: 5
@@ -150,3 +150,27 @@ services:
       - 18051:18051
     networks:
       - *network-common
+
+  # Ethereum - ganache
+  ethereum-ganache0:
+    container_name: ethereum-ganache0
+    image: ethereum-ganache0:${TAG}
+    ports:
+      - 8545:8545
+    networks:
+      - *network-common
+    healthcheck: &healthcheck-ganache
+      test: ["CMD", "wget", "--spider", "--post-data", '{"jsonrpc": "2.0", "id": 1, "method": "net_version"}', "http://localhost:8545"]
+      start_period: 3s
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  ethereum-ganache1:
+    container_name: ethereum-ganache1
+    image: ethereum-ganache1:${TAG}
+    ports:
+      - 8645:8545
+    networks:
+      - *network-common
+    healthcheck:
+      *healthcheck-ganache

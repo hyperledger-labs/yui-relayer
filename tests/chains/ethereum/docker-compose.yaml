@@ -1,0 +1,35 @@
+version: '3.5'
+networks:
+  ethereum-scaffold:
+    name: &network-common ethereum-scaffold
+
+services:
+  ganache0-scaffold:
+    container_name: ethereum-ganache0-scaffold
+    build:
+      context: ./Dockerfiles/ganache
+      args:
+        - CHAINID=1337
+        - NETWORKID=${NETWORK_ID0}
+    ports:
+      - 8545:8545
+    networks:
+      - *network-common
+    healthcheck: &healthcheck-ganache
+      test: ["CMD", "wget", "--spider", "--post-data", '{"jsonrpc": "2.0", "id": 1, "method": "net_version"}', "http://localhost:8545"]
+      start_period: 3s
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  ganache1-scaffold:
+    container_name: ethereum-ganache1-scaffold
+    build:
+      context: ./Dockerfiles/ganache
+      args:
+        - CHAINID=1338
+        - NETWORKID=${NETWORK_ID1}
+    ports:
+      - 8645:8545
+    networks:
+      - *network-common
+    healthcheck: *healthcheck-ganache
