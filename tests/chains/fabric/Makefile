@@ -10,10 +10,10 @@ SCRIPT_DIR ?= $(CURDIR)/scripts
 
 .PHONY: bin
 bin:
-	rm -rf $(CURDIR)/.bin
-	curl -sSL https://bit.ly/2ysbOFE | bash -s -- $(FABRIC_VERSION) $(FABRIC_CA_VERSION) -d -s
-	rm -rf $(CURDIR)/config
-	mv $(CURDIR)/bin $(CURDIR)/.bin
+	rm -rf ./.bin
+	curl -sSL https://raw.githubusercontent.com/hyperledger/fabric/v$(FABRIC_VERSION)/scripts/bootstrap.sh | bash -s -- $(FABRIC_VERSION) $(FABRIC_CA_VERSION) -d -s
+	rm -rf ./config
+	mv ./bin ./.bin
 
 .PHONY: clean
 clean:
@@ -21,15 +21,14 @@ clean:
 	rm -rf backup
 	rm -rf build
 	rm -rf organizations
+	rm -rf external-builders/config/**/fabibc/code.tar.gz
 
 .PHONY: cryptogen
 cryptogen:
-	rm -rf $(CURDIR)/organizations
-	$(FABRIC_BIN_DIR)/cryptogen generate --config $(CURDIR)/cryptogen/crypto-config.yaml --output ./organizations
+	$(FABRIC_BIN_DIR)/cryptogen generate --config ./cryptogen/crypto-config.yaml --output ./organizations
 
 .PHONY: configtx
 configtx:
-	rm -rf $(CURDIR)/artifacts
 	$(SCRIPT_DIR)/configtx.sh
 
 .PHONY: initial-data
@@ -59,13 +58,10 @@ channel:
 
 .PHONY: chaincode
 chaincode:
-	rm -rf $(CURDIR)/build
-	rm -rf $(CURDIR)/external-builders/config/**/tfspoc-paint/code.tar.gz
 	$(SCRIPT_DIR)/deployCC.sh
 
 .PHONY: backup
 backup:
-	rm -rf $(CURDIR)/backup
 	$(SCRIPT_DIR)/docker/backupVolume.sh
 
 .PHONY: snapshot
