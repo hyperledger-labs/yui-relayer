@@ -1,0 +1,12 @@
+{
+  "chain": {
+    "@type": "/relayer.chains.corda.config.ChainConfig",
+    "chain_id": "ibc0",
+    "grpc_addr": "localhost:9999",
+    "party_name": "PartyA",
+    "bank_grpc_addr": "localhost:29999"
+  },
+  "prover": {
+    "@type": "/relayer.chains.corda.config.ProverConfig"
+  }
+}

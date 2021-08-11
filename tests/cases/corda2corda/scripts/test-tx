@@ -1,0 +1,50 @@
+#!/bin/bash
+
+set -e
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
+RLY="${RLY_BINARY} --debug"
+
+CORDA_CLI_DIR="${SCRIPT_DIR}/../../../chains/corda/yui-corda-ibc/rust"
+CORDA_CLI="${CORDA_CLI_DIR}/target/release/yui-corda-ibc-client"
+
+# Ensure ${CHAIN_BINARY} is installed
+if ! [ -x ${CHAIN_BINARY} ]; then
+  echo "Error: ${CHAIN_BINARY} is not installed." >&2
+  exit 1
+fi
+
+# XXX set proper value
+TX_INTERNAL=3
+
+CORDA_ADDRESS1=$(${CORDA_CLI} node address-from-name -e http://localhost:9999 -n PartyA)
+CORDA_ADDRESS2=$(${CORDA_CLI} node address-from-name -e http://localhost:9998 -n PartyA)
+
+DENOM=USD$(${CORDA_CLI} node pubkey-from-name -e http://localhost:9999 -n Bank)
+
+echo "!!! Corda1 -> Corda2 !!!"
+
+echo "Before Cor1 balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS1})"
+echo "Before Cor2 balance: $(${RLY} query balance ibc1 ${CORDA_ADDRESS2})"
+${RLY} tx transfer ibc01 ibc0 ibc1 100${DENOM} ${CORDA_ADDRESS2}
+sleep ${TX_INTERNAL}
+${RLY} tx relay ibc01
+sleep ${TX_INTERNAL}
+${RLY} tx acks ibc01
+sleep ${TX_INTERNAL}
+echo "After Cor1 balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS1})"
+echo "After Cor2 balance: $(${RLY} query balance ibc1 ${CORDA_ADDRESS2})"
+
+echo "!!! Corda2 -> Corda1 !!!"
+
+echo "Before Cor1 balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS1})"
+echo "Before Cor2 balance: $(${RLY} query balance ibc1 ${CORDA_ADDRESS2})"
+${RLY} tx transfer ibc01 ibc1 ibc0 100transfer/channel-0/${DENOM} ${CORDA_ADDRESS1}
+sleep ${TX_INTERNAL}
+${RLY} tx relay ibc01
+sleep ${TX_INTERNAL}
+${RLY} tx acks ibc01
+sleep ${TX_INTERNAL}
+echo "After Cor1 balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS1})"
+echo "After Cor2 balance: $(${RLY} query balance ibc1 ${CORDA_ADDRESS2})"

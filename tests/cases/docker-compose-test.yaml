@@ -152,12 +152,20 @@ services:
       - *network-common
 
   # Corda network
-  yui-corda-ibc:
-    container_name: yui-corda-ibc
+  yui-corda-ibc1:
+    container_name: yui-corda-ibc1
     image: yui-corda-ibc:${TAG}
     ports:
       - 9999:9999
       - 29999:29999
+    networks:
+      - *network-common
+  yui-corda-ibc2:
+    container_name: yui-corda-ibc2
+    image: yui-corda-ibc:${TAG}
+    ports:
+      - 9998:9999
+      - 29998:29999
     networks:
       - *network-common
 
