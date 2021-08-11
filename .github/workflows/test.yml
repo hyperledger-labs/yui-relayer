@@ -335,6 +335,38 @@ jobs:
           make test
           make network-down
 
+  corda2corda-test:
+    name: corda2corda-test
+    runs-on: ubuntu-20.04
+    needs:
+      - relayer-build
+      - corda-build
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Restore relayer binary cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_BIN_RELAYER_PATH }}
+          key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
+      - name: Restore Corda docker image cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_DOCKER_CORDA_DIR }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_CORDA_KEY }}-${{ github.sha }}
+      - name: Load Corda docker images
+        working-directory: ./tests/scripts
+        run: |
+          ./load_docker_images $CACHE_DOCKER_CORDA_DIR \
+             yui-corda-ibc:latest
+      - name: Run Test
+        working-directory: ./tests/cases/corda2corda
+        run: |
+          make network
+          make test
+          make network-down
+
   tm2eth-test:
     name: tm2eth-test
     runs-on: ubuntu-20.04
