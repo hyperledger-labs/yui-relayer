@@ -1,1 +1,0 @@
-{"@type":"/relayer.chains.corda.config.ChainConfig","chain_id":"ibc3","grpc_addr":"localhost:19999"}
