@@ -21,7 +21,7 @@ TX_INTERNAL=3
 CORDA_ADDRESS=$(${CORDA_CLI} node address-from-name -e http://localhost:9999 -n PartyA)
 FABRIC_ADDRESS=$(${RLY} fabric wallet address ibc1 | tail -n 1)
 
-DENOM=USD$(${CORDA_CLI} node pubkey-from-name -e http://localhost:9999 -n Bank)
+DENOM=USD$(${CORDA_CLI} node pubkey-from-name -e http://localhost:9999 -n Notary)
 
 echo "!!! Corda -> Fabric !!!"
 
