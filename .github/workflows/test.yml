@@ -140,6 +140,7 @@ jobs:
         run: |
           ./save_docker_images $CACHE_DOCKER_CORDA_DIR \
             yui-corda-ibc:latest \
+            yui-corda-ibc-client:latest \
             fabric-chaincode-org1:latest
 
   ethereum-build:
@@ -325,6 +326,7 @@ jobs:
         run: |
           ./load_docker_images $CACHE_DOCKER_CORDA_DIR \
              yui-corda-ibc:latest \
+             yui-corda-ibc-client:latest \
              fabric-chaincode-org1:latest
       - name: Run Test
         working-directory: ./tests/cases/corda2fab
@@ -357,7 +359,8 @@ jobs:
         working-directory: ./tests/scripts
         run: |
           ./load_docker_images $CACHE_DOCKER_CORDA_DIR \
-             yui-corda-ibc:latest
+             yui-corda-ibc:latest \
+             yui-corda-ibc-client:latest
       - name: Run Test
         working-directory: ./tests/cases/corda2corda
         run: |

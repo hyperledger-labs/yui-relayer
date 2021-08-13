@@ -6,8 +6,7 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd)
 RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
 RLY="${RLY_BINARY} --debug"
 
-CORDA_CLI_DIR="${SCRIPT_DIR}/../../../chains/corda/yui-corda-ibc/rust"
-CORDA_CLI="${CORDA_CLI_DIR}/target/release/yui-corda-ibc-client"
+CORDA_CLI='docker run --rm --userns host --network host yui-corda-ibc-client yui-corda-ibc-client'
 
 # Ensure ${CHAIN_BINARY} is installed
 if ! [ -x ${CHAIN_BINARY} ]; then
