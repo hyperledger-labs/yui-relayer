@@ -127,22 +127,20 @@ jobs:
         working-directory: ./tests/scripts
         run: |
           ./load_docker_images $CACHE_DOCKER_FABRIC_DIR \
-             fabric-chaincode-org1:latest \
-             fabric-chaincode-org2:latest
+             fabric-chaincode-org1:latest
       - name: Build docker images
         if: steps.cache-docker-corda.outputs.cache-hit != 'true'
         working-directory: ./tests/chains/corda
         run: |
           make docker-images
-          make rebuild-chaincode-images
+          make rebuild-chaincode1-image
       - name: Save docker images
         if: steps.cache-docker-corda.outputs.cache-hit != 'true'
         working-directory: ./tests/scripts
         run: |
           ./save_docker_images $CACHE_DOCKER_CORDA_DIR \
             yui-corda-ibc:latest \
-            fabric-chaincode-org1:latest \
-            fabric-chaincode-org2:latest
+            fabric-chaincode-org1:latest
 
   ethereum-build:
     name: ethereum-build
