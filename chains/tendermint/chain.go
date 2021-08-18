@@ -46,7 +46,8 @@ type Chain struct {
 	Keybase  keys.Keyring     `yaml:"-" json:"-"`
 	Client   rpcclient.Client `yaml:"-" json:"-"`
 
-	codec codec.ProtoCodecMarshaler `yaml:"-" json:"-"`
+	codec            codec.ProtoCodecMarshaler `yaml:"-" json:"-"`
+	msgEventListener core.MsgEventListener
 
 	address sdk.AccAddress
 	logger  log.Logger
@@ -149,10 +150,21 @@ func (c *Chain) GetLatestHeight() (int64, error) {
 	return res.SyncInfo.LatestBlockHeight, nil
 }
 
+// RegisterMsgEventListener registers a given EventListener to the chain
+func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
+	c.msgEventListener = listener
+}
+
 func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 	res, _, err := c.rawSendMsgs(msgs)
 	if err != nil {
 		return nil, err
+	}
+	if res.Code == 0 && c.msgEventListener != nil {
+		if err := c.msgEventListener.OnSentMsg(c.PathEnd, msgs); err != nil {
+			c.logger.Error("failed to OnSendMsg call", "msgs", msgs, "err", err)
+			return res, nil
+		}
 	}
 	return res, nil
 }

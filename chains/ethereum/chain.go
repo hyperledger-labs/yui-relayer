@@ -27,10 +27,11 @@ import (
 type Chain struct {
 	config ChainConfig
 
-	pathEnd  *core.PathEnd
-	homePath string
-	chainID  *big.Int
-	codec    codec.ProtoCodecMarshaler
+	pathEnd          *core.PathEnd
+	homePath         string
+	chainID          *big.Int
+	codec            codec.ProtoCodecMarshaler
+	msgEventListener core.MsgEventListener
 
 	relayerPrvKey *ecdsa.PrivateKey
 	client        *ethclient.Client
@@ -118,6 +119,11 @@ func (c *Chain) ErrCantSetPath(err error) error {
 
 func (c *Chain) Path() *core.PathEnd {
 	return c.pathEnd
+}
+
+// RegisterMsgEventListener registers a given EventListener to the chain
+func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
+	c.msgEventListener = listener
 }
 
 // StartEventListener ...
