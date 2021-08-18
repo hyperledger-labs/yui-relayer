@@ -12,9 +12,10 @@ import (
 )
 
 type Chain struct {
-	config  ChainConfig
-	pathEnd *core.PathEnd
-	codec   codec.ProtoCodecMarshaler
+	config           ChainConfig
+	pathEnd          *core.PathEnd
+	codec            codec.ProtoCodecMarshaler
+	msgEventListener core.MsgEventListener
 
 	client         *cordaIbcClient
 	bankNodeClient *cordaIbcClient
@@ -64,6 +65,11 @@ func (c *Chain) SetPath(p *core.PathEnd) error {
 
 func (c *Chain) Path() *core.PathEnd {
 	return c.pathEnd
+}
+
+// RegisterMsgEventListener registers a given EventListener to the chain
+func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
+	c.msgEventListener = listener
 }
 
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {

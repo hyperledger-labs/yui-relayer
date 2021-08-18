@@ -18,9 +18,10 @@ type Chain struct {
 	pathEnd  *core.PathEnd
 	homePath string
 
-	codec   codec.ProtoCodecMarshaler
-	gateway FabricGateway
-	logger  log.Logger
+	codec            codec.ProtoCodecMarshaler
+	gateway          FabricGateway
+	logger           log.Logger
+	msgEventListener core.MsgEventListener
 }
 
 func NewChain(config ChainConfig) *Chain {
@@ -83,6 +84,11 @@ func (c *Chain) SetPath(p *core.PathEnd) error {
 
 func (c *Chain) Path() *core.PathEnd {
 	return c.pathEnd
+}
+
+// RegisterMsgEventListener registers a given EventListener to the chain
+func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
+	c.msgEventListener = listener
 }
 
 func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {

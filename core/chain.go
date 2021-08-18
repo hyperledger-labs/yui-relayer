@@ -56,7 +56,16 @@ type ChainI interface {
 	// Init ...
 	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
 
+	// RegisterMsgEventListener registers a given EventListener to the chain
+	RegisterMsgEventListener(MsgEventListener)
+
 	IBCQuerierI
+}
+
+// MsgEventListener is a listener that listens a msg send to the chain
+type MsgEventListener interface {
+	// OnSentMsg is a callback functoin that is called when a msg send to the chain
+	OnSentMsg(path *PathEnd, msgs []sdk.Msg) error
 }
 
 // IBCQuerierI is an interface to the state of IBC

@@ -45,6 +45,11 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		if c.msgEventListener != nil {
+			if err := c.msgEventListener.OnSentMsg(c.pathEnd, []sdk.Msg{msg}); err != nil {
+				log.Println("failed to OnSendMsg call", "msg", msg, "err", err)
+			}
+		}
 	}
 	return nil, nil
 }
