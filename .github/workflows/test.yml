@@ -52,7 +52,7 @@ jobs:
         id: cache-docker-tendermint
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
       - name: Build docker images
         if: steps.cache-docker-tendermint.outputs.cache-hit != 'true'
         working-directory: ./tests/chains/tendermint
@@ -73,7 +73,7 @@ jobs:
         id: cache-docker-fabric
         with:
           path: ${{ env.CACHE_DOCKER_FABRIC_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ hashFiles('tests/chains/fabric/**', '!**/.git/**') }}
       - name: Download Fabric binaries
         id: download-fabric-binaries
         if: steps.cache-docker-fabric.outputs.cache-hit != 'true'
@@ -115,13 +115,13 @@ jobs:
         id: cache-docker-corda
         with:
           path: ${{ env.CACHE_DOCKER_CORDA_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_CORDA_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_CORDA_KEY }}-${{ hashFiles('tests/chains/corda/**', 'tests/chains/fabric/**', '!**/.git/**') }}
       - name: Restore Fabric docker image cache
         if: steps.cache-docker-corda.outputs.cache-hit != 'true'
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_FABRIC_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ hashFiles('tests/chains/fabric/**', '!**/.git/**') }}
       - name: Load Fabric docker images
         if: steps.cache-docker-corda.outputs.cache-hit != 'true'
         working-directory: ./tests/scripts
@@ -197,7 +197,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
       - name: Load Tendermint docker images
         working-directory: ./tests/scripts
         run: |
@@ -227,7 +227,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
       - name: Load Tendermint docker image
         working-directory: ./tests/scripts
         run: |
@@ -236,7 +236,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_FABRIC_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ hashFiles('tests/chains/fabric/**', '!**/.git/**') }}
       - name: Load Fabric docker images
         working-directory: ./tests/scripts
         run: |
@@ -269,7 +269,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_FABRIC_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ hashFiles('tests/chains/fabric/**', '!**/.git/**') }}
       - name: Load Fabric docker image
         working-directory: ./tests/scripts
         run: |
@@ -307,7 +307,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_FABRIC_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_FABRIC_KEY }}-${{ hashFiles('tests/chains/fabric/**', '!**/.git/**') }}
       - name: Load Fabric docker images
         working-directory: ./tests/scripts
         run: |
@@ -320,7 +320,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_CORDA_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_CORDA_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_CORDA_KEY }}-${{ hashFiles('tests/chains/corda/**', 'tests/chains/fabric/**', '!**/.git/**') }}
       - name: Load Corda docker images
         working-directory: ./tests/scripts
         run: |
@@ -354,7 +354,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_CORDA_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_CORDA_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_CORDA_KEY }}-${{ hashFiles('tests/chains/corda/**', 'tests/chains/fabric/**', '!**/.git/**') }}
       - name: Load Corda docker images
         working-directory: ./tests/scripts
         run: |
@@ -386,7 +386,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
       - name: Load Tendermint docker image
         working-directory: ./tests/scripts
         run: |
