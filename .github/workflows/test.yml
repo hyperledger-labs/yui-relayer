@@ -155,7 +155,7 @@ jobs:
         id: cache-docker-ethereum-ganache
         with:
           path: ${{ env.CACHE_DOCKER_ETHEREUM_GANACHE_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_ETHEREUM_GANACHE_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_ETHEREUM_GANACHE_KEY }}-${{ hashFiles('tests/chains/ethereum/**', '!**/.git/**') }}
       - uses: actions/cache@v2
         id: cache-ethereum-contract
         if: steps.cache-docker-ethereum-ganache.outputs.cache-hit != 'true'
@@ -395,7 +395,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_ETHEREUM_GANACHE_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_ETHEREUM_GANACHE_KEY }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_ETHEREUM_GANACHE_KEY }}-${{ hashFiles('tests/chains/ethereum/**', '!**/.git/**') }}
       - name: Load Ethereum docker image
         working-directory: ./tests/scripts
         run: |
