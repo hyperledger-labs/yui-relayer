@@ -52,3 +52,32 @@ func CreateClients(src, dst *ProvableChain) error {
 	}
 	return nil
 }
+
+func UpdateClients(src, dst *ProvableChain) error {
+	var (
+		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
+	)
+	// First, update the light clients to the latest header and return the header
+	sh, err := NewSyncHeaders(src, dst)
+	if err != nil {
+		return err
+	}
+	srcUpdateHeader, dstUpdateHeader, err := sh.GetHeaders(src, dst)
+	if err != nil {
+		return err
+	}
+	if dstUpdateHeader != nil {
+		clients.Src = append(clients.Src, src.Path().UpdateClient(dstUpdateHeader, mustGetAddress(src)))
+	}
+	if srcUpdateHeader != nil {
+		clients.Dst = append(clients.Dst, dst.Path().UpdateClient(srcUpdateHeader, mustGetAddress(dst)))
+	}
+	// Send msgs to both chains
+	if clients.Ready() {
+		if clients.Send(src, dst); clients.Success() {
+			log.Println(fmt.Sprintf("★ Clients updated: [%s]client(%s) and [%s]client(%s)",
+				src.ChainID(), src.Path().ClientID, dst.ChainID(), dst.Path().ClientID))
+		}
+	}
+	return nil
+}
