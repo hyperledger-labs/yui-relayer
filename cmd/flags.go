@@ -51,7 +51,7 @@ func jsonFlag(cmd *cobra.Command) *cobra.Command {
 }
 
 func timeoutFlag(cmd *cobra.Command) *cobra.Command {
-	cmd.Flags().StringP(flagTimeout, "o", "10s", "timeout between relayer runs")
+	cmd.Flags().StringP(flagTimeout, "o", "1s", "timeout between relayer runs")
 	if err := viper.BindPFlag(flagTimeout, cmd.Flags().Lookup(flagTimeout)); err != nil {
 		panic(err)
 	}

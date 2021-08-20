@@ -1,1 +1,0 @@
-{"@type":"/relayer.chains.fabric.config.ChainConfig","chain_id":"ibc5","msp_id":"Org1MSP","channel":"channel1","chaincode_id":"fabibc","connection_profile_path":"./ccp/org1.yaml","ibc_policies":["Org1MSP", "Org2MSP"],"endorsement_policies":["Org1MSP", "Org2MSP"],"msp_config_paths":["./fixtures/msps/Org1MSP", "./fixtures/msps/Org2MSP"]}

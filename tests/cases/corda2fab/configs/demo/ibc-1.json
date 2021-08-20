@@ -1,0 +1,22 @@
+{
+  "chain": {
+    "@type": "/relayer.chains.fabric.config.ChainConfig",
+    "chain_id": "ibc1",
+    "wallet_label": "Org1MSP",
+    "connection_profile_path": "./fixtures/fabric/org1/connection-profile/local.yaml",
+    "channel": "channel1",
+    "chaincode_id": "fabibc"
+  },
+  "prover": {
+    "@type": "/relayer.chains.fabric.config.ProverConfig",
+    "ibc_policies": [
+      "Org1MSP"
+    ],
+    "endorsement_policies": [
+      "Org1MSP"
+    ],
+    "msp_config_paths": [
+      "./fixtures/fabric/org1/peers/peer0.org1.example.com/msp"
+    ]
+  }
+}

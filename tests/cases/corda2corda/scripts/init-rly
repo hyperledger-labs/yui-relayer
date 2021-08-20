@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -x
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+
+RELAYER_CONF="$HOME/.urelayer"
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
+RLY="${RLY_BINARY} --debug"
+FIXTURES_DIR=${SCRIPT_DIR}/../fixtures
+
+echo "Generating ${RLY_BINARY} configurations..."
+
+# Ensure ${RLY_BINARY} is installed
+if ! [ -x ${RLY_BINARY} ]; then
+  echo "Error: ${RLY_BINARY} is not installed." >&2
+  exit 1
+fi
+
+rm -rf ${RELAYER_CONF} &> /dev/null
+
+${RLY} config init
+${RLY} chains add-dir configs/demo/

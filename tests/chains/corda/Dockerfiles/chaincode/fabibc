@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cd /usr/src/app
+./gradlew :lightclientd:runLightclientd --args 60000 &
+while ! nc -z localhost 60000
+do
+	sleep 1
+done
+
+exec fabibc-chaincode

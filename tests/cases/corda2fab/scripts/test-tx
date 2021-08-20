@@ -2,111 +2,48 @@
 
 set -e
 
-RLY_BINARY=../../build/uly
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
 RLY="${RLY_BINARY} --debug"
 
-CORDA_ADDRESS=cosmos1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqnrql8a
-FABRIC_ADDRESS=$(${RLY} fabric wallet address ibc5 | tail -n 1)
+CORDA_CLI='docker run --rm --userns host --network host yui-corda-ibc-client yui-corda-ibc-client'
 
-echo
-echo '==================== BEGIN: TRANSFER1 ====================' 
-echo
-${RLY} tx transfer ibc45 ibc4 ibc5 10USD $FABRIC_ADDRESS --timeout-time-offset 100s
-echo
-echo '==================== END: TRANSFER1 ====================' 
-echo
+# Ensure ${CHAIN_BINARY} is installed
+if ! [ -x ${CHAIN_BINARY} ]; then
+  echo "Error: ${CHAIN_BINARY} is not installed." >&2
+  exit 1
+fi
 
-echo
-echo '==================== BEGIN: RELAY1 ====================' 
-echo
-${RLY} tx relay ibc45
-echo
-echo '==================== END: RELAY1 ====================' 
-echo
+# XXX set proper value
+TX_INTERNAL=3
 
+CORDA_ADDRESS=$(${CORDA_CLI} node address-from-name -e http://localhost:9999 -n PartyA)
+FABRIC_ADDRESS=$(${RLY} fabric wallet address ibc1 | tail -n 1)
 
-echo
-echo '==================== BEGIN: ACKS1 ====================' 
-echo
-${RLY} tx acks ibc45
-echo
-echo '==================== END: ACKS1 ====================' 
-echo
+DENOM=USD$(${CORDA_CLI} node pubkey-from-name -e http://localhost:9999 -n Notary)
 
-${RLY} query balance ibc5 $FABRIC_ADDRESS
+echo "!!! Corda -> Fabric !!!"
 
-echo
-echo '==================== BEGIN: TRANSFER2 ====================' 
-echo
-${RLY} tx transfer ibc45 ibc4 ibc5 10USD $FABRIC_ADDRESS --timeout-time-offset 100s
-echo
-echo '==================== END: TRANSFER2 ====================' 
-echo
+echo "Before Cor balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS})"
+echo "Before Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"
+${RLY} tx transfer ibc01 ibc0 ibc1 100${DENOM} ${FABRIC_ADDRESS}
+sleep ${TX_INTERNAL}
+${RLY} tx relay ibc01
+sleep ${TX_INTERNAL}
+${RLY} tx acks ibc01
+sleep ${TX_INTERNAL}
+echo "After Cor balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS})"
+echo "After Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"
 
-echo
-echo '==================== BEGIN: RELAY2 ====================' 
-echo
-${RLY} tx relay ibc45
-echo
-echo '==================== END: RELAY2 ====================' 
-echo
+echo "!!! Fabric -> Corda !!!"
 
-echo
-echo '==================== BEGIN: ACKS2 ====================' 
-echo
-${RLY} tx acks ibc45
-echo
-echo '==================== END: ACKS2 ====================' 
-echo
-
-${RLY} query balance ibc5 $FABRIC_ADDRESS
-
-echo
-echo '==================== BEGIN: TRANSFER3 ====================' 
-echo
-${RLY} tx transfer ibc45 ibc4 ibc5 10USD $FABRIC_ADDRESS --timeout-time-offset 100s
-echo
-echo '==================== END: TRANSFER3 ====================' 
-echo
-
-echo
-echo '==================== BEGIN: RELAY3  ====================' 
-echo
-${RLY} tx relay ibc45
-echo
-echo '==================== END: RELAY3  ====================' 
-echo
-
-echo
-echo '==================== BEGIN: ACKS3  ====================' 
-echo
-${RLY} tx acks ibc45
-echo
-echo '==================== END: ACKS3  ====================' 
-echo
-
-${RLY} query balance ibc5 $FABRIC_ADDRESS
-
-echo
-echo '==================== BEGIN: TRANSFER4 ====================' 
-echo
-${RLY} tx transfer ibc45 ibc5 ibc4 30transfer/ibcfivexfer/USD $CORDA_ADDRESS --timeout-time-offset 100s
-echo
-echo '==================== END: TRANSFER4 ====================' 
-echo
-
-echo
-echo '==================== BEGIN: RELAY4  ====================' 
-echo
-${RLY} tx relay ibc45
-echo
-echo '==================== END: RELAY4  ====================' 
-echo
-
-echo
-echo '==================== BEGIN: ACKS4  ====================' 
-echo
-${RLY} tx acks ibc45
-echo
-echo '==================== END: ACKS4  ====================' 
-echo
+echo "Before Cor balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS})"
+echo "Before Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"
+${RLY} tx transfer ibc01 ibc1 ibc0 100transfer/channel-0/${DENOM} ${CORDA_ADDRESS}
+sleep ${TX_INTERNAL}
+${RLY} tx relay ibc01
+sleep ${TX_INTERNAL}
+${RLY} tx acks ibc01
+sleep ${TX_INTERNAL}
+echo "After Cor balance: $(${RLY} query balance ibc0 ${CORDA_ADDRESS})"
+echo "After Fab balance: $(${RLY} query balance ibc1 ${FABRIC_ADDRESS} | tail -n 1)"

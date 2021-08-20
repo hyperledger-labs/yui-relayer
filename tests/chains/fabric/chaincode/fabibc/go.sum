@@ -445,6 +445,8 @@ github.com/holiman/uint256 v1.1.1/go.mod h1:y4ga/t+u+Xwd7CpDgZESaRcWy0I7XMlTMA25
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/huin/goupnp v1.0.0/go.mod h1:n9v9KO1tAxYH82qOn+UTIFQDmx5n1Zxd/ClZDMX7Bnc=
 github.com/huin/goutil v0.0.0-20170803182201-1ca381bf3150/go.mod h1:PpLOETDnJ0o3iZrZfqZzyLl6l7F3c6L1oWn7OICBi6o=
+github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210811021327-6987ac24cf84 h1:VBHh2L6i8vIu4luT5bl5iPXtFFb/PHvFykJr1qSckzw=
+github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210811021327-6987ac24cf84/go.mod h1:TLUR8B4T2bysDITKnWwtswpVVCIBrnmPZoP0OpAUbio=
 github.com/hyperledger-labs/yui-fabric-ibc v0.2.0 h1:ARJ7Rxse9sP6Wf/UGuUnsOV3nS8er78Rit7slmz9OcE=
 github.com/hyperledger-labs/yui-fabric-ibc v0.2.0/go.mod h1:0ey1+ANFpyz+8m9e7XqFk9+75VsECKBWPPp4Yf3cTZI=
 github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191 h1:e2Np9BoOHxufPGnGm3qyTh9sIarBpg57RlIvE62yCYE=

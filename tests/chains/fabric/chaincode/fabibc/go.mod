@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/cosmos/cosmos-sdk v0.43.0-beta1
 	github.com/cosmos/ibc-go v1.0.0-beta1
+	github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210811021327-6987ac24cf84
 	github.com/hyperledger-labs/yui-fabric-ibc v0.2.0
 	github.com/hyperledger/fabric-chaincode-go v0.0.0-20200511190512-bcfeb58dd83a
 	github.com/hyperledger/fabric-contract-api-go v1.1.0

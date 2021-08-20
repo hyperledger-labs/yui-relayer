@@ -12,6 +12,8 @@ import (
 type cordaIbcClient struct {
 	conn *grpc.ClientConn
 
+	node cordatypes.NodeServiceClient
+
 	host cordatypes.HostServiceClient
 	bank cordatypes.BankServiceClient
 
@@ -34,6 +36,8 @@ func createCordaIbcClient(addr string) (*cordaIbcClient, error) {
 
 	return &cordaIbcClient{
 		conn: conn,
+
+		node: cordatypes.NewNodeServiceClient(conn),
 
 		host: cordatypes.NewHostServiceClient(conn),
 		bank: cordatypes.NewBankServiceClient(conn),
