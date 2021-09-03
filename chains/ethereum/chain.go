@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	committypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
+	"github.com/cosmos/ibc-go/modules/core/exported"
 	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
 	"github.com/ethereum/go-ethereum/ethclient"
 
@@ -133,11 +133,15 @@ func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibce
 	} else if !found {
 		return nil, fmt.Errorf("client consensus not found: %v", c.pathEnd.ClientID)
 	}
-	var any codectypes.Any
-	if err := c.Codec().Unmarshal(s, &any); err != nil {
+	var consensusState exported.ConsensusState
+	if err := c.Codec().UnmarshalInterface(s, &consensusState); err != nil {
 		return nil, err
 	}
-	return clienttypes.NewQueryConsensusStateResponse(&any, nil, clienttypes.NewHeight(0, uint64(height))), nil
+	any, err := clienttypes.PackConsensusState(consensusState)
+	if err != nil {
+		return nil, err
+	}
+	return clienttypes.NewQueryConsensusStateResponse(any, nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
 // QueryClientState returns the client state of dst chain
@@ -149,11 +153,15 @@ func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateRes
 	} else if !found {
 		return nil, fmt.Errorf("client not found: %v", c.pathEnd.ClientID)
 	}
-	var any codectypes.Any
-	if err := c.Codec().Unmarshal(s, &any); err != nil {
+	var clientState exported.ClientState
+	if err := c.Codec().UnmarshalInterface(s, &clientState); err != nil {
 		return nil, err
 	}
-	return clienttypes.NewQueryClientStateResponse(&any, nil, clienttypes.NewHeight(0, uint64(height))), nil
+	any, err := clienttypes.PackClientState(clientState)
+	if err != nil {
+		return nil, err
+	}
+	return clienttypes.NewQueryClientStateResponse(any, nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
 var emptyConnRes = conntypes.NewQueryConnectionResponse(
