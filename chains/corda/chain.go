@@ -72,10 +72,6 @@ func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
 	c.msgEventListener = listener
 }
 
-func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
-	panic("not implemented error")
-}
-
 func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
 	if client, err := createCordaIbcClient(c.config.GrpcAddr); err != nil {
 		return err
@@ -88,6 +84,11 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 		c.bankNodeClient = client
 	}
 	c.codec = codec
+	return nil
+}
+
+// SetupForRelay ...
+func (c *Chain) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 

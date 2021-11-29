@@ -138,6 +138,10 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 	return nil
 }
 
+func (c *Chain) SetupForRelay(ctx context.Context) error {
+	return nil
+}
+
 // QueryLatestHeight queries the chain for the latest height and returns it
 func (c *Chain) GetLatestHeight() (int64, error) {
 	res, err := c.Client.Status(context.Background())
@@ -161,7 +165,7 @@ func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 		return nil, err
 	}
 	if res.Code == 0 && c.msgEventListener != nil {
-		if err := c.msgEventListener.OnSentMsg(c.PathEnd, msgs); err != nil {
+		if err := c.msgEventListener.OnSentMsg(msgs); err != nil {
 			c.logger.Error("failed to OnSendMsg call", "msgs", msgs, "err", err)
 			return res, nil
 		}
@@ -332,10 +336,6 @@ func (c *Chain) Send(msgs []sdk.Msg) bool {
 	c.LogSuccessTx(res, msgs)
 
 	return true
-}
-
-func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
-	panic("not implemented error")
 }
 
 // ------------------------------- //

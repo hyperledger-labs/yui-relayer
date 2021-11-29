@@ -1,6 +1,10 @@
 package core
 
 import (
+	"context"
+	"time"
+
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 )
@@ -9,6 +13,12 @@ import (
 type ProverI interface {
 	LightClientI
 	IBCProvableQuerierI
+	// Init ...
+	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
+	// SetPath sets a given path to the chain
+	SetPath(p *PathEnd) error
+	// SetupForRelay ...
+	SetupForRelay(ctx context.Context) error
 }
 
 // LightClientI is an interface to the light client

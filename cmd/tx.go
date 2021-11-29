@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -174,6 +175,10 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			}
 			st, err := core.GetStrategy(*path.Strategy)
 			if err != nil {
+				return err
+			}
+
+			if err := st.SetupRelay(context.TODO(), c[src], c[dst]); err != nil {
 				return err
 			}
 

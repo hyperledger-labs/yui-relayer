@@ -1,9 +1,11 @@
 package mock
 
 import (
+	"context"
 	"crypto/sha256"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
@@ -24,6 +26,18 @@ var _ core.ProverI = (*Prover)(nil)
 
 func NewProver(chain core.ChainI, sequence uint64) *Prover {
 	return &Prover{chain: chain, sequence: sequence}
+}
+
+func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
+	return nil
+}
+
+func (pr *Prover) SetPath(p *core.PathEnd) error {
+	return nil // prover uses chain's path instead
+}
+
+func (pr *Prover) SetupForRelay(ctx context.Context) error {
+	return nil
 }
 
 // GetChainID returns the chain ID

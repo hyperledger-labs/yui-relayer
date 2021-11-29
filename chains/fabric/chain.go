@@ -1,6 +1,7 @@
 package fabric
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -34,6 +35,11 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 	c.homePath = homePath
 	c.codec = codec
 	c.logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+	return nil
+}
+
+// SetupForRelay ...
+func (c *Chain) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
@@ -89,10 +95,6 @@ func (c *Chain) Path() *core.PathEnd {
 // RegisterMsgEventListener registers a given EventListener to the chain
 func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
 	c.msgEventListener = listener
-}
-
-func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
-	panic("not implemented error")
 }
 
 // errCantSetPath returns an error if the path doesn't set properly

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -21,6 +22,36 @@ type ProvableChain struct {
 // NewProvableChain returns a new ProvableChain instance
 func NewProvableChain(chain ChainI, prover ProverI) *ProvableChain {
 	return &ProvableChain{ChainI: chain, ProverI: prover}
+}
+
+func (pc *ProvableChain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
+	if err := pc.ChainI.Init(homePath, timeout, codec, debug); err != nil {
+		return err
+	}
+	if err := pc.ProverI.Init(homePath, timeout, codec, debug); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pc *ProvableChain) SetPath(path *PathEnd) error {
+	if err := pc.ChainI.SetPath(path); err != nil {
+		return err
+	}
+	if err := pc.ProverI.SetPath(path); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pc *ProvableChain) SetupForRelay(ctx context.Context) error {
+	if err := pc.ChainI.SetupForRelay(ctx); err != nil {
+		return err
+	}
+	if err := pc.ProverI.SetupForRelay(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ChainI represents a chain that supports sending transactions and querying the state
@@ -50,11 +81,11 @@ type ChainI interface {
 	// It returns a boolean value whether the result is success
 	Send(msgs []sdk.Msg) bool
 
-	// StartEventListener ...
-	StartEventListener(dst ChainI, strategy StrategyI)
-
 	// Init ...
 	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
+
+	// SetupForRelay ...
+	SetupForRelay(ctx context.Context) error
 
 	// RegisterMsgEventListener registers a given EventListener to the chain
 	RegisterMsgEventListener(MsgEventListener)
@@ -65,7 +96,7 @@ type ChainI interface {
 // MsgEventListener is a listener that listens a msg send to the chain
 type MsgEventListener interface {
 	// OnSentMsg is a callback functoin that is called when a msg send to the chain
-	OnSentMsg(path *PathEnd, msgs []sdk.Msg) error
+	OnSentMsg(msgs []sdk.Msg) error
 }
 
 // IBCQuerierI is an interface to the state of IBC
