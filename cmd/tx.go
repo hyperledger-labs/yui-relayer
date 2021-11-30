@@ -26,6 +26,7 @@ func transactionCmd(ctx *config.Context) *cobra.Command {
 		relayAcksCmd(ctx),
 		flags.LineBreak,
 		createClientsCmd(ctx),
+		updateClientsCmd(ctx),
 		createConnectionCmd(ctx),
 		createChannelCmd(ctx),
 	)
@@ -55,6 +56,33 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			return core.CreateClients(c[src], c[dst])
+		},
+	}
+	return cmd
+}
+
+func updateClientsCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update-clients [path-name]",
+		Short: "update the clients between two configured chains with a configured path",
+		Long: strings.TrimSpace(`This command is meant to be used to updates 
+			the clients with a configured path in the config file`),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
+			if err != nil {
+				return err
+			}
+
+			// ensure that keys exist
+			if _, err = c[src].GetAddress(); err != nil {
+				return err
+			}
+			if _, err = c[dst].GetAddress(); err != nil {
+				return err
+			}
+
+			return core.UpdateClients(c[src], c[dst])
 		},
 	}
 	return cmd
