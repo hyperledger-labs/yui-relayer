@@ -14,9 +14,8 @@ import (
 
 func pathsCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "paths",
-		Aliases: []string{"pth"},
-		Short:   "manage path configurations",
+		Use:   "paths",
+		Short: "manage path configurations",
 		Long: `
 A path represents the "full path" or "link" for communication between two chains. This includes the client, 
 connection, and channel ids from both the source and destination chains as well as the strategy to use when relaying`,
@@ -32,9 +31,8 @@ connection, and channel ids from both the source and destination chains as well 
 
 func pathsListCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"l"},
-		Short:   "print out configured paths",
+		Use:   "list",
+		Short: "print out configured paths",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			jsn, _ := cmd.Flags().GetBool(flagJSON)
 			yml, _ := cmd.Flags().GetBool(flagYAML)
@@ -48,26 +46,13 @@ func pathsListCmd(ctx *config.Context) *cobra.Command {
 				}
 				fmt.Println(string(out))
 				return nil
-			case jsn:
+			default: // default format is json
 				out, err := json.Marshal(ctx.Config.Paths)
 				if err != nil {
 					return err
 				}
 				fmt.Println(string(out))
 				return nil
-			default:
-				// i := 0
-				// for k, pth := range configInstance.Paths {
-				// 	chains, err := configInstance.GetChains(pth.Src.ChainID, pth.Dst.ChainID)
-				// 	if err != nil {
-				// 		return err
-				// 	}
-				// 	stat := pth.QueryPathStatus(chains[pth.Src.ChainID], chains[pth.Dst.ChainID]).Status
-				// 	printPath(i, k, pth, checkmark(stat.Chains), checkmark(stat.Clients), checkmark(stat.Connection), checkmark(stat.Channel))
-				// 	i++
-				// }
-				// return nil
-				return fmt.Errorf("not implemented error")
 			}
 		},
 	}
@@ -76,41 +61,27 @@ func pathsListCmd(ctx *config.Context) *cobra.Command {
 
 func pathsAddCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "add [src-chain-id] [dst-chain-id] [path-name]",
-		Aliases: []string{"a"},
-		Short:   "add a path to the list of paths",
-		Args:    cobra.ExactArgs(3),
+		Use:   "add [path-name]",
+		Short: "add a path to the list of paths",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			src, dst := args[0], args[1]
-			_, err := ctx.Config.GetChains(src)
-			if err != nil {
-				return fmt.Errorf("chains need to be configured before paths to them can be added: %w", err)
-			}
-
 			file, err := cmd.Flags().GetString(flagFile)
 			if err != nil {
 				return err
 			}
-
-			if file != "" {
-				if err := fileInputPathAdd(ctx.Config, file, args[2]); err != nil {
-					return err
-				}
-			} else {
-				if err := userInputPathAdd(ctx.Config, src, dst, args[2]); err != nil {
-					return err
-				}
+			if err := fileInputPathAdd(ctx, file, args[0]); err != nil {
+				return err
 			}
-
 			return overWriteConfig(ctx, cmd)
 		},
 	}
-	return fileFlag(cmd)
+	cmd = fileFlag(cmd)
+	cmd.MarkFlagRequired(flagFile)
+	return cmd
 }
 
-func fileInputPathAdd(config *config.Config, file, name string) error {
+func fileInputPathAdd(ctx *config.Context, file, name string) error {
 	// If the user passes in a file, attempt to read the chain config from that file
-	p := &core.Path{}
 	if _, err := os.Stat(file); err != nil {
 		return err
 	}
@@ -120,147 +91,13 @@ func fileInputPathAdd(config *config.Config, file, name string) error {
 		return err
 	}
 
-	if err = json.Unmarshal(byt, &p); err != nil {
+	path, err := core.UnmarshalPath(ctx.Codec, byt)
+	if err != nil {
 		return err
 	}
 
-	if err = config.Paths.Add(name, p); err != nil {
+	if err = ctx.Config.Paths.Add(name, path); err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func userInputPathAdd(config *config.Config, src, dst, name string) error {
-	var (
-		value string
-		err   error
-		path  = &core.Path{
-			Strategy: &core.StrategyCfg{Type: "naive"},
-			Src: &core.PathEnd{
-				ChainID: src,
-				Order:   "ORDERED",
-			},
-			Dst: &core.PathEnd{
-				ChainID: dst,
-				Order:   "ORDERED",
-			},
-		}
-	)
-
-	fmt.Printf("enter src(%s) client-id...\n", src)
-	if value, err = readStdin(); err != nil {
-		return err
-	}
-
-	path.Src.ClientID = value
-
-	if err = path.Src.Vclient(); err != nil {
-		return err
-	}
-
-	fmt.Printf("enter src(%s) connection-id...\n", src)
-	if value, err = readStdin(); err != nil {
-		return err
-	}
-
-	path.Src.ConnectionID = value
-
-	if err = path.Src.Vconn(); err != nil {
-		return err
-	}
-
-	fmt.Printf("enter src(%s) channel-id...\n", src)
-	if value, err = readStdin(); err != nil {
-		return err
-	}
-
-	path.Src.ChannelID = value
-
-	if err = path.Src.Vchan(); err != nil {
-		return err
-	}
-
-	fmt.Printf("enter src(%s) port-id...\n", src)
-	if value, err = readStdin(); err != nil {
-		return err
-	}
-
-	path.Src.PortID = value
-
-	if err = path.Src.Vport(); err != nil {
-		return err
-	}
-
-	fmt.Printf("enter src(%s) version...\n", src)
-	if value, err = readStdin(); err != nil {
-		return err
-	}
-
-	path.Src.Version = value
-
-	if err = path.Src.Vversion(); err != nil {
-		return err
-	}
-
-	fmt.Printf("enter dst(%s) client-id...\n", dst)
-	if value, err = readStdin(); err != nil {
-		return err
-	}
-
-	path.Dst.ClientID = value
-
-	if err = path.Dst.Vclient(); err != nil {
-		return err
-	}
-
-	fmt.Printf("enter dst(%s) connection-id...\n", dst)
-	if value, err = readStdin(); err != nil {
-		return err
-	}
-
-	path.Dst.ConnectionID = value
-
-	if err = path.Dst.Vconn(); err != nil {
-		return err
-	}
-
-	fmt.Printf("enter dst(%s) channel-id...\n", dst)
-	if value, err = readStdin(); err != nil {
-		return err
-	}
-
-	path.Dst.ChannelID = value
-
-	if err = path.Dst.Vchan(); err != nil {
-		return err
-	}
-
-	fmt.Printf("enter dst(%s) port-id...\n", dst)
-	if value, err = readStdin(); err != nil {
-		return err
-	}
-
-	path.Dst.PortID = value
-
-	if err = path.Dst.Vport(); err != nil {
-		return err
-	}
-
-	fmt.Printf("enter dst(%s) version...\n", dst)
-	if value, err = readStdin(); err != nil {
-		return err
-	}
-
-	path.Dst.Version = value
-
-	if err = path.Dst.Vversion(); err != nil {
-		return err
-	}
-
-	if err = config.Paths.Add(name, path); err != nil {
-		return err
-	}
-
 	return nil
 }

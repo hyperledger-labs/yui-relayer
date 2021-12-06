@@ -13,7 +13,7 @@ import (
 
 type Chain struct {
 	config           ChainConfig
-	pathEnd          *core.PathEnd
+	pathEnd          core.PathEndI
 	codec            codec.ProtoCodecMarshaler
 	msgEventListener core.MsgEventListener
 
@@ -32,7 +32,7 @@ func (c *Chain) ChainID() string {
 }
 
 func (c *Chain) ClientID() string {
-	return c.pathEnd.ClientID
+	return c.pathEnd.ClientID()
 }
 
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
@@ -55,7 +55,7 @@ func (c *Chain) Codec() codec.ProtoCodecMarshaler {
 	return c.codec
 }
 
-func (c *Chain) SetPath(p *core.PathEnd) error {
+func (c *Chain) SetPath(p core.PathEndI) error {
 	if err := p.Validate(); err != nil {
 		return c.errCantSetPath(err)
 	}
@@ -63,7 +63,7 @@ func (c *Chain) SetPath(p *core.PathEnd) error {
 	return nil
 }
 
-func (c *Chain) Path() *core.PathEnd {
+func (c *Chain) Path() core.PathEndI {
 	return c.pathEnd
 }
 

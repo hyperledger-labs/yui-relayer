@@ -1,0 +1,17 @@
+syntax = "proto3";
+package relayer.core.path;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/hyperledger-labs/yui-relayer/core";
+option (gogoproto.goproto_getters_all) = false;
+
+message PathEnd {
+  string chain_id = 1;
+  string client_id = 2;
+  string connection_id = 3;
+  string channel_id = 4;
+  string port_id = 5;
+  string order = 6;
+  string version = 7;
+}

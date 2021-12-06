@@ -1,17 +1,16 @@
 package core
 
 import (
-	"crypto/rand"
+	"encoding/json"
 	"fmt"
-	"math/big"
-	"strings"
 
 	"golang.org/x/sync/errgroup"
-	"gopkg.in/yaml.v2"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
+	"github.com/hyperledger-labs/yui-relayer/utils"
 )
 
 const (
@@ -21,15 +20,6 @@ const (
 
 // Paths represent connection paths between chains
 type Paths map[string]*Path
-
-// MustYAML returns the yaml string representation of the Paths
-func (p Paths) MustYAML() string {
-	out, err := yaml.Marshal(p)
-	if err != nil {
-		panic(err)
-	}
-	return string(out)
-}
 
 // Get returns the configuration for a given path
 func (p Paths) Get(name string) (path *Path, err error) {
@@ -74,20 +64,11 @@ func (p Paths) AddForce(name string, path *Path) error {
 	return nil
 }
 
-// MustYAML returns the yaml string representation of the Path
-func (p *Path) MustYAML() string {
-	out, err := yaml.Marshal(p)
-	if err != nil {
-		panic(err)
-	}
-	return string(out)
-}
-
 // PathsFromChains returns a path from the config between two chains
 func (p Paths) PathsFromChains(src, dst string) (Paths, error) {
 	out := Paths{}
 	for name, path := range p {
-		if (path.Dst.ChainID == src || path.Src.ChainID == src) && (path.Dst.ChainID == dst || path.Src.ChainID == dst) {
+		if (path.Dst().ChainID() == src || path.Src().ChainID() == src) && (path.Dst().ChainID() == dst || path.Src().ChainID() == dst) {
 			out[name] = path
 		}
 	}
@@ -97,104 +78,95 @@ func (p Paths) PathsFromChains(src, dst string) (Paths, error) {
 	return out, nil
 }
 
-type PathAction struct {
-	*Path
-	Type string `json:"type"`
-}
-
 // Path represents a pair of chains and the identifiers needed to
 // relay over them
 type Path struct {
-	Src      *PathEnd     `yaml:"src" json:"src"`
-	Dst      *PathEnd     `yaml:"dst" json:"dst"`
-	Strategy *StrategyCfg `yaml:"strategy" json:"strategy"`
+	SrcJSON  json.RawMessage `yaml:"src" json:"src"`
+	DstJSON  json.RawMessage `yaml:"dst" json:"dst"`
+	Strategy *StrategyCfg    `yaml:"strategy" json:"strategy"`
+
+	// cache
+	src PathEndI
+	dst PathEndI
 }
 
-// GenSrcClientID generates the specififed identifier
-func (p *Path) GenSrcClientID() { p.Src.ClientID = RandLowerCaseLetterString(10) }
+func UnmarshalPath(cdc codec.Codec, bz json.RawMessage) (*Path, error) {
+	var path Path
+	if err := json.Unmarshal(bz, &path); err != nil {
+		return nil, err
+	}
+	if err := path.Init(cdc); err != nil {
+		return nil, err
+	}
+	return &path, nil
+}
 
-// GenDstClientID generates the specififed identifier
-func (p *Path) GenDstClientID() { p.Dst.ClientID = RandLowerCaseLetterString(10) }
+func (p *Path) Init(cdc codec.Codec) error {
+	var src, dst PathEndI
+	if err := utils.UnmarshalJSONAny(cdc, &src, p.SrcJSON); err != nil {
+		return err
+	}
+	if err := utils.UnmarshalJSONAny(cdc, &dst, p.DstJSON); err != nil {
+		return err
+	}
+	p.src = src
+	p.dst = dst
+	return nil
+}
 
-// GenSrcConnID generates the specififed identifier
-func (p *Path) GenSrcConnID() { p.Src.ConnectionID = RandLowerCaseLetterString(10) }
+func (p *Path) Src() PathEndI {
+	if p.src == nil {
+		panic("Path must be initialized with UnmarshalPath function")
+	}
+	return p.src
+}
 
-// GenDstConnID generates the specififed identifier
-func (p *Path) GenDstConnID() { p.Dst.ConnectionID = RandLowerCaseLetterString(10) }
-
-// GenSrcChanID generates the specififed identifier
-func (p *Path) GenSrcChanID() { p.Src.ChannelID = RandLowerCaseLetterString(10) }
-
-// GenDstChanID generates the specififed identifier
-func (p *Path) GenDstChanID() { p.Dst.ChannelID = RandLowerCaseLetterString(10) }
+func (p *Path) Dst() PathEndI {
+	if p.dst == nil {
+		panic("Path must be initialized with UnmarshalPath function")
+	}
+	return p.dst
+}
 
 // Ordered returns true if the path is ordered and false if otherwise
 func (p *Path) Ordered() bool {
-	return p.Src.GetOrder() == chantypes.ORDERED
+	return p.Src().ChannelOrder() == chantypes.ORDERED
 }
 
 // Validate checks that a path is valid
 func (p *Path) Validate() (err error) {
-	if err = p.Src.Validate(); err != nil {
+	if err = p.Src().Validate(); err != nil {
 		return err
 	}
-	if p.Src.Version == "" {
+	if p.Src().ChannelVersion() == "" {
 		return fmt.Errorf("source must specify a version")
 	}
-	if err = p.Dst.Validate(); err != nil {
+	if err = p.Dst().Validate(); err != nil {
 		return err
 	}
 	if _, err = p.GetStrategy(); err != nil {
 		return err
 	}
-	if p.Src.Order != p.Dst.Order {
+	if p.Src().ChannelOrder() != p.Dst().ChannelOrder() {
 		return fmt.Errorf("both sides must have same order ('ORDERED' or 'UNORDERED'), got src(%s) and dst(%s)",
-			p.Src.Order, p.Dst.Order)
+			p.Src().ChannelOrder(), p.Dst().ChannelOrder())
 	}
 	return nil
 }
 
 // End returns the proper end given a chainID
-func (p *Path) End(chainID string) *PathEnd {
-	if p.Dst.ChainID == chainID {
-		return p.Dst
+func (p *Path) End(chainID string) PathEndI {
+	if p.Dst().ChainID() == chainID {
+		return p.Dst()
 	}
-	if p.Src.ChainID == chainID {
-		return p.Src
+	if p.Src().ChainID() == chainID {
+		return p.Src()
 	}
 	return &PathEnd{}
 }
 
 func (p *Path) String() string {
-	return fmt.Sprintf("[ ] %s ->\n %s", p.Src.String(), p.Dst.String())
-}
-
-// GenPath generates a path with random client, connection and channel identifiers
-// given chainIDs and portIDs
-func GenPath(srcChainID, dstChainID, srcPortID, dstPortID, order string, version string) *Path {
-	return &Path{
-		Src: &PathEnd{
-			ChainID:      srcChainID,
-			ClientID:     RandLowerCaseLetterString(10),
-			ConnectionID: RandLowerCaseLetterString(10),
-			ChannelID:    RandLowerCaseLetterString(10),
-			PortID:       srcPortID,
-			Order:        order,
-			Version:      version,
-		},
-		Dst: &PathEnd{
-			ChainID:      dstChainID,
-			ClientID:     RandLowerCaseLetterString(10),
-			ConnectionID: RandLowerCaseLetterString(10),
-			ChannelID:    RandLowerCaseLetterString(10),
-			PortID:       dstPortID,
-			Order:        order,
-			Version:      version,
-		},
-		Strategy: &StrategyCfg{
-			Type: "naive",
-		},
-	}
+	return fmt.Sprintf("[ ] %s ->\n %s", p.Src().String(), p.Dst().String())
 }
 
 // PathStatus holds the status of the primatives in the path
@@ -296,9 +268,9 @@ func (ps *PathWithStatus) PrintString(name string) string {
     Chains:       %s
     Clients:      %s
     Connection:   %s
-    Channel:      %s`, name, pth.Strategy.Type, pth.Src.ChainID,
-		pth.Src.ClientID, pth.Src.ConnectionID, pth.Src.ChannelID, pth.Src.PortID,
-		pth.Dst.ChainID, pth.Dst.ClientID, pth.Dst.ConnectionID, pth.Dst.ChannelID, pth.Dst.PortID,
+    Channel:      %s`, name, pth.Strategy.Type, pth.Src().ChainID(),
+		pth.Src().ClientID(), pth.Src().ConnectionID(), pth.Src().ChannelID(), pth.Src().PortID(),
+		pth.Dst().ChainID(), pth.Dst().ClientID(), pth.Dst().ConnectionID(), pth.Dst().ChannelID(), pth.Dst().PortID(),
 		checkmark(ps.Status.Chains), checkmark(ps.Status.Clients), checkmark(ps.Status.Connection), checkmark(ps.Status.Channel))
 }
 
@@ -307,15 +279,4 @@ func checkmark(status bool) string {
 		return check
 	}
 	return xIcon
-}
-
-// RandLowerCaseLetterString returns a lowercase letter string of given length
-func RandLowerCaseLetterString(length int) string {
-	chars := []rune("abcdefghijklmnopqrstuvwxyz")
-	var b strings.Builder
-	for i := 0; i < length; i++ {
-		i, _ := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
-		b.WriteRune(chars[i.Int64()])
-	}
-	return b.String()
 }

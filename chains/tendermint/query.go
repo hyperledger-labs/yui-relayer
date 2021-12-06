@@ -36,7 +36,7 @@ func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateRes
 }
 
 func (c *Chain) queryClientState(height int64, _ bool) (*clienttypes.QueryClientStateResponse, error) {
-	return clientutils.QueryClientStateABCI(c.CLIContext(height), c.PathEnd.ClientID)
+	return clientutils.QueryClientStateABCI(c.CLIContext(height), c.PathEnd.ClientID())
 }
 
 var emptyConnRes = conntypes.NewQueryConnectionResponse(
@@ -61,7 +61,7 @@ func (c *Chain) QueryConnection(height int64) (*conntypes.QueryConnectionRespons
 }
 
 func (c *Chain) queryConnection(height int64, prove bool) (*conntypes.QueryConnectionResponse, error) {
-	res, err := connutils.QueryConnection(c.CLIContext(height), c.PathEnd.ConnectionID, prove)
+	res, err := connutils.QueryConnection(c.CLIContext(height), c.PathEnd.ConnectionID(), prove)
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		return emptyConnRes, nil
 	} else if err != nil {
@@ -91,7 +91,7 @@ func (c *Chain) QueryChannel(height int64) (chanRes *chantypes.QueryChannelRespo
 }
 
 func (c *Chain) queryChannel(height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error) {
-	res, err := chanutils.QueryChannel(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, prove)
+	res, err := chanutils.QueryChannel(c.CLIContext(height), c.PathEnd.PortID(), c.PathEnd.ChannelID(), prove)
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		return emptyChannelRes, nil
 	} else if err != nil {
@@ -110,7 +110,7 @@ func (c *Chain) queryClientConsensusState(
 	height int64, dstClientConsHeight ibcexported.Height, _ bool) (*clienttypes.QueryConsensusStateResponse, error) {
 	return clientutils.QueryConsensusStateABCI(
 		c.CLIContext(height),
-		c.PathEnd.ClientID,
+		c.PathEnd.ClientID(),
 		dstClientConsHeight,
 	)
 }
@@ -154,7 +154,7 @@ func (c *Chain) QueryPacketCommitment(
 
 func (c *Chain) queryPacketCommitment(
 	height int64, seq uint64, prove bool) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	return chanutils.QueryPacketCommitment(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, prove)
+	return chanutils.QueryPacketCommitment(c.CLIContext(height), c.PathEnd.PortID(), c.PathEnd.ChannelID(), seq, prove)
 }
 
 // QueryPacketAcknowledgementCommitment returns the packet ack proof at a given height
@@ -163,11 +163,11 @@ func (c *Chain) QueryPacketAcknowledgementCommitment(height int64, seq uint64) (
 }
 
 func (c *Chain) queryPacketAcknowledgementCommitment(height int64, seq uint64, prove bool) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	return chanutils.QueryPacketAcknowledgement(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, prove)
+	return chanutils.QueryPacketAcknowledgement(c.CLIContext(height), c.PathEnd.PortID(), c.PathEnd.ChannelID(), seq, prove)
 }
 
 func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error) {
-	txs, err := dst.QueryTxs(height, 1, 1000, ackPacketQuery(dst.Path().ChannelID, int(sequence)))
+	txs, err := dst.QueryTxs(height, 1, 1000, ackPacketQuery(dst.Path().ChannelID(), int(sequence)))
 	switch {
 	case err != nil:
 		return nil, err
@@ -189,7 +189,7 @@ func (dst *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]b
 
 // QueryPacketReciept returns the packet reciept proof at a given height
 func (c *Chain) QueryPacketReciept(height int64, seq uint64) (recRes *chantypes.QueryPacketReceiptResponse, err error) {
-	return chanutils.QueryPacketReceipt(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, true)
+	return chanutils.QueryPacketReceipt(c.CLIContext(height), c.PathEnd.PortID(), c.PathEnd.ChannelID(), seq, true)
 }
 
 // QueryPacketCommitments returns an array of packet commitments
@@ -197,8 +197,8 @@ func (c *Chain) QueryPacketCommitments(
 	offset, limit uint64, height int64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
 	return qc.PacketCommitments(context.Background(), &chantypes.QueryPacketCommitmentsRequest{
-		PortId:    c.PathEnd.PortID,
-		ChannelId: c.PathEnd.ChannelID,
+		PortId:    c.PathEnd.PortID(),
+		ChannelId: c.PathEnd.ChannelID(),
 		Pagination: &querytypes.PageRequest{
 			Offset:     offset,
 			Limit:      limit,
@@ -211,8 +211,8 @@ func (c *Chain) QueryPacketCommitments(
 func (c *Chain) QueryPacketAcknowledgementCommitments(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
 	return qc.PacketAcknowledgements(context.Background(), &chantypes.QueryPacketAcknowledgementsRequest{
-		PortId:    c.PathEnd.PortID,
-		ChannelId: c.PathEnd.ChannelID,
+		PortId:    c.PathEnd.PortID(),
+		ChannelId: c.PathEnd.ChannelID(),
 		Pagination: &querytypes.PageRequest{
 			Offset:     offset,
 			Limit:      limit,
@@ -225,8 +225,8 @@ func (c *Chain) QueryPacketAcknowledgementCommitments(offset, limit uint64, heig
 func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
 	res, err := qc.UnreceivedPackets(context.Background(), &chantypes.QueryUnreceivedPacketsRequest{
-		PortId:                    c.PathEnd.PortID,
-		ChannelId:                 c.PathEnd.ChannelID,
+		PortId:                    c.PathEnd.PortID(),
+		ChannelId:                 c.PathEnd.ChannelID(),
 		PacketCommitmentSequences: seqs,
 	})
 	if err != nil {
@@ -239,8 +239,8 @@ func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, e
 func (c *Chain) QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]uint64, error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(height)))
 	res, err := qc.UnreceivedAcks(context.Background(), &chantypes.QueryUnreceivedAcksRequest{
-		PortId:             c.PathEnd.PortID,
-		ChannelId:          c.PathEnd.ChannelID,
+		PortId:             c.PathEnd.PortID(),
+		ChannelId:          c.PathEnd.ChannelID(),
 		PacketAckSequences: seqs,
 	})
 	if err != nil {
@@ -250,7 +250,7 @@ func (c *Chain) QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]
 }
 
 func (src *Chain) QueryPacket(height int64, seq uint64) (*chantypes.Packet, error) {
-	txs, err := src.QueryTxs(height, 1, 1000, rcvPacketQuery(src.Path().ChannelID, int(seq)))
+	txs, err := src.QueryTxs(height, 1, 1000, rcvPacketQuery(src.Path().ChannelID(), int(seq)))
 	switch {
 	case err != nil:
 		return nil, err

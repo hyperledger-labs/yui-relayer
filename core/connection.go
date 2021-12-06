@@ -40,8 +40,8 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// debug logging, log created connection and break
 		case connSteps.Success() && connSteps.Last:
 			log.Println(fmt.Sprintf("★ Connection created: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
-				src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
-				dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID))
+				src.ChainID(), src.Path().ClientID(), src.Path().ConnectionID(),
+				dst.ChainID(), dst.Path().ClientID(), dst.Path().ConnectionID()))
 			return nil
 		// In the case of success, reset the failures counter
 		case connSteps.Success():
@@ -54,8 +54,8 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 			time.Sleep(5 * time.Second)
 			if failed > 2 {
 				return fmt.Errorf("! Connection failed: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
-					src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
-					dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID)
+					src.ChainID(), src.Path().ClientID(), src.Path().ConnectionID(),
+					dst.ChainID(), dst.Path().ClientID(), dst.Path().ConnectionID())
 			}
 		}
 
@@ -128,52 +128,52 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		logConnectionStates(src, dst, srcConn, dstConn)
 		addr := mustGetAddress(src)
 		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClient(dstUpdateHeader, addr))
+			out.Src = append(out.Src, UpdateClient(src.Path(), dstUpdateHeader, addr))
 		}
-		out.Src = append(out.Src, src.Path().ConnInit(dst.Path(), addr))
+		out.Src = append(out.Src, ConnInit(src.Path(), dst.Path(), addr))
 		// Handshake has started on dst (1 stepdone), relay `connOpenTry` and `updateClient` on src
 	case srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.INIT:
 		logConnectionStates(src, dst, srcConn, dstConn)
 		addr := mustGetAddress(src)
 		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClient(dstUpdateHeader, addr))
+			out.Src = append(out.Src, UpdateClient(src.Path(), dstUpdateHeader, addr))
 		}
-		out.Src = append(out.Src, src.Path().ConnTry(dst.Path(), dstCsRes, dstConn, dstCons, addr))
+		out.Src = append(out.Src, ConnTry(src.Path(), dst.Path(), dstCsRes, dstConn, dstCons, addr))
 	// Handshake has started on src (1 step done), relay `connOpenTry` and `updateClient` on dst
 	case srcConn.Connection.State == conntypes.INIT && dstConn.Connection.State == conntypes.UNINITIALIZED:
 		logConnectionStates(dst, src, dstConn, srcConn)
 		addr := mustGetAddress(dst)
 		if srcUpdateHeader != nil {
-			out.Dst = append(out.Dst, dst.Path().UpdateClient(srcUpdateHeader, addr))
+			out.Dst = append(out.Dst, UpdateClient(dst.Path(), srcUpdateHeader, addr))
 		}
-		out.Dst = append(out.Dst, dst.Path().ConnTry(src.Path(), srcCsRes, srcConn, srcCons, addr))
+		out.Dst = append(out.Dst, ConnTry(dst.Path(), src.Path(), srcCsRes, srcConn, srcCons, addr))
 
 	// Handshake has started on src end (2 steps done), relay `connOpenAck` and `updateClient` to dst end
 	case srcConn.Connection.State == conntypes.TRYOPEN && dstConn.Connection.State == conntypes.INIT:
 		logConnectionStates(dst, src, dstConn, srcConn)
 		addr := mustGetAddress(dst)
 		if srcUpdateHeader != nil {
-			out.Dst = append(out.Dst, dst.Path().UpdateClient(srcUpdateHeader, addr))
+			out.Dst = append(out.Dst, UpdateClient(dst.Path(), srcUpdateHeader, addr))
 		}
-		out.Dst = append(out.Dst, dst.Path().ConnAck(src.Path(), srcCsRes, srcConn, srcCons, addr))
+		out.Dst = append(out.Dst, ConnAck(dst.Path(), src.Path(), srcCsRes, srcConn, srcCons, addr))
 
 	// Handshake has started on dst end (2 steps done), relay `connOpenAck` and `updateClient` to src end
 	case srcConn.Connection.State == conntypes.INIT && dstConn.Connection.State == conntypes.TRYOPEN:
 		logConnectionStates(src, dst, srcConn, dstConn)
 		addr := mustGetAddress(src)
 		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClient(dstUpdateHeader, addr))
+			out.Src = append(out.Src, UpdateClient(src.Path(), dstUpdateHeader, addr))
 		}
-		out.Src = append(out.Src, src.Path().ConnAck(dst.Path(), dstCsRes, dstConn, dstCons, addr))
+		out.Src = append(out.Src, ConnAck(src.Path(), dst.Path(), dstCsRes, dstConn, dstCons, addr))
 
 	// Handshake has confirmed on dst (3 steps done), relay `connOpenConfirm` and `updateClient` to src end
 	case srcConn.Connection.State == conntypes.TRYOPEN && dstConn.Connection.State == conntypes.OPEN:
 		logConnectionStates(src, dst, srcConn, dstConn)
 		addr := mustGetAddress(src)
 		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClient(dstUpdateHeader, addr))
+			out.Src = append(out.Src, UpdateClient(src.Path(), dstUpdateHeader, addr))
 		}
-		out.Src = append(out.Src, src.Path().ConnConfirm(dstConn, addr))
+		out.Src = append(out.Src, ConnConfirm(src.Path(), dstConn, addr))
 		out.Last = true
 
 	// Handshake has confirmed on src (3 steps done), relay `connOpenConfirm` and `updateClient` to dst end
@@ -181,9 +181,9 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		logConnectionStates(dst, src, dstConn, srcConn)
 		addr := mustGetAddress(dst)
 		if srcUpdateHeader != nil {
-			out.Dst = append(out.Dst, dst.Path().UpdateClient(srcUpdateHeader, addr))
+			out.Dst = append(out.Dst, UpdateClient(dst.Path(), srcUpdateHeader, addr))
 		}
-		out.Dst = append(out.Dst, dst.Path().ConnConfirm(srcConn, addr))
+		out.Dst = append(out.Dst, ConnConfirm(dst.Path(), srcConn, addr))
 		out.Last = true
 
 	default:
@@ -208,11 +208,11 @@ func logConnectionStates(src, dst ChainI, srcConn, dstConn *conntypes.QueryConne
 	log.Println(fmt.Sprintf("- [%s]@{%d}conn(%s)-{%s} : [%s]@{%d}conn(%s)-{%s}",
 		src.ChainID(),
 		mustGetHeight(srcConn.ProofHeight),
-		src.Path().ConnectionID,
+		src.Path().ConnectionID(),
 		srcConn.Connection.State,
 		dst.ChainID(),
 		mustGetHeight(dstConn.ProofHeight),
-		dst.Path().ConnectionID,
+		dst.Path().ConnectionID(),
 		dstConn.Connection.State,
 	))
 }

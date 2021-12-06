@@ -37,7 +37,7 @@ func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.Proto
 }
 
 // SetPath sets a given path to the chain
-func (pr *Prover) SetPath(p *core.PathEnd) error {
+func (pr *Prover) SetPath(p core.PathEndI) error {
 	return nil // prover uses chain's path instead
 }
 
@@ -52,7 +52,7 @@ func (pr *Prover) GetChainID() string {
 
 // QueryClientStateWithProof returns the ClientState and its proof
 func (pr *Prover) QueryClientStateWithProof(_ int64) (*clienttypes.QueryClientStateResponse, error) {
-	cs, proof, err := pr.endorseClientState(pr.chain.pathEnd.ClientID)
+	cs, proof, err := pr.endorseClientState(pr.chain.pathEnd.ClientID())
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (pr *Prover) QueryClientStateWithProof(_ int64) (*clienttypes.QueryClientSt
 
 // QueryClientConsensusState returns the ClientConsensusState and its proof
 func (pr *Prover) QueryClientConsensusStateWithProof(_ int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	css, proof, err := pr.endorseConsensusState(pr.chain.Path().ClientID, dstClientConsHeight.GetRevisionHeight())
+	css, proof, err := pr.endorseConsensusState(pr.chain.Path().ClientID(), dstClientConsHeight.GetRevisionHeight())
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (pr *Prover) QueryClientConsensusStateWithProof(_ int64, dstClientConsHeigh
 
 // QueryConnectionWithProof returns the Connection and its proof
 func (pr *Prover) QueryConnectionWithProof(_ int64) (*conntypes.QueryConnectionResponse, error) {
-	conn, proof, err := pr.endorseConnectionState(pr.chain.pathEnd.ConnectionID)
+	conn, proof, err := pr.endorseConnectionState(pr.chain.pathEnd.ConnectionID())
 	if err != nil {
 		if strings.Contains(err.Error(), conntypes.ErrConnectionNotFound.Error()) {
 			return emptyConnRes, nil
@@ -130,7 +130,7 @@ var emptyChannelRes = chantypes.NewQueryChannelResponse(
 
 // QueryChannelWithProof returns the Channel and its proof
 func (pr *Prover) QueryChannelWithProof(_ int64) (chanRes *chantypes.QueryChannelResponse, err error) {
-	channel, proof, err := pr.endorseChannelState(pr.chain.pathEnd.PortID, pr.chain.pathEnd.ChannelID)
+	channel, proof, err := pr.endorseChannelState(pr.chain.pathEnd.PortID(), pr.chain.pathEnd.ChannelID())
 	if err != nil {
 		if strings.Contains(err.Error(), chantypes.ErrChannelNotFound.Error()) {
 			return emptyChannelRes, nil
@@ -151,7 +151,7 @@ func (pr *Prover) QueryChannelWithProof(_ int64) (chanRes *chantypes.QueryChanne
 
 // QueryPacketCommitmentWithProof returns the packet commitment and its proof
 func (pr *Prover) QueryPacketCommitmentWithProof(_ int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	cm, proof, err := pr.endorsePacketCommitment(pr.chain.Path().PortID, pr.chain.Path().ChannelID, seq)
+	cm, proof, err := pr.endorsePacketCommitment(pr.chain.Path().PortID(), pr.chain.Path().ChannelID(), seq)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (pr *Prover) QueryPacketCommitmentWithProof(_ int64, seq uint64) (comRes *c
 
 // QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
 func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(_ int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	cm, proof, err := pr.endorsePacketAcknowledgement(pr.chain.Path().PortID, pr.chain.Path().ChannelID, seq)
+	cm, proof, err := pr.endorsePacketAcknowledgement(pr.chain.Path().PortID(), pr.chain.Path().ChannelID(), seq)
 	if err != nil {
 		return nil, err
 	}

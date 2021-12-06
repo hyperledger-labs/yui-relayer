@@ -27,7 +27,7 @@ func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.Proto
 	return nil
 }
 
-func (pr *Prover) SetPath(p *core.PathEnd) error {
+func (pr *Prover) SetPath(p core.PathEndI) error {
 	return nil // prover uses chain's path instead
 }
 

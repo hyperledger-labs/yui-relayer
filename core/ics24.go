@@ -9,32 +9,28 @@ import (
 
 // Vclient validates the client identifier in the path
 func (pe *PathEnd) Vclient() error {
-	return host.ClientIdentifierValidator(pe.ClientID)
+	return host.ClientIdentifierValidator(pe.ClientID())
 }
 
 // Vconn validates the connection identifier in the path
 func (pe *PathEnd) Vconn() error {
-	return host.ConnectionIdentifierValidator(pe.ConnectionID)
+	return host.ConnectionIdentifierValidator(pe.ConnectionID())
 }
 
 // Vchan validates the channel identifier in the path
 func (pe *PathEnd) Vchan() error {
-	return host.ChannelIdentifierValidator(pe.ChannelID)
+	return host.ChannelIdentifierValidator(pe.ChannelID())
 }
 
 // Vport validates the port identifier in the path
 func (pe *PathEnd) Vport() error {
-	return host.PortIdentifierValidator(pe.PortID)
+	return host.PortIdentifierValidator(pe.PortID())
 }
 
 // Vversion validates the version identifier in the path
 func (pe *PathEnd) Vversion() error {
 	// TODO: version validation
 	return nil
-}
-
-func (pe PathEnd) String() string {
-	return fmt.Sprintf("%s:cl(%s):co(%s):ch(%s):pt(%s)", pe.ChainID, pe.ClientID, pe.ConnectionID, pe.ChannelID, pe.PortID)
 }
 
 // Validate returns errors about invalid identifiers as well as

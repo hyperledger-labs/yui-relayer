@@ -16,7 +16,7 @@ type ProverI interface {
 	// Init ...
 	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
 	// SetPath sets a given path to the chain
-	SetPath(p *PathEnd) error
+	SetPath(p PathEndI) error
 	// SetupForRelay ...
 	SetupForRelay(ctx context.Context) error
 }

@@ -34,7 +34,7 @@ func (pc *ProvableChain) Init(homePath string, timeout time.Duration, codec code
 	return nil
 }
 
-func (pc *ProvableChain) SetPath(path *PathEnd) error {
+func (pc *ProvableChain) SetPath(path PathEndI) error {
 	if err := pc.ChainI.SetPath(path); err != nil {
 		return err
 	}
@@ -69,10 +69,10 @@ type ChainI interface {
 	Codec() codec.ProtoCodecMarshaler
 
 	// SetPath sets a given path to the chain
-	SetPath(p *PathEnd) error
+	SetPath(p PathEndI) error
 
 	// Path returns the path
-	Path() *PathEnd
+	Path() PathEndI
 
 	// SendMsgs sends msgs to the chain
 	SendMsgs(msgs []sdk.Msg) ([]byte, error)

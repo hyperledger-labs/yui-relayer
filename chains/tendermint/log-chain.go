@@ -47,18 +47,18 @@ func (c *Chain) LogSuccessTx(res *sdk.TxResponse, msgs []sdk.Msg) {
 
 func (c *Chain) logPacketsRelayed(dst *Chain, num int) {
 	dst.Log(fmt.Sprintf("★ Relayed %d packets: [%s]port{%s}->[%s]port{%s}",
-		num, dst.ChainID(), dst.PathEnd.PortID, c.ChainID(), c.PathEnd.PortID))
+		num, dst.ChainID(), dst.PathEnd.PortID(), c.ChainID(), c.PathEnd.PortID()))
 }
 
 func logChannelStates(src, dst *Chain, srcChan, dstChan *chantypes.QueryChannelResponse) {
 	src.Log(fmt.Sprintf("- [%s]@{%d}chan(%s)-{%s} : [%s]@{%d}chan(%s)-{%s}",
 		src.ChainID(),
 		MustGetHeight(srcChan.ProofHeight),
-		src.PathEnd.ChannelID,
+		src.PathEnd.ChannelID(),
 		srcChan.Channel.State,
 		dst.ChainID(),
 		MustGetHeight(dstChan.ProofHeight),
-		dst.PathEnd.ChannelID,
+		dst.PathEnd.ChannelID(),
 		dstChan.Channel.State,
 	))
 }
@@ -67,11 +67,11 @@ func logConnectionStates(src, dst *Chain, srcConn, dstConn *conntypes.QueryConne
 	src.Log(fmt.Sprintf("- [%s]@{%d}conn(%s)-{%s} : [%s]@{%d}conn(%s)-{%s}",
 		src.ChainID(),
 		MustGetHeight(srcConn.ProofHeight),
-		src.PathEnd.ConnectionID,
+		src.PathEnd.ConnectionID(),
 		srcConn.Connection.State,
 		dst.ChainID(),
 		MustGetHeight(dstConn.ProofHeight),
-		dst.PathEnd.ConnectionID,
+		dst.PathEnd.ConnectionID(),
 		dstConn.Connection.State,
 	))
 }

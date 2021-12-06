@@ -42,7 +42,7 @@ type Chain struct {
 
 	// TODO: make these private
 	HomePath string           `yaml:"-" json:"-"`
-	PathEnd  *core.PathEnd    `yaml:"-" json:"-"`
+	PathEnd  core.PathEndI    `yaml:"-" json:"-"`
 	Keybase  keys.Keyring     `yaml:"-" json:"-"`
 	Client   rpcclient.Client `yaml:"-" json:"-"`
 
@@ -69,7 +69,7 @@ func (c *Chain) Config() ChainConfig {
 }
 
 func (c *Chain) ClientID() string {
-	return c.PathEnd.ClientID
+	return c.PathEnd.ClientID()
 }
 
 func (c *Chain) Codec() codec.ProtoCodecMarshaler {
@@ -93,7 +93,7 @@ func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 }
 
 // SetPath sets the path and validates the identifiers
-func (c *Chain) SetPath(p *core.PathEnd) error {
+func (c *Chain) SetPath(p core.PathEndI) error {
 	err := p.Validate()
 	if err != nil {
 		return c.ErrCantSetPath(err)
@@ -107,7 +107,7 @@ func (c *Chain) ErrCantSetPath(err error) error {
 	return fmt.Errorf("path on chain %s failed to set: %w", c.ChainID(), err)
 }
 
-func (c *Chain) Path() *core.PathEnd {
+func (c *Chain) Path() core.PathEndI {
 	return c.PathEnd
 }
 

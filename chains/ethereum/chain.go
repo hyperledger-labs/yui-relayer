@@ -27,7 +27,7 @@ import (
 type Chain struct {
 	config ChainConfig
 
-	pathEnd          *core.PathEnd
+	pathEnd          core.PathEndI
 	homePath         string
 	chainID          *big.Int
 	codec            codec.ProtoCodecMarshaler
@@ -108,7 +108,7 @@ func (c *Chain) Codec() codec.ProtoCodecMarshaler {
 }
 
 // SetPath sets the path and validates the identifiers
-func (c *Chain) SetPath(p *core.PathEnd) error {
+func (c *Chain) SetPath(p core.PathEndI) error {
 	err := p.Validate()
 	if err != nil {
 		return c.ErrCantSetPath(err)
@@ -122,7 +122,7 @@ func (c *Chain) ErrCantSetPath(err error) error {
 	return fmt.Errorf("path on chain %s failed to set: %w", c.ChainID(), err)
 }
 
-func (c *Chain) Path() *core.PathEnd {
+func (c *Chain) Path() core.PathEndI {
 	return c.pathEnd
 }
 
@@ -133,11 +133,11 @@ func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
 
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
 func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	s, found, err := c.ibcHost.GetConsensusState(c.CallOpts(context.Background(), height), c.pathEnd.ClientID, dstClientConsHeight.GetRevisionHeight())
+	s, found, err := c.ibcHost.GetConsensusState(c.CallOpts(context.Background(), height), c.pathEnd.ClientID(), dstClientConsHeight.GetRevisionHeight())
 	if err != nil {
 		return nil, err
 	} else if !found {
-		return nil, fmt.Errorf("client consensus not found: %v", c.pathEnd.ClientID)
+		return nil, fmt.Errorf("client consensus not found: %v", c.pathEnd.ClientID())
 	}
 	var consensusState exported.ConsensusState
 	if err := c.Codec().UnmarshalInterface(s, &consensusState); err != nil {
@@ -153,11 +153,11 @@ func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibce
 // QueryClientState returns the client state of dst chain
 // height represents the height of dst chain
 func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateResponse, error) {
-	s, found, err := c.ibcHost.GetClientState(c.CallOpts(context.Background(), height), c.pathEnd.ClientID)
+	s, found, err := c.ibcHost.GetClientState(c.CallOpts(context.Background(), height), c.pathEnd.ClientID())
 	if err != nil {
 		return nil, err
 	} else if !found {
-		return nil, fmt.Errorf("client not found: %v", c.pathEnd.ClientID)
+		return nil, fmt.Errorf("client not found: %v", c.pathEnd.ClientID())
 	}
 	var clientState exported.ClientState
 	if err := c.Codec().UnmarshalInterface(s, &clientState); err != nil {
@@ -188,7 +188,7 @@ var emptyConnRes = conntypes.NewQueryConnectionResponse(
 
 // QueryConnection returns the remote end of a given connection
 func (c *Chain) QueryConnection(height int64) (*conntypes.QueryConnectionResponse, error) {
-	conn, found, err := c.ibcHost.GetConnection(c.CallOpts(context.Background(), height), c.pathEnd.ConnectionID)
+	conn, found, err := c.ibcHost.GetConnection(c.CallOpts(context.Background(), height), c.pathEnd.ConnectionID())
 	if err != nil {
 		return nil, err
 	} else if !found {
@@ -214,7 +214,7 @@ var emptyChannelRes = chantypes.NewQueryChannelResponse(
 
 // QueryChannel returns the channel associated with a channelID
 func (c *Chain) QueryChannel(height int64) (chanRes *chantypes.QueryChannelResponse, err error) {
-	chann, found, err := c.ibcHost.GetChannel(c.CallOpts(context.Background(), height), c.pathEnd.PortID, c.pathEnd.ChannelID)
+	chann, found, err := c.ibcHost.GetChannel(c.CallOpts(context.Background(), height), c.pathEnd.PortID(), c.pathEnd.ChannelID())
 	if err != nil {
 		return nil, err
 	} else if !found {
@@ -225,22 +225,22 @@ func (c *Chain) QueryChannel(height int64) (chanRes *chantypes.QueryChannelRespo
 
 // QueryPacketCommitment returns the packet commitment corresponding to a given sequence
 func (c *Chain) QueryPacketCommitment(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	commitment, found, err := c.ibcHost.GetPacketCommitment(c.CallOpts(context.Background(), height), c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+	commitment, found, err := c.ibcHost.GetPacketCommitment(c.CallOpts(context.Background(), height), c.pathEnd.PortID(), c.pathEnd.ChannelID(), seq)
 	if err != nil {
 		return nil, err
 	} else if !found {
-		return nil, fmt.Errorf("packet commitment not found: %v:%v:%v", c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+		return nil, fmt.Errorf("packet commitment not found: %v:%v:%v", c.pathEnd.PortID(), c.pathEnd.ChannelID(), seq)
 	}
 	return chantypes.NewQueryPacketCommitmentResponse(commitment[:], nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
 
 // QueryPacketAcknowledgementCommitment returns the acknowledgement corresponding to a given sequence
 func (c *Chain) QueryPacketAcknowledgementCommitment(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	commitment, found, err := c.ibcHost.GetPacketAcknowledgementCommitment(c.CallOpts(context.Background(), height), c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+	commitment, found, err := c.ibcHost.GetPacketAcknowledgementCommitment(c.CallOpts(context.Background(), height), c.pathEnd.PortID(), c.pathEnd.ChannelID(), seq)
 	if err != nil {
 		return nil, err
 	} else if !found {
-		return nil, fmt.Errorf("packet commitment not found: %v:%v:%v", c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+		return nil, fmt.Errorf("packet commitment not found: %v:%v:%v", c.pathEnd.PortID(), c.pathEnd.ChannelID(), seq)
 	}
 	return chantypes.NewQueryPacketAcknowledgementResponse(commitment[:], nil, clienttypes.NewHeight(0, uint64(height))), nil
 }
@@ -249,13 +249,13 @@ func (c *Chain) QueryPacketAcknowledgementCommitment(height int64, seq uint64) (
 // QueryPacketCommitments returns an array of packet commitments
 func (c *Chain) QueryPacketCommitments(offset uint64, limit uint64, height int64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
 	// WARNING: It may be slow to use in the production. Instead of it, it might be better to use an external event indexer to get all packet commitments.
-	packets, err := c.getAllPackets(context.Background(), c.pathEnd.PortID, c.pathEnd.ChannelID)
+	packets, err := c.getAllPackets(context.Background(), c.pathEnd.PortID(), c.pathEnd.ChannelID())
 	if err != nil {
 		return nil, err
 	}
 	var res chantypes.QueryPacketCommitmentsResponse
 	for _, p := range packets {
-		ps := chantypes.NewPacketState(c.pathEnd.PortID, c.pathEnd.ChannelID, p.Sequence, chantypes.CommitPacket(c.Codec(), p))
+		ps := chantypes.NewPacketState(c.pathEnd.PortID(), c.pathEnd.ChannelID(), p.Sequence, chantypes.CommitPacket(c.Codec(), p))
 		res.Commitments = append(res.Commitments, &ps)
 	}
 	res.Height = clienttypes.NewHeight(0, uint64(height))
@@ -266,7 +266,7 @@ func (c *Chain) QueryPacketCommitments(offset uint64, limit uint64, height int64
 func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, error) {
 	var ret []uint64
 	for _, seq := range seqs {
-		found, err := c.ibcHost.HasPacketReceipt(c.CallOpts(context.Background(), height), c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+		found, err := c.ibcHost.HasPacketReceipt(c.CallOpts(context.Background(), height), c.pathEnd.PortID(), c.pathEnd.ChannelID(), seq)
 		if err != nil {
 			return nil, err
 		} else if !found {
@@ -279,13 +279,13 @@ func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, e
 // QueryPacketAcknowledgementCommitments returns an array of packet acks
 func (c *Chain) QueryPacketAcknowledgementCommitments(offset uint64, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
 	// WARNING: It may be slow to use in the production. Instead of it, it might be better to use an external event indexer to get all packet acknowledgements.
-	acks, err := c.getAllAcknowledgements(context.Background(), c.pathEnd.PortID, c.pathEnd.ChannelID)
+	acks, err := c.getAllAcknowledgements(context.Background(), c.pathEnd.PortID(), c.pathEnd.ChannelID())
 	if err != nil {
 		return nil, err
 	}
 	var res chantypes.QueryPacketAcknowledgementsResponse
 	for _, a := range acks {
-		ps := chantypes.NewPacketState(c.pathEnd.PortID, c.pathEnd.ChannelID, a.Sequence, chantypes.CommitAcknowledgement(a.Data))
+		ps := chantypes.NewPacketState(c.pathEnd.PortID(), c.pathEnd.ChannelID(), a.Sequence, chantypes.CommitAcknowledgement(a.Data))
 		res.Acknowledgements = append(res.Acknowledgements, &ps)
 	}
 	return &res, nil
@@ -295,7 +295,7 @@ func (c *Chain) QueryPacketAcknowledgementCommitments(offset uint64, limit uint6
 func (c *Chain) QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]uint64, error) {
 	var ret []uint64
 	for _, seq := range seqs {
-		_, found, err := c.ibcHost.GetPacketCommitment(c.CallOpts(context.Background(), height), c.pathEnd.PortID, c.pathEnd.ChannelID, seq)
+		_, found, err := c.ibcHost.GetPacketCommitment(c.CallOpts(context.Background(), height), c.pathEnd.PortID(), c.pathEnd.ChannelID(), seq)
 		if err != nil {
 			return nil, err
 		} else if found {
@@ -308,13 +308,13 @@ func (c *Chain) QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]
 // QueryPacket returns the packet corresponding to a sequence
 func (c *Chain) QueryPacket(height int64, sequence uint64) (*chantypes.Packet, error) {
 	// TODO give the height as max block number
-	return c.findPacket(context.Background(), c.pathEnd.PortID, c.pathEnd.ChannelID, sequence)
+	return c.findPacket(context.Background(), c.pathEnd.PortID(), c.pathEnd.ChannelID(), sequence)
 }
 
 // QueryPacketAcknowledgement returns the acknowledgement corresponding to a sequence
 func (c *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error) {
 	// TODO give the height as max block number
-	return c.findAcknowledgement(context.Background(), c.pathEnd.PortID, c.pathEnd.ChannelID, sequence)
+	return c.findAcknowledgement(context.Background(), c.pathEnd.PortID(), c.pathEnd.ChannelID(), sequence)
 }
 
 // QueryBalance returns the amount of coins in the relayer account

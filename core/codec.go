@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -51,6 +52,14 @@ func MakeCodec() codec.ProtoCodecMarshaler {
 	interfaceRegistry := types.NewInterfaceRegistry()
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 	std.RegisterInterfaces(interfaceRegistry)
+	registerInterfaces(interfaceRegistry)
 	moduleBasics.RegisterInterfaces(interfaceRegistry)
 	return marshaler
+}
+
+func registerInterfaces(registry codectypes.InterfaceRegistry) {
+	registry.RegisterImplementations(
+		(*PathEndI)(nil),
+		&PathEnd{},
+	)
 }

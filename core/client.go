@@ -27,7 +27,7 @@ func CreateClients(src, dst *ProvableChain) error {
 	}
 
 	{
-		msg, err := dst.CreateMsgCreateClient(src.Path().ClientID, dstH, srcAddr)
+		msg, err := dst.CreateMsgCreateClient(src.Path().ClientID(), dstH, srcAddr)
 		if err != nil {
 			return err
 		}
@@ -35,7 +35,7 @@ func CreateClients(src, dst *ProvableChain) error {
 	}
 
 	{
-		msg, err := src.CreateMsgCreateClient(dst.Path().ClientID, srcH, dstAddr)
+		msg, err := src.CreateMsgCreateClient(dst.Path().ClientID(), srcH, dstAddr)
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ func CreateClients(src, dst *ProvableChain) error {
 		// TODO: Add retry here for out of gas or other errors
 		if clients.Send(src, dst); clients.Success() {
 			log.Println(fmt.Sprintf("★ Clients created: [%s]client(%s) and [%s]client(%s)",
-				src.ChainID(), src.Path().ClientID, dst.ChainID(), dst.Path().ClientID))
+				src.ChainID(), src.Path().ClientID(), dst.ChainID(), dst.Path().ClientID()))
 		}
 	}
 	return nil
@@ -67,16 +67,16 @@ func UpdateClients(src, dst *ProvableChain) error {
 		return err
 	}
 	if dstUpdateHeader != nil {
-		clients.Src = append(clients.Src, src.Path().UpdateClient(dstUpdateHeader, mustGetAddress(src)))
+		clients.Src = append(clients.Src, UpdateClient(src.Path(), dstUpdateHeader, mustGetAddress(src)))
 	}
 	if srcUpdateHeader != nil {
-		clients.Dst = append(clients.Dst, dst.Path().UpdateClient(srcUpdateHeader, mustGetAddress(dst)))
+		clients.Dst = append(clients.Dst, UpdateClient(dst.Path(), srcUpdateHeader, mustGetAddress(dst)))
 	}
 	// Send msgs to both chains
 	if clients.Ready() {
 		if clients.Send(src, dst); clients.Success() {
 			log.Println(fmt.Sprintf("★ Clients updated: [%s]client(%s) and [%s]client(%s)",
-				src.ChainID(), src.Path().ClientID, dst.ChainID(), dst.Path().ClientID))
+				src.ChainID(), src.Path().ClientID(), dst.ChainID(), dst.Path().ClientID()))
 		}
 	}
 	return nil

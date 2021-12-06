@@ -24,7 +24,7 @@ func (c *Chain) QueryClientConsensusState(height int64, dstClientConsHeight ibce
 	return c.client.clientQuery.ConsensusState(
 		context.TODO(),
 		&clienttypes.QueryConsensusStateRequest{
-			ClientId:       c.pathEnd.ClientID,
+			ClientId:       c.pathEnd.ClientID(),
 			RevisionNumber: dstClientConsHeight.GetRevisionNumber(),
 			RevisionHeight: dstClientConsHeight.GetRevisionHeight(),
 			LatestHeight:   false,
@@ -37,7 +37,7 @@ func (c *Chain) QueryClientState(height int64) (*clienttypes.QueryClientStateRes
 	return c.client.clientQuery.ClientState(
 		context.TODO(),
 		&clienttypes.QueryClientStateRequest{
-			ClientId: c.pathEnd.ClientID,
+			ClientId: c.pathEnd.ClientID(),
 		},
 	)
 }
@@ -47,7 +47,7 @@ func (c *Chain) QueryConnection(height int64) (*conntypes.QueryConnectionRespons
 	return c.client.connQuery.Connection(
 		context.TODO(),
 		&conntypes.QueryConnectionRequest{
-			ConnectionId: c.pathEnd.ConnectionID,
+			ConnectionId: c.pathEnd.ConnectionID(),
 		},
 	)
 }
@@ -57,8 +57,8 @@ func (c *Chain) QueryChannel(height int64) (chanRes *chantypes.QueryChannelRespo
 	return c.client.chanQuery.Channel(
 		context.TODO(),
 		&chantypes.QueryChannelRequest{
-			PortId:    c.pathEnd.PortID,
-			ChannelId: c.pathEnd.ChannelID,
+			PortId:    c.pathEnd.PortID(),
+			ChannelId: c.pathEnd.ChannelID(),
 		},
 	)
 }
@@ -117,8 +117,8 @@ func (c *Chain) QueryPacketCommitment(height int64, seq uint64) (comRes *chantyp
 	return c.client.chanQuery.PacketCommitment(
 		context.TODO(),
 		&chantypes.QueryPacketCommitmentRequest{
-			PortId:    c.pathEnd.PortID,
-			ChannelId: c.pathEnd.ChannelID,
+			PortId:    c.pathEnd.PortID(),
+			ChannelId: c.pathEnd.ChannelID(),
 			Sequence:  seq,
 		},
 	)
@@ -129,8 +129,8 @@ func (c *Chain) QueryPacketCommitments(offset, limit uint64, height int64) (comR
 	return c.client.chanQuery.PacketCommitments(
 		context.TODO(),
 		&chantypes.QueryPacketCommitmentsRequest{
-			PortId:     c.pathEnd.PortID,
-			ChannelId:  c.pathEnd.ChannelID,
+			PortId:     c.pathEnd.PortID(),
+			ChannelId:  c.pathEnd.ChannelID(),
 			Pagination: makePagination(offset, limit),
 		},
 	)
@@ -141,8 +141,8 @@ func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, e
 	res, err := c.client.chanQuery.UnreceivedPackets(
 		context.TODO(),
 		&chantypes.QueryUnreceivedPacketsRequest{
-			PortId:                    c.pathEnd.PortID,
-			ChannelId:                 c.pathEnd.ChannelID,
+			PortId:                    c.pathEnd.PortID(),
+			ChannelId:                 c.pathEnd.ChannelID(),
 			PacketCommitmentSequences: seqs,
 		},
 	)
@@ -157,8 +157,8 @@ func (c *Chain) QueryPacketAcknowledgementCommitments(offset, limit uint64, heig
 	return c.client.chanQuery.PacketAcknowledgements(
 		context.TODO(),
 		&chantypes.QueryPacketAcknowledgementsRequest{
-			PortId:     c.pathEnd.PortID,
-			ChannelId:  c.pathEnd.ChannelID,
+			PortId:     c.pathEnd.PortID(),
+			ChannelId:  c.pathEnd.ChannelID(),
 			Pagination: makePagination(offset, limit),
 		},
 	)
@@ -169,8 +169,8 @@ func (c *Chain) QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]
 	res, err := c.client.chanQuery.UnreceivedAcks(
 		context.TODO(),
 		&chantypes.QueryUnreceivedAcksRequest{
-			PortId:             c.pathEnd.PortID,
-			ChannelId:          c.pathEnd.ChannelID,
+			PortId:             c.pathEnd.PortID(),
+			ChannelId:          c.pathEnd.ChannelID(),
 			PacketAckSequences: seqs,
 		},
 	)
@@ -185,8 +185,8 @@ func (c *Chain) QueryPacketAcknowledgementCommitment(height int64, seq uint64) (
 	return c.client.chanQuery.PacketAcknowledgement(
 		context.TODO(),
 		&chantypes.QueryPacketAcknowledgementRequest{
-			PortId:    c.pathEnd.PortID,
-			ChannelId: c.pathEnd.ChannelID,
+			PortId:    c.pathEnd.PortID(),
+			ChannelId: c.pathEnd.ChannelID(),
 			Sequence:  seq,
 		},
 	)
@@ -197,8 +197,8 @@ func (c *Chain) QueryPacket(height int64, sequence uint64) (*chantypes.Packet, e
 	res, err := c.client.chanQuery.PacketCommitment(
 		context.TODO(),
 		&chantypes.QueryPacketCommitmentRequest{
-			PortId:    c.pathEnd.PortID,
-			ChannelId: c.pathEnd.ChannelID,
+			PortId:    c.pathEnd.PortID(),
+			ChannelId: c.pathEnd.ChannelID(),
 			Sequence:  sequence,
 		},
 	)
@@ -219,8 +219,8 @@ func (c *Chain) QueryPacketAcknowledgement(height int64, sequence uint64) ([]byt
 	res, err := c.client.chanQuery.PacketAcknowledgement(
 		context.TODO(),
 		&chantypes.QueryPacketAcknowledgementRequest{
-			PortId:    c.pathEnd.PortID,
-			ChannelId: c.pathEnd.ChannelID,
+			PortId:    c.pathEnd.PortID(),
+			ChannelId: c.pathEnd.ChannelID(),
 			Sequence:  sequence,
 		},
 	)

@@ -24,5 +24,10 @@ func UnmarshalJSON(m codec.Codec, bz []byte, config *Config) error {
 		}
 		config.chains = append(config.chains, chain)
 	}
+	for _, p := range config.Paths {
+		if err := p.Init(m); err != nil {
+			return err
+		}
+	}
 	return nil
 }

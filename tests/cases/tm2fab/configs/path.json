@@ -1,19 +1,21 @@
 {
   "src": {
-    "chain-id": "ibc0",
-    "client-id": "hyperledgerfabric-0",
-    "connection-id": "connection-0",
-    "channel-id": "channel-0",
-    "port-id": "transfer",
+    "@type": "/relayer.core.path.PathEnd",
+    "chain_id": "ibc0",
+    "client_id": "hyperledgerfabric-0",
+    "connection_id": "connection-0",
+    "channel_id": "channel-0",
+    "port_id": "transfer",
     "order": "unordered",
     "version": "ics20-1"
   },
   "dst": {
-    "chain-id": "ibc1",
-    "client-id": "07-tendermint-0",
-    "connection-id": "connection-0",
-    "channel-id": "channel-0",
-    "port-id": "transfer",
+    "@type": "/relayer.core.path.PathEnd",
+    "chain_id": "ibc1",
+    "client_id": "07-tendermint-0",
+    "connection_id": "connection-0",
+    "channel_id": "channel-0",
+    "port_id": "transfer",
     "order": "unordered",
     "version": "ics20-1"
   },

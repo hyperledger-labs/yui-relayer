@@ -48,7 +48,7 @@ func (c *Chain) Query(req app.RequestQuery) (*app.ResponseQuery, error) {
 // QueryClientState retrevies the latest consensus state for a client in state at a given height
 func (c *Chain) QueryClientState(_ int64) (*clienttypes.QueryClientStateResponse, error) {
 	req := &clienttypes.QueryClientStateRequest{
-		ClientId: c.pathEnd.ClientID,
+		ClientId: c.pathEnd.ClientID(),
 	}
 	var cres clienttypes.QueryClientStateResponse
 	if err := c.query("/ibc.core.client.v1.Query/ClientState", req, &cres); err != nil {
@@ -59,7 +59,7 @@ func (c *Chain) QueryClientState(_ int64) (*clienttypes.QueryClientStateResponse
 
 func (c *Chain) QueryClientConsensusState(_ int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
 	req := &clienttypes.QueryConsensusStateRequest{
-		ClientId:       c.Path().ClientID,
+		ClientId:       c.Path().ClientID(),
 		RevisionNumber: dstClientConsHeight.GetRevisionNumber(),
 		RevisionHeight: dstClientConsHeight.GetRevisionHeight(),
 	}
@@ -73,7 +73,7 @@ func (c *Chain) QueryClientConsensusState(_ int64, dstClientConsHeight ibcexport
 // QueryConnection returns the remote end of a given connection
 func (c *Chain) QueryConnection(_ int64) (*conntypes.QueryConnectionResponse, error) {
 	req := &conntypes.QueryConnectionRequest{
-		ConnectionId: c.pathEnd.ConnectionID,
+		ConnectionId: c.pathEnd.ConnectionID(),
 	}
 	var cres conntypes.QueryConnectionResponse
 	if err := c.query("/ibc.core.connection.v1.Query/Connection", req, &cres); err != nil {
@@ -104,8 +104,8 @@ var emptyConnRes = conntypes.NewQueryConnectionResponse(
 // QueryChannel returns the channel associated with a channelID
 func (c *Chain) QueryChannel(height int64) (chanRes *chantypes.QueryChannelResponse, err error) {
 	req := &chantypes.QueryChannelRequest{
-		PortId:    c.pathEnd.PortID,
-		ChannelId: c.pathEnd.ChannelID,
+		PortId:    c.pathEnd.PortID(),
+		ChannelId: c.pathEnd.ChannelID(),
 	}
 	var cres chantypes.QueryChannelResponse
 	if err := c.query("/ibc.core.channel.v1.Query/Channel", req, &cres); err != nil {
@@ -119,8 +119,8 @@ func (c *Chain) QueryChannel(height int64) (chanRes *chantypes.QueryChannelRespo
 
 func (c *Chain) QueryPacketCommitment(_ int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
 	req := &chantypes.QueryPacketCommitmentRequest{
-		PortId:    c.pathEnd.PortID,
-		ChannelId: c.pathEnd.ChannelID,
+		PortId:    c.pathEnd.PortID(),
+		ChannelId: c.pathEnd.ChannelID(),
 		Sequence:  seq,
 	}
 	var res chantypes.QueryPacketCommitmentResponse
@@ -132,8 +132,8 @@ func (c *Chain) QueryPacketCommitment(_ int64, seq uint64) (comRes *chantypes.Qu
 
 func (c *Chain) QueryPacketAcknowledgementCommitment(_ int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
 	req := &chantypes.QueryPacketAcknowledgementRequest{
-		PortId:    c.pathEnd.PortID,
-		ChannelId: c.pathEnd.ChannelID,
+		PortId:    c.pathEnd.PortID(),
+		ChannelId: c.pathEnd.ChannelID(),
 		Sequence:  seq,
 	}
 	var res chantypes.QueryPacketAcknowledgementResponse
@@ -191,8 +191,8 @@ func (c *Chain) QueryDenomTraces(offset, limit uint64, height int64) (*transfert
 
 func (c *Chain) QueryPacketCommitments(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
 	req := &chantypes.QueryPacketCommitmentsRequest{
-		PortId:    c.Path().PortID,
-		ChannelId: c.Path().ChannelID,
+		PortId:    c.Path().PortID(),
+		ChannelId: c.Path().ChannelID(),
 		Pagination: &querytypes.PageRequest{
 			Offset:     offset,
 			Limit:      limit,
@@ -208,8 +208,8 @@ func (c *Chain) QueryPacketCommitments(offset, limit uint64, height int64) (comR
 
 func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, error) {
 	req := &chantypes.QueryUnreceivedPacketsRequest{
-		PortId:                    c.Path().PortID,
-		ChannelId:                 c.Path().ChannelID,
+		PortId:                    c.Path().PortID(),
+		ChannelId:                 c.Path().ChannelID(),
 		PacketCommitmentSequences: seqs,
 	}
 	var res chantypes.QueryUnreceivedPacketsResponse
@@ -221,8 +221,8 @@ func (c *Chain) QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, e
 
 func (c *Chain) QueryPacketAcknowledgementCommitments(offset, limit uint64, _ int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
 	req := &chantypes.QueryPacketAcknowledgementsRequest{
-		PortId:    c.Path().PortID,
-		ChannelId: c.Path().ChannelID,
+		PortId:    c.Path().PortID(),
+		ChannelId: c.Path().ChannelID(),
 		Pagination: &querytypes.PageRequest{
 			Offset:     offset,
 			Limit:      limit,
@@ -238,8 +238,8 @@ func (c *Chain) QueryPacketAcknowledgementCommitments(offset, limit uint64, _ in
 
 func (c *Chain) QueryUnrecievedAcknowledgements(_ int64, seqs []uint64) ([]uint64, error) {
 	req := &chantypes.QueryUnreceivedAcksRequest{
-		PortId:             c.Path().PortID,
-		ChannelId:          c.Path().ChannelID,
+		PortId:             c.Path().PortID(),
+		ChannelId:          c.Path().ChannelID(),
 		PacketAckSequences: seqs,
 	}
 	var res chantypes.QueryUnreceivedAcksResponse
@@ -252,7 +252,7 @@ func (c *Chain) QueryUnrecievedAcknowledgements(_ int64, seqs []uint64) ([]uint6
 func (c *Chain) QueryPacket(_ int64, sequence uint64) (*chantypes.Packet, error) {
 	var p chantypes.Packet
 
-	bz, err := c.Contract().EvaluateTransaction(queryPacketFunc, c.Path().PortID, c.Path().ChannelID, fmt.Sprint(sequence))
+	bz, err := c.Contract().EvaluateTransaction(queryPacketFunc, c.Path().PortID(), c.Path().ChannelID(), fmt.Sprint(sequence))
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +265,7 @@ func (c *Chain) QueryPacket(_ int64, sequence uint64) (*chantypes.Packet, error)
 }
 
 func (dst *Chain) QueryPacketAcknowledgement(_ int64, sequence uint64) ([]byte, error) {
-	bz, err := dst.Contract().EvaluateTransaction(queryPacketAcknowledgement, dst.Path().PortID, dst.Path().ChannelID, fmt.Sprint(sequence))
+	bz, err := dst.Contract().EvaluateTransaction(queryPacketAcknowledgement, dst.Path().PortID(), dst.Path().ChannelID(), fmt.Sprint(sequence))
 	if err != nil {
 		return nil, err
 	}

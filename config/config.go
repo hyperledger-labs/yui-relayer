@@ -88,16 +88,16 @@ func (c *Config) ChainsFromPath(path string) (map[string]*core.ProvableChain, st
 		return nil, "", "", err
 	}
 
-	src, dst := pth.Src.ChainID, pth.Dst.ChainID
+	src, dst := pth.Src().ChainID(), pth.Dst().ChainID()
 	chains, err := c.chains.Gets(src, dst)
 	if err != nil {
 		return nil, "", "", err
 	}
 
-	if err = chains[src].SetPath(pth.Src); err != nil {
+	if err = chains[src].SetPath(pth.Src()); err != nil {
 		return nil, "", "", err
 	}
-	if err = chains[dst].SetPath(pth.Dst); err != nil {
+	if err = chains[dst].SetPath(pth.Dst()); err != nil {
 		return nil, "", "", err
 	}
 

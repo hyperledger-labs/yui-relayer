@@ -154,7 +154,7 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences
 	}
 	if !msgs.Ready() {
 		log.Println(fmt.Sprintf("- No packets to relay between [%s]port{%s} and [%s]port{%s}",
-			src.ChainID(), src.Path().PortID, dst.ChainID(), dst.Path().PortID))
+			src.ChainID(), src.Path().PortID(), dst.ChainID(), dst.Path().PortID()))
 		return nil
 	}
 
@@ -170,7 +170,7 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences
 			return err
 		}
 		if h != nil {
-			msgs.Dst = append([]sdk.Msg{dst.Path().UpdateClient(h, addr)}, msgs.Dst...)
+			msgs.Dst = append([]sdk.Msg{UpdateClient(dst.Path(), h, addr)}, msgs.Dst...)
 		}
 	}
 
@@ -184,7 +184,7 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences
 			return err
 		}
 		if h != nil {
-			msgs.Src = append([]sdk.Msg{src.Path().UpdateClient(h, addr)}, msgs.Src...)
+			msgs.Src = append([]sdk.Msg{UpdateClient(src.Path(), h, addr)}, msgs.Src...)
 		}
 	}
 
@@ -316,7 +316,7 @@ func relayPackets(chain *ProvableChain, seqs []uint64, sh SyncHeadersI, sender s
 
 func logPacketsRelayed(src, dst ChainI, num int) {
 	log.Println(fmt.Sprintf("★ Relayed %d packets: [%s]port{%s}->[%s]port{%s}",
-		num, dst.ChainID(), dst.Path().PortID, src.ChainID(), src.Path().PortID))
+		num, dst.ChainID(), dst.Path().PortID(), src.ChainID(), src.Path().PortID()))
 }
 
 func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeadersI) error {
@@ -346,7 +346,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 	}
 	if !msgs.Ready() {
 		log.Println(fmt.Sprintf("- No acknowledgements to relay between [%s]port{%s} and [%s]port{%s}",
-			src.ChainID(), src.Path().PortID, dst.ChainID(), dst.Path().PortID))
+			src.ChainID(), src.Path().PortID(), dst.ChainID(), dst.Path().PortID()))
 		return nil
 	}
 
@@ -361,7 +361,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 			return err
 		}
 		if h != nil {
-			msgs.Dst = append([]sdk.Msg{dst.Path().UpdateClient(h, addr)}, msgs.Dst...)
+			msgs.Dst = append([]sdk.Msg{UpdateClient(dst.Path(), h, addr)}, msgs.Dst...)
 		}
 	}
 
@@ -375,7 +375,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 			return err
 		}
 		if h != nil {
-			msgs.Src = append([]sdk.Msg{src.Path().UpdateClient(h, addr)}, msgs.Src...)
+			msgs.Src = append([]sdk.Msg{UpdateClient(src.Path(), h, addr)}, msgs.Src...)
 		}
 	}
 
