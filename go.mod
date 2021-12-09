@@ -12,7 +12,7 @@ require (
 	github.com/gogo/protobuf v1.3.3
 	github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210811021327-6987ac24cf84
 	github.com/hyperledger-labs/yui-fabric-ibc v0.2.0
-	github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210801023756-05047b73f120
+	github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20211102033703-b1c507b339f0
 	github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191
 	github.com/hyperledger/fabric-protos-go v0.0.0-20200707132912-fee30f3ccd23
 	github.com/hyperledger/fabric-sdk-go v1.0.0-beta2.0.20200715151216-87f5eb8a655f

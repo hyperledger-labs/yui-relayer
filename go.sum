@@ -482,8 +482,8 @@ github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210811021327-6987ac24cf84 
 github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210811021327-6987ac24cf84/go.mod h1:TLUR8B4T2bysDITKnWwtswpVVCIBrnmPZoP0OpAUbio=
 github.com/hyperledger-labs/yui-fabric-ibc v0.2.0 h1:ARJ7Rxse9sP6Wf/UGuUnsOV3nS8er78Rit7slmz9OcE=
 github.com/hyperledger-labs/yui-fabric-ibc v0.2.0/go.mod h1:0ey1+ANFpyz+8m9e7XqFk9+75VsECKBWPPp4Yf3cTZI=
-github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210801023756-05047b73f120 h1:Fz5GVT+paFhLpUNK+odK0r11rqhHcPX/DaCguAmFlVE=
-github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20210801023756-05047b73f120/go.mod h1:Y3rEZX46slCFPSXzTRZsbj6F3OgbM+6VvDnnUBmi2mI=
+github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20211102033703-b1c507b339f0 h1:xqDAwtF5M12WLVXM80E4Sqla+7iTC+EJm+utk4iCJTw=
+github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20211102033703-b1c507b339f0/go.mod h1:Y3rEZX46slCFPSXzTRZsbj6F3OgbM+6VvDnnUBmi2mI=
 github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191 h1:e2Np9BoOHxufPGnGm3qyTh9sIarBpg57RlIvE62yCYE=
 github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191/go.mod h1:SyW8QL0YfvUw0KyQ9oDA9elPRaEKdNl7O8wIApPCQlw=
 github.com/hyperledger/fabric-amcl v0.0.0-20200128223036-d1aa2665426a/go.mod h1:X+DIyUsaTmalOpmpQfIvFZjKHQedrURQ5t4YqquX7lE=
