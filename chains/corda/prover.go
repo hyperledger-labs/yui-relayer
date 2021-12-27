@@ -27,7 +27,8 @@ func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.Proto
 	return nil
 }
 
-func (pr *Prover) SetPath(p *core.PathEnd) error {
+// SetRelayInfo sets source's path and counterparty's info to the chain
+func (pr *Prover) SetRelayInfo(_ *core.PathEnd, _ *core.ProvableChain, _ *core.PathEnd) error {
 	return nil // prover uses chain's path instead
 }
 

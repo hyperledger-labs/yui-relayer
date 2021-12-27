@@ -55,7 +55,8 @@ func (c *Chain) Codec() codec.ProtoCodecMarshaler {
 	return c.codec
 }
 
-func (c *Chain) SetPath(p *core.PathEnd) error {
+// SetRelayInfo sets source's path and counterparty's info to the chain
+func (c *Chain) SetRelayInfo(p *core.PathEnd, _ *core.ProvableChain, _ *core.PathEnd) error {
 	if err := p.Validate(); err != nil {
 		return c.errCantSetPath(err)
 	}

@@ -34,11 +34,11 @@ func (pc *ProvableChain) Init(homePath string, timeout time.Duration, codec code
 	return nil
 }
 
-func (pc *ProvableChain) SetPath(path *PathEnd) error {
-	if err := pc.ChainI.SetPath(path); err != nil {
+func (pc *ProvableChain) SetRelayInfo(path *PathEnd, counterparty *ProvableChain, counterpartyPath *PathEnd) error {
+	if err := pc.ChainI.SetRelayInfo(path, counterparty, counterpartyPath); err != nil {
 		return err
 	}
-	if err := pc.ProverI.SetPath(path); err != nil {
+	if err := pc.ProverI.SetRelayInfo(path, counterparty, counterpartyPath); err != nil {
 		return err
 	}
 	return nil
@@ -68,8 +68,8 @@ type ChainI interface {
 	// Codec returns the codec
 	Codec() codec.ProtoCodecMarshaler
 
-	// SetPath sets a given path to the chain
-	SetPath(p *PathEnd) error
+	// SetRelayInfo sets source's path and counterparty's info to the chain
+	SetRelayInfo(path *PathEnd, counterparty *ProvableChain, counterpartyPath *PathEnd) error
 
 	// Path returns the path
 	Path() *PathEnd
@@ -81,10 +81,10 @@ type ChainI interface {
 	// It returns a boolean value whether the result is success
 	Send(msgs []sdk.Msg) bool
 
-	// Init ...
+	// Init initializes the chain
 	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
 
-	// SetupForRelay ...
+	// SetupForRelay performs chain-specific setup before starting the relay
 	SetupForRelay(ctx context.Context) error
 
 	// RegisterMsgEventListener registers a given EventListener to the chain

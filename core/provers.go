@@ -11,14 +11,17 @@ import (
 
 // ProverI represents a prover that supports generating a commitment proof
 type ProverI interface {
+	// Init initializes the chain
+	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
+
+	// SetRelayInfo sets source's path and counterparty's info to the chain
+	SetRelayInfo(path *PathEnd, counterparty *ProvableChain, counterpartyPath *PathEnd) error
+
+	// SetupForRelay performs chain-specific setup before starting the relay
+	SetupForRelay(ctx context.Context) error
+
 	LightClientI
 	IBCProvableQuerierI
-	// Init ...
-	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
-	// SetPath sets a given path to the chain
-	SetPath(p *PathEnd) error
-	// SetupForRelay ...
-	SetupForRelay(ctx context.Context) error
 }
 
 // LightClientI is an interface to the light client

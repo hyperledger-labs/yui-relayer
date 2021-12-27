@@ -92,10 +92,9 @@ func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 	return srcAddr.GetAddress(), nil
 }
 
-// SetPath sets the path and validates the identifiers
-func (c *Chain) SetPath(p *core.PathEnd) error {
-	err := p.Validate()
-	if err != nil {
+// SetRelayInfo sets source's path and counterparty's info to the chain
+func (c *Chain) SetRelayInfo(p *core.PathEnd, _ *core.ProvableChain, _ *core.PathEnd) error {
+	if err := p.Validate(); err != nil {
 		return c.ErrCantSetPath(err)
 	}
 	c.PathEnd = p

@@ -94,10 +94,10 @@ func (c *Config) ChainsFromPath(path string) (map[string]*core.ProvableChain, st
 		return nil, "", "", err
 	}
 
-	if err = chains[src].SetPath(pth.Src); err != nil {
+	if err = chains[src].SetRelayInfo(pth.Src, chains[dst], pth.Dst); err != nil {
 		return nil, "", "", err
 	}
-	if err = chains[dst].SetPath(pth.Dst); err != nil {
+	if err = chains[dst].SetRelayInfo(pth.Dst, chains[src], pth.Src); err != nil {
 		return nil, "", "", err
 	}
 
