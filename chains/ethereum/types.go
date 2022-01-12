@@ -1,9 +1,12 @@
 package ethereum
 
 import (
+	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	connectiontypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
+	"github.com/cosmos/ibc-go/modules/core/exported"
+	"github.com/hyperledger-labs/yui-ibc-solidity/pkg/contract/ibchandler"
 	"github.com/hyperledger-labs/yui-ibc-solidity/pkg/contract/ibchost"
 )
 
@@ -33,5 +36,33 @@ func channelToPB(chann ibchost.ChannelData) channeltypes.Channel {
 		Counterparty:   channeltypes.Counterparty(chann.Counterparty),
 		ConnectionHops: chann.ConnectionHops,
 		Version:        chann.Version,
+	}
+}
+
+func hostHeightToPB(height ibchost.HeightData) clienttypes.Height {
+	return clienttypes.Height{
+		RevisionNumber: height.RevisionNumber,
+		RevisionHeight: height.RevisionHeight,
+	}
+}
+
+func handlerHeightToPB(height ibchandler.HeightData) clienttypes.Height {
+	return clienttypes.Height{
+		RevisionNumber: height.RevisionNumber,
+		RevisionHeight: height.RevisionHeight,
+	}
+}
+
+func pbToHandlerHeight(height exported.Height) ibchandler.HeightData {
+	return ibchandler.HeightData{
+		RevisionNumber: height.GetRevisionNumber(),
+		RevisionHeight: height.GetRevisionHeight(),
+	}
+}
+
+func pbToHostHeight(height exported.Height) ibchost.HeightData {
+	return ibchost.HeightData{
+		RevisionNumber: height.GetRevisionNumber(),
+		RevisionHeight: height.GetRevisionHeight(),
 	}
 }
