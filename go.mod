@@ -27,6 +27,7 @@ require (
 )
 
 replace (
+	github.com/datachainlab/ibc-mock-client => github.com/siburu/ibc-mock-client v0.0.0-20220112092544-571b19328997
 	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 	github.com/hyperledger/fabric-sdk-go => github.com/datachainlab/fabric-sdk-go v0.0.0-20200730074927-282a61dcd92e
