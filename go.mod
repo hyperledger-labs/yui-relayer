@@ -12,7 +12,7 @@ require (
 	github.com/gogo/protobuf v1.3.3
 	github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210811021327-6987ac24cf84
 	github.com/hyperledger-labs/yui-fabric-ibc v0.2.0
-	github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20211102033703-b1c507b339f0
+	github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20220117004623-482544f9ca21
 	github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191
 	github.com/hyperledger/fabric-protos-go v0.0.0-20200707132912-fee30f3ccd23
 	github.com/hyperledger/fabric-sdk-go v1.0.0-beta2.0.20200715151216-87f5eb8a655f
@@ -30,7 +30,6 @@ replace (
 	github.com/datachainlab/ibc-mock-client => github.com/siburu/ibc-mock-client v0.0.0-20220112092544-571b19328997
 	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
-	github.com/hyperledger-labs/yui-ibc-solidity => github.com/siburu/yui-ibc-solidity v0.0.0-20220112075952-c21cd7d56a3a
 	github.com/hyperledger/fabric-sdk-go => github.com/datachainlab/fabric-sdk-go v0.0.0-20200730074927-282a61dcd92e
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 )

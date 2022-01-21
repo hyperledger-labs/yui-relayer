@@ -481,6 +481,8 @@ github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210811021327-6987ac24cf84 
 github.com/hyperledger-labs/yui-corda-ibc/go v0.0.0-20210811021327-6987ac24cf84/go.mod h1:TLUR8B4T2bysDITKnWwtswpVVCIBrnmPZoP0OpAUbio=
 github.com/hyperledger-labs/yui-fabric-ibc v0.2.0 h1:ARJ7Rxse9sP6Wf/UGuUnsOV3nS8er78Rit7slmz9OcE=
 github.com/hyperledger-labs/yui-fabric-ibc v0.2.0/go.mod h1:0ey1+ANFpyz+8m9e7XqFk9+75VsECKBWPPp4Yf3cTZI=
+github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20220117004623-482544f9ca21 h1:QOKza8iHnFGLsaeFs+VUIEiuifl6P9q7+6aLbx/kaI0=
+github.com/hyperledger-labs/yui-ibc-solidity v0.0.0-20220117004623-482544f9ca21/go.mod h1:9kttuiA6q8N9dqeyTWuT53krR0ShxMxDM8EetVC3gKI=
 github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191 h1:e2Np9BoOHxufPGnGm3qyTh9sIarBpg57RlIvE62yCYE=
 github.com/hyperledger/fabric v1.4.0-rc1.0.20200416031218-eff2f9306191/go.mod h1:SyW8QL0YfvUw0KyQ9oDA9elPRaEKdNl7O8wIApPCQlw=
 github.com/hyperledger/fabric-amcl v0.0.0-20200128223036-d1aa2665426a/go.mod h1:X+DIyUsaTmalOpmpQfIvFZjKHQedrURQ5t4YqquX7lE=
@@ -781,8 +783,6 @@ github.com/shirou/gopsutil v2.20.5+incompatible/go.mod h1:5b4v6he4MtMOwMlS0TUMTu
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/siburu/ibc-mock-client v0.0.0-20220112092544-571b19328997 h1:sbFuRD/D630opKXIdnYOE/D1DqlIh/kw6oH+dWTqfzw=
 github.com/siburu/ibc-mock-client v0.0.0-20220112092544-571b19328997/go.mod h1:yz5E2DpB3FJZZjagC4HcW51km5HesF1tFQRr6k0HQvA=
-github.com/siburu/yui-ibc-solidity v0.0.0-20220112075952-c21cd7d56a3a h1:/8QHB36Fw1sT1nH+e/Xgt4rpzQPF+qOQVTnzUJez+Dc=
-github.com/siburu/yui-ibc-solidity v0.0.0-20220112075952-c21cd7d56a3a/go.mod h1:9kttuiA6q8N9dqeyTWuT53krR0ShxMxDM8EetVC3gKI=
 github.com/sirupsen/logrus v1.0.4-0.20170822132746-89742aefa4b2/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=
 github.com/sirupsen/logrus v1.0.5/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
