@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"encoding/json"
+	"github.com/spf13/viper"
+	"io/ioutil"
+	"path/filepath"
 
 	"github.com/hyperledger-labs/yui-fabric-ibc/example"
 	"github.com/hyperledger-labs/yui-relayer/chains/fabric"
@@ -38,11 +41,20 @@ func initChaincodeCmd(ctx *config.Context) *cobra.Command {
 			if err = fc.Connect(); err != nil {
 				return err
 			}
-			// TODO we should get a genesis state from a given json file
-			genesisState := example.NewDefaultGenesisState()
-			bz, err := json.Marshal(genesisState)
-			if err != nil {
-				return err
+
+			genesisFile := viper.GetString(flagGenesisFile)
+			var bz []byte
+			if genesisFile != "" {
+				bz, err = ioutil.ReadFile(filepath.Clean(genesisFile))
+				if err != nil {
+					return err
+				}
+			} else {
+				genesisState := example.NewDefaultGenesisState()
+				bz, err = json.Marshal(genesisState)
+				if err != nil {
+					return err
+				}
 			}
 			_, err = fc.Contract().SubmitTransaction(initChaincodeFunc, string(bz))
 			if err != nil {
@@ -51,5 +63,5 @@ func initChaincodeCmd(ctx *config.Context) *cobra.Command {
 			return nil
 		},
 	}
-	return cmd
+	return initChaincodeFlag(cmd)
 }
