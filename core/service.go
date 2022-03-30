@@ -10,12 +10,12 @@ import (
 )
 
 // StartService starts a relay service
-func StartService(ctx context.Context, st StrategyI, src, dst *ProvableChain, relayInterval time.Duration) error {
+func StartService(ctx context.Context, st StrategyI, src, dst *ProvableChain, relayInterval time.Duration, attempts uint) error {
 	sh, err := NewSyncHeaders(src, dst)
 	if err != nil {
 		return err
 	}
-	srv := NewRelayService(st, src, dst, sh, relayInterval)
+	srv := NewRelayService(st, src, dst, sh, relayInterval, attempts)
 	return srv.Start(ctx)
 }
 
@@ -25,16 +25,18 @@ type RelayService struct {
 	st       StrategyI
 	sh       SyncHeadersI
 	interval time.Duration
+	attempts uint
 }
 
 // NewRelayService returns a new service
-func NewRelayService(st StrategyI, src, dst *ProvableChain, sh SyncHeadersI, interval time.Duration) *RelayService {
+func NewRelayService(st StrategyI, src, dst *ProvableChain, sh SyncHeadersI, interval time.Duration, attempts uint) *RelayService {
 	return &RelayService{
 		src:      src,
 		dst:      dst,
 		st:       st,
 		sh:       sh,
 		interval: interval,
+		attempts: attempts,
 	}
 }
 
@@ -48,7 +50,7 @@ func (srv *RelayService) Start(ctx context.Context) error {
 			default:
 				return srv.Serve(ctx)
 			}
-		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+		}, retry.Attempts(srv.attempts), retry.Delay(srv.interval), retry.DelayType(retry.FixedDelay), rtyErr, retry.OnRetry(func(n uint, err error) {
 			log.Println(fmt.Sprintf("- [%s][%s]try(%d/%d) relay-service: %s", srv.src.ChainID(), srv.dst.ChainID(), n+1, rtyAttNum, err))
 		})); err != nil {
 			return err
