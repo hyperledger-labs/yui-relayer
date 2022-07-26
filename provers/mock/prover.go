@@ -49,7 +49,10 @@ func (pr *Prover) GetChainID() string {
 // QueryLatestHeader returns the latest header from the chain
 func (pr *Prover) QueryLatestHeader() (out core.HeaderI, err error) {
 	var header = mocktypes.Header{
-		Height:    pr.sequence,
+		Height: &clienttypes.Height{
+			RevisionNumber: 0,
+			RevisionHeight: pr.sequence,
+		},
 		Timestamp: uint64(time.Now().UnixNano()),
 	}
 	return &header, nil
