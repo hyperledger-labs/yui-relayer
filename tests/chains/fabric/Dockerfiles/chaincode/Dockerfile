@@ -1,4 +1,4 @@
-ARG GO_VER=1.15.8
+ARG GO_VER=1.18.4
 
 FROM golang:${GO_VER}-buster as builder
 
