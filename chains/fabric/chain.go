@@ -1,6 +1,7 @@
 package fabric
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -18,9 +19,10 @@ type Chain struct {
 	pathEnd  *core.PathEnd
 	homePath string
 
-	codec   codec.ProtoCodecMarshaler
-	gateway FabricGateway
-	logger  log.Logger
+	codec            codec.ProtoCodecMarshaler
+	gateway          FabricGateway
+	logger           log.Logger
+	msgEventListener core.MsgEventListener
 }
 
 func NewChain(config ChainConfig) *Chain {
@@ -33,6 +35,11 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 	c.homePath = homePath
 	c.codec = codec
 	c.logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+	return nil
+}
+
+// SetupForRelay ...
+func (c *Chain) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
@@ -72,9 +79,9 @@ func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 	return authtypes.MakeCreatorAddressWithSerializedIdentity(sid)
 }
 
-func (c *Chain) SetPath(p *core.PathEnd) error {
-	err := p.Validate()
-	if err != nil {
+// SetRelayInfo sets source's path and counterparty's info to the chain
+func (c *Chain) SetRelayInfo(p *core.PathEnd, _ *core.ProvableChain, _ *core.PathEnd) error {
+	if err := p.Validate(); err != nil {
 		return c.errCantSetPath(err)
 	}
 	c.pathEnd = p
@@ -85,8 +92,9 @@ func (c *Chain) Path() *core.PathEnd {
 	return c.pathEnd
 }
 
-func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
-	panic("not implemented error")
+// RegisterMsgEventListener registers a given EventListener to the chain
+func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
+	c.msgEventListener = listener
 }
 
 // errCantSetPath returns an error if the path doesn't set properly

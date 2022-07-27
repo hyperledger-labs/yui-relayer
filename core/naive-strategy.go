@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -26,6 +27,16 @@ func NewNaiveStrategy() *NaiveStrategy {
 // GetType implements Strategy
 func (st NaiveStrategy) GetType() string {
 	return "naive"
+}
+
+func (st NaiveStrategy) SetupRelay(ctx context.Context, src, dst *ProvableChain) error {
+	if err := src.SetupForRelay(ctx); err != nil {
+		return err
+	}
+	if err := dst.SetupForRelay(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeadersI) (*RelaySequences, error) {

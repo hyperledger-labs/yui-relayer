@@ -12,9 +12,10 @@ import (
 )
 
 type Chain struct {
-	config  ChainConfig
-	pathEnd *core.PathEnd
-	codec   codec.ProtoCodecMarshaler
+	config           ChainConfig
+	pathEnd          *core.PathEnd
+	codec            codec.ProtoCodecMarshaler
+	msgEventListener core.MsgEventListener
 
 	client         *cordaIbcClient
 	bankNodeClient *cordaIbcClient
@@ -54,7 +55,8 @@ func (c *Chain) Codec() codec.ProtoCodecMarshaler {
 	return c.codec
 }
 
-func (c *Chain) SetPath(p *core.PathEnd) error {
+// SetRelayInfo sets source's path and counterparty's info to the chain
+func (c *Chain) SetRelayInfo(p *core.PathEnd, _ *core.ProvableChain, _ *core.PathEnd) error {
 	if err := p.Validate(); err != nil {
 		return c.errCantSetPath(err)
 	}
@@ -66,8 +68,9 @@ func (c *Chain) Path() *core.PathEnd {
 	return c.pathEnd
 }
 
-func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
-	panic("not implemented error")
+// RegisterMsgEventListener registers a given EventListener to the chain
+func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
+	c.msgEventListener = listener
 }
 
 func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
@@ -82,6 +85,11 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 		c.bankNodeClient = client
 	}
 	c.codec = codec
+	return nil
+}
+
+// SetupForRelay ...
+func (c *Chain) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 

@@ -1,6 +1,10 @@
 package corda
 
 import (
+	"context"
+	"time"
+
+	"github.com/cosmos/cosmos-sdk/codec"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
@@ -17,6 +21,19 @@ var _ core.ProverI = (*Prover)(nil)
 
 func NewProver(chain *Chain) *Prover {
 	return &Prover{chain: chain}
+}
+
+func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
+	return nil
+}
+
+// SetRelayInfo sets source's path and counterparty's info to the chain
+func (pr *Prover) SetRelayInfo(_ *core.PathEnd, _ *core.ProvableChain, _ *core.PathEnd) error {
+	return nil // prover uses chain's path instead
+}
+
+func (pr *Prover) SetupForRelay(ctx context.Context) error {
+	return nil
 }
 
 // GetChainID returns the chain ID

@@ -23,6 +23,15 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
 	}
 	res, err := c.gateway.Contract.SubmitTransaction(handleTxFunc, string(txBytes))
 	log.Printf("fabric.SendMsgs.result: res='%v' err='%v'", res, err)
+	if err != nil {
+		return res, err
+	}
+	if c.msgEventListener != nil {
+		if err := c.msgEventListener.OnSentMsg(msgs); err != nil {
+			log.Println("failed to OnSendMsg call", "msgs", msgs, "err", err)
+			return res, nil
+		}
+	}
 	return res, err
 }
 

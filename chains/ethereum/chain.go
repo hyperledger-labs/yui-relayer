@@ -27,10 +27,11 @@ import (
 type Chain struct {
 	config ChainConfig
 
-	pathEnd  *core.PathEnd
-	homePath string
-	chainID  *big.Int
-	codec    codec.ProtoCodecMarshaler
+	pathEnd          *core.PathEnd
+	homePath         string
+	chainID          *big.Int
+	codec            codec.ProtoCodecMarshaler
+	msgEventListener core.MsgEventListener
 
 	relayerPrvKey *ecdsa.PrivateKey
 	client        *ethclient.Client
@@ -76,6 +77,11 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 	return nil
 }
 
+// SetupForRelay ...
+func (c *Chain) SetupForRelay(ctx context.Context) error {
+	return nil
+}
+
 // ChainID returns ID of the chain
 func (c *Chain) ChainID() string {
 	return c.config.ChainId
@@ -101,10 +107,9 @@ func (c *Chain) Codec() codec.ProtoCodecMarshaler {
 	return c.codec
 }
 
-// SetPath sets the path and validates the identifiers
-func (c *Chain) SetPath(p *core.PathEnd) error {
-	err := p.Validate()
-	if err != nil {
+// SetRelayInfo sets source's path and counterparty's info to the chain
+func (c *Chain) SetRelayInfo(p *core.PathEnd, _ *core.ProvableChain, _ *core.PathEnd) error {
+	if err := p.Validate(); err != nil {
 		return c.ErrCantSetPath(err)
 	}
 	c.pathEnd = p
@@ -120,9 +125,9 @@ func (c *Chain) Path() *core.PathEnd {
 	return c.pathEnd
 }
 
-// StartEventListener ...
-func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
-	return
+// RegisterMsgEventListener registers a given EventListener to the chain
+func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
+	c.msgEventListener = listener
 }
 
 // QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height

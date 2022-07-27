@@ -46,7 +46,8 @@ type Chain struct {
 	Keybase  keys.Keyring     `yaml:"-" json:"-"`
 	Client   rpcclient.Client `yaml:"-" json:"-"`
 
-	codec codec.ProtoCodecMarshaler `yaml:"-" json:"-"`
+	codec            codec.ProtoCodecMarshaler `yaml:"-" json:"-"`
+	msgEventListener core.MsgEventListener
 
 	address sdk.AccAddress
 	logger  log.Logger
@@ -91,10 +92,9 @@ func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 	return srcAddr.GetAddress(), nil
 }
 
-// SetPath sets the path and validates the identifiers
-func (c *Chain) SetPath(p *core.PathEnd) error {
-	err := p.Validate()
-	if err != nil {
+// SetRelayInfo sets source's path and counterparty's info to the chain
+func (c *Chain) SetRelayInfo(p *core.PathEnd, _ *core.ProvableChain, _ *core.PathEnd) error {
+	if err := p.Validate(); err != nil {
 		return c.ErrCantSetPath(err)
 	}
 	c.PathEnd = p
@@ -137,6 +137,10 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 	return nil
 }
 
+func (c *Chain) SetupForRelay(ctx context.Context) error {
+	return nil
+}
+
 // QueryLatestHeight queries the chain for the latest height and returns it
 func (c *Chain) GetLatestHeight() (int64, error) {
 	res, err := c.Client.Status(context.Background())
@@ -149,10 +153,21 @@ func (c *Chain) GetLatestHeight() (int64, error) {
 	return res.SyncInfo.LatestBlockHeight, nil
 }
 
+// RegisterMsgEventListener registers a given EventListener to the chain
+func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
+	c.msgEventListener = listener
+}
+
 func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 	res, _, err := c.rawSendMsgs(msgs)
 	if err != nil {
 		return nil, err
+	}
+	if res.Code == 0 && c.msgEventListener != nil {
+		if err := c.msgEventListener.OnSentMsg(msgs); err != nil {
+			c.logger.Error("failed to OnSendMsg call", "msgs", msgs, "err", err)
+			return res, nil
+		}
 	}
 	return res, nil
 }
@@ -320,10 +335,6 @@ func (c *Chain) Send(msgs []sdk.Msg) bool {
 	c.LogSuccessTx(res, msgs)
 
 	return true
-}
-
-func (c *Chain) StartEventListener(dst core.ChainI, strategy core.StrategyI) {
-	panic("not implemented error")
 }
 
 // ------------------------------- //
