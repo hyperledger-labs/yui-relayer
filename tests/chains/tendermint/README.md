@@ -1,7 +1,6 @@
-# fabric-ibc-tendermint
+# SimApp
 
 This application includes the following modules:
 
-- Cross Framework
-- simapp/samplemod
-- fabric-IBC
+- ibc-go
+- ibc-mock-client
