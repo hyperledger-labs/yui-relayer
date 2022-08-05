@@ -7,7 +7,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.43.0-beta1
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/ibc-go v1.0.0-beta1
-	github.com/datachainlab/ibc-mock-client v0.0.0-20220113022533-5baf3f100d16
+	github.com/datachainlab/ibc-mock-client v0.1.1
 	github.com/gogo/protobuf v1.3.3
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.1
