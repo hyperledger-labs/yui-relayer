@@ -12,7 +12,9 @@ import (
 
 func serviceCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "service",
+		Use:   "service",
+		Short: "Relay Service Commands",
+		Long:  "Commands to manage the relay service",
 	}
 	cmd.AddCommand(
 		startCmd(ctx),
