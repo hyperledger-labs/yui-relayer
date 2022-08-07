@@ -16,7 +16,7 @@ import (
 var (
 	homePath    string
 	debug       bool
-	defaultHome = os.ExpandEnv("$HOME/.urelayer")
+	defaultHome = os.ExpandEnv("$HOME/.yui-relayer")
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -24,7 +24,7 @@ var (
 func Execute(modules ...config.ModuleI) error {
 	// rootCmd represents the base command when called without any subcommands
 	var rootCmd = &cobra.Command{
-		Use:   "uly",
+		Use:   "yrly",
 		Short: "This application relays data between configured IBC enabled chains",
 	}
 

@@ -4,8 +4,8 @@ set -x
 
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
 
-RELAYER_CONF="$HOME/.urelayer"
-RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
+RELAYER_CONF="$HOME/.yui-relayer"
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
 RLY="${RLY_BINARY} --debug"
 FIXTURES_DIR=${SCRIPT_DIR}/../fixtures
 
