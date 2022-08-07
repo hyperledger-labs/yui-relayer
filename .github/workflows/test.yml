@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   CACHE_BIN_RELAYER_KEY: bin-relayer
-  CACHE_BIN_RELAYER_PATH: ./build/uly
+  CACHE_BIN_RELAYER_PATH: ./build/yrly
   CACHE_DOCKER_TENDERMINT_KEY: docker-tendermint
   CACHE_DOCKER_TENDERMINT_DIR: /tmp/tendermint
 
