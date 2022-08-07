@@ -47,7 +47,7 @@ func Execute(modules ...config.ModuleI) error {
 	for _, module := range modules {
 		module.RegisterInterfaces(codec.InterfaceRegistry())
 	}
-	ctx := &config.Context{Config: &config.Config{}, Codec: codec}
+	ctx := &config.Context{Modules: modules, Config: &config.Config{}, Codec: codec}
 
 	// Register subcommands
 
@@ -57,6 +57,7 @@ func Execute(modules ...config.ModuleI) error {
 		transactionCmd(ctx),
 		pathsCmd(ctx),
 		queryCmd(ctx),
+		modulesCmd(ctx),
 		serviceCmd(ctx),
 		flags.LineBreak,
 	)
