@@ -196,11 +196,8 @@ func (pr *Prover) UpdateLightWithHeader() (header core.HeaderI, provableHeight i
 		SignedHeader: sh.SignedHeader.ToProto(),
 		ValidatorSet: protoVal,
 	}
-	queryableHeight = int64(h.GetHeight().GetRevisionHeight())
-	// NOTE: We query connection at height - 1 because of the way tendermint returns
-	// proofs the commit for height n is contained in the header of height n + 1
-	provableHeight = queryableHeight - 1
-	return h, provableHeight, queryableHeight, nil
+	height := int64(h.GetHeight().GetRevisionHeight())
+	return h, height, height, nil
 }
 
 // TrustOptions returns light.TrustOptions given a height and hash
