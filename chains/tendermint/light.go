@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/avast/retry-go"
-	tmclient "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
+	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/light"
 	lightp "github.com/tendermint/tendermint/light/provider"

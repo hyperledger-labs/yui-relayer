@@ -5,14 +5,14 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
-	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
-	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
-	commitmentypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
-	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
-	tmclient "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
+	transfertypes "github.com/cosmos/ibc-go/v4/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
+	commitmenttypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
+	commitmentypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
+	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
+	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/light"
 )
@@ -136,7 +136,6 @@ func (pe *PathEnd) ConnTry(
 		panic(err)
 	}
 	msg := conntypes.NewMsgConnectionOpenTry(
-		"",
 		pe.ClientID,
 		dst.ConnectionID,
 		dst.ClientID,
@@ -211,7 +210,6 @@ func (pe *PathEnd) ChanInit(dst *PathEnd, signer sdk.AccAddress) sdk.Msg {
 func (pe *PathEnd) ChanTry(dst *PathEnd, dstChanState *chantypes.QueryChannelResponse, signer sdk.AccAddress) sdk.Msg {
 	return chantypes.NewMsgChannelOpenTry(
 		pe.PortID,
-		"",
 		pe.Version,
 		dstChanState.Channel.Ordering,
 		[]string{pe.ConnectionID},
@@ -304,7 +302,7 @@ func (pe *PathEnd) NewPacket(dst *PathEnd, sequence uint64, packetData []byte,
 func (pe *PathEnd) XferPacket(amount sdk.Coin, sender, receiver string) []byte {
 	return transfertypes.NewFungibleTokenPacketData(
 		amount.Denom,
-		amount.Amount.Uint64(),
+		amount.Amount.String(),
 		sender,
 		receiver,
 	).GetBytes()

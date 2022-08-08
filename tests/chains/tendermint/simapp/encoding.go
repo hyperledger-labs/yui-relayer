@@ -1,13 +1,14 @@
 package simapp
 
 import (
-	simappparams "github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/cosmos/cosmos-sdk/std"
+
+	simappparams "github.com/cosmos/ibc-go/v4/testing/simapp/params"
 )
 
-// MakeTestEncodingConfig creates an EncodingConfig for testing.
-// This function should be used only internally (in the SDK).
-// App user should'nt create new codecs - use the app.AppCodec instead.
+// MakeTestEncodingConfig creates an EncodingConfig for testing. This function
+// should be used only in tests or when creating a new app instance (NewApp*()).
+// App user shouldn't create new codecs - use the app.AppCodec instead.
 // [DEPRECATED]
 func MakeTestEncodingConfig() simappparams.EncodingConfig {
 	encodingConfig := simappparams.MakeTestEncodingConfig()

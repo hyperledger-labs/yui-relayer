@@ -22,8 +22,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
-	transfer "github.com/cosmos/ibc-go/modules/apps/transfer"
-	ibc "github.com/cosmos/ibc-go/modules/core"
+	transfer "github.com/cosmos/ibc-go/v4/modules/apps/transfer"
+	ibc "github.com/cosmos/ibc-go/v4/modules/core"
 )
 
 var moduleBasics = module.NewBasicManager(

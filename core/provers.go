@@ -6,7 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
 )
 
 // ProverI represents a prover that supports generating a commitment proof
