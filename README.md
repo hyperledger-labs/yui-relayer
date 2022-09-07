@@ -23,8 +23,8 @@ In addition, "Y" corresponds to the specific major version of ibc-go (i.e., "X")
 
 | Relayer | ibc-go       |
 |---------|--------------|
+| v0.3.0  | v4.0.0       |
 | v0.2.0  | v1.0.0-beta1 |
-
 
 ## Glossary
 
