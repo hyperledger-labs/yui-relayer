@@ -5,7 +5,7 @@ set -eux
 source $(cd $(dirname "$0"); pwd)/../../../scripts/util
 
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
-RLY_BINARY=${SCRIPT_DIR}/../../../../build/uly
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
 RLY="${RLY_BINARY} --debug"
 
 CHAINID_ONE=ibc0

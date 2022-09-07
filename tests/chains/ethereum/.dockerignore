@@ -1,6 +1,0 @@
-contract
-node_modules
-scripts
-Makefile
-
-!contract/build
