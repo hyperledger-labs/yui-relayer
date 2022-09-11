@@ -30,6 +30,7 @@ func Execute(modules ...config.ModuleI) error {
 
 	cobra.EnableCommandSorting = false
 	rootCmd.SilenceUsage = true
+	rootCmd.SilenceErrors = true
 
 	// Register top level flags --home and --debug
 	rootCmd.PersistentFlags().StringVar(&homePath, flags.FlagHome, defaultHome, "set home directory")
