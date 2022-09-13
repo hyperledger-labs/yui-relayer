@@ -187,10 +187,12 @@ func (pr *Prover) UpdateLightWithHeader() (header core.HeaderI, provableHeight i
 		}
 	}
 
-	protoVal, err := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators).ToProto()
+	valSet := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators)
+	protoVal, err := valSet.ToProto()
 	if err != nil {
 		return nil, 0, 0, err
 	}
+	protoVal.TotalVotingPower = valSet.TotalVotingPower()
 
 	h := &tmclient.Header{
 		SignedHeader: sh.SignedHeader.ToProto(),
@@ -237,10 +239,12 @@ func (c *Prover) queryHeaderAtHeight(height int64) (*tmclient.Header, error) {
 		return nil, err
 	}
 
-	protoVal, err := tmtypes.NewValidatorSet(val.Validators).ToProto()
+	valSet := tmtypes.NewValidatorSet(val.Validators)
+	protoVal, err := valSet.ToProto()
 	if err != nil {
 		return nil, err
 	}
+	protoVal.TotalVotingPower = valSet.TotalVotingPower()
 
 	return &tmclient.Header{
 		// NOTE: This is not a SignedHeader

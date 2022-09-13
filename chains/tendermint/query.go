@@ -323,7 +323,12 @@ func (c *Chain) QueryValsetAtHeight(height clienttypes.Height) (*tmproto.Validat
 	}
 	tmValSet.GetProposer()
 
-	return tmValSet.ToProto()
+	protoValSet, err := tmValSet.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	protoValSet.TotalVotingPower = tmValSet.TotalVotingPower()
+	return protoValSet, err
 }
 
 func (c *Chain) toTmValidators(vals stakingtypes.Validators) ([]*tmtypes.Validator, error) {

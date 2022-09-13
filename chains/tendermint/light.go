@@ -164,10 +164,12 @@ func (pr *Prover) GetLightSignedHeaderAtHeight(height int64) (*tmclient.Header, 
 		return nil, err
 	}
 
-	protoVal, err := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators).ToProto()
+	valSet := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators)
+	protoVal, err := valSet.ToProto()
 	if err != nil {
 		return nil, err
 	}
+	protoVal.TotalVotingPower = valSet.TotalVotingPower()
 
 	return &tmclient.Header{SignedHeader: sh.SignedHeader.ToProto(), ValidatorSet: protoVal}, nil
 }
