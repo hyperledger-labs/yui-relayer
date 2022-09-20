@@ -29,6 +29,9 @@ type LightClientI interface {
 	// GetChainID returns the chain ID
 	GetChainID() string
 
+	// QueryHeader returns the header corresponding to the height
+	QueryHeader(height int64) (out HeaderI, err error)
+
 	// QueryLatestHeader returns the latest header from the chain
 	QueryLatestHeader() (out HeaderI, err error)
 
