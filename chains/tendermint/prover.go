@@ -78,13 +78,18 @@ func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(height int64, se
 	return pr.chain.queryPacketAcknowledgementCommitment(height, seq, true)
 }
 
+// QueryHeader returns the header corresponding to the height
+func (pr *Prover) QueryHeader(height int64) (out core.HeaderI, err error) {
+	return pr.queryHeaderAtHeight(height)
+}
+
 // QueryLatestHeader returns the latest header from the chain
 func (pr *Prover) QueryLatestHeader() (out core.HeaderI, err error) {
 	var h int64
 	if h, err = pr.chain.GetLatestHeight(); err != nil {
 		return nil, err
 	}
-	return pr.queryHeaderAtHeight(h)
+	return pr.QueryHeader(h)
 }
 
 // GetLatestLightHeight uses the CLI utilities to pull the latest height from a given chain

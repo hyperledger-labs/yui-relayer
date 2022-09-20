@@ -3,6 +3,7 @@ package mock
 import (
 	"context"
 	"crypto/sha256"
+	"fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -44,6 +45,14 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 // GetChainID returns the chain ID
 func (pr *Prover) GetChainID() string {
 	return pr.chain.ChainID()
+}
+
+// QueryHeader returns the header corresponding to the height
+func (pr *Prover) QueryHeader(height int64) (out core.HeaderI, err error) {
+	if height != int64(pr.sequence) {
+		return nil, fmt.Errorf("mock prover does not support querying old headers: got=%v latest=%v", height, pr.sequence)
+	}
+	return pr.QueryLatestHeader()
 }
 
 // QueryLatestHeader returns the latest header from the chain
