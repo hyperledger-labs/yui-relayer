@@ -14,15 +14,15 @@ import (
 	querytypes "github.com/cosmos/cosmos-sdk/types/query"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	transfertypes "github.com/cosmos/ibc-go/modules/apps/transfer/types"
-	clientutils "github.com/cosmos/ibc-go/modules/core/02-client/client/utils"
-	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	connutils "github.com/cosmos/ibc-go/modules/core/03-connection/client/utils"
-	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
-	chanutils "github.com/cosmos/ibc-go/modules/core/04-channel/client/utils"
-	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
-	committypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
-	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
+	transfertypes "github.com/cosmos/ibc-go/v4/modules/apps/transfer/types"
+	clientutils "github.com/cosmos/ibc-go/v4/modules/core/02-client/client/utils"
+	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
+	connutils "github.com/cosmos/ibc-go/v4/modules/core/03-connection/client/utils"
+	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
+	chanutils "github.com/cosmos/ibc-go/v4/modules/core/04-channel/client/utils"
+	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
+	committypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
+	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -323,7 +323,12 @@ func (c *Chain) QueryValsetAtHeight(height clienttypes.Height) (*tmproto.Validat
 	}
 	tmValSet.GetProposer()
 
-	return tmValSet.ToProto()
+	protoValSet, err := tmValSet.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	protoValSet.TotalVotingPower = tmValSet.TotalVotingPower()
+	return protoValSet, err
 }
 
 func (c *Chain) toTmValidators(vals stakingtypes.Validators) ([]*tmtypes.Validator, error) {

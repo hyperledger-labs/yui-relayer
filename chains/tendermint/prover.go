@@ -7,12 +7,12 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
-	"github.com/cosmos/ibc-go/modules/core/exported"
-	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
-	tmclient "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
+	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
+	"github.com/cosmos/ibc-go/v4/modules/core/exported"
+	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
+	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
 	"github.com/tendermint/tendermint/light"
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -78,13 +78,18 @@ func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(height int64, se
 	return pr.chain.queryPacketAcknowledgementCommitment(height, seq, true)
 }
 
+// QueryHeader returns the header corresponding to the height
+func (pr *Prover) QueryHeader(height int64) (out core.HeaderI, err error) {
+	return pr.queryHeaderAtHeight(height)
+}
+
 // QueryLatestHeader returns the latest header from the chain
 func (pr *Prover) QueryLatestHeader() (out core.HeaderI, err error) {
 	var h int64
 	if h, err = pr.chain.GetLatestHeight(); err != nil {
 		return nil, err
 	}
-	return pr.queryHeaderAtHeight(h)
+	return pr.QueryHeader(h)
 }
 
 // GetLatestLightHeight uses the CLI utilities to pull the latest height from a given chain
@@ -187,20 +192,19 @@ func (pr *Prover) UpdateLightWithHeader() (header core.HeaderI, provableHeight i
 		}
 	}
 
-	protoVal, err := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators).ToProto()
+	valSet := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators)
+	protoVal, err := valSet.ToProto()
 	if err != nil {
 		return nil, 0, 0, err
 	}
+	protoVal.TotalVotingPower = valSet.TotalVotingPower()
 
 	h := &tmclient.Header{
 		SignedHeader: sh.SignedHeader.ToProto(),
 		ValidatorSet: protoVal,
 	}
-	queryableHeight = int64(h.GetHeight().GetRevisionHeight())
-	// NOTE: We query connection at height - 1 because of the way tendermint returns
-	// proofs the commit for height n is contained in the header of height n + 1
-	provableHeight = queryableHeight - 1
-	return h, provableHeight, queryableHeight, nil
+	height := int64(h.GetHeight().GetRevisionHeight())
+	return h, height, height, nil
 }
 
 // TrustOptions returns light.TrustOptions given a height and hash
@@ -240,10 +244,12 @@ func (c *Prover) queryHeaderAtHeight(height int64) (*tmclient.Header, error) {
 		return nil, err
 	}
 
-	protoVal, err := tmtypes.NewValidatorSet(val.Validators).ToProto()
+	valSet := tmtypes.NewValidatorSet(val.Validators)
+	protoVal, err := valSet.ToProto()
 	if err != nil {
 		return nil, err
 	}
+	protoVal.TotalVotingPower = valSet.TotalVotingPower()
 
 	return &tmclient.Header{
 		// NOTE: This is not a SignedHeader

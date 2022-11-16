@@ -6,7 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
 )
 
 // ProverI represents a prover that supports generating a commitment proof
@@ -28,6 +28,9 @@ type ProverI interface {
 type LightClientI interface {
 	// GetChainID returns the chain ID
 	GetChainID() string
+
+	// QueryHeader returns the header corresponding to the height
+	QueryHeader(height int64) (out HeaderI, err error)
 
 	// QueryLatestHeader returns the latest header from the chain
 	QueryLatestHeader() (out HeaderI, err error)

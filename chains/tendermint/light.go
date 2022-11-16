@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/avast/retry-go"
-	tmclient "github.com/cosmos/ibc-go/modules/light-clients/07-tendermint/types"
+	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/light"
 	lightp "github.com/tendermint/tendermint/light/provider"
@@ -164,10 +164,12 @@ func (pr *Prover) GetLightSignedHeaderAtHeight(height int64) (*tmclient.Header, 
 		return nil, err
 	}
 
-	protoVal, err := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators).ToProto()
+	valSet := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators)
+	protoVal, err := valSet.ToProto()
 	if err != nil {
 		return nil, err
 	}
+	protoVal.TotalVotingPower = valSet.TotalVotingPower()
 
 	return &tmclient.Header{SignedHeader: sh.SignedHeader.ToProto(), ValidatorSet: protoVal}, nil
 }

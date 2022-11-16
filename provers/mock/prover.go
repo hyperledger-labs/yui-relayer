@@ -3,14 +3,15 @@ package mock
 import (
 	"context"
 	"crypto/sha256"
+	"fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
-	ibcexported "github.com/cosmos/ibc-go/modules/core/exported"
+	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
+	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
 
 	mocktypes "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
@@ -44,6 +45,14 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 // GetChainID returns the chain ID
 func (pr *Prover) GetChainID() string {
 	return pr.chain.ChainID()
+}
+
+// QueryHeader returns the header corresponding to the height
+func (pr *Prover) QueryHeader(height int64) (out core.HeaderI, err error) {
+	if height != int64(pr.sequence) {
+		return nil, fmt.Errorf("mock prover does not support querying old headers: got=%v latest=%v", height, pr.sequence)
+	}
+	return pr.QueryLatestHeader()
 }
 
 // QueryLatestHeader returns the latest header from the chain

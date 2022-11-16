@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/cosmos/ibc-go/modules/core/exported"
+	"github.com/cosmos/ibc-go/v4/modules/core/exported"
 )
 
 type HeaderI interface {
