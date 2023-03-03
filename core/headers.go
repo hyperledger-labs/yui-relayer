@@ -14,9 +14,9 @@ type SyncHeadersI interface {
 	// GetQueryableHeight returns the queryable height of chain
 	GetQueryableHeight(chainID string) int64
 	// GetHeader returns the latest header of light client
-	GetHeader(src, dst LightClientIBCQueryierI) (HeaderI, error)
+	GetHeader(src, dst LightClientIBCQueryierI) ([]HeaderI, error)
 	// GetHeaders returns the latest headers for both src and dst client.
-	GetHeaders(src, dst LightClientIBCQueryierI) (srcHeader HeaderI, dstHeader HeaderI, err error)
+	GetHeaders(src, dst LightClientIBCQueryierI) (srcHeader []HeaderI, dstHeader []HeaderI, err error)
 	// Updates updates the header of light client
 	Updates(src LightClientI, dst LightClientI) error
 }
@@ -54,12 +54,12 @@ func (sh syncHeaders) GetQueryableHeight(chainID string) int64 {
 }
 
 // GetHeader implements SyncHeadersI
-func (sh syncHeaders) GetHeader(src, dst LightClientIBCQueryierI) (HeaderI, error) {
+func (sh syncHeaders) GetHeader(src, dst LightClientIBCQueryierI) ([]HeaderI, error) {
 	return src.SetupHeader(dst, sh.latestHeaders[src.GetChainID()])
 }
 
 // GetHeaders implements SyncHeadersI
-func (sh syncHeaders) GetHeaders(src, dst LightClientIBCQueryierI) (HeaderI, HeaderI, error) {
+func (sh syncHeaders) GetHeaders(src, dst LightClientIBCQueryierI) ([]HeaderI, []HeaderI, error) {
 	srcTh, err := sh.GetHeader(src, dst)
 	if err != nil {
 		return nil, nil, err

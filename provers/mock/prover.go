@@ -89,8 +89,8 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI,
 }
 
 // SetupHeader creates a new header based on a given header
-func (pr *Prover) SetupHeader(dst core.LightClientIBCQueryierI, baseSrcHeader core.HeaderI) (core.HeaderI, error) {
-	return baseSrcHeader.(*mocktypes.Header), nil
+func (pr *Prover) SetupHeader(dst core.LightClientIBCQueryierI, baseSrcHeader core.HeaderI) ([]core.HeaderI, error) {
+	return []core.HeaderI{baseSrcHeader.(*mocktypes.Header)}, nil
 }
 
 // UpdateLightWithHeader updates a header on the light client and returns the header and height corresponding to the chain

@@ -42,7 +42,7 @@ type LightClientI interface {
 	CreateMsgCreateClient(clientID string, dstHeader HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
 
 	// SetupHeader creates a new header based on a given header
-	SetupHeader(dst LightClientIBCQueryierI, baseSrcHeader HeaderI) (HeaderI, error)
+	SetupHeader(dst LightClientIBCQueryierI, baseSrcHeader HeaderI) ([]HeaderI, error)
 
 	// UpdateLightWithHeader updates a header on the light client and returns the header and height corresponding to the chain
 	UpdateLightWithHeader() (header HeaderI, provableHeight int64, queryableHeight int64, err error)

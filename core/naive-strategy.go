@@ -170,7 +170,7 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences
 			return err
 		}
 		if h != nil {
-			msgs.Dst = append([]sdk.Msg{dst.Path().UpdateClient(h, addr)}, msgs.Dst...)
+			msgs.Dst = append(dst.Path().UpdateClients(h, addr), msgs.Dst...)
 		}
 	}
 
@@ -184,7 +184,7 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences
 			return err
 		}
 		if h != nil {
-			msgs.Src = append([]sdk.Msg{src.Path().UpdateClient(h, addr)}, msgs.Src...)
+			msgs.Src = append(src.Path().UpdateClients(h, addr), msgs.Src...)
 		}
 	}
 
@@ -361,7 +361,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 			return err
 		}
 		if h != nil {
-			msgs.Dst = append([]sdk.Msg{dst.Path().UpdateClient(h, addr)}, msgs.Dst...)
+			msgs.Dst = append(dst.Path().UpdateClients(h, addr), msgs.Dst...)
 		}
 	}
 
@@ -375,7 +375,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 			return err
 		}
 		if h != nil {
-			msgs.Src = append([]sdk.Msg{src.Path().UpdateClient(h, addr)}, msgs.Src...)
+			msgs.Src = append(src.Path().UpdateClients(h, addr), msgs.Src...)
 		}
 	}
 

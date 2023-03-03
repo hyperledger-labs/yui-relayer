@@ -10,7 +10,6 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
-	"github.com/cosmos/ibc-go/v4/modules/core/exported"
 	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
 	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
 	"github.com/tendermint/tendermint/light"
@@ -128,7 +127,7 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI,
 }
 
 // SetupHeader creates a new header based on a given header
-func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader core.HeaderI) (core.HeaderI, error) {
+func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader core.HeaderI) ([]core.HeaderI, error) {
 	srcChain := pr.chain
 	// make copy of header stored in mop
 	tmp := srcHeader.(*tmclient.Header)
@@ -145,7 +144,7 @@ func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader c
 		return nil, err
 	}
 
-	var cs exported.ClientState
+	var cs ibcexported.ClientState
 	if err := srcChain.codec.UnpackAny(counterpartyClientRes.ClientState, &cs); err != nil {
 		return nil, err
 	}
@@ -161,7 +160,7 @@ func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader c
 
 	// inject TrustedValidators into header
 	h.TrustedValidators = valSet
-	return &h, nil
+	return []core.HeaderI{&h}, nil
 }
 
 func lightError(err error) error { return fmt.Errorf("light client: %w", err) }

@@ -76,7 +76,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	}
 	// Query a number of things all at once
 	var (
-		srcUpdateHeader, dstUpdateHeader HeaderI
+		srcUpdateHeader, dstUpdateHeader []HeaderI
 		srcCsRes, dstCsRes               *clienttypes.QueryClientStateResponse
 		srcCS, dstCS                     ibcexported.ClientState
 		srcCons, dstCons                 *clienttypes.QueryConsensusStateResponse
@@ -128,7 +128,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		logConnectionStates(src, dst, srcConn, dstConn)
 		addr := mustGetAddress(src)
 		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClient(dstUpdateHeader, addr))
+			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeader, addr)...)
 		}
 		out.Src = append(out.Src, src.Path().ConnInit(dst.Path(), addr))
 		// Handshake has started on dst (1 stepdone), relay `connOpenTry` and `updateClient` on src
@@ -136,7 +136,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		logConnectionStates(src, dst, srcConn, dstConn)
 		addr := mustGetAddress(src)
 		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClient(dstUpdateHeader, addr))
+			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeader, addr)...)
 		}
 		out.Src = append(out.Src, src.Path().ConnTry(dst.Path(), dstCsRes, dstConn, dstCons, addr))
 	// Handshake has started on src (1 step done), relay `connOpenTry` and `updateClient` on dst
@@ -144,7 +144,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		logConnectionStates(dst, src, dstConn, srcConn)
 		addr := mustGetAddress(dst)
 		if srcUpdateHeader != nil {
-			out.Dst = append(out.Dst, dst.Path().UpdateClient(srcUpdateHeader, addr))
+			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeader, addr)...)
 		}
 		out.Dst = append(out.Dst, dst.Path().ConnTry(src.Path(), srcCsRes, srcConn, srcCons, addr))
 
@@ -153,7 +153,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		logConnectionStates(dst, src, dstConn, srcConn)
 		addr := mustGetAddress(dst)
 		if srcUpdateHeader != nil {
-			out.Dst = append(out.Dst, dst.Path().UpdateClient(srcUpdateHeader, addr))
+			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeader, addr)...)
 		}
 		out.Dst = append(out.Dst, dst.Path().ConnAck(src.Path(), srcCsRes, srcConn, srcCons, addr))
 
@@ -162,7 +162,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		logConnectionStates(src, dst, srcConn, dstConn)
 		addr := mustGetAddress(src)
 		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClient(dstUpdateHeader, addr))
+			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeader, addr)...)
 		}
 		out.Src = append(out.Src, src.Path().ConnAck(dst.Path(), dstCsRes, dstConn, dstCons, addr))
 
@@ -171,7 +171,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		logConnectionStates(src, dst, srcConn, dstConn)
 		addr := mustGetAddress(src)
 		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClient(dstUpdateHeader, addr))
+			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeader, addr)...)
 		}
 		out.Src = append(out.Src, src.Path().ConnConfirm(dstConn, addr))
 		out.Last = true
@@ -181,7 +181,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		logConnectionStates(dst, src, dstConn, srcConn)
 		addr := mustGetAddress(dst)
 		if srcUpdateHeader != nil {
-			out.Dst = append(out.Dst, dst.Path().UpdateClient(srcUpdateHeader, addr))
+			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeader, addr)...)
 		}
 		out.Dst = append(out.Dst, dst.Path().ConnConfirm(srcConn, addr))
 		out.Last = true
