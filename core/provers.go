@@ -24,32 +24,19 @@ type ProverI interface {
 	IBCProvableQuerierI
 }
 
-// LightClientI is an interface to the light client
+// LightClientI provides functions for creating and updating on-chain light clients
 type LightClientI interface {
 	// GetChainID returns the chain ID
 	GetChainID() string
 
-	// QueryHeader returns the header corresponding to the height
-	QueryHeader(height int64) (out HeaderI, err error)
-
-	// QueryLatestHeader returns the latest header from the chain
-	QueryLatestHeader() (out HeaderI, err error)
-
-	// GetLatestLightHeight returns the latest height on the light client
-	GetLatestLightHeight() (int64, error)
-
 	// CreateMsgCreateClient creates a CreateClientMsg to this chain
 	CreateMsgCreateClient(clientID string, dstHeader HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
 
-	// SetupHeader creates a new header based on a given header
-	SetupHeader(dst LightClientIBCQueryierI, baseSrcHeader HeaderI) ([]HeaderI, error)
+	// GetLatestFinalizedHeader returns the latest finalized header
+	// The returned header is expected to be the latest one of headers that can be verified by the light client
+	GetLatestFinalizedHeader() (latestFinalizedHeader HeaderI, provableHeight int64, queryableHeight int64, err error)
 
-	// UpdateLightWithHeader updates a header on the light client and returns the header and height corresponding to the chain
-	UpdateLightWithHeader() (header HeaderI, provableHeight int64, queryableHeight int64, err error)
-}
-
-// LightClientIBCQueryierI is LightClientI + IBCQuerierI
-type LightClientIBCQueryierI interface {
-	LightClientI
-	IBCQuerierI
+	// SetupHeadersForUpdate returns a header slice that contains intermediate headers needed to submit the `latestFinalizedHeader`
+	// if the slice's length == nil and err == nil, the relayer should skips the update-client
+	SetupHeadersForUpdate(dstChain ChainI, latestFinalizedHeader HeaderI) ([]HeaderI, error)
 }

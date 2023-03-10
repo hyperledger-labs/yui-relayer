@@ -1,10 +1,10 @@
 package core
 
 import (
-	"fmt"
 	"log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"golang.org/x/sync/errgroup"
 )
 
 func CreateClients(src, dst *ProvableChain) error {
@@ -12,7 +12,7 @@ func CreateClients(src, dst *ProvableChain) error {
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 
-	srcH, dstH, err := UpdatesWithHeaders(src, dst)
+	srcH, dstH, err := getHeadersForCreateClient(src, dst)
 	if err != nil {
 		return err
 	}
@@ -46,8 +46,8 @@ func CreateClients(src, dst *ProvableChain) error {
 	if clients.Ready() {
 		// TODO: Add retry here for out of gas or other errors
 		if clients.Send(src, dst); clients.Success() {
-			log.Println(fmt.Sprintf("★ Clients created: [%s]client(%s) and [%s]client(%s)",
-				src.ChainID(), src.Path().ClientID, dst.ChainID(), dst.Path().ClientID))
+			log.Printf("★ Clients created: [%s]client(%s) and [%s]client(%s)",
+				src.ChainID(), src.Path().ClientID, dst.ChainID(), dst.Path().ClientID)
 		}
 	}
 	return nil
@@ -75,9 +75,26 @@ func UpdateClients(src, dst *ProvableChain) error {
 	// Send msgs to both chains
 	if clients.Ready() {
 		if clients.Send(src, dst); clients.Success() {
-			log.Println(fmt.Sprintf("★ Clients updated: [%s]client(%s) and [%s]client(%s)",
-				src.ChainID(), src.Path().ClientID, dst.ChainID(), dst.Path().ClientID))
+			log.Printf("★ Clients updated: [%s]client(%s) and [%s]client(%s)",
+				src.ChainID(), src.Path().ClientID, dst.ChainID(), dst.Path().ClientID)
 		}
 	}
 	return nil
+}
+
+// getHeadersForCreateClient calls UpdateLightWithHeader on the passed chains concurrently
+func getHeadersForCreateClient(src, dst LightClientI) (srch, dsth HeaderI, err error) {
+	var eg = new(errgroup.Group)
+	eg.Go(func() error {
+		srch, _, _, err = src.GetLatestFinalizedHeader()
+		return err
+	})
+	eg.Go(func() error {
+		dsth, _, _, err = dst.GetLatestFinalizedHeader()
+		return err
+	})
+	if err := eg.Wait(); err != nil {
+		return nil, nil, err
+	}
+	return srch, dsth, nil
 }

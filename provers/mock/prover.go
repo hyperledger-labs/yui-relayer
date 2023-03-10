@@ -3,7 +3,6 @@ package mock
 import (
 	"context"
 	"crypto/sha256"
-	"fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -47,31 +46,6 @@ func (pr *Prover) GetChainID() string {
 	return pr.chain.ChainID()
 }
 
-// QueryHeader returns the header corresponding to the height
-func (pr *Prover) QueryHeader(height int64) (out core.HeaderI, err error) {
-	if height != int64(pr.sequence) {
-		return nil, fmt.Errorf("mock prover does not support querying old headers: got=%v latest=%v", height, pr.sequence)
-	}
-	return pr.QueryLatestHeader()
-}
-
-// QueryLatestHeader returns the latest header from the chain
-func (pr *Prover) QueryLatestHeader() (out core.HeaderI, err error) {
-	var header = mocktypes.Header{
-		Height: &clienttypes.Height{
-			RevisionNumber: 0,
-			RevisionHeight: pr.sequence,
-		},
-		Timestamp: uint64(time.Now().UnixNano()),
-	}
-	return &header, nil
-}
-
-// GetLatestLightHeight returns the latest height on the light client
-func (pr *Prover) GetLatestLightHeight() (int64, error) {
-	return -1, nil
-}
-
 // CreateMsgCreateClient creates a CreateClientMsg to this chain
 func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
 	h := dstHeader.(*mocktypes.Header)
@@ -88,22 +62,25 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI,
 	)
 }
 
-// SetupHeader creates a new header based on a given header
-func (pr *Prover) SetupHeader(dst core.LightClientIBCQueryierI, baseSrcHeader core.HeaderI) ([]core.HeaderI, error) {
-	return []core.HeaderI{baseSrcHeader.(*mocktypes.Header)}, nil
+// SetupHeadersForUpdate returns a header slice that contains intermediate headers needed to submit the `latestFinalizedHeader`
+func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainI, latestFinalizedHeader core.HeaderI) ([]core.HeaderI, error) {
+	return []core.HeaderI{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }
 
-// UpdateLightWithHeader updates a header on the light client and returns the header and height corresponding to the chain
-func (pr *Prover) UpdateLightWithHeader() (header core.HeaderI, provableHeight int64, queryableHeight int64, err error) {
-	h, err := pr.QueryLatestHeader()
-	if err != nil {
-		return nil, -1, -1, err
+// GetLatestFinalizedHeader returns the latest finalized header
+func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.HeaderI, provableHeight int64, queryableHeight int64, err error) {
+	var h = mocktypes.Header{
+		Height: &clienttypes.Height{
+			RevisionNumber: 0,
+			RevisionHeight: pr.sequence,
+		},
+		Timestamp: uint64(time.Now().UnixNano()),
 	}
 	chainHeight, err := pr.chain.GetLatestHeight()
 	if err != nil {
 		return nil, -1, -1, err
 	}
-	return h, chainHeight, chainHeight, nil
+	return &h, chainHeight, chainHeight, nil
 }
 
 // QueryClientConsensusState returns the ClientConsensusState and its proof

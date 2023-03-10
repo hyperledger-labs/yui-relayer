@@ -42,10 +42,7 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
-// GetChainID returns the chain ID
-func (pr *Prover) GetChainID() string {
-	return pr.chain.ChainID()
-}
+/* IBCProvableQuerierI implementation */
 
 // QueryClientConsensusState returns the ClientConsensusState and its proof
 func (pr *Prover) QueryClientConsensusStateWithProof(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
@@ -91,20 +88,11 @@ func (pr *Prover) QueryLatestHeader() (out core.HeaderI, err error) {
 	return pr.QueryHeader(h)
 }
 
-// GetLatestLightHeight uses the CLI utilities to pull the latest height from a given chain
-func (pr *Prover) GetLatestLightHeight() (int64, error) {
-	db, df, err := pr.NewLightDB()
-	if err != nil {
-		return -1, err
-	}
-	defer df()
+/* LightClientI implementation */
 
-	client, err := pr.LightClient(db)
-	if err != nil {
-		return -1, err
-	}
-
-	return client.LastTrustedHeight()
+// GetChainID returns the chain ID
+func (pr *Prover) GetChainID() string {
+	return pr.chain.ChainID()
 }
 
 // CreateMsgCreateClient creates a CreateClientMsg to this chain
@@ -126,14 +114,14 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI,
 	), nil
 }
 
-// SetupHeader creates a new header based on a given header
-func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader core.HeaderI) ([]core.HeaderI, error) {
+// SetupHeadersForUpdate returns a header slice that contains intermediate headers needed to submit the `latestFinalizedHeader`
+func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainI, latestFinalizedHeader core.HeaderI) ([]core.HeaderI, error) {
 	srcChain := pr.chain
 	// make copy of header stored in mop
-	tmp := srcHeader.(*tmclient.Header)
+	tmp := latestFinalizedHeader.(*tmclient.Header)
 	h := *tmp
 
-	dsth, err := dstChain.GetLatestLightHeight()
+	dsth, err := dstChain.GetLatestHeight()
 	if err != nil {
 		return nil, err
 	}
@@ -163,47 +151,70 @@ func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader c
 	return []core.HeaderI{&h}, nil
 }
 
-func lightError(err error) error { return fmt.Errorf("light client: %w", err) }
+// GetLatestFinalizedHeader returns the latest finalized header
+func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.HeaderI, provableHeight int64, queryableHeight int64, err error) {
+	h, err := pr.UpdateLightClient()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	height := int64(h.GetHeight().GetRevisionHeight())
+	return h, height, height, nil
+}
 
-// UpdateLightWithHeader calls client.Update and then .
-func (pr *Prover) UpdateLightWithHeader() (header core.HeaderI, provableHeight int64, queryableHeight int64, err error) {
-	// create database connection
+/* Local LightClient implementation */
+
+// GetLatestHeight uses the CLI utilities to pull the latest height from a given chain
+func (pr *Prover) GetLatestLightHeight() (int64, error) {
 	db, df, err := pr.NewLightDB()
 	if err != nil {
-		return nil, 0, 0, lightError(err)
+		return -1, err
 	}
 	defer df()
 
 	client, err := pr.LightClient(db)
 	if err != nil {
-		return nil, 0, 0, lightError(err)
+		return -1, err
+	}
+
+	return client.LastTrustedHeight()
+}
+
+func (pr *Prover) UpdateLightClient() (core.HeaderI, error) {
+	// create database connection
+	db, df, err := pr.NewLightDB()
+	if err != nil {
+		return nil, lightError(err)
+	}
+	defer df()
+
+	client, err := pr.LightClient(db)
+	if err != nil {
+		return nil, lightError(err)
 	}
 
 	sh, err := client.Update(context.Background(), time.Now())
 	if err != nil {
-		return nil, 0, 0, lightError(err)
+		return nil, lightError(err)
 	}
 
 	if sh == nil {
 		sh, err = client.TrustedLightBlock(0)
 		if err != nil {
-			return nil, 0, 0, lightError(err)
+			return nil, lightError(err)
 		}
 	}
 
 	valSet := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators)
 	protoVal, err := valSet.ToProto()
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, err
 	}
 	protoVal.TotalVotingPower = valSet.TotalVotingPower()
 
-	h := &tmclient.Header{
+	return &tmclient.Header{
 		SignedHeader: sh.SignedHeader.ToProto(),
 		ValidatorSet: protoVal,
-	}
-	height := int64(h.GetHeight().GetRevisionHeight())
-	return h, height, height, nil
+	}, nil
 }
 
 // TrustOptions returns light.TrustOptions given a height and hash
@@ -257,3 +268,5 @@ func (c *Prover) queryHeaderAtHeight(height int64) (*tmclient.Header, error) {
 		ValidatorSet: protoVal,
 	}, nil
 }
+
+func lightError(err error) error { return fmt.Errorf("light client: %w", err) }
