@@ -62,7 +62,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 	if err != nil {
 		return err
 	}
-	srcUpdateHeaders, dstUpdateHeaders, err := sh.GetHeaders(src, dst)
+	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(src, dst)
 	if err != nil {
 		return err
 	}

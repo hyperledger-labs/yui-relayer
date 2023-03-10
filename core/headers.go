@@ -13,10 +13,12 @@ type SyncHeadersI interface {
 	GetProvableHeight(chainID string) int64
 	// GetQueryableHeight returns the queryable height of chain
 	GetQueryableHeight(chainID string) int64
-	// GetHeader returns the latest header of light client
-	GetHeader(src, dst *ProvableChain) ([]HeaderI, error)
-	// GetHeaders returns the latest headers for both src and dst client.
-	GetHeaders(src, dst *ProvableChain) (srcHeader []HeaderI, dstHeader []HeaderI, err error)
+
+	// SetupHeadersForUpdate returns the latest header of light client
+	SetupHeadersForUpdate(src, dst *ProvableChain) ([]HeaderI, error)
+	// SetupBothHeadersForUpdate returns the latest headers for both src and dst client.
+	SetupBothHeadersForUpdate(src, dst *ProvableChain) (srcHeaders []HeaderI, dstHeaders []HeaderI, err error)
+
 	// Updates updates the header of light client
 	Updates(src LightClientI, dst LightClientI) error
 }
@@ -53,22 +55,22 @@ func (sh syncHeaders) GetQueryableHeight(chainID string) int64 {
 	return sh.latestQueryableHeights[chainID]
 }
 
-// GetHeader implements SyncHeadersI
-func (sh syncHeaders) GetHeader(src, dst *ProvableChain) ([]HeaderI, error) {
+// SetupHeadersForUpdate implements SyncHeadersI
+func (sh syncHeaders) SetupHeadersForUpdate(src, dst *ProvableChain) ([]HeaderI, error) {
 	return src.SetupHeadersForUpdate(dst, sh.latestHeaders[src.GetChainID()])
 }
 
-// GetHeaders implements SyncHeadersI
-func (sh syncHeaders) GetHeaders(src, dst *ProvableChain) ([]HeaderI, []HeaderI, error) {
-	srcTh, err := sh.GetHeader(src, dst)
+// SetupBothHeadersForUpdate implements SyncHeadersI
+func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst *ProvableChain) ([]HeaderI, []HeaderI, error) {
+	srcHs, err := sh.SetupHeadersForUpdate(src, dst)
 	if err != nil {
 		return nil, nil, err
 	}
-	dstTh, err := sh.GetHeader(dst, src)
+	dstHs, err := sh.SetupHeadersForUpdate(dst, src)
 	if err != nil {
 		return nil, nil, err
 	}
-	return srcTh, dstTh, nil
+	return srcHs, dstHs, nil
 }
 
 // Updates implements SyncHeadersI

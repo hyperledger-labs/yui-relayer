@@ -57,12 +57,12 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 			case err != nil:
 				return err
 			case res == nil:
-				return fmt.Errorf("No error on QueryPacketCommitments for %s, however response is nil", src.ChainID())
+				return fmt.Errorf("no error on QueryPacketCommitments for %s, however response is nil", src.ChainID())
 			default:
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", src.ChainID(), sh.GetQueryableHeight(src.ChainID()), n+1, rtyAttNum, err))
+			log.Printf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", src.ChainID(), sh.GetQueryableHeight(src.ChainID()), n+1, rtyAttNum, err)
 		})); err != nil {
 			return err
 		}
@@ -80,12 +80,12 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 			case err != nil:
 				return err
 			case res == nil:
-				return fmt.Errorf("No error on QueryPacketCommitments for %s, however response is nil", dst.ChainID())
+				return fmt.Errorf("no error on QueryPacketCommitments for %s, however response is nil", dst.ChainID())
 			default:
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", dst.ChainID(), sh.GetQueryableHeight(dst.ChainID()), n+1, rtyAttNum, err))
+			log.Printf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", dst.ChainID(), sh.GetQueryableHeight(dst.ChainID()), n+1, rtyAttNum, err)
 		})); err != nil {
 			return err
 		}
@@ -153,38 +153,38 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences
 		return err
 	}
 	if !msgs.Ready() {
-		log.Println(fmt.Sprintf("- No packets to relay between [%s]port{%s} and [%s]port{%s}",
-			src.ChainID(), src.Path().PortID, dst.ChainID(), dst.Path().PortID))
+		log.Printf("- No packets to relay between [%s]port{%s} and [%s]port{%s}",
+			src.ChainID(), src.Path().PortID, dst.ChainID(), dst.Path().PortID)
 		return nil
 	}
 
 	// Prepend non-empty msg lists with UpdateClient
 	if len(msgs.Dst) != 0 {
 		// Sending an update from src to dst
-		h, err := sh.GetHeader(src, dst)
+		hs, err := sh.SetupHeadersForUpdate(src, dst)
 		if err != nil {
 			return err
 		}
-		addr, err := dst.GetAddress()
-		if err != nil {
-			return err
-		}
-		if h != nil {
-			msgs.Dst = append(dst.Path().UpdateClients(h, addr), msgs.Dst...)
+		if len(hs) > 0 {
+			addr, err := dst.GetAddress()
+			if err != nil {
+				return err
+			}
+			msgs.Dst = append(dst.Path().UpdateClients(hs, addr), msgs.Dst...)
 		}
 	}
 
 	if len(msgs.Src) != 0 {
-		h, err := sh.GetHeader(dst, src)
+		hs, err := sh.SetupHeadersForUpdate(dst, src)
 		if err != nil {
 			return err
 		}
-		addr, err := src.GetAddress()
-		if err != nil {
-			return err
-		}
-		if h != nil {
-			msgs.Src = append(src.Path().UpdateClients(h, addr), msgs.Src...)
+		if len(hs) > 0 {
+			addr, err := src.GetAddress()
+			if err != nil {
+				return err
+			}
+			msgs.Src = append(src.Path().UpdateClients(hs, addr), msgs.Src...)
 		}
 	}
 
@@ -219,12 +219,12 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 			case err != nil:
 				return err
 			case res == nil:
-				return fmt.Errorf("No error on QueryPacketUnrelayedAcknowledgements for %s, however response is nil", src.ChainID())
+				return fmt.Errorf("no error on QueryPacketUnrelayedAcknowledgements for %s, however response is nil", src.ChainID())
 			default:
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), sh.GetQueryableHeight(src.ChainID()), n+1, rtyAttNum, err)))
+			log.Printf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), sh.GetQueryableHeight(src.ChainID()), n+1, rtyAttNum, err)
 			sh.Updates(src, dst)
 		})); err != nil {
 			return err
@@ -243,12 +243,12 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 			case err != nil:
 				return err
 			case res == nil:
-				return fmt.Errorf("No error on QueryPacketUnrelayedAcknowledgements for %s, however response is nil", dst.ChainID())
+				return fmt.Errorf("no error on QueryPacketUnrelayedAcknowledgements for %s, however response is nil", dst.ChainID())
 			default:
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println((fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), sh.GetQueryableHeight(dst.ChainID()), n+1, rtyAttNum, err)))
+			log.Printf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), sh.GetQueryableHeight(dst.ChainID()), n+1, rtyAttNum, err)
 			sh.Updates(src, dst)
 		})); err != nil {
 			return err
@@ -315,8 +315,8 @@ func relayPackets(chain *ProvableChain, seqs []uint64, sh SyncHeadersI, sender s
 }
 
 func logPacketsRelayed(src, dst ChainI, num int) {
-	log.Println(fmt.Sprintf("★ Relayed %d packets: [%s]port{%s}->[%s]port{%s}",
-		num, dst.ChainID(), dst.Path().PortID, src.ChainID(), src.Path().PortID))
+	log.Printf("★ Relayed %d packets: [%s]port{%s}->[%s]port{%s}",
+		num, dst.ChainID(), dst.Path().PortID, src.ChainID(), src.Path().PortID)
 }
 
 func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeadersI) error {
@@ -345,37 +345,37 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 		return err
 	}
 	if !msgs.Ready() {
-		log.Println(fmt.Sprintf("- No acknowledgements to relay between [%s]port{%s} and [%s]port{%s}",
-			src.ChainID(), src.Path().PortID, dst.ChainID(), dst.Path().PortID))
+		log.Printf("- No acknowledgements to relay between [%s]port{%s} and [%s]port{%s}",
+			src.ChainID(), src.Path().PortID, dst.ChainID(), dst.Path().PortID)
 		return nil
 	}
 
 	// Prepend non-empty msg lists with UpdateClient
 	if len(msgs.Dst) != 0 {
-		h, err := sh.GetHeader(src, dst)
+		hs, err := sh.SetupHeadersForUpdate(src, dst)
 		if err != nil {
 			return err
 		}
-		addr, err := dst.GetAddress()
-		if err != nil {
-			return err
-		}
-		if h != nil {
-			msgs.Dst = append(dst.Path().UpdateClients(h, addr), msgs.Dst...)
+		if len(hs) > 0 {
+			addr, err := dst.GetAddress()
+			if err != nil {
+				return err
+			}
+			msgs.Dst = append(dst.Path().UpdateClients(hs, addr), msgs.Dst...)
 		}
 	}
 
 	if len(msgs.Src) != 0 {
-		h, err := sh.GetHeader(dst, src)
+		hs, err := sh.SetupHeadersForUpdate(dst, src)
 		if err != nil {
 			return err
 		}
-		addr, err := src.GetAddress()
-		if err != nil {
-			return err
-		}
-		if h != nil {
-			msgs.Src = append(src.Path().UpdateClients(h, addr), msgs.Src...)
+		if len(hs) > 0 {
+			addr, err := src.GetAddress()
+			if err != nil {
+				return err
+			}
+			msgs.Src = append(src.Path().UpdateClients(hs, addr), msgs.Src...)
 		}
 	}
 

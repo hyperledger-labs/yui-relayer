@@ -78,7 +78,7 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 	)
 
 	err = retry.Do(func() error {
-		srcUpdateHeaders, dstUpdateHeaders, err = sh.GetHeaders(src, dst)
+		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(src, dst)
 		return err
 	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)
@@ -164,7 +164,7 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 }
 
 func logChannelStates(src, dst ChainI, srcChan, dstChan *chantypes.QueryChannelResponse) {
-	log.Println(fmt.Sprintf("- [%s]@{%d}chan(%s)-{%s} : [%s]@{%d}chan(%s)-{%s}",
+	log.Printf("- [%s]@{%d}chan(%s)-{%s} : [%s]@{%d}chan(%s)-{%s}",
 		src.ChainID(),
 		mustGetHeight(srcChan.ProofHeight),
 		src.Path().ChannelID,
@@ -173,5 +173,5 @@ func logChannelStates(src, dst ChainI, srcChan, dstChan *chantypes.QueryChannelR
 		mustGetHeight(dstChan.ProofHeight),
 		dst.Path().ChannelID,
 		dstChan.Channel.State,
-	))
+	)
 }

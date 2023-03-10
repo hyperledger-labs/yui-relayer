@@ -39,9 +39,9 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case connSteps.Success() && connSteps.Last:
-			log.Println(fmt.Sprintf("★ Connection created: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
+			log.Printf("★ Connection created: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
 				src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
-				dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID))
+				dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID)
 			return nil
 		// In the case of success, reset the failures counter
 		case connSteps.Success():
@@ -50,7 +50,7 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !connSteps.Success():
 			failed++
-			log.Println(fmt.Sprintf("retrying transaction..."))
+			log.Println("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failed > 2 {
 				return fmt.Errorf("! Connection failed: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
@@ -83,7 +83,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		srcConsH, dstConsH                 ibcexported.Height
 	)
 	err = retry.Do(func() error {
-		srcUpdateHeaders, dstUpdateHeaders, err = sh.GetHeaders(src, dst)
+		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(src, dst)
 		return err
 	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)
