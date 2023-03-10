@@ -62,15 +62,15 @@ func UpdateClients(src, dst *ProvableChain) error {
 	if err != nil {
 		return err
 	}
-	srcUpdateHeader, dstUpdateHeader, err := sh.GetHeaders(src, dst)
+	srcUpdateHeaders, dstUpdateHeaders, err := sh.GetHeaders(src, dst)
 	if err != nil {
 		return err
 	}
-	if dstUpdateHeader != nil {
-		clients.Src = append(clients.Src, src.Path().UpdateClients(dstUpdateHeader, mustGetAddress(src))...)
+	if len(dstUpdateHeaders) > 0 {
+		clients.Src = append(clients.Src, src.Path().UpdateClients(dstUpdateHeaders, mustGetAddress(src))...)
 	}
-	if srcUpdateHeader != nil {
-		clients.Dst = append(clients.Dst, dst.Path().UpdateClients(srcUpdateHeader, mustGetAddress(dst))...)
+	if len(srcUpdateHeaders) > 0 {
+		clients.Dst = append(clients.Dst, dst.Path().UpdateClients(srcUpdateHeaders, mustGetAddress(dst))...)
 	}
 	// Send msgs to both chains
 	if clients.Ready() {

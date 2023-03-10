@@ -37,9 +37,9 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case chanSteps.Success() && chanSteps.Last:
-			log.Println(fmt.Sprintf("★ Channel created: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
+			log.Printf("★ Channel created: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
 				src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID))
+				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID)
 			return nil
 		// In the case of success, reset the failures counter
 		case chanSteps.Success():
@@ -48,7 +48,7 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !chanSteps.Success():
 			failures++
-			log.Println(fmt.Sprintf("retrying transaction..."))
+			log.Printf("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failures > 2 {
 				return fmt.Errorf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
@@ -74,11 +74,11 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 
 	// Query a number of things all at once
 	var (
-		srcUpdateHeader, dstUpdateHeader []HeaderI
+		srcUpdateHeaders, dstUpdateHeaders []HeaderI
 	)
 
 	err = retry.Do(func() error {
-		srcUpdateHeader, dstUpdateHeader, err = sh.GetHeaders(src, dst)
+		srcUpdateHeaders, dstUpdateHeaders, err = sh.GetHeaders(src, dst)
 		return err
 	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)
@@ -107,16 +107,16 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 	case srcChan.Channel.State == chantypes.UNINITIALIZED && dstChan.Channel.State == chantypes.INIT:
 		logChannelStates(src, dst, srcChan, dstChan)
 		addr := mustGetAddress(src)
-		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeader, addr)...)
+		if len(dstUpdateHeaders) > 0 {
+			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
 		}
 		out.Src = append(out.Src, src.Path().ChanTry(dst.Path(), dstChan, addr))
 	// Handshake has started on src (1 step done), relay `chanOpenTry` and `updateClient` to dst
 	case srcChan.Channel.State == chantypes.INIT && dstChan.Channel.State == chantypes.UNINITIALIZED:
 		logChannelStates(dst, src, dstChan, srcChan)
 		addr := mustGetAddress(dst)
-		if srcUpdateHeader != nil {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeader, addr)...)
+		if len(srcUpdateHeaders) > 0 {
+			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
 		}
 		out.Dst = append(out.Dst, dst.Path().ChanTry(src.Path(), srcChan, addr))
 
@@ -124,8 +124,8 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 	case srcChan.Channel.State == chantypes.TRYOPEN && dstChan.Channel.State == chantypes.INIT:
 		logChannelStates(dst, src, dstChan, srcChan)
 		addr := mustGetAddress(dst)
-		if srcUpdateHeader != nil {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeader, addr)...)
+		if len(srcUpdateHeaders) > 0 {
+			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
 		}
 		out.Dst = append(out.Dst, dst.Path().ChanAck(src.Path(), srcChan, addr))
 
@@ -133,8 +133,8 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 	case srcChan.Channel.State == chantypes.INIT && dstChan.Channel.State == chantypes.TRYOPEN:
 		logChannelStates(src, dst, srcChan, dstChan)
 		addr := mustGetAddress(src)
-		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeader, addr)...)
+		if len(dstUpdateHeaders) > 0 {
+			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
 		}
 		out.Src = append(out.Src, src.Path().ChanAck(dst.Path(), dstChan, addr))
 
@@ -142,8 +142,8 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 	case srcChan.Channel.State == chantypes.TRYOPEN && dstChan.Channel.State == chantypes.OPEN:
 		logChannelStates(src, dst, srcChan, dstChan)
 		addr := mustGetAddress(src)
-		if dstUpdateHeader != nil {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeader, addr)...)
+		if len(dstUpdateHeaders) > 0 {
+			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
 		}
 		out.Src = append(out.Src, src.Path().ChanConfirm(dstChan, addr))
 		out.Last = true
@@ -152,8 +152,8 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 	case srcChan.Channel.State == chantypes.OPEN && dstChan.Channel.State == chantypes.TRYOPEN:
 		logChannelStates(dst, src, dstChan, srcChan)
 		addr := mustGetAddress(dst)
-		if srcUpdateHeader != nil {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeader, addr)...)
+		if len(srcUpdateHeaders) > 0 {
+			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
 		}
 		out.Dst = append(out.Dst, dst.Path().ChanConfirm(srcChan, addr))
 		out.Last = true
