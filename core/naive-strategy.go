@@ -138,68 +138,63 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences
 		MaxTxSize:    st.MaxTxSize,
 		MaxMsgLength: st.MaxMsgLength,
 	}
-	addr, err := dst.GetAddress()
-	if err != nil {
-		return err
-	}
+
 	srcCtx := sh.GetQueryContext(src.ChainID())
 	dstCtx := sh.GetQueryContext(dst.ChainID())
-
-	msgs.Dst, err = relayPackets(srcCtx, src, sp.Src, addr)
+	srcAddress, err := src.GetAddress()
 	if err != nil {
 		return err
 	}
-	addr, err = src.GetAddress()
+	dstAddress, err := dst.GetAddress()
 	if err != nil {
 		return err
-	}
-	msgs.Src, err = relayPackets(dstCtx, dst, sp.Dst, addr)
-	if err != nil {
-		return err
-	}
-	if !msgs.Ready() {
-		log.Printf("- No packets to relay between [%s]port{%s} and [%s]port{%s}",
-			src.ChainID(), src.Path().PortID, dst.ChainID(), dst.Path().PortID)
-		return nil
 	}
 
-	// Prepend non-empty msg lists with UpdateClient
-	if len(msgs.Dst) != 0 {
-		// Sending an update from src to dst
+	if len(sp.Src) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(src, dst)
 		if err != nil {
 			return err
 		}
 		if len(hs) > 0 {
-			addr, err := dst.GetAddress()
-			if err != nil {
-				return err
-			}
-			msgs.Dst = append(dst.Path().UpdateClients(hs, addr), msgs.Dst...)
+			msgs.Dst = dst.Path().UpdateClients(hs, dstAddress)
 		}
 	}
 
-	if len(msgs.Src) != 0 {
+	if len(sp.Dst) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(dst, src)
 		if err != nil {
 			return err
 		}
 		if len(hs) > 0 {
-			addr, err := src.GetAddress()
-			if err != nil {
-				return err
-			}
-			msgs.Src = append(src.Path().UpdateClients(hs, addr), msgs.Src...)
+			msgs.Src = src.Path().UpdateClients(hs, srcAddress)
 		}
 	}
 
+	packetsForDst, err := relayPackets(srcCtx, src, sp.Src, dstAddress)
+	if err != nil {
+		return err
+	}
+	packetsForSrc, err := relayPackets(dstCtx, dst, sp.Dst, srcAddress)
+	if err != nil {
+		return err
+	}
+
+	if len(packetsForDst) == 0 && len(packetsForSrc) == 0 {
+		log.Printf("- No packets to relay between [%s]port{%s} and [%s]port{%s}",
+			src.ChainID(), src.Path().PortID, dst.ChainID(), dst.Path().PortID)
+		return nil
+	}
+
+	msgs.Dst = append(msgs.Dst, packetsForDst...)
+	msgs.Src = append(msgs.Src, packetsForSrc...)
+
 	// send messages to their respective chains
 	if msgs.Send(src, dst); msgs.Success() {
-		if len(msgs.Dst) > 1 {
-			logPacketsRelayed(dst, src, len(msgs.Dst)-1)
+		if num := len(packetsForDst); num > 0 {
+			logPacketsRelayed(dst, src, num)
 		}
-		if len(msgs.Src) > 1 {
-			logPacketsRelayed(src, dst, len(msgs.Src)-1)
+		if num := len(packetsForSrc); num > 0 {
+			logPacketsRelayed(src, dst, num)
 		}
 	}
 
@@ -335,67 +330,62 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 		MaxMsgLength: st.MaxMsgLength,
 	}
 
-	addr, err := dst.GetAddress()
-	if err != nil {
-		return err
-	}
 	srcCtx := sh.GetQueryContext(src.ChainID())
 	dstCtx := sh.GetQueryContext(dst.ChainID())
-
-	msgs.Dst, err = relayAcks(dstCtx, srcCtx, dst, src, sp.Src, addr)
+	srcAddress, err := src.GetAddress()
 	if err != nil {
 		return err
 	}
-	addr, err = src.GetAddress()
+	dstAddress, err := dst.GetAddress()
 	if err != nil {
 		return err
-	}
-	msgs.Src, err = relayAcks(srcCtx, dstCtx, src, dst, sp.Dst, addr)
-	if err != nil {
-		return err
-	}
-	if !msgs.Ready() {
-		log.Printf("- No acknowledgements to relay between [%s]port{%s} and [%s]port{%s}",
-			src.ChainID(), src.Path().PortID, dst.ChainID(), dst.Path().PortID)
-		return nil
 	}
 
-	// Prepend non-empty msg lists with UpdateClient
-	if len(msgs.Dst) != 0 {
+	if len(sp.Src) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(src, dst)
 		if err != nil {
 			return err
 		}
 		if len(hs) > 0 {
-			addr, err := dst.GetAddress()
-			if err != nil {
-				return err
-			}
-			msgs.Dst = append(dst.Path().UpdateClients(hs, addr), msgs.Dst...)
+			msgs.Dst = dst.Path().UpdateClients(hs, dstAddress)
 		}
 	}
 
-	if len(msgs.Src) != 0 {
+	if len(sp.Dst) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(dst, src)
 		if err != nil {
 			return err
 		}
 		if len(hs) > 0 {
-			addr, err := src.GetAddress()
-			if err != nil {
-				return err
-			}
-			msgs.Src = append(src.Path().UpdateClients(hs, addr), msgs.Src...)
+			msgs.Src = src.Path().UpdateClients(hs, srcAddress)
 		}
 	}
 
+	acksForDst, err := relayAcks(dstCtx, srcCtx, dst, src, sp.Src, dstAddress)
+	if err != nil {
+		return err
+	}
+	acksForSrc, err := relayAcks(srcCtx, dstCtx, src, dst, sp.Dst, srcAddress)
+	if err != nil {
+		return err
+	}
+
+	if len(acksForDst) == 0 && len(acksForSrc) == 0 {
+		log.Printf("- No acknowledgements to relay between [%s]port{%s} and [%s]port{%s}",
+			src.ChainID(), src.Path().PortID, dst.ChainID(), dst.Path().PortID)
+		return nil
+	}
+
+	msgs.Dst = append(msgs.Dst, acksForDst...)
+	msgs.Src = append(msgs.Src, acksForSrc...)
+
 	// send messages to their respective chains
 	if msgs.Send(src, dst); msgs.Success() {
-		if len(msgs.Dst) > 1 {
-			logPacketsRelayed(dst, src, len(msgs.Dst)-1)
+		if num := len(acksForDst); num > 0 {
+			logPacketsRelayed(dst, src, num)
 		}
-		if len(msgs.Src) > 1 {
-			logPacketsRelayed(src, dst, len(msgs.Src)-1)
+		if num := len(acksForSrc); num > 0 {
+			logPacketsRelayed(src, dst, num)
 		}
 	}
 
