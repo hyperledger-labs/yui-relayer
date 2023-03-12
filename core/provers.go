@@ -24,7 +24,7 @@ type ProverI interface {
 	IBCProvableQuerierI
 }
 
-// LightClientI provides functions for creating and updating on-chain light clients
+// LightClientI provides functions for creating and updating on-chain light clients on the counterparty chain
 type LightClientI interface {
 	// GetChainID returns the chain ID
 	GetChainID() string
@@ -32,11 +32,12 @@ type LightClientI interface {
 	// CreateMsgCreateClient creates a CreateClientMsg to this chain
 	CreateMsgCreateClient(clientID string, dstHeader HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
 
-	// GetLatestFinalizedHeader returns the latest finalized header
+	// GetLatestFinalizedHeader returns the latest finalized header on this chain
 	// The returned header is expected to be the latest one of headers that can be verified by the light client
 	GetLatestFinalizedHeader() (latestFinalizedHeader HeaderI, err error)
 
-	// SetupHeadersForUpdate returns a header slice that contains intermediate headers needed to submit the `latestFinalizedHeader`
-	// if the slice's length == nil and err == nil, the relayer should skips the update-client
+	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
+	// The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
+	// if the header slice's length == nil and err == nil, the relayer should skips the update-client
 	SetupHeadersForUpdate(dstChain ChainI, latestFinalizedHeader HeaderI) ([]HeaderI, error)
 }

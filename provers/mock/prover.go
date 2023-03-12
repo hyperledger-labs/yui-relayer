@@ -62,7 +62,7 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI,
 	)
 }
 
-// SetupHeadersForUpdate returns a header slice that contains intermediate headers needed to submit the `latestFinalizedHeader`
+// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainI, latestFinalizedHeader core.HeaderI) ([]core.HeaderI, error) {
 	return []core.HeaderI{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }
