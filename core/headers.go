@@ -14,7 +14,7 @@ type HeaderI interface {
 // It also provides the helper functions to update the clients on the chains
 type SyncHeadersI interface {
 	// Updates updates the headers on both chains
-	Updates(src LightClientI, dst LightClientI) error
+	Updates(src LightClient, dst LightClient) error
 
 	// GetLatestFinalizedHeader returns the latest finalized header of the chain
 	GetLatestFinalizedHeader(chainID string) HeaderI
@@ -37,7 +37,7 @@ var _ SyncHeadersI = (*syncHeaders)(nil)
 
 // NewSyncHeaders returns a new instance of SyncHeadersI that can be easily
 // kept "reasonably up to date"
-func NewSyncHeaders(src, dst LightClientI) (SyncHeadersI, error) {
+func NewSyncHeaders(src, dst LightClient) (SyncHeadersI, error) {
 	sh := &syncHeaders{
 		latestFinalizedHeaders: map[string]HeaderI{src.GetChainID(): nil, dst.GetChainID(): nil},
 	}
@@ -48,7 +48,7 @@ func NewSyncHeaders(src, dst LightClientI) (SyncHeadersI, error) {
 }
 
 // Updates updates the headers on both chains
-func (sh *syncHeaders) Updates(src, dst LightClientI) error {
+func (sh *syncHeaders) Updates(src, dst LightClient) error {
 	srcHeader, err := src.GetLatestFinalizedHeader()
 	if err != nil {
 		return err

@@ -59,20 +59,23 @@ type ChainI interface {
 	// ChainID returns ID of the chain
 	ChainID() string
 
-	// GetLatestHeight gets the chain for the latest height and returns it
-	GetLatestHeight() (ibcexported.Height, error)
-
 	// GetAddress returns the address of relayer
 	GetAddress() (sdk.AccAddress, error)
 
 	// Codec returns the codec
 	Codec() codec.ProtoCodecMarshaler
 
+	// Path returns the path
+	Path() *PathEnd
+
+	// Init initializes the chain
+	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
+
 	// SetRelayInfo sets source's path and counterparty's info to the chain
 	SetRelayInfo(path *PathEnd, counterparty *ProvableChain, counterpartyPath *PathEnd) error
 
-	// Path returns the path
-	Path() *PathEnd
+	// SetupForRelay performs chain-specific setup before starting the relay
+	SetupForRelay(ctx context.Context) error
 
 	// SendMsgs sends msgs to the chain
 	SendMsgs(msgs []sdk.Msg) ([]byte, error)
@@ -81,16 +84,17 @@ type ChainI interface {
 	// It returns a boolean value whether the result is success
 	Send(msgs []sdk.Msg) bool
 
-	// Init initializes the chain
-	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
-
-	// SetupForRelay performs chain-specific setup before starting the relay
-	SetupForRelay(ctx context.Context) error
-
 	// RegisterMsgEventListener registers a given EventListener to the chain
 	RegisterMsgEventListener(MsgEventListener)
 
-	IBCQuerierI
+	ChainQuerier
+	IBCQuerier
+	ICS20Querier
+}
+
+type ChainQuerier interface {
+	// GetLatestHeight returns the latest height of the chain
+	GetLatestHeight() (ibcexported.Height, error)
 }
 
 // MsgEventListener is a listener that listens a msg send to the chain
@@ -99,18 +103,31 @@ type MsgEventListener interface {
 	OnSentMsg(msgs []sdk.Msg) error
 }
 
-// IBCQuerierI is an interface to the state of IBC
-type IBCQuerierI interface {
+// IBCQuerier is an interface to the state of IBC
+type IBCQuerier interface {
+	ICS02Querier
+	ICS03Querier
+	ICS04Querier
+}
+
+// ICS02Querier is an interface to the state of ICS-02
+type ICS02Querier interface {
 	// QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
 	QueryClientConsensusState(ctx QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error)
 
 	// QueryClientState returns the client state of dst chain
 	// height represents the height of dst chain
 	QueryClientState(ctx QueryContext) (*clienttypes.QueryClientStateResponse, error)
+}
 
+// ICS03Querier is an interface to the state of ICS-03
+type ICS03Querier interface {
 	// QueryConnection returns the remote end of a given connection
 	QueryConnection(ctx QueryContext) (*conntypes.QueryConnectionResponse, error)
+}
 
+// ICS04Querier is an interface to the state of ICS-04
+type ICS04Querier interface {
 	// QueryChannel returns the channel associated with a channelID
 	QueryChannel(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
 
@@ -137,33 +154,15 @@ type IBCQuerierI interface {
 
 	// QueryPacketAcknowledgement returns the acknowledgement corresponding to a sequence
 	QueryPacketAcknowledgement(ctx QueryContext, sequence uint64) ([]byte, error)
+}
 
+// ICS20Querier is an interface to the state of ICS20
+type ICS20Querier interface {
 	// QueryBalance returns the amount of coins in the relayer account
 	QueryBalance(ctx QueryContext, address sdk.AccAddress) (sdk.Coins, error)
 
 	// QueryDenomTraces returns all the denom traces from a given chain
 	QueryDenomTraces(ctx QueryContext, offset, limit uint64) (*transfertypes.QueryDenomTracesResponse, error)
-}
-
-// IBCProvableQuerierI is an interface to the state of IBC and its proof.
-type IBCProvableQuerierI interface {
-	// QueryClientConsensusState returns the ClientConsensusState and its proof
-	QueryClientConsensusStateWithProof(ctx QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error)
-
-	// QueryClientStateWithProof returns the ClientState and its proof
-	QueryClientStateWithProof(ctx QueryContext) (*clienttypes.QueryClientStateResponse, error)
-
-	// QueryConnectionWithProof returns the Connection and its proof
-	QueryConnectionWithProof(ctx QueryContext) (*conntypes.QueryConnectionResponse, error)
-
-	// QueryChannelWithProof returns the Channel and its proof
-	QueryChannelWithProof(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
-
-	// QueryPacketCommitmentWithProof returns the packet commitment and its proof
-	QueryPacketCommitmentWithProof(ctx QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error)
-
-	// QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
-	QueryPacketAcknowledgementCommitmentWithProof(ctx QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error)
 }
 
 // QueryContext is a context that contains a height of the target chain for querying states

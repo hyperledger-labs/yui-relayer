@@ -83,7 +83,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 }
 
 // getHeadersForCreateClient calls UpdateLightWithHeader on the passed chains concurrently
-func getHeadersForCreateClient(src, dst LightClientI) (srch, dsth HeaderI, err error) {
+func getHeadersForCreateClient(src, dst LightClient) (srch, dsth HeaderI, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
 		srch, err = src.GetLatestFinalizedHeader()

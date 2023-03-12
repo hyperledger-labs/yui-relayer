@@ -11,7 +11,7 @@ import (
 // QueryClientStatePair returns a pair of connection responses
 func QueryClientStatePair(
 	srcCtx, dstCtx QueryContext,
-	src, dst IBCProvableQuerierI,
+	src, dst IBCProvableQuerier,
 ) (srcCsRes, dstCsRes *clienttypes.QueryClientStateResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
@@ -29,7 +29,7 @@ func QueryClientStatePair(
 // QueryClientConsensusStatePair allows for the querying of multiple client states at the same time
 func QueryClientConsensusStatePair(
 	srcCtx, dstCtx QueryContext,
-	src, dst IBCProvableQuerierI,
+	src, dst IBCProvableQuerier,
 	srcClientConsH,
 	dstClientConsH ibcexported.Height) (srcCsRes, dstCsRes *clienttypes.QueryConsensusStateResponse, err error) {
 	var eg = new(errgroup.Group)
@@ -48,7 +48,7 @@ func QueryClientConsensusStatePair(
 // QueryConnectionPair returns a pair of connection responses
 func QueryConnectionPair(
 	srcCtx, dstCtx QueryContext,
-	src, dst IBCProvableQuerierI,
+	src, dst IBCProvableQuerier,
 ) (srcConn, dstConn *conntypes.QueryConnectionResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
@@ -64,7 +64,7 @@ func QueryConnectionPair(
 }
 
 // QueryChannelPair returns a pair of channel responses
-func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst IBCProvableQuerierI) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
+func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst IBCProvableQuerier) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
 		srcChan, err = src.QueryChannelWithProof(srcCtx)
