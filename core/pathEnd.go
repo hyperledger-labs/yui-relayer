@@ -10,14 +10,13 @@ import (
 	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
-	commitmentypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
 	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/light"
 )
 
 var (
-	defaultChainPrefix = commitmentypes.NewMerklePrefix([]byte("ibc"))
+	defaultChainPrefix = commitmenttypes.NewMerklePrefix([]byte("ibc"))
 )
 
 const (
