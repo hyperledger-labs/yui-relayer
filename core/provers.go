@@ -34,7 +34,7 @@ type LightClientI interface {
 
 	// GetLatestFinalizedHeader returns the latest finalized header
 	// The returned header is expected to be the latest one of headers that can be verified by the light client
-	GetLatestFinalizedHeader() (latestFinalizedHeader HeaderI, provableHeight int64, queryableHeight int64, err error)
+	GetLatestFinalizedHeader() (latestFinalizedHeader HeaderI, err error)
 
 	// SetupHeadersForUpdate returns a header slice that contains intermediate headers needed to submit the `latestFinalizedHeader`
 	// if the slice's length == nil and err == nil, the relayer should skips the update-client

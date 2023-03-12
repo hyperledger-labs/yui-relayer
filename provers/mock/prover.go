@@ -68,24 +68,19 @@ func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainI, latestFinalizedHea
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.HeaderI, provableHeight int64, queryableHeight int64, err error) {
-	var h = mocktypes.Header{
+func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.HeaderI, err error) {
+	return &mocktypes.Header{
 		Height: &clienttypes.Height{
 			RevisionNumber: 0,
 			RevisionHeight: pr.sequence,
 		},
 		Timestamp: uint64(time.Now().UnixNano()),
-	}
-	chainHeight, err := pr.chain.GetLatestHeight()
-	if err != nil {
-		return nil, -1, -1, err
-	}
-	return &h, chainHeight, chainHeight, nil
+	}, nil
 }
 
 // QueryClientConsensusState returns the ClientConsensusState and its proof
-func (pr *Prover) QueryClientConsensusStateWithProof(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	res, err := pr.chain.QueryClientConsensusState(height, dstClientConsHeight)
+func (pr *Prover) QueryClientConsensusStateWithProof(ctx core.QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
+	res, err := pr.chain.QueryClientConsensusState(ctx, dstClientConsHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +94,8 @@ func (pr *Prover) QueryClientConsensusStateWithProof(height int64, dstClientCons
 }
 
 // QueryClientStateWithProof returns the ClientState and its proof
-func (pr *Prover) QueryClientStateWithProof(height int64) (*clienttypes.QueryClientStateResponse, error) {
-	res, err := pr.chain.QueryClientState(height)
+func (pr *Prover) QueryClientStateWithProof(ctx core.QueryContext) (*clienttypes.QueryClientStateResponse, error) {
+	res, err := pr.chain.QueryClientState(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -114,8 +109,8 @@ func (pr *Prover) QueryClientStateWithProof(height int64) (*clienttypes.QueryCli
 }
 
 // QueryConnectionWithProof returns the Connection and its proof
-func (pr *Prover) QueryConnectionWithProof(height int64) (*conntypes.QueryConnectionResponse, error) {
-	res, err := pr.chain.QueryConnection(height)
+func (pr *Prover) QueryConnectionWithProof(ctx core.QueryContext) (*conntypes.QueryConnectionResponse, error) {
+	res, err := pr.chain.QueryConnection(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -129,8 +124,8 @@ func (pr *Prover) QueryConnectionWithProof(height int64) (*conntypes.QueryConnec
 }
 
 // QueryChannelWithProof returns the Channel and its proof
-func (pr *Prover) QueryChannelWithProof(height int64) (chanRes *chantypes.QueryChannelResponse, err error) {
-	res, err := pr.chain.QueryChannel(height)
+func (pr *Prover) QueryChannelWithProof(ctx core.QueryContext) (chanRes *chantypes.QueryChannelResponse, err error) {
+	res, err := pr.chain.QueryChannel(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -144,8 +139,8 @@ func (pr *Prover) QueryChannelWithProof(height int64) (chanRes *chantypes.QueryC
 }
 
 // QueryPacketCommitmentWithProof returns the packet commitment and its proof
-func (pr *Prover) QueryPacketCommitmentWithProof(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	res, err := pr.chain.QueryPacketCommitment(height, seq)
+func (pr *Prover) QueryPacketCommitmentWithProof(ctx core.QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
+	res, err := pr.chain.QueryPacketCommitment(ctx, seq)
 	if err != nil {
 		return nil, err
 	}
@@ -155,8 +150,8 @@ func (pr *Prover) QueryPacketCommitmentWithProof(height int64, seq uint64) (comR
 }
 
 // QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
-func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	res, err := pr.chain.QueryPacketAcknowledgementCommitment(height, seq)
+func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
+	res, err := pr.chain.QueryPacketAcknowledgementCommitment(ctx, seq)
 	if err != nil {
 		return nil, err
 	}

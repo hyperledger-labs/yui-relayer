@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/ibc-go/v4/modules/core/exported"
+	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/helpers"
@@ -46,22 +47,16 @@ func queryClientCmd(ctx *config.Context) *cobra.Command {
 			}
 			c := chains[args[1]]
 
-			height, err := cmd.Flags().GetInt64(flags.FlagHeight)
+			height, err := c.GetLatestHeight()
 			if err != nil {
 				return err
 			}
 
-			if height == 0 {
-				height, err = c.GetLatestHeight()
-				if err != nil {
-					return err
-				}
-			}
-			res, err := c.QueryClientState(height)
+			res, err := c.QueryClientState(core.NewQueryContext(context.TODO(), height))
 			if err != nil {
 				return err
 			}
-			var cs exported.ClientState
+			var cs ibcexported.ClientState
 			if err := c.Codec().UnpackAny(res.ClientState, &cs); err != nil {
 				return err
 			}
@@ -90,7 +85,7 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			res, err := c.QueryConnection(height)
+			res, err := c.QueryConnection(core.NewQueryContext(context.TODO(), height))
 			if err != nil {
 				return err
 			}
@@ -119,7 +114,7 @@ func queryChannel(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			res, err := c.QueryChannel(height)
+			res, err := c.QueryChannel(core.NewQueryContext(context.TODO(), height))
 			if err != nil {
 				return err
 			}
@@ -152,7 +147,12 @@ func queryBalanceCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			coins, err := helpers.QueryBalance(chain, addr, showDenoms)
+			h, err := chain.GetLatestHeight()
+			if err != nil {
+				return err
+			}
+
+			coins, err := helpers.QueryBalance(chain, h, addr, showDenoms)
 			if err != nil {
 				return err
 			}

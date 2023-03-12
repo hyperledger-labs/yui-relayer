@@ -90,7 +90,7 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 		return nil, err
 	}
 
-	srcChan, dstChan, err := QueryChannelPair(src, dst, sh.GetProvableHeight(src.ChainID()), sh.GetProvableHeight(dst.ChainID()))
+	srcChan, dstChan, err := QueryChannelPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"math/big"
@@ -12,6 +13,7 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
+	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
 )
 
 const (
@@ -217,7 +219,7 @@ func (p *Path) QueryPathStatus(src, dst *ProvableChain) *PathWithStatus {
 	var (
 		err              error
 		eg               errgroup.Group
-		srch, dsth       int64
+		srch, dsth       ibcexported.Height
 		srcCs, dstCs     *clienttypes.QueryClientStateResponse
 		srcConn, dstConn *conntypes.QueryConnectionResponse
 		srcChan, dstChan *chantypes.QueryChannelResponse
@@ -237,12 +239,14 @@ func (p *Path) QueryPathStatus(src, dst *ProvableChain) *PathWithStatus {
 	}
 	out.Status.Chains = true
 
+	ctx := context.TODO()
+
 	eg.Go(func() error {
-		srcCs, err = src.QueryClientStateWithProof(srch)
+		srcCs, err = src.QueryClientState(NewQueryContext(ctx, srch))
 		return err
 	})
 	eg.Go(func() error {
-		dstCs, err = dst.QueryClientStateWithProof(dsth)
+		dstCs, err = dst.QueryClientState(NewQueryContext(ctx, dsth))
 		return err
 	})
 	if err = eg.Wait(); err != nil || srcCs == nil || dstCs == nil {
@@ -251,11 +255,11 @@ func (p *Path) QueryPathStatus(src, dst *ProvableChain) *PathWithStatus {
 	out.Status.Clients = true
 
 	eg.Go(func() error {
-		srcConn, err = src.QueryConnectionWithProof(srch)
+		srcConn, err = src.QueryConnection(NewQueryContext(ctx, srch))
 		return err
 	})
 	eg.Go(func() error {
-		dstConn, err = dst.QueryConnectionWithProof(dsth)
+		dstConn, err = dst.QueryConnection(NewQueryContext(ctx, dsth))
 		return err
 	})
 	if err = eg.Wait(); err != nil || srcConn.Connection.State != conntypes.OPEN || dstConn.Connection.State != conntypes.OPEN {
@@ -264,11 +268,11 @@ func (p *Path) QueryPathStatus(src, dst *ProvableChain) *PathWithStatus {
 	out.Status.Connection = true
 
 	eg.Go(func() error {
-		srcChan, err = src.QueryChannelWithProof(srch)
+		srcChan, err = src.QueryChannel(NewQueryContext(ctx, srch))
 		return err
 	})
 	eg.Go(func() error {
-		dstChan, err = dst.QueryChannelWithProof(dsth)
+		dstChan, err = dst.QueryChannel(NewQueryContext(ctx, dsth))
 		return err
 	})
 	if err = eg.Wait(); err != nil || srcChan.Channel.State != chantypes.OPEN || dstChan.Channel.State != chantypes.OPEN {

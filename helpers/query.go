@@ -1,13 +1,17 @@
 package helpers
 
 import (
+	"context"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 // QueryBalance is a helper function for query balance
-func QueryBalance(chain *core.ProvableChain, address sdk.AccAddress, showDenoms bool) (sdk.Coins, error) {
-	coins, err := chain.QueryBalance(address)
+func QueryBalance(chain *core.ProvableChain, height ibcexported.Height, address sdk.AccAddress, showDenoms bool) (sdk.Coins, error) {
+	ctx := core.NewQueryContext(context.TODO(), height)
+	coins, err := chain.QueryBalance(ctx, address)
 	if err != nil {
 		return nil, err
 	}
@@ -16,12 +20,7 @@ func QueryBalance(chain *core.ProvableChain, address sdk.AccAddress, showDenoms 
 		return coins, nil
 	}
 
-	h, err := chain.GetLatestHeight()
-	if err != nil {
-		return nil, err
-	}
-
-	dts, err := chain.QueryDenomTraces(0, 1000, h)
+	dts, err := chain.QueryDenomTraces(ctx, 0, 1000)
 	if err != nil {
 		return nil, err
 	}

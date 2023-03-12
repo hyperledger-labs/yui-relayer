@@ -60,7 +60,7 @@ type ChainI interface {
 	ChainID() string
 
 	// GetLatestHeight gets the chain for the latest height and returns it
-	GetLatestHeight() (int64, error)
+	GetLatestHeight() (ibcexported.Height, error)
 
 	// GetAddress returns the address of relayer
 	GetAddress() (sdk.AccAddress, error)
@@ -102,66 +102,97 @@ type MsgEventListener interface {
 // IBCQuerierI is an interface to the state of IBC
 type IBCQuerierI interface {
 	// QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
-	QueryClientConsensusState(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error)
+	QueryClientConsensusState(ctx QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error)
 
 	// QueryClientState returns the client state of dst chain
 	// height represents the height of dst chain
-	QueryClientState(height int64) (*clienttypes.QueryClientStateResponse, error)
+	QueryClientState(ctx QueryContext) (*clienttypes.QueryClientStateResponse, error)
 
 	// QueryConnection returns the remote end of a given connection
-	QueryConnection(height int64) (*conntypes.QueryConnectionResponse, error)
+	QueryConnection(ctx QueryContext) (*conntypes.QueryConnectionResponse, error)
 
 	// QueryChannel returns the channel associated with a channelID
-	QueryChannel(height int64) (chanRes *chantypes.QueryChannelResponse, err error)
+	QueryChannel(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
 
 	// QueryPacketCommitment returns the packet commitment corresponding to a given sequence
-	QueryPacketCommitment(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error)
+	QueryPacketCommitment(ctx QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error)
 
 	// QueryPacketAcknowledgementCommitment returns the acknowledgement corresponding to a given sequence
-	QueryPacketAcknowledgementCommitment(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error)
+	QueryPacketAcknowledgementCommitment(ctx QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error)
 
 	// QueryPacketCommitments returns an array of packet commitments
-	QueryPacketCommitments(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error)
+	QueryPacketCommitments(ctx QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error)
 
 	// QueryUnrecievedPackets returns a list of unrelayed packet commitments
-	QueryUnrecievedPackets(height int64, seqs []uint64) ([]uint64, error)
+	QueryUnrecievedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
 	// QueryPacketAcknowledgementCommitments returns an array of packet acks
-	QueryPacketAcknowledgementCommitments(offset, limit uint64, height int64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
+	QueryPacketAcknowledgementCommitments(ctx QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
 
 	// QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
-	QueryUnrecievedAcknowledgements(height int64, seqs []uint64) ([]uint64, error)
+	QueryUnrecievedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
 	// QueryPacket returns the packet corresponding to a sequence
-	QueryPacket(height int64, sequence uint64) (*chantypes.Packet, error)
+	QueryPacket(ctx QueryContext, sequence uint64) (*chantypes.Packet, error)
 
 	// QueryPacketAcknowledgement returns the acknowledgement corresponding to a sequence
-	QueryPacketAcknowledgement(height int64, sequence uint64) ([]byte, error)
+	QueryPacketAcknowledgement(ctx QueryContext, sequence uint64) ([]byte, error)
 
 	// QueryBalance returns the amount of coins in the relayer account
-	QueryBalance(address sdk.AccAddress) (sdk.Coins, error)
+	QueryBalance(ctx QueryContext, address sdk.AccAddress) (sdk.Coins, error)
 
 	// QueryDenomTraces returns all the denom traces from a given chain
-	QueryDenomTraces(offset, limit uint64, height int64) (*transfertypes.QueryDenomTracesResponse, error)
+	QueryDenomTraces(ctx QueryContext, offset, limit uint64) (*transfertypes.QueryDenomTracesResponse, error)
 }
 
 // IBCProvableQuerierI is an interface to the state of IBC and its proof.
 type IBCProvableQuerierI interface {
 	// QueryClientConsensusState returns the ClientConsensusState and its proof
-	QueryClientConsensusStateWithProof(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error)
+	QueryClientConsensusStateWithProof(ctx QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error)
 
 	// QueryClientStateWithProof returns the ClientState and its proof
-	QueryClientStateWithProof(height int64) (*clienttypes.QueryClientStateResponse, error)
+	QueryClientStateWithProof(ctx QueryContext) (*clienttypes.QueryClientStateResponse, error)
 
 	// QueryConnectionWithProof returns the Connection and its proof
-	QueryConnectionWithProof(height int64) (*conntypes.QueryConnectionResponse, error)
+	QueryConnectionWithProof(ctx QueryContext) (*conntypes.QueryConnectionResponse, error)
 
 	// QueryChannelWithProof returns the Channel and its proof
-	QueryChannelWithProof(height int64) (chanRes *chantypes.QueryChannelResponse, err error)
+	QueryChannelWithProof(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
 
 	// QueryPacketCommitmentWithProof returns the packet commitment and its proof
-	QueryPacketCommitmentWithProof(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error)
+	QueryPacketCommitmentWithProof(ctx QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error)
 
 	// QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
-	QueryPacketAcknowledgementCommitmentWithProof(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error)
+	QueryPacketAcknowledgementCommitmentWithProof(ctx QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error)
+}
+
+// QueryContext is a context that contains a height of the target chain for querying states
+type QueryContext interface {
+	// Context returns `context.Context``
+	Context() context.Context
+
+	// Height returns a height of the target chain for querying a state
+	Height() ibcexported.Height
+}
+
+type queryContext struct {
+	ctx    context.Context
+	height ibcexported.Height
+}
+
+var _ QueryContext = (*queryContext)(nil)
+
+// NewQueryContext returns a new context for querying states
+func NewQueryContext(ctx context.Context, height ibcexported.Height) QueryContext {
+	return queryContext{ctx: ctx, height: height}
+}
+
+// Context returns `context.Context``
+func (qc queryContext) Context() context.Context {
+	return qc.ctx
+}
+
+// Height returns a height of the target chain for querying a state
+func (qc queryContext) Height() ibcexported.Height {
+	return qc.height
 }
