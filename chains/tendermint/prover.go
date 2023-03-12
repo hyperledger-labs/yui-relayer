@@ -45,47 +45,33 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 /* IBCProvableQuerierI implementation */
 
 // QueryClientConsensusState returns the ClientConsensusState and its proof
-func (pr *Prover) QueryClientConsensusStateWithProof(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	return pr.chain.queryClientConsensusState(height, dstClientConsHeight, true)
+func (pr *Prover) QueryClientConsensusStateWithProof(ctx core.QueryProofContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
+	return pr.chain.queryClientConsensusState(int64(ctx.Height().GetRevisionHeight()), dstClientConsHeight, true)
 }
 
 // QueryClientStateWithProof returns the ClientState and its proof
-func (pr *Prover) QueryClientStateWithProof(height int64) (*clienttypes.QueryClientStateResponse, error) {
-	return pr.chain.queryClientState(height, true)
+func (pr *Prover) QueryClientStateWithProof(ctx core.QueryProofContext) (*clienttypes.QueryClientStateResponse, error) {
+	return pr.chain.queryClientState(int64(ctx.Height().GetRevisionHeight()), true)
 }
 
 // QueryConnectionWithProof returns the Connection and its proof
-func (pr *Prover) QueryConnectionWithProof(height int64) (*conntypes.QueryConnectionResponse, error) {
-	return pr.chain.queryConnection(height, true)
+func (pr *Prover) QueryConnectionWithProof(ctx core.QueryProofContext) (*conntypes.QueryConnectionResponse, error) {
+	return pr.chain.queryConnection(int64(ctx.Height().GetRevisionHeight()), true)
 }
 
 // QueryChannelWithProof returns the Channel and its proof
-func (pr *Prover) QueryChannelWithProof(height int64) (chanRes *chantypes.QueryChannelResponse, err error) {
-	return pr.chain.queryChannel(height, true)
+func (pr *Prover) QueryChannelWithProof(ctx core.QueryProofContext) (chanRes *chantypes.QueryChannelResponse, err error) {
+	return pr.chain.queryChannel(int64(ctx.Height().GetRevisionHeight()), true)
 }
 
 // QueryPacketCommitmentWithProof returns the packet commitment and its proof
-func (pr *Prover) QueryPacketCommitmentWithProof(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	return pr.chain.queryPacketCommitment(height, seq, true)
+func (pr *Prover) QueryPacketCommitmentWithProof(ctx core.QueryProofContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
+	return pr.chain.queryPacketCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true)
 }
 
 // QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
-func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	return pr.chain.queryPacketAcknowledgementCommitment(height, seq, true)
-}
-
-// QueryHeader returns the header corresponding to the height
-func (pr *Prover) QueryHeader(height int64) (out core.HeaderI, err error) {
-	return pr.queryHeaderAtHeight(height)
-}
-
-// QueryLatestHeader returns the latest header from the chain
-func (pr *Prover) QueryLatestHeader() (out core.HeaderI, err error) {
-	var h int64
-	if h, err = pr.chain.GetLatestHeight(); err != nil {
-		return nil, err
-	}
-	return pr.QueryHeader(h)
+func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryProofContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
+	return pr.chain.queryPacketAcknowledgementCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true)
 }
 
 /* LightClientI implementation */
@@ -127,7 +113,7 @@ func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainI, latestFinalizedHea
 	}
 
 	// retrieve counterparty client from dst chain
-	counterpartyClientRes, err := dstChain.QueryClientState(dsth)
+	counterpartyClientRes, err := dstChain.QueryClientState(core.NewQueryContext(context.TODO(), dsth))
 	if err != nil {
 		return nil, err
 	}
@@ -152,13 +138,12 @@ func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainI, latestFinalizedHea
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.HeaderI, provableHeight int64, queryableHeight int64, err error) {
+func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.HeaderI, err error) {
 	h, err := pr.UpdateLightClient()
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, err
 	}
-	height := int64(h.GetHeight().GetRevisionHeight())
-	return h, height, height, nil
+	return h, nil
 }
 
 /* Local LightClient implementation */

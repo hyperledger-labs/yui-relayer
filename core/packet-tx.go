@@ -25,13 +25,13 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 	case toHeightOffset > 0 && toTimeOffset > 0:
 		return fmt.Errorf("cant set both timeout height and time offset")
 	case toHeightOffset > 0:
-		timeoutHeight = uint64(h) + toHeightOffset
+		timeoutHeight = uint64(h.GetRevisionHeight()) + toHeightOffset
 		timeoutTimestamp = 0
 	case toTimeOffset > 0:
 		timeoutHeight = 0
 		timeoutTimestamp = uint64(time.Now().Add(toTimeOffset).UnixNano())
 	case toHeightOffset == 0 && toTimeOffset == 0:
-		timeoutHeight = uint64(h + 1000)
+		timeoutHeight = uint64(h.GetRevisionHeight() + 1000)
 		timeoutTimestamp = 0
 	}
 
