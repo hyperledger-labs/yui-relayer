@@ -214,39 +214,4 @@ func (pr *Prover) getTrustingPeriod() time.Duration {
 	return tp
 }
 
-// queryHeaderAtHeight returns the header at a given height
-func (c *Prover) queryHeaderAtHeight(height int64) (*tmclient.Header, error) {
-	var (
-		page    int = 1
-		perPage int = 100000
-	)
-	if height <= 0 {
-		return nil, fmt.Errorf("must pass in valid height, %d not valid", height)
-	}
-
-	res, err := c.chain.Client.Commit(context.Background(), &height)
-	if err != nil {
-		return nil, err
-	}
-
-	val, err := c.chain.Client.Validators(context.Background(), &height, &page, &perPage)
-	if err != nil {
-		return nil, err
-	}
-
-	valSet := tmtypes.NewValidatorSet(val.Validators)
-	protoVal, err := valSet.ToProto()
-	if err != nil {
-		return nil, err
-	}
-	protoVal.TotalVotingPower = valSet.TotalVotingPower()
-
-	return &tmclient.Header{
-		// NOTE: This is not a SignedHeader
-		// We are missing a light.Commit type here
-		SignedHeader: res.SignedHeader.ToProto(),
-		ValidatorSet: protoVal,
-	}, nil
-}
-
 func lightError(err error) error { return fmt.Errorf("light client: %w", err) }
