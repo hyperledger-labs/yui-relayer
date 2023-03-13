@@ -56,9 +56,6 @@ func (pc *ProvableChain) SetupForRelay(ctx context.Context) error {
 
 // ChainI represents a chain that supports sending transactions and querying the state
 type ChainI interface {
-	// ChainID returns ID of the chain
-	ChainID() string
-
 	// GetAddress returns the address of relayer
 	GetAddress() (sdk.AccAddress, error)
 
@@ -93,6 +90,9 @@ type ChainI interface {
 }
 
 type ChainQuerier interface {
+	// ChainID returns ID of the chain
+	ChainID() string
+
 	// GetLatestHeight returns the latest height of the chain
 	GetLatestHeight() (ibcexported.Height, error)
 }

@@ -50,9 +50,6 @@ type IBCProvableQuerier interface {
 
 // LightClient provides functions for creating and updating on-chain light clients on the counterparty chain
 type LightClient interface {
-	// GetChainID returns the chain ID
-	GetChainID() string
-
 	// CreateMsgCreateClient creates a CreateClientMsg to this chain
 	CreateMsgCreateClient(clientID string, dstHeader HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
 

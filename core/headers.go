@@ -14,7 +14,7 @@ type HeaderI interface {
 // It also provides the helper functions to update the clients on the chains
 type SyncHeadersI interface {
 	// Updates updates the headers on both chains
-	Updates(src LightClient, dst LightClient) error
+	Updates(src, dst ChainQuerierLightClient) error
 
 	// GetLatestFinalizedHeader returns the latest finalized header of the chain
 	GetLatestFinalizedHeader(chainID string) HeaderI
@@ -23,10 +23,22 @@ type SyncHeadersI interface {
 	GetQueryContext(chainID string) QueryContext
 
 	// SetupHeadersForUpdate returns `src` chain's headers needed to update the client on `dst` chain
-	SetupHeadersForUpdate(src, dst *ProvableChain) ([]HeaderI, error)
+	SetupHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]HeaderI, error)
 
 	// SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers needed to update the clients on each chain
-	SetupBothHeadersForUpdate(src, dst *ProvableChain) (srcHeaders []HeaderI, dstHeaders []HeaderI, err error)
+	SetupBothHeadersForUpdate(src, dst ChainICS02QuerierLightClient) (srcHeaders []HeaderI, dstHeaders []HeaderI, err error)
+}
+
+// ChainQuerierLightClient = ChainQuerier + LightClient
+type ChainQuerierLightClient interface {
+	ChainQuerier
+	LightClient
+}
+
+// ChainICS02QuerierLightClient = ChainQuerierLightClient + ICS02Querier
+type ChainICS02QuerierLightClient interface {
+	ChainQuerierLightClient
+	ICS02Querier
 }
 
 type syncHeaders struct {
@@ -37,9 +49,9 @@ var _ SyncHeadersI = (*syncHeaders)(nil)
 
 // NewSyncHeaders returns a new instance of SyncHeadersI that can be easily
 // kept "reasonably up to date"
-func NewSyncHeaders(src, dst LightClient) (SyncHeadersI, error) {
+func NewSyncHeaders(src, dst ChainQuerierLightClient) (SyncHeadersI, error) {
 	sh := &syncHeaders{
-		latestFinalizedHeaders: map[string]HeaderI{src.GetChainID(): nil, dst.GetChainID(): nil},
+		latestFinalizedHeaders: map[string]HeaderI{src.ChainID(): nil, dst.ChainID(): nil},
 	}
 	if err := sh.Updates(src, dst); err != nil {
 		return nil, err
@@ -48,7 +60,7 @@ func NewSyncHeaders(src, dst LightClient) (SyncHeadersI, error) {
 }
 
 // Updates updates the headers on both chains
-func (sh *syncHeaders) Updates(src, dst LightClient) error {
+func (sh *syncHeaders) Updates(src, dst ChainQuerierLightClient) error {
 	srcHeader, err := src.GetLatestFinalizedHeader()
 	if err != nil {
 		return err
@@ -58,8 +70,8 @@ func (sh *syncHeaders) Updates(src, dst LightClient) error {
 		return err
 	}
 
-	sh.latestFinalizedHeaders[src.GetChainID()] = srcHeader
-	sh.latestFinalizedHeaders[dst.GetChainID()] = dstHeader
+	sh.latestFinalizedHeaders[src.ChainID()] = srcHeader
+	sh.latestFinalizedHeaders[dst.ChainID()] = dstHeader
 	return nil
 }
 
@@ -70,16 +82,16 @@ func (sh syncHeaders) GetLatestFinalizedHeader(chainID string) HeaderI {
 
 // GetQueryContext builds a query context based on the latest finalized header
 func (sh syncHeaders) GetQueryContext(chainID string) QueryContext {
-	return NewQueryContext(context.TODO(), sh.latestFinalizedHeaders[chainID].GetHeight())
+	return NewQueryContext(context.TODO(), sh.GetLatestFinalizedHeader(chainID).GetHeight())
 }
 
 // SetupHeadersForUpdate returns `src` chain's headers to update the client on `dst` chain
-func (sh syncHeaders) SetupHeadersForUpdate(src, dst *ProvableChain) ([]HeaderI, error) {
-	return src.SetupHeadersForUpdate(dst, sh.latestFinalizedHeaders[src.GetChainID()])
+func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]HeaderI, error) {
+	return src.SetupHeadersForUpdate(dst, sh.GetLatestFinalizedHeader(src.ChainID()))
 }
 
 // SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers to update the clients on each chain
-func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst *ProvableChain) ([]HeaderI, []HeaderI, error) {
+func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]HeaderI, []HeaderI, error) {
 	srcHs, err := sh.SetupHeadersForUpdate(src, dst)
 	if err != nil {
 		return nil, nil, err

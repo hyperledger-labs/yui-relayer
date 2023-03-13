@@ -76,11 +76,6 @@ func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryCo
 
 /* LightClientI implementation */
 
-// GetChainID returns the chain ID
-func (pr *Prover) GetChainID() string {
-	return pr.chain.ChainID()
-}
-
 // CreateMsgCreateClient creates a CreateClientMsg to this chain
 func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
 	ubdPeriod, err := pr.chain.QueryUnbondingPeriod()
