@@ -59,7 +59,7 @@ type LightClient interface {
 
 	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 	// The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
-	// if the header slice's length == nil and err == nil, the relayer should skips the update-client
+	// if the header slice's length == 0 and err == nil, the relayer should skips the update-client
 	SetupHeadersForUpdate(dstChain ChainInfoICS02Querier, latestFinalizedHeader Header) ([]Header, error)
 }
 
