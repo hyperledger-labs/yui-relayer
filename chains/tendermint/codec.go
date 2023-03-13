@@ -9,11 +9,11 @@ import (
 // Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
-		(*core.ChainConfigI)(nil),
+		(*core.ChainConfig)(nil),
 		&ChainConfig{},
 	)
 	registry.RegisterImplementations(
-		(*core.ProverConfigI)(nil),
+		(*core.ProverConfig)(nil),
 		&ProverConfig{},
 	)
 }

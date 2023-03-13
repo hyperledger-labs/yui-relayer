@@ -22,12 +22,12 @@ type RelayService struct {
 	src      *ProvableChain
 	dst      *ProvableChain
 	st       StrategyI
-	sh       SyncHeadersI
+	sh       SyncHeaders
 	interval time.Duration
 }
 
 // NewRelayService returns a new service
-func NewRelayService(st StrategyI, src, dst *ProvableChain, sh SyncHeadersI, interval time.Duration) *RelayService {
+func NewRelayService(st StrategyI, src, dst *ProvableChain, sh SyncHeaders, interval time.Duration) *RelayService {
 	return &RelayService{
 		src:      src,
 		dst:      dst,

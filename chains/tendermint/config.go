@@ -6,17 +6,17 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
-var _ core.ChainConfigI = (*ChainConfig)(nil)
+var _ core.ChainConfig = (*ChainConfig)(nil)
 
-func (c ChainConfig) Build() (core.ChainI, error) {
+func (c ChainConfig) Build() (core.Chain, error) {
 	return &Chain{
 		config: c,
 	}, nil
 }
 
-var _ core.ProverConfigI = (*ProverConfig)(nil)
+var _ core.ProverConfig = (*ProverConfig)(nil)
 
-func (c ProverConfig) Build(chain core.ChainI) (core.ProverI, error) {
+func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
 	chain_, ok := chain.(*Chain)
 	if !ok {
 		return nil, fmt.Errorf("chain type must be %T, not %T", &Chain{}, chain)

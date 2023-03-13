@@ -60,7 +60,7 @@ type Chain struct {
 	faucetAddrs map[string]time.Time
 }
 
-var _ core.ChainI = (*Chain)(nil)
+var _ core.Chain = (*Chain)(nil)
 
 func (c *Chain) ChainID() string {
 	return c.config.ChainId

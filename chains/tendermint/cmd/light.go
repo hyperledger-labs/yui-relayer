@@ -40,8 +40,8 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.ChainI.(*tendermint.Chain)
-			prover := c.ProverI.(*tendermint.Prover)
+			chain := c.Chain.(*tendermint.Chain)
+			prover := c.Prover.(*tendermint.Prover)
 
 			db, df, err := prover.NewLightDB()
 			if err != nil {
@@ -96,7 +96,7 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			prover := c.ProverI.(*tendermint.Prover)
+			prover := c.Prover.(*tendermint.Prover)
 
 			bh, err := prover.GetLatestLightHeader()
 			if err != nil {
@@ -129,8 +129,8 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.ChainI.(*tendermint.Chain)
-			prover := c.ProverI.(*tendermint.Prover)
+			chain := c.Chain.(*tendermint.Chain)
+			prover := c.Prover.(*tendermint.Prover)
 
 			var header *tmclient.Header
 
@@ -188,7 +188,7 @@ func deleteLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			prover := c.ProverI.(*tendermint.Prover)
+			prover := c.Prover.(*tendermint.Prover)
 
 			err = prover.DeleteLightDB()
 			if err != nil {

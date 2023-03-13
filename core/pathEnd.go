@@ -53,7 +53,7 @@ func (pe *PathEnd) GetOrder() chantypes.Order {
 }
 
 // UpdateClient creates an sdk.Msg to update the client on src with data pulled from dst
-func (pe *PathEnd) UpdateClient(dstHeader HeaderI, signer sdk.AccAddress) sdk.Msg {
+func (pe *PathEnd) UpdateClient(dstHeader Header, signer sdk.AccAddress) sdk.Msg {
 	if err := dstHeader.ValidateBasic(); err != nil {
 		panic(err)
 	}
@@ -68,7 +68,7 @@ func (pe *PathEnd) UpdateClient(dstHeader HeaderI, signer sdk.AccAddress) sdk.Ms
 	return msg
 }
 
-func (pe *PathEnd) UpdateClients(dstHeaders []HeaderI, signer sdk.AccAddress) []sdk.Msg {
+func (pe *PathEnd) UpdateClients(dstHeaders []Header, signer sdk.AccAddress) []sdk.Msg {
 	var msgs []sdk.Msg
 	for _, header := range dstHeaders {
 		msgs = append(msgs, pe.UpdateClient(header, signer))

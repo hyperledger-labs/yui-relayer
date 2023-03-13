@@ -76,7 +76,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	}
 	// Query a number of things all at once
 	var (
-		srcUpdateHeaders, dstUpdateHeaders []HeaderI
+		srcUpdateHeaders, dstUpdateHeaders []Header
 		srcCsRes, dstCsRes                 *clienttypes.QueryClientStateResponse
 		srcCS, dstCS                       ibcexported.ClientState
 		srcCons, dstCons                   *clienttypes.QueryConsensusStateResponse
@@ -195,7 +195,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 }
 
 // validatePaths takes two chains and validates their paths
-func validatePaths(src, dst ChainI) error {
+func validatePaths(src, dst Chain) error {
 	if err := src.Path().Validate(); err != nil {
 		return fmt.Errorf("path on chain %s failed to set: %w", src.ChainID(), err)
 	}
@@ -205,7 +205,7 @@ func validatePaths(src, dst ChainI) error {
 	return nil
 }
 
-func logConnectionStates(src, dst ChainI, srcConn, dstConn *conntypes.QueryConnectionResponse) {
+func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnectionResponse) {
 	log.Printf("- [%s]@{%d}conn(%s)-{%s} : [%s]@{%d}conn(%s)-{%s}",
 		src.ChainID(),
 		mustGetHeight(srcConn.ProofHeight),

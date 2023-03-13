@@ -23,7 +23,7 @@ type Prover struct {
 	config ProverConfig
 }
 
-var _ core.ProverI = (*Prover)(nil)
+var _ core.Prover = (*Prover)(nil)
 
 func NewProver(chain *Chain, config ProverConfig) *Prover {
 	return &Prover{chain: chain, config: config}
@@ -77,7 +77,7 @@ func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryCo
 /* LightClientI implementation */
 
 // CreateMsgCreateClient creates a CreateClientMsg to this chain
-func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
+func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
 	ubdPeriod, err := pr.chain.QueryUnbondingPeriod()
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI,
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainICS02Querier, latestFinalizedHeader core.HeaderI) ([]core.HeaderI, error) {
+func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainICS02Querier, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	srcChain := pr.chain
 	// make copy of header stored in mop
 	tmp := latestFinalizedHeader.(*tmclient.Header)
@@ -129,11 +129,11 @@ func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainICS02Querier, latestF
 
 	// inject TrustedValidators into header
 	h.TrustedValidators = valSet
-	return []core.HeaderI{&h}, nil
+	return []core.Header{&h}, nil
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.HeaderI, err error) {
+func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header, err error) {
 	h, err := pr.UpdateLightClient()
 	if err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ func (pr *Prover) GetLatestLightHeight() (int64, error) {
 	return client.LastTrustedHeight()
 }
 
-func (pr *Prover) UpdateLightClient() (core.HeaderI, error) {
+func (pr *Prover) UpdateLightClient() (core.Header, error) {
 	// create database connection
 	db, df, err := pr.NewLightDB()
 	if err != nil {

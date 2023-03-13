@@ -17,14 +17,14 @@ import (
 )
 
 type Prover struct {
-	chain core.ChainI
+	chain core.Chain
 
 	sequence uint64
 }
 
-var _ core.ProverI = (*Prover)(nil)
+var _ core.Prover = (*Prover)(nil)
 
-func NewProver(chain core.ChainI, sequence uint64) *Prover {
+func NewProver(chain core.Chain, sequence uint64) *Prover {
 	return &Prover{chain: chain, sequence: sequence}
 }
 
@@ -42,7 +42,7 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 }
 
 // CreateMsgCreateClient creates a CreateClientMsg to this chain
-func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
+func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
 	h := dstHeader.(*mocktypes.Header)
 	clientState := &mocktypes.ClientState{
 		LatestHeight: h.Height,
@@ -58,12 +58,12 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI,
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainICS02Querier, latestFinalizedHeader core.HeaderI) ([]core.HeaderI, error) {
-	return []core.HeaderI{latestFinalizedHeader.(*mocktypes.Header)}, nil
+func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainICS02Querier, latestFinalizedHeader core.Header) ([]core.Header, error) {
+	return []core.Header{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.HeaderI, err error) {
+func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header, err error) {
 	return &mocktypes.Header{
 		Height: &clienttypes.Height{
 			RevisionNumber: 0,

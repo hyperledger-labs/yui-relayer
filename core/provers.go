@@ -12,8 +12,8 @@ import (
 	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
 )
 
-// ProverI represents a prover that supports generating a commitment proof
-type ProverI interface {
+// Prover represents a prover that supports generating a commitment proof
+type Prover interface {
 	// Init initializes the chain
 	Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error
 
@@ -51,16 +51,16 @@ type IBCProvableQuerier interface {
 // LightClient provides functions for creating and updating on-chain light clients on the counterparty chain
 type LightClient interface {
 	// CreateMsgCreateClient creates a CreateClientMsg to this chain
-	CreateMsgCreateClient(clientID string, dstHeader HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
+	CreateMsgCreateClient(clientID string, dstHeader Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
 
 	// GetLatestFinalizedHeader returns the latest finalized header on this chain
 	// The returned header is expected to be the latest one of headers that can be verified by the light client
-	GetLatestFinalizedHeader() (latestFinalizedHeader HeaderI, err error)
+	GetLatestFinalizedHeader() (latestFinalizedHeader Header, err error)
 
 	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 	// The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
 	// if the header slice's length == nil and err == nil, the relayer should skips the update-client
-	SetupHeadersForUpdate(dstChain ChainICS02Querier, latestFinalizedHeader HeaderI) ([]HeaderI, error)
+	SetupHeadersForUpdate(dstChain ChainICS02Querier, latestFinalizedHeader Header) ([]Header, error)
 }
 
 // ChainICS02Querier is ChainInfo + ICS02Querier

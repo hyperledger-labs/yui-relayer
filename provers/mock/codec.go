@@ -11,7 +11,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	mocktypes.RegisterInterfaces(registry)
 
 	registry.RegisterImplementations(
-		(*core.ProverConfigI)(nil),
+		(*core.ProverConfig)(nil),
 		&ProverConfig{},
 	)
 }

@@ -15,47 +15,47 @@ import (
 
 // ProvableChain represents a chain that is supported by the relayer
 type ProvableChain struct {
-	ChainI
-	ProverI
+	Chain
+	Prover
 }
 
 // NewProvableChain returns a new ProvableChain instance
-func NewProvableChain(chain ChainI, prover ProverI) *ProvableChain {
-	return &ProvableChain{ChainI: chain, ProverI: prover}
+func NewProvableChain(chain Chain, prover Prover) *ProvableChain {
+	return &ProvableChain{Chain: chain, Prover: prover}
 }
 
 func (pc *ProvableChain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
-	if err := pc.ChainI.Init(homePath, timeout, codec, debug); err != nil {
+	if err := pc.Chain.Init(homePath, timeout, codec, debug); err != nil {
 		return err
 	}
-	if err := pc.ProverI.Init(homePath, timeout, codec, debug); err != nil {
+	if err := pc.Prover.Init(homePath, timeout, codec, debug); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (pc *ProvableChain) SetRelayInfo(path *PathEnd, counterparty *ProvableChain, counterpartyPath *PathEnd) error {
-	if err := pc.ChainI.SetRelayInfo(path, counterparty, counterpartyPath); err != nil {
+	if err := pc.Chain.SetRelayInfo(path, counterparty, counterpartyPath); err != nil {
 		return err
 	}
-	if err := pc.ProverI.SetRelayInfo(path, counterparty, counterpartyPath); err != nil {
+	if err := pc.Prover.SetRelayInfo(path, counterparty, counterpartyPath); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (pc *ProvableChain) SetupForRelay(ctx context.Context) error {
-	if err := pc.ChainI.SetupForRelay(ctx); err != nil {
+	if err := pc.Chain.SetupForRelay(ctx); err != nil {
 		return err
 	}
-	if err := pc.ProverI.SetupForRelay(ctx); err != nil {
+	if err := pc.Prover.SetupForRelay(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
-// ChainI represents a chain that supports sending transactions and querying the state
-type ChainI interface {
+// Chain represents a chain that supports sending transactions and querying the state
+type Chain interface {
 	// GetAddress returns the address of relayer
 	GetAddress() (sdk.AccAddress, error)
 

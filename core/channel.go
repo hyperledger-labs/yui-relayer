@@ -74,7 +74,7 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 
 	// Query a number of things all at once
 	var (
-		srcUpdateHeaders, dstUpdateHeaders []HeaderI
+		srcUpdateHeaders, dstUpdateHeaders []Header
 	)
 
 	err = retry.Do(func() error {
@@ -163,7 +163,7 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 	return out, nil
 }
 
-func logChannelStates(src, dst ChainI, srcChan, dstChan *chantypes.QueryChannelResponse) {
+func logChannelStates(src, dst Chain, srcChan, dstChan *chantypes.QueryChannelResponse) {
 	log.Printf("- [%s]@{%d}chan(%s)-{%s} : [%s]@{%d}chan(%s)-{%s}",
 		src.ChainID(),
 		mustGetHeight(srcChan.ProofHeight),
