@@ -27,7 +27,7 @@ type Prover interface {
 	IBCProvableQuerier
 }
 
-// IBCProvableQuerierI is an interface to the state of IBC and its proof.
+// IBCProvableQuerier is an interface to the state of IBC and its proof.
 type IBCProvableQuerier interface {
 	// QueryClientConsensusState returns the ClientConsensusState and its proof
 	QueryClientConsensusStateWithProof(ctx QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error)
@@ -60,11 +60,11 @@ type LightClient interface {
 	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 	// The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
 	// if the header slice's length == nil and err == nil, the relayer should skips the update-client
-	SetupHeadersForUpdate(dstChain ChainICS02Querier, latestFinalizedHeader Header) ([]Header, error)
+	SetupHeadersForUpdate(dstChain ChainInfoICS02Querier, latestFinalizedHeader Header) ([]Header, error)
 }
 
-// ChainICS02Querier is ChainInfo + ICS02Querier
-type ChainICS02Querier interface {
+// ChainInfoICS02Querier is ChainInfo + ICS02Querier
+type ChainInfoICS02Querier interface {
 	ChainInfo
 	ICS02Querier
 }

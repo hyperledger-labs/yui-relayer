@@ -42,7 +42,7 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
-/* IBCProvableQuerierI implementation */
+/* IBCProvableQuerier implementation */
 
 // QueryClientConsensusState returns the ClientConsensusState and its proof
 func (pr *Prover) QueryClientConsensusStateWithProof(ctx core.QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
@@ -74,7 +74,7 @@ func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryCo
 	return pr.chain.queryPacketAcknowledgementCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true)
 }
 
-/* LightClientI implementation */
+/* LightClient implementation */
 
 // CreateMsgCreateClient creates a CreateClientMsg to this chain
 func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
@@ -96,7 +96,7 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, 
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainICS02Querier, latestFinalizedHeader core.Header) ([]core.Header, error) {
+func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainInfoICS02Querier, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	srcChain := pr.chain
 	// make copy of header stored in mop
 	tmp := latestFinalizedHeader.(*tmclient.Header)
