@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cosmos/ibc-go/v4/modules/core/exported"
 )
@@ -14,7 +15,7 @@ type HeaderI interface {
 // It also provides the helper functions to update the clients on the chains
 type SyncHeadersI interface {
 	// Updates updates the headers on both chains
-	Updates(src, dst ChainQuerierLightClient) error
+	Updates(src, dst ChainInfoLightClient) error
 
 	// GetLatestFinalizedHeader returns the latest finalized header of the chain
 	GetLatestFinalizedHeader(chainID string) HeaderI
@@ -29,15 +30,15 @@ type SyncHeadersI interface {
 	SetupBothHeadersForUpdate(src, dst ChainICS02QuerierLightClient) (srcHeaders []HeaderI, dstHeaders []HeaderI, err error)
 }
 
-// ChainQuerierLightClient = ChainQuerier + LightClient
-type ChainQuerierLightClient interface {
-	ChainQuerier
+// ChainInfoLightClient = ChainInfo + LightClient
+type ChainInfoLightClient interface {
+	ChainInfo
 	LightClient
 }
 
-// ChainICS02QuerierLightClient = ChainQuerierLightClient + ICS02Querier
+// ChainICS02QuerierLightClient = ChainInfoLightClient + ICS02Querier
 type ChainICS02QuerierLightClient interface {
-	ChainQuerierLightClient
+	ChainInfoLightClient
 	ICS02Querier
 }
 
@@ -49,7 +50,10 @@ var _ SyncHeadersI = (*syncHeaders)(nil)
 
 // NewSyncHeaders returns a new instance of SyncHeadersI that can be easily
 // kept "reasonably up to date"
-func NewSyncHeaders(src, dst ChainQuerierLightClient) (SyncHeadersI, error) {
+func NewSyncHeaders(src, dst ChainInfoLightClient) (SyncHeadersI, error) {
+	if err := ensureDifferentChains(src, dst); err != nil {
+		return nil, err
+	}
 	sh := &syncHeaders{
 		latestFinalizedHeaders: map[string]HeaderI{src.ChainID(): nil, dst.ChainID(): nil},
 	}
@@ -60,7 +64,11 @@ func NewSyncHeaders(src, dst ChainQuerierLightClient) (SyncHeadersI, error) {
 }
 
 // Updates updates the headers on both chains
-func (sh *syncHeaders) Updates(src, dst ChainQuerierLightClient) error {
+func (sh *syncHeaders) Updates(src, dst ChainInfoLightClient) error {
+	if err := ensureDifferentChains(src, dst); err != nil {
+		return err
+	}
+
 	srcHeader, err := src.GetLatestFinalizedHeader()
 	if err != nil {
 		return err
@@ -87,11 +95,17 @@ func (sh syncHeaders) GetQueryContext(chainID string) QueryContext {
 
 // SetupHeadersForUpdate returns `src` chain's headers to update the client on `dst` chain
 func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]HeaderI, error) {
+	if err := ensureDifferentChains(src, dst); err != nil {
+		return nil, err
+	}
 	return src.SetupHeadersForUpdate(dst, sh.GetLatestFinalizedHeader(src.ChainID()))
 }
 
 // SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers to update the clients on each chain
 func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]HeaderI, []HeaderI, error) {
+	if err := ensureDifferentChains(src, dst); err != nil {
+		return nil, nil, err
+	}
 	srcHs, err := sh.SetupHeadersForUpdate(src, dst)
 	if err != nil {
 		return nil, nil, err
@@ -101,4 +115,12 @@ func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst ChainICS02QuerierLightC
 		return nil, nil, err
 	}
 	return srcHs, dstHs, nil
+}
+
+func ensureDifferentChains(src, dst ChainInfo) error {
+	if src.ChainID() == dst.ChainID() {
+		return fmt.Errorf("the two chains are probably the same.: src=%v dst=%v", src.ChainID(), dst.ChainID())
+	} else {
+		return nil
+	}
 }

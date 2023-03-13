@@ -63,8 +63,8 @@ type LightClient interface {
 	SetupHeadersForUpdate(dstChain ChainICS02Querier, latestFinalizedHeader HeaderI) ([]HeaderI, error)
 }
 
-// ChainICS02Querier is ChainQuerier + ICS02Querier
+// ChainICS02Querier is ChainInfo + ICS02Querier
 type ChainICS02Querier interface {
-	ChainQuerier
+	ChainInfo
 	ICS02Querier
 }

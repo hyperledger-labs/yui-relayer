@@ -84,12 +84,12 @@ type ChainI interface {
 	// RegisterMsgEventListener registers a given EventListener to the chain
 	RegisterMsgEventListener(MsgEventListener)
 
-	ChainQuerier
+	ChainInfo
 	IBCQuerier
 	ICS20Querier
 }
 
-type ChainQuerier interface {
+type ChainInfo interface {
 	// ChainID returns ID of the chain
 	ChainID() string
 
