@@ -170,11 +170,11 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences
 		}
 	}
 
-	packetsForDst, err := relayPackets(srcCtx, src, sp.Src, dstAddress)
+	packetsForDst, err := collectPackets(srcCtx, src, sp.Src, dstAddress)
 	if err != nil {
 		return err
 	}
-	packetsForSrc, err := relayPackets(dstCtx, dst, sp.Dst, srcAddress)
+	packetsForSrc, err := collectPackets(dstCtx, dst, sp.Dst, srcAddress)
 	if err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 }
 
 // TODO add packet-timeout support
-func relayPackets(ctx QueryContext, chain *ProvableChain, seqs []uint64, sender sdk.AccAddress) ([]sdk.Msg, error) {
+func collectPackets(ctx QueryContext, chain *ProvableChain, seqs []uint64, sender sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
 	for _, seq := range seqs {
 		p, err := chain.QueryPacket(ctx, seq)
@@ -361,11 +361,11 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 		}
 	}
 
-	acksForDst, err := relayAcks(dstCtx, srcCtx, dst, src, sp.Src, dstAddress)
+	acksForDst, err := collectAcks(dstCtx, srcCtx, dst, src, sp.Src, dstAddress)
 	if err != nil {
 		return err
 	}
-	acksForSrc, err := relayAcks(srcCtx, dstCtx, src, dst, sp.Dst, srcAddress)
+	acksForSrc, err := collectAcks(srcCtx, dstCtx, src, dst, sp.Dst, srcAddress)
 	if err != nil {
 		return err
 	}
@@ -392,7 +392,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 	return nil
 }
 
-func relayAcks(senderCtx, receriverCtx QueryContext, senderChain, receiverChain *ProvableChain, seqs []uint64, sender sdk.AccAddress) ([]sdk.Msg, error) {
+func collectAcks(senderCtx, receriverCtx QueryContext, senderChain, receiverChain *ProvableChain, seqs []uint64, sender sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
 
 	for _, seq := range seqs {
