@@ -47,7 +47,7 @@ func queryClientCmd(ctx *config.Context) *cobra.Command {
 			}
 			c := chains[args[1]]
 
-			height, err := c.GetLatestHeight()
+			height, err := c.LatestHeight()
 			if err != nil {
 				return err
 			}
@@ -80,7 +80,7 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 			}
 			c := chains[args[1]]
 
-			height, err := c.GetLatestHeight()
+			height, err := c.LatestHeight()
 			if err != nil {
 				return err
 			}
@@ -109,7 +109,7 @@ func queryChannel(ctx *config.Context) *cobra.Command {
 			}
 			c := chains[args[1]]
 
-			height, err := c.GetLatestHeight()
+			height, err := c.LatestHeight()
 			if err != nil {
 				return err
 			}
@@ -147,7 +147,7 @@ func queryBalanceCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			h, err := chain.GetLatestHeight()
+			h, err := chain.LatestHeight()
 			if err != nil {
 				return err
 			}

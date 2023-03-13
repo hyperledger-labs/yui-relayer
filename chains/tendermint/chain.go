@@ -143,8 +143,8 @@ func (c *Chain) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
-// QueryLatestHeight queries the chain for the latest height and returns it
-func (c *Chain) GetLatestHeight() (ibcexported.Height, error) {
+// LatestHeight queries the chain for the latest height and returns it
+func (c *Chain) LatestHeight() (ibcexported.Height, error) {
 	res, err := c.Client.Status(context.Background())
 	if err != nil {
 		return nil, err

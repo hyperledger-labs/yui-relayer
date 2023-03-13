@@ -102,7 +102,7 @@ func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainICS02Querier, latestF
 	tmp := latestFinalizedHeader.(*tmclient.Header)
 	h := *tmp
 
-	dsth, err := dstChain.GetLatestHeight()
+	dsth, err := dstChain.LatestHeight()
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 
 /* Local LightClient implementation */
 
-// GetLatestHeight uses the CLI utilities to pull the latest height from a given chain
+// GetLatestLightHeight uses the CLI utilities to pull the latest height from a given chain
 func (pr *Prover) GetLatestLightHeight() (int64, error) {
 	db, df, err := pr.NewLightDB()
 	if err != nil {

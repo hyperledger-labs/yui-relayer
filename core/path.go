@@ -227,11 +227,11 @@ func (p *Path) QueryPathStatus(src, dst *ProvableChain) *PathWithStatus {
 		out = &PathWithStatus{Path: p, Status: PathStatus{false, false, false, false}}
 	)
 	eg.Go(func() error {
-		srch, err = src.GetLatestHeight()
+		srch, err = src.LatestHeight()
 		return err
 	})
 	eg.Go(func() error {
-		dsth, err = dst.GetLatestHeight()
+		dsth, err = dst.LatestHeight()
 		return err
 	})
 	if eg.Wait(); err != nil {

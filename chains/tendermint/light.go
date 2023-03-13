@@ -107,7 +107,7 @@ func (pr *Prover) LightClientWithoutTrust(db dbm.DB) (*light.Client, error) {
 	prov := pr.LightHTTP()
 
 	if err := retry.Do(func() error {
-		h, err := pr.chain.GetLatestHeight()
+		h, err := pr.chain.LatestHeight()
 		switch {
 		case err != nil:
 			return err

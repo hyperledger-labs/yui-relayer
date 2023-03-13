@@ -89,12 +89,16 @@ type Chain interface {
 	ICS20Querier
 }
 
+// ChainInfo is an interface to the chain's general information
 type ChainInfo interface {
 	// ChainID returns ID of the chain
 	ChainID() string
 
-	// GetLatestHeight returns the latest height of the chain
-	GetLatestHeight() (ibcexported.Height, error)
+	// LatestHeight returns the latest height of the chain
+	//
+	// NOTE: The returned height does not have to be finalized.
+	// If a finalized height/header is required, the `Prover`'s `GetLatestFinalizedHeader` function should be called instead.
+	LatestHeight() (ibcexported.Height, error)
 }
 
 // MsgEventListener is a listener that listens a msg send to the chain
@@ -156,7 +160,7 @@ type ICS04Querier interface {
 	QueryPacketAcknowledgement(ctx QueryContext, sequence uint64) ([]byte, error)
 }
 
-// ICS20Querier is an interface to the state of ICS20
+// ICS20Querier is an interface to the state of ICS-20
 type ICS20Querier interface {
 	// QueryBalance returns the amount of coins in the relayer account
 	QueryBalance(ctx QueryContext, address sdk.AccAddress) (sdk.Coins, error)

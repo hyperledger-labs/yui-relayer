@@ -13,7 +13,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 		timeoutTimestamp uint64
 	)
 
-	h, err := dst.GetLatestHeight()
+	h, err := dst.LatestHeight()
 	if err != nil {
 		return err
 	}
