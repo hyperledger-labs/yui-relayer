@@ -297,7 +297,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 }
 
 // TODO add packet-timeout support
-func collectPackets(ctx QueryContext, chain *ProvableChain, seqs []uint64, sender sdk.AccAddress) ([]sdk.Msg, error) {
+func collectPackets(ctx QueryContext, chain *ProvableChain, seqs []uint64, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
 	for _, seq := range seqs {
 		p, err := chain.QueryPacket(ctx, seq)
@@ -310,7 +310,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, seqs []uint64, sende
 			log.Println("failed to QueryPacketCommitment:", ctx.Height(), seq, err)
 			return nil, err
 		}
-		msg := chantypes.NewMsgRecvPacket(*p, res.Proof, res.ProofHeight, sender.String())
+		msg := chantypes.NewMsgRecvPacket(*p, res.Proof, res.ProofHeight, signer.String())
 		msgs = append(msgs, msg)
 	}
 	return msgs, nil
@@ -392,7 +392,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 	return nil
 }
 
-func collectAcks(senderCtx, receriverCtx QueryContext, senderChain, receiverChain *ProvableChain, seqs []uint64, sender sdk.AccAddress) ([]sdk.Msg, error) {
+func collectAcks(senderCtx, receiverCtx QueryContext, senderChain, receiverChain *ProvableChain, seqs []uint64, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
 
 	for _, seq := range seqs {
@@ -400,16 +400,16 @@ func collectAcks(senderCtx, receriverCtx QueryContext, senderChain, receiverChai
 		if err != nil {
 			return nil, err
 		}
-		ack, err := receiverChain.QueryPacketAcknowledgement(receriverCtx, seq)
+		ack, err := receiverChain.QueryPacketAcknowledgement(receiverCtx, seq)
 		if err != nil {
 			return nil, err
 		}
-		res, err := receiverChain.QueryPacketAcknowledgementCommitmentWithProof(receriverCtx, seq)
+		res, err := receiverChain.QueryPacketAcknowledgementCommitmentWithProof(receiverCtx, seq)
 		if err != nil {
 			return nil, err
 		}
 
-		msg := chantypes.NewMsgAcknowledgement(*p, ack, res.Proof, res.ProofHeight, sender.String())
+		msg := chantypes.NewMsgAcknowledgement(*p, ack, res.Proof, res.ProofHeight, signer.String())
 		msgs = append(msgs, msg)
 	}
 
