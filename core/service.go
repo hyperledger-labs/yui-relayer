@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -23,12 +22,12 @@ type RelayService struct {
 	src      *ProvableChain
 	dst      *ProvableChain
 	st       StrategyI
-	sh       SyncHeadersI
+	sh       SyncHeaders
 	interval time.Duration
 }
 
 // NewRelayService returns a new service
-func NewRelayService(st StrategyI, src, dst *ProvableChain, sh SyncHeadersI, interval time.Duration) *RelayService {
+func NewRelayService(st StrategyI, src, dst *ProvableChain, sh SyncHeaders, interval time.Duration) *RelayService {
 	return &RelayService{
 		src:      src,
 		dst:      dst,
@@ -49,7 +48,7 @@ func (srv *RelayService) Start(ctx context.Context) error {
 				return srv.Serve(ctx)
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Println(fmt.Sprintf("- [%s][%s]try(%d/%d) relay-service: %s", srv.src.ChainID(), srv.dst.ChainID(), n+1, rtyAttNum, err))
+			log.Printf("- [%s][%s]try(%d/%d) relay-service: %s", srv.src.ChainID(), srv.dst.ChainID(), n+1, rtyAttNum, err)
 		})); err != nil {
 			return err
 		}

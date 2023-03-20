@@ -107,13 +107,14 @@ func (pr *Prover) LightClientWithoutTrust(db dbm.DB) (*light.Client, error) {
 	prov := pr.LightHTTP()
 
 	if err := retry.Do(func() error {
-		height, err = pr.chain.GetLatestHeight()
+		h, err := pr.chain.LatestHeight()
 		switch {
 		case err != nil:
 			return err
-		case height == 0:
+		case h.GetRevisionHeight() == 0:
 			return fmt.Errorf("shouldn't be here")
 		default:
+			height = int64(h.GetRevisionHeight())
 			return nil
 		}
 	}, rtyAtt, rtyDel, rtyErr); err != nil {

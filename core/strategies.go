@@ -9,10 +9,10 @@ import (
 type StrategyI interface {
 	GetType() string
 	SetupRelay(ctx context.Context, src, dst *ProvableChain) error
-	UnrelayedSequences(src, dst *ProvableChain, sh SyncHeadersI) (*RelaySequences, error)
-	RelayPackets(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeadersI) error
-	UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeadersI) (*RelaySequences, error)
-	RelayAcknowledgements(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeadersI) error
+	UnrelayedSequences(src, dst *ProvableChain, sh SyncHeaders) (*RelaySequences, error)
+	RelayPackets(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeaders) error
+	UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders) (*RelaySequences, error)
+	RelayAcknowledgements(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeaders) error
 }
 
 // StrategyCfg defines which relaying strategy to take for a given path

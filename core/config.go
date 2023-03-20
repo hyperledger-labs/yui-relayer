@@ -15,24 +15,24 @@ type ChainProverConfig struct {
 	Prover json.RawMessage `json:"prover" yaml:"prover"`
 
 	// cache
-	chain  ChainConfigI  `json:"-" yaml:"-"`
-	prover ProverConfigI `json:"-" yaml:"-"`
+	chain  ChainConfig  `json:"-" yaml:"-"`
+	prover ProverConfig `json:"-" yaml:"-"`
 }
 
-// ChainConfigI defines a chain configuration and its builder
-type ChainConfigI interface {
+// ChainConfig defines a chain configuration and its builder
+type ChainConfig interface {
 	proto.Message
-	Build() (ChainI, error)
+	Build() (Chain, error)
 }
 
-// ProverConfigI defines a prover configuration and its builder
-type ProverConfigI interface {
+// ProverConfig defines a prover configuration and its builder
+type ProverConfig interface {
 	proto.Message
-	Build(ChainI) (ProverI, error)
+	Build(Chain) (Prover, error)
 }
 
 // NewChainProverConfig returns a new config instance
-func NewChainProverConfig(m codec.JSONCodec, chain ChainConfigI, client ProverConfigI) (*ChainProverConfig, error) {
+func NewChainProverConfig(m codec.JSONCodec, chain ChainConfig, client ProverConfig) (*ChainProverConfig, error) {
 	cbz, err := utils.MarshalJSONAny(m, chain)
 	if err != nil {
 		return nil, err
@@ -51,11 +51,11 @@ func NewChainProverConfig(m codec.JSONCodec, chain ChainConfigI, client ProverCo
 
 // Init initialises the configuration
 func (cc *ChainProverConfig) Init(m codec.Codec) error {
-	var chain ChainConfigI
+	var chain ChainConfig
 	if err := utils.UnmarshalJSONAny(m, &chain, cc.Chain); err != nil {
 		return err
 	}
-	var prover ProverConfigI
+	var prover ProverConfig
 	if err := utils.UnmarshalJSONAny(m, &prover, cc.Prover); err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (cc *ChainProverConfig) Init(m codec.Codec) error {
 }
 
 // GetChainConfig returns the cached ChainConfig instance
-func (cc ChainProverConfig) GetChainConfig() (ChainConfigI, error) {
+func (cc ChainProverConfig) GetChainConfig() (ChainConfig, error) {
 	if cc.chain == nil {
 		return nil, errors.New("chain is nil")
 	}
@@ -73,7 +73,7 @@ func (cc ChainProverConfig) GetChainConfig() (ChainConfigI, error) {
 }
 
 // GetProverConfig returns the cached ChainProverConfig instance
-func (cc ChainProverConfig) GetProverConfig() (ProverConfigI, error) {
+func (cc ChainProverConfig) GetProverConfig() (ProverConfig, error) {
 	if cc.prover == nil {
 		return nil, errors.New("client is nil")
 	}

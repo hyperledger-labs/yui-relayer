@@ -21,6 +21,8 @@ import (
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/go-bip39"
+	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
+	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
 	"github.com/tendermint/tendermint/libs/log"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
@@ -58,7 +60,7 @@ type Chain struct {
 	faucetAddrs map[string]time.Time
 }
 
-var _ core.ChainI = (*Chain)(nil)
+var _ core.Chain = (*Chain)(nil)
 
 func (c *Chain) ChainID() string {
 	return c.config.ChainId
@@ -141,16 +143,16 @@ func (c *Chain) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
-// QueryLatestHeight queries the chain for the latest height and returns it
-func (c *Chain) GetLatestHeight() (int64, error) {
+// LatestHeight queries the chain for the latest height and returns it
+func (c *Chain) LatestHeight() (ibcexported.Height, error) {
 	res, err := c.Client.Status(context.Background())
 	if err != nil {
-		return -1, err
+		return nil, err
 	} else if res.SyncInfo.CatchingUp {
-		return -1, fmt.Errorf("node at %s running chain %s not caught up", c.config.RpcAddr, c.ChainID())
+		return nil, fmt.Errorf("node at %s running chain %s not caught up", c.config.RpcAddr, c.ChainID())
 	}
-
-	return res.SyncInfo.LatestBlockHeight, nil
+	version := clienttypes.ParseChainID(c.ChainID())
+	return clienttypes.NewHeight(version, uint64(res.SyncInfo.LatestBlockHeight)), nil
 }
 
 // RegisterMsgEventListener registers a given EventListener to the chain

@@ -10,15 +10,13 @@ import (
 	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
-	commitmentypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
-	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
 	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/light"
 )
 
 var (
-	defaultChainPrefix = commitmentypes.NewMerklePrefix([]byte("ibc"))
+	defaultChainPrefix = commitmenttypes.NewMerklePrefix([]byte("ibc"))
 )
 
 const (
@@ -55,7 +53,7 @@ func (pe *PathEnd) GetOrder() chantypes.Order {
 }
 
 // UpdateClient creates an sdk.Msg to update the client on src with data pulled from dst
-func (pe *PathEnd) UpdateClient(dstHeader ibcexported.Header, signer sdk.AccAddress) sdk.Msg {
+func (pe *PathEnd) UpdateClient(dstHeader Header, signer sdk.AccAddress) sdk.Msg {
 	if err := dstHeader.ValidateBasic(); err != nil {
 		panic(err)
 	}
@@ -68,6 +66,14 @@ func (pe *PathEnd) UpdateClient(dstHeader ibcexported.Header, signer sdk.AccAddr
 		panic(err)
 	}
 	return msg
+}
+
+func (pe *PathEnd) UpdateClients(dstHeaders []Header, signer sdk.AccAddress) []sdk.Msg {
+	var msgs []sdk.Msg
+	for _, header := range dstHeaders {
+		msgs = append(msgs, pe.UpdateClient(header, signer))
+	}
+	return msgs
 }
 
 // CreateClient creates an sdk.Msg to update the client on src with consensus state from dst

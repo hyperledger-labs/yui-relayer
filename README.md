@@ -64,11 +64,11 @@ func (Module) Name() string {
 // RegisterInterfaces register the module interfaces to protobuf Any.
 func (Module) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
-		(*core.ChainConfigI)(nil),
+		(*core.ChainConfig)(nil),
 		&ChainConfig{},
 	)
 	registry.RegisterImplementations(
-		(*core.ProverConfigI)(nil),
+		(*core.ProverConfig)(nil),
 		&ProverConfig{},
 	)
 }

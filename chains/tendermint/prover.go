@@ -10,7 +10,6 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
-	"github.com/cosmos/ibc-go/v4/modules/core/exported"
 	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
 	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
 	"github.com/tendermint/tendermint/light"
@@ -24,7 +23,7 @@ type Prover struct {
 	config ProverConfig
 }
 
-var _ core.ProverI = (*Prover)(nil)
+var _ core.Prover = (*Prover)(nil)
 
 func NewProver(chain *Chain, config ProverConfig) *Prover {
 	return &Prover{chain: chain, config: config}
@@ -43,73 +42,42 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
-// GetChainID returns the chain ID
-func (pr *Prover) GetChainID() string {
-	return pr.chain.ChainID()
-}
+/* IBCProvableQuerier implementation */
 
 // QueryClientConsensusState returns the ClientConsensusState and its proof
-func (pr *Prover) QueryClientConsensusStateWithProof(height int64, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	return pr.chain.queryClientConsensusState(height, dstClientConsHeight, true)
+func (pr *Prover) QueryClientConsensusStateWithProof(ctx core.QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
+	return pr.chain.queryClientConsensusState(int64(ctx.Height().GetRevisionHeight()), dstClientConsHeight, true)
 }
 
 // QueryClientStateWithProof returns the ClientState and its proof
-func (pr *Prover) QueryClientStateWithProof(height int64) (*clienttypes.QueryClientStateResponse, error) {
-	return pr.chain.queryClientState(height, true)
+func (pr *Prover) QueryClientStateWithProof(ctx core.QueryContext) (*clienttypes.QueryClientStateResponse, error) {
+	return pr.chain.queryClientState(int64(ctx.Height().GetRevisionHeight()), true)
 }
 
 // QueryConnectionWithProof returns the Connection and its proof
-func (pr *Prover) QueryConnectionWithProof(height int64) (*conntypes.QueryConnectionResponse, error) {
-	return pr.chain.queryConnection(height, true)
+func (pr *Prover) QueryConnectionWithProof(ctx core.QueryContext) (*conntypes.QueryConnectionResponse, error) {
+	return pr.chain.queryConnection(int64(ctx.Height().GetRevisionHeight()), true)
 }
 
 // QueryChannelWithProof returns the Channel and its proof
-func (pr *Prover) QueryChannelWithProof(height int64) (chanRes *chantypes.QueryChannelResponse, err error) {
-	return pr.chain.queryChannel(height, true)
+func (pr *Prover) QueryChannelWithProof(ctx core.QueryContext) (chanRes *chantypes.QueryChannelResponse, err error) {
+	return pr.chain.queryChannel(int64(ctx.Height().GetRevisionHeight()), true)
 }
 
 // QueryPacketCommitmentWithProof returns the packet commitment and its proof
-func (pr *Prover) QueryPacketCommitmentWithProof(height int64, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	return pr.chain.queryPacketCommitment(height, seq, true)
+func (pr *Prover) QueryPacketCommitmentWithProof(ctx core.QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
+	return pr.chain.queryPacketCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true)
 }
 
 // QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
-func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(height int64, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	return pr.chain.queryPacketAcknowledgementCommitment(height, seq, true)
+func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
+	return pr.chain.queryPacketAcknowledgementCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true)
 }
 
-// QueryHeader returns the header corresponding to the height
-func (pr *Prover) QueryHeader(height int64) (out core.HeaderI, err error) {
-	return pr.queryHeaderAtHeight(height)
-}
-
-// QueryLatestHeader returns the latest header from the chain
-func (pr *Prover) QueryLatestHeader() (out core.HeaderI, err error) {
-	var h int64
-	if h, err = pr.chain.GetLatestHeight(); err != nil {
-		return nil, err
-	}
-	return pr.QueryHeader(h)
-}
-
-// GetLatestLightHeight uses the CLI utilities to pull the latest height from a given chain
-func (pr *Prover) GetLatestLightHeight() (int64, error) {
-	db, df, err := pr.NewLightDB()
-	if err != nil {
-		return -1, err
-	}
-	defer df()
-
-	client, err := pr.LightClient(db)
-	if err != nil {
-		return -1, err
-	}
-
-	return client.LastTrustedHeight()
-}
+/* LightClient implementation */
 
 // CreateMsgCreateClient creates a CreateClientMsg to this chain
-func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
+func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
 	ubdPeriod, err := pr.chain.QueryUnbondingPeriod()
 	if err != nil {
 		return nil, err
@@ -127,25 +95,25 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.HeaderI,
 	), nil
 }
 
-// SetupHeader creates a new header based on a given header
-func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader core.HeaderI) (core.HeaderI, error) {
+// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
+func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainInfoICS02Querier, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	srcChain := pr.chain
 	// make copy of header stored in mop
-	tmp := srcHeader.(*tmclient.Header)
+	tmp := latestFinalizedHeader.(*tmclient.Header)
 	h := *tmp
 
-	dsth, err := dstChain.GetLatestLightHeight()
+	dsth, err := dstChain.LatestHeight()
 	if err != nil {
 		return nil, err
 	}
 
 	// retrieve counterparty client from dst chain
-	counterpartyClientRes, err := dstChain.QueryClientState(dsth)
+	counterpartyClientRes, err := dstChain.QueryClientState(core.NewQueryContext(context.TODO(), dsth))
 	if err != nil {
 		return nil, err
 	}
 
-	var cs exported.ClientState
+	var cs ibcexported.ClientState
 	if err := srcChain.codec.UnpackAny(counterpartyClientRes.ClientState, &cs); err != nil {
 		return nil, err
 	}
@@ -161,50 +129,72 @@ func (pr *Prover) SetupHeader(dstChain core.LightClientIBCQueryierI, srcHeader c
 
 	// inject TrustedValidators into header
 	h.TrustedValidators = valSet
-	return &h, nil
+	return []core.Header{&h}, nil
 }
 
-func lightError(err error) error { return fmt.Errorf("light client: %w", err) }
+// GetLatestFinalizedHeader returns the latest finalized header
+func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header, err error) {
+	h, err := pr.UpdateLightClient()
+	if err != nil {
+		return nil, err
+	}
+	return h, nil
+}
 
-// UpdateLightWithHeader calls client.Update and then .
-func (pr *Prover) UpdateLightWithHeader() (header core.HeaderI, provableHeight int64, queryableHeight int64, err error) {
-	// create database connection
+/* Local LightClient implementation */
+
+// GetLatestLightHeight uses the CLI utilities to pull the latest height from a given chain
+func (pr *Prover) GetLatestLightHeight() (int64, error) {
 	db, df, err := pr.NewLightDB()
 	if err != nil {
-		return nil, 0, 0, lightError(err)
+		return -1, err
 	}
 	defer df()
 
 	client, err := pr.LightClient(db)
 	if err != nil {
-		return nil, 0, 0, lightError(err)
+		return -1, err
+	}
+
+	return client.LastTrustedHeight()
+}
+
+func (pr *Prover) UpdateLightClient() (core.Header, error) {
+	// create database connection
+	db, df, err := pr.NewLightDB()
+	if err != nil {
+		return nil, lightError(err)
+	}
+	defer df()
+
+	client, err := pr.LightClient(db)
+	if err != nil {
+		return nil, lightError(err)
 	}
 
 	sh, err := client.Update(context.Background(), time.Now())
 	if err != nil {
-		return nil, 0, 0, lightError(err)
+		return nil, lightError(err)
 	}
 
 	if sh == nil {
 		sh, err = client.TrustedLightBlock(0)
 		if err != nil {
-			return nil, 0, 0, lightError(err)
+			return nil, lightError(err)
 		}
 	}
 
 	valSet := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators)
 	protoVal, err := valSet.ToProto()
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, err
 	}
 	protoVal.TotalVotingPower = valSet.TotalVotingPower()
 
-	h := &tmclient.Header{
+	return &tmclient.Header{
 		SignedHeader: sh.SignedHeader.ToProto(),
 		ValidatorSet: protoVal,
-	}
-	height := int64(h.GetHeight().GetRevisionHeight())
-	return h, height, height, nil
+	}, nil
 }
 
 // TrustOptions returns light.TrustOptions given a height and hash
@@ -224,37 +214,4 @@ func (pr *Prover) getTrustingPeriod() time.Duration {
 	return tp
 }
 
-// queryHeaderAtHeight returns the header at a given height
-func (c *Prover) queryHeaderAtHeight(height int64) (*tmclient.Header, error) {
-	var (
-		page    int = 1
-		perPage int = 100000
-	)
-	if height <= 0 {
-		return nil, fmt.Errorf("must pass in valid height, %d not valid", height)
-	}
-
-	res, err := c.chain.Client.Commit(context.Background(), &height)
-	if err != nil {
-		return nil, err
-	}
-
-	val, err := c.chain.Client.Validators(context.Background(), &height, &page, &perPage)
-	if err != nil {
-		return nil, err
-	}
-
-	valSet := tmtypes.NewValidatorSet(val.Validators)
-	protoVal, err := valSet.ToProto()
-	if err != nil {
-		return nil, err
-	}
-	protoVal.TotalVotingPower = valSet.TotalVotingPower()
-
-	return &tmclient.Header{
-		// NOTE: This is not a SignedHeader
-		// We are missing a light.Commit type here
-		SignedHeader: res.SignedHeader.ToProto(),
-		ValidatorSet: protoVal,
-	}, nil
-}
+func lightError(err error) error { return fmt.Errorf("light client: %w", err) }
