@@ -7,5 +7,5 @@ import (
 var _ core.ProverConfig = (*ProverConfig)(nil)
 
 func (c *ProverConfig) Build(chain core.Chain) (core.Prover, error) {
-	return NewProver(chain, 1), nil
+	return NewProver(chain), nil
 }

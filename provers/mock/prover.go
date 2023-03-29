@@ -18,14 +18,12 @@ import (
 
 type Prover struct {
 	chain core.Chain
-
-	sequence uint64
 }
 
 var _ core.Prover = (*Prover)(nil)
 
-func NewProver(chain core.Chain, sequence uint64) *Prover {
-	return &Prover{chain: chain, sequence: sequence}
+func NewProver(chain core.Chain) *Prover {
+	return &Prover{chain: chain}
 }
 
 func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
@@ -64,10 +62,14 @@ func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainInfoICS02Querier, lat
 
 // GetLatestFinalizedHeader returns the latest finalized header
 func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header, err error) {
+	chainLatestHeight, err := pr.chain.LatestHeight()
+	if err != nil {
+		return nil, err
+	}
 	return &mocktypes.Header{
 		Height: &clienttypes.Height{
-			RevisionNumber: 0,
-			RevisionHeight: pr.sequence,
+			RevisionNumber: chainLatestHeight.GetRevisionNumber(),
+			RevisionHeight: chainLatestHeight.GetRevisionHeight(),
 		},
 		Timestamp: uint64(time.Now().UnixNano()),
 	}, nil
@@ -84,7 +86,7 @@ func (pr *Prover) QueryClientConsensusStateWithProof(ctx core.QueryContext, dstC
 		return nil, err
 	}
 	res.Proof = makeProof(bz)
-	res.ProofHeight = clienttypes.NewHeight(0, pr.sequence)
+	res.ProofHeight = ctx.Height().(clienttypes.Height)
 	return res, nil
 }
 
@@ -99,7 +101,7 @@ func (pr *Prover) QueryClientStateWithProof(ctx core.QueryContext) (*clienttypes
 		return nil, err
 	}
 	res.Proof = makeProof(bz)
-	res.ProofHeight = clienttypes.NewHeight(0, pr.sequence)
+	res.ProofHeight = ctx.Height().(clienttypes.Height)
 	return res, nil
 }
 
@@ -114,7 +116,7 @@ func (pr *Prover) QueryConnectionWithProof(ctx core.QueryContext) (*conntypes.Qu
 		return nil, err
 	}
 	res.Proof = makeProof(bz)
-	res.ProofHeight = clienttypes.NewHeight(0, pr.sequence)
+	res.ProofHeight = ctx.Height().(clienttypes.Height)
 	return res, nil
 }
 
@@ -129,7 +131,7 @@ func (pr *Prover) QueryChannelWithProof(ctx core.QueryContext) (chanRes *chantyp
 		return nil, err
 	}
 	res.Proof = makeProof(bz)
-	res.ProofHeight = clienttypes.NewHeight(0, pr.sequence)
+	res.ProofHeight = ctx.Height().(clienttypes.Height)
 	return res, nil
 }
 
@@ -139,8 +141,8 @@ func (pr *Prover) QueryPacketCommitmentWithProof(ctx core.QueryContext, seq uint
 	if err != nil {
 		return nil, err
 	}
-	res.Proof = res.Commitment
-	res.ProofHeight = clienttypes.NewHeight(0, pr.sequence)
+	res.Proof = makeProof(res.Commitment)
+	res.ProofHeight = ctx.Height().(clienttypes.Height)
 	return res, nil
 }
 
@@ -150,8 +152,8 @@ func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryCo
 	if err != nil {
 		return nil, err
 	}
-	res.Proof = res.Acknowledgement
-	res.ProofHeight = clienttypes.NewHeight(0, pr.sequence)
+	res.Proof = makeProof(res.Acknowledgement)
+	res.ProofHeight = ctx.Height().(clienttypes.Height)
 	return res, nil
 }
 
