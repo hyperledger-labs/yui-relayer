@@ -2,7 +2,7 @@ package core
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
+	"github.com/cosmos/gogoproto/proto"
 )
 
 // RelayMsgs contains the msgs that need to be sent to both a src and dst chain

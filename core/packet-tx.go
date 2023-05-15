@@ -43,7 +43,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 	// MsgTransfer will call SendPacket on src chain
 	txs := RelayMsgs{
 		Src: []sdk.Msg{src.Path().MsgTransfer(
-			dst.Path(), amount, dstAddrString, srcAddr, timeoutHeight, timeoutTimestamp,
+			dst.Path(), amount, dstAddrString, srcAddr, timeoutHeight, timeoutTimestamp, "",
 		)},
 		Dst: []sdk.Msg{},
 	}

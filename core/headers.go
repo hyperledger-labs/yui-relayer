@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cosmos/ibc-go/v4/modules/core/exported"
+	"github.com/cosmos/ibc-go/v7/modules/core/exported"
 )
 
 type Header interface {
-	exported.Header
+	exported.ClientMessage
+	GetHeight() exported.Height
 }
 
 // SyncHeaders manages the latest finalized headers on both `src` and `dst` chains

@@ -2,17 +2,13 @@ package core
 
 import (
 	"strings"
-	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	transfertypes "github.com/cosmos/ibc-go/v4/modules/apps/transfer/types"
-	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
-	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/light"
+	transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	commitmenttypes "github.com/cosmos/ibc-go/v7/modules/core/23-commitment/types"
 )
 
 var (
@@ -74,45 +70,6 @@ func (pe *PathEnd) UpdateClients(dstHeaders []Header, signer sdk.AccAddress) []s
 		msgs = append(msgs, pe.UpdateClient(header, signer))
 	}
 	return msgs
-}
-
-// CreateClient creates an sdk.Msg to update the client on src with consensus state from dst
-func (pe *PathEnd) CreateClient(
-	dstHeader *tmclient.Header,
-	trustingPeriod, unbondingPeriod time.Duration,
-	consensusParams *abci.ConsensusParams,
-	signer sdk.AccAddress) sdk.Msg {
-	if err := dstHeader.ValidateBasic(); err != nil {
-		panic(err)
-	}
-
-	// Blank Client State
-	clientState := tmclient.NewClientState(
-		dstHeader.GetHeader().GetChainID(),
-		tmclient.NewFractionFromTm(light.DefaultTrustLevel),
-		trustingPeriod,
-		unbondingPeriod,
-		time.Minute*10,
-		dstHeader.GetHeight().(clienttypes.Height),
-		commitmenttypes.GetSDKSpecs(),
-		[]string{"upgrade", "upgradedIBCState"},
-		false,
-		false,
-	)
-
-	msg, err := clienttypes.NewMsgCreateClient(
-		clientState,
-		dstHeader.ConsensusState(),
-		signer.String(),
-	)
-
-	if err != nil {
-		panic(err)
-	}
-	if err = msg.ValidateBasic(); err != nil {
-		panic(err)
-	}
-	return msg
 }
 
 // ConnInit creates a MsgConnectionOpenInit
@@ -274,7 +231,7 @@ func (pe *PathEnd) ChanCloseConfirm(dstChanState *chantypes.QueryChannelResponse
 
 // MsgTransfer creates a new transfer message
 func (pe *PathEnd) MsgTransfer(dst *PathEnd, amount sdk.Coin, dstAddr string,
-	signer sdk.AccAddress, timeoutHeight, timeoutTimestamp uint64) sdk.Msg {
+	signer sdk.AccAddress, timeoutHeight, timeoutTimestamp uint64, memo string) sdk.Msg {
 
 	version := clienttypes.ParseChainID(dst.ChainID)
 	return transfertypes.NewMsgTransfer(
@@ -285,6 +242,7 @@ func (pe *PathEnd) MsgTransfer(dst *PathEnd, amount sdk.Coin, dstAddr string,
 		dstAddr,
 		clienttypes.NewHeight(version, timeoutHeight),
 		timeoutTimestamp,
+		memo,
 	)
 }
 
@@ -302,14 +260,4 @@ func (pe *PathEnd) NewPacket(dst *PathEnd, sequence uint64, packetData []byte,
 		clienttypes.NewHeight(version, timeoutHeight),
 		timeoutStamp,
 	)
-}
-
-// XferPacket creates a new transfer packet
-func (pe *PathEnd) XferPacket(amount sdk.Coin, sender, receiver string) []byte {
-	return transfertypes.NewFungibleTokenPacketData(
-		amount.Denom,
-		amount.Amount.String(),
-		sender,
-		receiver,
-	).GetBytes()
 }

@@ -7,10 +7,10 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
-	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 
 	mocktypes "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
@@ -67,7 +67,7 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 		return nil, err
 	}
 	return &mocktypes.Header{
-		Height: &clienttypes.Height{
+		Height: clienttypes.Height{
 			RevisionNumber: chainLatestHeight.GetRevisionNumber(),
 			RevisionHeight: chainLatestHeight.GetRevisionHeight(),
 		},

@@ -3,18 +3,16 @@ package tendermint
 import (
 	"time"
 
+	"github.com/cometbft/cometbft/light"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
-	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/light"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	commitmenttypes "github.com/cosmos/ibc-go/v7/modules/core/23-commitment/types"
+	tmclient "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
 )
 
 func createClient(
 	dstHeader *tmclient.Header,
 	trustingPeriod, unbondingPeriod time.Duration,
-	consensusParams *abci.ConsensusParams,
 	signer sdk.AccAddress) *clienttypes.MsgCreateClient {
 	if err := dstHeader.ValidateBasic(); err != nil {
 		panic(err)
@@ -30,8 +28,6 @@ func createClient(
 		dstHeader.GetHeight().(clienttypes.Height),
 		commitmenttypes.GetSDKSpecs(),
 		[]string{"upgrade", "upgradedIBCState"},
-		false,
-		false,
 	)
 
 	msg, err := clienttypes.NewMsgCreateClient(

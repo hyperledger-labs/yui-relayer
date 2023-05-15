@@ -9,6 +9,10 @@ import (
 	"time"
 
 	"github.com/avast/retry-go"
+	"github.com/cometbft/cometbft/libs/log"
+	rpcclient "github.com/cometbft/cometbft/rpc/client"
+	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
+	libclient "github.com/cometbft/cometbft/rpc/jsonrpc/client"
 	sdkCtx "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
@@ -21,12 +25,8 @@ import (
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/go-bip39"
-	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
-	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
-	"github.com/tendermint/tendermint/libs/log"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
-	libclient "github.com/tendermint/tendermint/rpc/jsonrpc/client"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
@@ -51,7 +51,6 @@ type Chain struct {
 	codec            codec.ProtoCodecMarshaler `yaml:"-" json:"-"`
 	msgEventListener core.MsgEventListener
 
-	address sdk.AccAddress
 	logger  log.Logger
 	timeout time.Duration
 	debug   bool
@@ -80,10 +79,8 @@ func (c *Chain) Codec() codec.ProtoCodecMarshaler {
 
 // GetAddress returns the sdk.AccAddress associated with the configred key
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
+	// TODO: why?
 	defer c.UseSDKContext()()
-	if c.address != nil {
-		return c.address, nil
-	}
 
 	// Signing key for c chain
 	srcAddr, err := c.Keybase.Key(c.config.Key)
@@ -91,7 +88,7 @@ func (c *Chain) GetAddress() (sdk.AccAddress, error) {
 		return nil, err
 	}
 
-	return srcAddr.GetAddress(), nil
+	return srcAddr.GetAddress()
 }
 
 // SetRelayInfo sets source's path and counterparty's info to the chain
@@ -113,7 +110,7 @@ func (c *Chain) Path() *core.PathEnd {
 }
 
 func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
-	keybase, err := keys.New(c.config.ChainId, "test", keysDir(homePath, c.config.ChainId), nil)
+	keybase, err := keys.New(c.config.ChainId, "test", keysDir(homePath, c.config.ChainId), nil, codec)
 	if err != nil {
 		return err
 	}
@@ -196,7 +193,7 @@ func (c *Chain) rawSendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
 	txf = txf.WithGas(adjusted)
 
 	// Build the transaction builder
-	txb, err := tx.BuildUnsignedTx(txf, msgs...)
+	txb, err := txf.BuildUnsignedTx(msgs...)
 	if err != nil {
 		return nil, false, err
 	}
@@ -267,7 +264,7 @@ type protoTxProvider interface {
 // the encoded transaction or an error if the unsigned transaction cannot be
 // built.
 func BuildSimTx(txf tx.Factory, msgs ...sdk.Msg) ([]byte, error) {
-	txb, err := tx.BuildUnsignedTx(txf, msgs...)
+	txb, err := txf.BuildUnsignedTx(msgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -352,7 +349,7 @@ func (c *Chain) KeyExists(name string) bool {
 		return false
 	}
 
-	return k.GetName() == name
+	return k.Name == name
 }
 
 // MustGetAddress used for brevity
@@ -389,14 +386,14 @@ func (c *Chain) UseSDKContext() func() {
 func (c *Chain) CLIContext(height int64) sdkCtx.Context {
 	return sdkCtx.Context{}.
 		WithChainID(c.config.ChainId).
-		WithJSONCodec(newContextualStdCodec(c.codec, c.UseSDKContext)).
+		WithCodec(newContextualStdCodec(c.codec, c.UseSDKContext)).
 		WithInterfaceRegistry(c.codec.InterfaceRegistry()).
 		WithTxConfig(authtx.NewTxConfig(c.codec, authtx.DefaultSignModes)).
 		WithInput(os.Stdin).
 		WithNodeURI(c.config.RpcAddr).
 		WithClient(c.Client).
 		WithAccountRetriever(authTypes.AccountRetriever{}).
-		WithBroadcastMode(flags.BroadcastBlock).
+		WithBroadcastMode(flags.BroadcastSync).
 		WithKeyring(c.Keybase).
 		WithOutputFormat("json").
 		WithFrom(c.config.Key).

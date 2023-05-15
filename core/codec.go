@@ -11,10 +11,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/capability"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
-	distrclient "github.com/cosmos/cosmos-sdk/x/distribution/client"
 	"github.com/cosmos/cosmos-sdk/x/evidence"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	"github.com/cosmos/cosmos-sdk/x/gov"
+	govclient "github.com/cosmos/cosmos-sdk/x/gov/client"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
@@ -22,8 +22,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
-	transfer "github.com/cosmos/ibc-go/v4/modules/apps/transfer"
-	ibc "github.com/cosmos/ibc-go/v4/modules/core"
+	transfer "github.com/cosmos/ibc-go/v7/modules/apps/transfer"
+	ibc "github.com/cosmos/ibc-go/v7/modules/core"
 )
 
 var moduleBasics = module.NewBasicManager(
@@ -35,7 +35,11 @@ var moduleBasics = module.NewBasicManager(
 	mint.AppModuleBasic{},
 	distr.AppModuleBasic{},
 	gov.NewAppModuleBasic(
-		paramsclient.ProposalHandler, distrclient.ProposalHandler, upgradeclient.ProposalHandler, upgradeclient.CancelProposalHandler,
+		[]govclient.ProposalHandler{
+			paramsclient.ProposalHandler,
+			upgradeclient.LegacyProposalHandler,
+			upgradeclient.LegacyCancelProposalHandler,
+		},
 	),
 	params.AppModuleBasic{},
 	crisis.AppModuleBasic{},

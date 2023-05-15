@@ -8,26 +8,25 @@ import (
 	"strings"
 	"time"
 
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	ctypes "github.com/cometbft/cometbft/rpc/core/types"
+	tmtypes "github.com/cometbft/cometbft/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	querytypes "github.com/cosmos/cosmos-sdk/types/query"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	transfertypes "github.com/cosmos/ibc-go/v4/modules/apps/transfer/types"
-	clientutils "github.com/cosmos/ibc-go/v4/modules/core/02-client/client/utils"
-	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
-	connutils "github.com/cosmos/ibc-go/v4/modules/core/03-connection/client/utils"
-	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
-	chanutils "github.com/cosmos/ibc-go/v4/modules/core/04-channel/client/utils"
-	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
-	committypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
-	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
+	transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	clientutils "github.com/cosmos/ibc-go/v7/modules/core/02-client/client/utils"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	connutils "github.com/cosmos/ibc-go/v7/modules/core/03-connection/client/utils"
+	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
+	chanutils "github.com/cosmos/ibc-go/v7/modules/core/04-channel/client/utils"
+	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	committypes "github.com/cosmos/ibc-go/v7/modules/core/23-commitment/types"
+	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/core"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // QueryClientState retrevies the latest consensus state for a client in state at a given height
@@ -369,16 +368,6 @@ func (c *Chain) QueryUnbondingPeriod() (time.Duration, error) {
 	}
 
 	return res.Params.UnbondingTime, nil
-}
-
-// QueryConsensusParams returns the consensus params
-func (c *Chain) QueryConsensusParams() (*abci.ConsensusParams, error) {
-	rg, err := c.Client.Genesis(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	return tmtypes.TM2PB.ConsensusParams(rg.Genesis.ConsensusParams), nil
 }
 
 const (
