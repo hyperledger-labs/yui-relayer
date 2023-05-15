@@ -169,11 +169,6 @@ var (
 		govtypes.ModuleName:            {authtypes.Burner},
 		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
 	}
-
-	// module accounts that are allowed to receive tokens
-	allowedReceivingModAcc = map[string]bool{
-		distrtypes.ModuleName: true,
-	}
 )
 
 var (
@@ -634,14 +629,6 @@ func NewSimApp(
 	return app
 }
 
-// MakeCodecs constructs the *std.Codec and *codec.LegacyAmino instances used by
-// simapp. It is useful for tests and clients who do not want to construct the
-// full simapp
-func MakeCodecs() (codec.Codec, *codec.LegacyAmino) {
-	config := MakeTestEncodingConfig()
-	return config.Marshaler, config.Amino
-}
-
 // Name returns the name of the App
 func (app *SimApp) Name() string { return app.BaseApp.Name() }
 
@@ -680,17 +667,6 @@ func (app *SimApp) ModuleAccountAddrs() map[string]bool {
 	}
 
 	return modAccAddrs
-}
-
-// BlockedAddrs returns all the app's module account addresses that are not
-// allowed to receive external tokens.
-func (app *SimApp) BlockedAddrs() map[string]bool {
-	blockedAddrs := make(map[string]bool)
-	for acc := range maccPerms {
-		blockedAddrs[authtypes.NewModuleAddress(acc).String()] = !allowedReceivingModAcc[acc]
-	}
-
-	return blockedAddrs
 }
 
 // LegacyAmino returns SimApp's amino codec.
