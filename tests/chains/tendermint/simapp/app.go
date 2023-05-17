@@ -110,6 +110,7 @@ import (
 	ibctransferkeeper "github.com/cosmos/ibc-go/v7/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
 	ibc "github.com/cosmos/ibc-go/v7/modules/core"
+	ibctypes "github.com/cosmos/ibc-go/v7/modules/core/types"
 	ibcclient "github.com/cosmos/ibc-go/v7/modules/core/02-client"
 	ibcclientclient "github.com/cosmos/ibc-go/v7/modules/core/02-client/client"
 	ibcclienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
@@ -124,6 +125,9 @@ import (
 	v6 "github.com/cosmos/ibc-go/v7/testing/simapp/upgrades/v6"
 	v7 "github.com/cosmos/ibc-go/v7/testing/simapp/upgrades/v7"
 	ibctestingtypes "github.com/cosmos/ibc-go/v7/testing/types"
+
+	mockclient "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock"
+	mockclienttypes "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock/types"
 )
 
 const appName = "SimApp"
@@ -174,6 +178,7 @@ var (
 		vesting.AppModuleBasic{},
 		ibcfee.AppModuleBasic{},
 		consensus.AppModuleBasic{},
+		mockclient.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -376,6 +381,8 @@ func NewSimApp(
 	app.IBCKeeper = ibckeeper.NewKeeper(
 		appCodec, keys[ibcexported.StoreKey], app.GetSubspace(ibcexported.ModuleName), app.StakingKeeper, app.UpgradeKeeper, scopedIBCKeeper,
 	)
+	// this is a workaround in case the counterparty chain uses mock-client
+	app.IBCKeeper = overrideIBCClientKeeper(*app.IBCKeeper, appCodec, keys[ibcexported.StoreKey], app.GetSubspace(ibcexported.ModuleName))
 
 	// register the proposal types
 	govRouter := govv1beta1.NewRouter()
@@ -711,6 +718,9 @@ func (app *SimApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.
 	if err := json.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
 		panic(err)
 	}
+	ibcGenesisState := ibctypes.DefaultGenesisState()
+	ibcGenesisState.ClientGenesis.Params.AllowedClients = append(ibcGenesisState.ClientGenesis.Params.AllowedClients, mockclienttypes.Mock)
+	genesisState[ibc.AppModule{}.Name()] = app.appCodec.MustMarshalJSON(ibcGenesisState)
 	app.UpgradeKeeper.SetModuleVersionMap(ctx, app.mm.GetVersionMap())
 	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 }
