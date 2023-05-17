@@ -10,5 +10,5 @@ docker-images:
 		--build-arg CHAINID=ibc0 \
 		--tag $(DOCKER_REPO)tendermint-chain0:$(DOCKER_TAG) .
 	$(DOCKER_BUILD) \
-    	--build-arg CHAINID=ibc1 \
-    	--tag $(DOCKER_REPO)tendermint-chain1:$(DOCKER_TAG) .
+	--build-arg CHAINID=ibc1 \
+	--tag $(DOCKER_REPO)tendermint-chain1:$(DOCKER_TAG) .
