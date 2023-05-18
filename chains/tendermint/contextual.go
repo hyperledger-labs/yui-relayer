@@ -3,6 +3,7 @@ package tendermint
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/gogoproto/proto"
+	"google.golang.org/grpc/encoding"
 )
 
 type contextualStdCodec struct {
@@ -11,9 +12,10 @@ type contextualStdCodec struct {
 }
 
 var _ codec.Codec = &contextualStdCodec{}
+var _ codec.GRPCCodecProvider = &contextualStdCodec{}
 
 // newContextualCodec creates a codec that sets and resets context
-func newContextualStdCodec(cdc codec.Codec, useContext func() func()) *contextualStdCodec {
+func newContextualStdCodec(cdc codec.ProtoCodecMarshaler, useContext func() func()) *contextualStdCodec {
 	return &contextualStdCodec{
 		Codec:      cdc,
 		useContext: useContext,
@@ -79,4 +81,8 @@ func (cdc *contextualStdCodec) MustUnmarshal(bz []byte, ptr codec.ProtoMarshaler
 	}
 
 	return
+}
+
+func (cdc *contextualStdCodec) GRPCCodec() encoding.Codec {
+	return cdc.Codec.(codec.GRPCCodecProvider).GRPCCodec()
 }
