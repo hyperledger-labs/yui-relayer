@@ -63,7 +63,11 @@ func keysAddCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			ko := keyOutput{Mnemonic: mnemonic, Address: info.GetAddress().String()}
+			addr, err := info.GetAddress()
+			if err != nil {
+				return err
+			}
+			ko := keyOutput{Mnemonic: mnemonic, Address: addr.String()}
 
 			out, err := json.Marshal(&ko)
 			if err != nil {
@@ -108,7 +112,11 @@ func keysRestoreCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			defer chain.UseSDKContext()()
-			fmt.Println(info.GetAddress().String())
+			addr, err := info.GetAddress()
+			if err != nil {
+				return err
+			}
+			fmt.Println(addr.String())
 			return nil
 		},
 	}
@@ -146,7 +154,11 @@ func keysShowCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			fmt.Println(info.GetAddress().String())
+			addr, err := info.GetAddress()
+			if err != nil {
+				return err
+			}
+			fmt.Println(addr.String())
 			return nil
 		},
 	}
@@ -173,7 +185,11 @@ func keysListCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			for d, i := range info {
-				fmt.Printf("key(%d): %s -> %s\n", d, i.GetName(), i.GetAddress().String())
+				addr, err := i.GetAddress()
+				if err != nil {
+					return err
+				}
+				fmt.Printf("key(%d): %s -> %s\n", d, i.Name, addr.String())
 			}
 
 			return nil

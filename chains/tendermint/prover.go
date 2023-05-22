@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cometbft/cometbft/light"
+	tmtypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
-	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
-	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
-	"github.com/tendermint/tendermint/light"
-	tmtypes "github.com/tendermint/tendermint/types"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
+	tmclient "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
@@ -82,15 +82,10 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, 
 	if err != nil {
 		return nil, err
 	}
-	consensusParams, err := pr.chain.QueryConsensusParams()
-	if err != nil {
-		return nil, err
-	}
 	return createClient(
 		dstHeader.(*tmclient.Header),
 		pr.getTrustingPeriod(),
 		ubdPeriod,
-		consensusParams,
 		signer,
 	), nil
 }

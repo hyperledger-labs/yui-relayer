@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/gogo/protobuf/proto"
+	"github.com/cosmos/gogoproto/proto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
@@ -22,8 +22,9 @@ func MarshalJSONAny(m codec.JSONCodec, msg proto.Message) ([]byte, error) {
 // the provided AnyUnpacker or returning an error
 //
 // Ex:
-//		var x MyInterface
-//		err := UnmarshalJSONAny(unpacker, &x, bz)
+//
+//	var x MyInterface
+//	err := UnmarshalJSONAny(unpacker, &x, bz)
 func UnmarshalJSONAny(m codec.Codec, iface interface{}, bz []byte) error {
 	any := &types.Any{}
 

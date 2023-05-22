@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/gogo/protobuf/proto"
+	"github.com/cosmos/gogoproto/proto"
 	"github.com/hyperledger-labs/yui-relayer/utils"
 )
 

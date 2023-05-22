@@ -10,14 +10,14 @@ import (
 	"path/filepath"
 
 	"github.com/avast/retry-go"
-	tmclient "github.com/cosmos/ibc-go/v4/modules/light-clients/07-tendermint/types"
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/light"
-	lightp "github.com/tendermint/tendermint/light/provider"
-	lighthttp "github.com/tendermint/tendermint/light/provider/http"
-	dbs "github.com/tendermint/tendermint/light/store/db"
-	tmtypes "github.com/tendermint/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/cometbft/cometbft-db"
+	"github.com/cometbft/cometbft/libs/log"
+	"github.com/cometbft/cometbft/light"
+	lightp "github.com/cometbft/cometbft/light/provider"
+	lighthttp "github.com/cometbft/cometbft/light/provider/http"
+	dbs "github.com/cometbft/cometbft/light/store/db"
+	tmtypes "github.com/cometbft/cometbft/types"
+	tmclient "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
 )
 
 // NOTE: currently we are discarding the very noisy light client logs

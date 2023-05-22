@@ -6,7 +6,7 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
-	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
+	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 )
 
 // CreateChannel runs the channel creation messages on timeout until they pass
