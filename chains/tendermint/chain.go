@@ -386,7 +386,7 @@ func (c *Chain) UseSDKContext() func() {
 func (c *Chain) CLIContext(height int64) sdkCtx.Context {
 	return sdkCtx.Context{}.
 		WithChainID(c.config.ChainId).
-		WithCodec(newContextualStdCodec(c.codec, c.UseSDKContext)).
+		WithCodec(c.codec).
 		WithInterfaceRegistry(c.codec.InterfaceRegistry()).
 		WithTxConfig(authtx.NewTxConfig(c.codec, authtx.DefaultSignModes)).
 		WithInput(os.Stdin).
