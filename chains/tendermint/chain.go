@@ -79,7 +79,6 @@ func (c *Chain) Codec() codec.ProtoCodecMarshaler {
 
 // GetAddress returns the sdk.AccAddress associated with the configred key
 func (c *Chain) GetAddress() (sdk.AccAddress, error) {
-	// TODO: why?
 	defer c.UseSDKContext()()
 
 	// Signing key for c chain
