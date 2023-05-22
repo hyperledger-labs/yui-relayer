@@ -364,7 +364,7 @@ var sdkContextMutex sync.Mutex
 
 // UseSDKContext uses a custom Bech32 account prefix and returns a restore func
 // CONTRACT: When using this function, caller must ensure that lock contention
-// doesn't cause program to hang. This function is only for use in codec calls
+// doesn't cause program to hang.
 func (c *Chain) UseSDKContext() func() {
 	// Ensure we're the only one using the global context,
 	// lock context to begin function
