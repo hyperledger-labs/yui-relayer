@@ -1,6 +1,6 @@
 module github.com/hyperledger-labs/yui-relayer
 
-go 1.19
+go 1.20
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
@@ -10,7 +10,7 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/gogoproto v1.4.8
 	github.com/cosmos/ibc-go/v7 v7.0.0
-	github.com/datachainlab/ibc-mock-client v0.3.0
+	github.com/datachainlab/ibc-mock-client v0.3.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
 	golang.org/x/sync v0.1.0

@@ -348,8 +348,8 @@ github.com/cucumber/common/gherkin/go/v22 v22.0.0 h1:4K8NqptbvdOrjL9DEea6HFjSpbd
 github.com/cucumber/common/messages/go/v17 v17.1.1 h1:RNqopvIFyLWnKv0LfATh34SWBhXeoFTJnSrgm9cT/Ts=
 github.com/danieljoos/wincred v1.1.2 h1:QLdCxFs1/Yl4zduvBdcHB8goaYk9RARS2SgLLRuAyr0=
 github.com/danieljoos/wincred v1.1.2/go.mod h1:GijpziifJoIBfYh+S7BbkdUTU4LfM+QnGqR5Vl2tAx0=
-github.com/datachainlab/ibc-mock-client v0.3.0 h1:kFKFQBXloRZhxrfmNGRit2j4ubH/ps1SdzNmBH0lcgM=
-github.com/datachainlab/ibc-mock-client v0.3.0/go.mod h1:c47JZ3z/KObN5GeYkxm0AK5JmhM74z6xteY52zg13Zg=
+github.com/datachainlab/ibc-mock-client v0.3.1 h1:QZIeS2dL4rh0qYOpkNBphAwPw3maY5c/d8uP66spc8U=
+github.com/datachainlab/ibc-mock-client v0.3.1/go.mod h1:h2aRz/ovznSK7+Jgyo1fwnDRCxcNPtnz7Pz851XCd6s=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
