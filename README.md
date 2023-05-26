@@ -23,7 +23,8 @@ In addition, "Y" corresponds to the specific major version of ibc-go (i.e., "X")
 
 | Relayer                                                                       | ibc-go       |
 |-------------------------------------------------------------------------------|--------------|
-| v0.3.0(current branch)                                                        | v4.0.0       |
+| v0.4.0(current branch)                                                        | v7.0.0       |
+| [v0.3.0](https://github.com/hyperledger-labs/yui-relayer/releases/tag/v0.3.0) | v4.0.0       |
 | [v0.2.0](https://github.com/hyperledger-labs/yui-relayer/releases/tag/v0.2.0) | v1.0.0-beta1 |
 
 ## Glossary
