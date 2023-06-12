@@ -103,7 +103,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 
 	eg.Go(func() error {
 		// Query all packets sent by src that have been received by dst
-		src, err := dst.QueryUnrecievedPackets(dstCtx, srcPacketSeq)
+		src, err := dst.QueryUnreceivedPackets(dstCtx, srcPacketSeq)
 		if err != nil {
 			return err
 		} else if src != nil {
@@ -114,7 +114,7 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 
 	eg.Go(func() error {
 		// Query all packets sent by dst that have been received by src
-		dst, err := src.QueryUnrecievedPackets(srcCtx, dstPacketSeq)
+		dst, err := src.QueryUnreceivedPackets(srcCtx, dstPacketSeq)
 		if err != nil {
 			return err
 		} else if dst != nil {
@@ -268,7 +268,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 
 	eg.Go(func() error {
 		// Query all packets sent by src that have been received by dst
-		src, err := dst.QueryUnrecievedAcknowledgements(dstCtx, srcPacketSeq)
+		src, err := dst.QueryUnreceivedAcknowledgements(dstCtx, srcPacketSeq)
 		// return err
 		if err != nil {
 			return err
@@ -280,7 +280,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 
 	eg.Go(func() error {
 		// Query all packets sent by dst that have been received by src
-		dst, err := src.QueryUnrecievedAcknowledgements(srcCtx, dstPacketSeq)
+		dst, err := src.QueryUnreceivedAcknowledgements(srcCtx, dstPacketSeq)
 		if err != nil {
 			return err
 		} else if dst != nil {

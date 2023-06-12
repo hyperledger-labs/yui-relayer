@@ -144,14 +144,14 @@ type ICS04Querier interface {
 	// QueryPacketCommitments returns an array of packet commitments
 	QueryPacketCommitments(ctx QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error)
 
-	// QueryUnrecievedPackets returns a list of unrelayed packet commitments
-	QueryUnrecievedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
+	// QueryUnreceivedPackets returns a list of unrelayed packet commitments
+	QueryUnreceivedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
 	// QueryPacketAcknowledgementCommitments returns an array of packet acks
 	QueryPacketAcknowledgementCommitments(ctx QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
 
-	// QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
-	QueryUnrecievedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error)
+	// QueryUnreceivedAcknowledgements returns a list of unrelayed packet acks
+	QueryUnreceivedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
 	// QueryPacket returns the packet corresponding to a sequence
 	QueryPacket(ctx QueryContext, sequence uint64) (*chantypes.Packet, error)
@@ -190,7 +190,7 @@ func NewQueryContext(ctx context.Context, height ibcexported.Height) QueryContex
 	return queryContext{ctx: ctx, height: height}
 }
 
-// Context returns `context.Context``
+// Context returns `context.Context`
 func (qc queryContext) Context() context.Context {
 	return qc.ctx
 }
