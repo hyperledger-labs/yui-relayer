@@ -182,7 +182,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			sp, err := st.UnrelayedSequences(c[src], c[dst], sh)
+			sp, err := st.UnrelayedPackets(c[src], c[dst], sh)
 			if err != nil {
 				return err
 			}

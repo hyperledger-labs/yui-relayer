@@ -147,17 +147,17 @@ type ICS04Querier interface {
 	// QueryUnreceivedPackets returns a list of unrelayed packet commitments
 	QueryUnreceivedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
+	// QueryUnfinalizedRelayedPackets returns packets that are sent but not received in the latest finalized block, with their heights
+	QueryUnfinalizedRelayPackets(ctx QueryContext, counterparty *ProvableChain) (PacketInfoList, error)
+
 	// QueryPacketAcknowledgementCommitments returns an array of packet acks
 	QueryPacketAcknowledgementCommitments(ctx QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
 
 	// QueryUnreceivedAcknowledgements returns a list of unrelayed packet acks
 	QueryUnreceivedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
-	// QueryPacket returns the packet corresponding to a sequence
-	QueryPacket(ctx QueryContext, sequence uint64) (*chantypes.Packet, error)
-
-	// QueryPacketAcknowledgement returns the acknowledgement corresponding to a sequence
-	QueryPacketAcknowledgement(ctx QueryContext, sequence uint64) ([]byte, error)
+	// QueryUnfinalizedRelayedAcknowledgements returns acks that are sent but not received in the latest finalized block, with their heights
+	QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty *ProvableChain) (PacketInfoList, error)
 }
 
 // ICS20Querier is an interface to the state of ICS-20

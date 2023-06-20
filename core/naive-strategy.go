@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	retry "github.com/avast/retry-go"
@@ -39,62 +38,44 @@ func (st NaiveStrategy) SetupRelay(ctx context.Context, src, dst *ProvableChain)
 	return nil
 }
 
-func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeaders) (*RelaySequences, error) {
+func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders) (*RelayPackets, error) {
 	var (
-		eg           = new(errgroup.Group)
-		srcPacketSeq = []uint64{}
-		dstPacketSeq = []uint64{}
-		err          error
-		rs           = &RelaySequences{Src: []uint64{}, Dst: []uint64{}}
+		eg         = new(errgroup.Group)
+		srcPackets PacketInfoList
+		dstPackets PacketInfoList
 	)
+
 	srcCtx := sh.GetQueryContext(src.ChainID())
 	dstCtx := sh.GetQueryContext(dst.ChainID())
 
+	var srcLatestCtx, dstLatestCtx QueryContext
+	if srcHeight, err := src.LatestHeight(); err != nil {
+		return nil, err
+	} else if dstHeight, err := dst.LatestHeight(); err != nil {
+		return nil, err
+	} else {
+		srcLatestCtx = NewQueryContext(context.TODO(), srcHeight)
+		dstLatestCtx = NewQueryContext(context.TODO(), dstHeight)
+	}
+
 	eg.Go(func() error {
-		var res *chantypes.QueryPacketCommitmentsResponse
-		if err = retry.Do(func() error {
-			// Query the packet commitment
-			res, err = src.QueryPacketCommitments(srcCtx, 0, 1000)
-			switch {
-			case err != nil:
-				return err
-			case res == nil:
-				return fmt.Errorf("no error on QueryPacketCommitments for %s, however response is nil", src.ChainID())
-			default:
-				return nil
-			}
-		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Printf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", src.ChainID(), srcCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
-		})); err != nil {
+		return retry.Do(func() error {
+			var err error
+			srcPackets, err = src.QueryUnfinalizedRelayPackets(srcCtx, dst)
 			return err
-		}
-		for _, pc := range res.Commitments {
-			srcPacketSeq = append(srcPacketSeq, pc.Sequence)
-		}
-		return nil
+		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+			log.Printf("- [%s]@{%d} - try(%d/%d) query unfinalized packets: %s", src.ChainID(), srcCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
+		}))
 	})
 
 	eg.Go(func() error {
-		var res *chantypes.QueryPacketCommitmentsResponse
-		if err = retry.Do(func() error {
-			res, err = dst.QueryPacketCommitments(dstCtx, 0, 1000)
-			switch {
-			case err != nil:
-				return err
-			case res == nil:
-				return fmt.Errorf("no error on QueryPacketCommitments for %s, however response is nil", dst.ChainID())
-			default:
-				return nil
-			}
-		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Printf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s", dst.ChainID(), dstCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
-		})); err != nil {
+		return retry.Do(func() error {
+			var err error
+			dstPackets, err = dst.QueryUnfinalizedRelayPackets(dstCtx, src)
 			return err
-		}
-		for _, pc := range res.Commitments {
-			dstPacketSeq = append(dstPacketSeq, pc.Sequence)
-		}
-		return nil
+		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+			log.Printf("- [%s]@{%d} - try(%d/%d) query unfinalized packets: %s", dst.ChainID(), dstCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
+		}))
 	})
 
 	if err := eg.Wait(); err != nil {
@@ -102,24 +83,20 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 	}
 
 	eg.Go(func() error {
-		// Query all packets sent by src that have been received by dst
-		src, err := dst.QueryUnreceivedPackets(dstCtx, srcPacketSeq)
+		seqs, err := dst.QueryUnreceivedPackets(dstLatestCtx, srcPackets.ExtractSequenceList())
 		if err != nil {
 			return err
-		} else if src != nil {
-			rs.Src = src
 		}
+		srcPackets = srcPackets.Filter(seqs)
 		return nil
 	})
 
 	eg.Go(func() error {
-		// Query all packets sent by dst that have been received by src
-		dst, err := src.QueryUnreceivedPackets(srcCtx, dstPacketSeq)
+		seqs, err := src.QueryUnreceivedPackets(srcLatestCtx, dstPackets.ExtractSequenceList())
 		if err != nil {
 			return err
-		} else if dst != nil {
-			rs.Dst = dst
 		}
+		dstPackets = dstPackets.Filter(seqs)
 		return nil
 	})
 
@@ -127,10 +104,13 @@ func (st NaiveStrategy) UnrelayedSequences(src, dst *ProvableChain, sh SyncHeade
 		return nil, err
 	}
 
-	return rs, nil
+	return &RelayPackets{
+		Src: srcPackets,
+		Dst: dstPackets,
+	}, nil
 }
 
-func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeaders) error {
+func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelayPackets, sh SyncHeaders) error {
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -201,65 +181,46 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelaySequences
 	return nil
 }
 
-func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders) (*RelaySequences, error) {
+func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders) (*RelayPackets, error) {
 	var (
-		eg           = new(errgroup.Group)
-		srcPacketSeq = []uint64{}
-		dstPacketSeq = []uint64{}
-		err          error
-		rs           = &RelaySequences{Src: []uint64{}, Dst: []uint64{}}
+		eg      = new(errgroup.Group)
+		srcAcks PacketInfoList
+		dstAcks PacketInfoList
 	)
 
 	srcCtx := sh.GetQueryContext(src.ChainID())
 	dstCtx := sh.GetQueryContext(dst.ChainID())
 
+	var srcCtxLatest, dstCtxLatest QueryContext
+	if srcHeight, err := src.LatestHeight(); err != nil {
+		return nil, err
+	} else if dstHeight, err := dst.LatestHeight(); err != nil {
+		return nil, err
+	} else {
+		srcCtxLatest = NewQueryContext(context.TODO(), srcHeight)
+		dstCtxLatest = NewQueryContext(context.TODO(), dstHeight)
+	}
+
 	eg.Go(func() error {
-		var res *chantypes.QueryPacketAcknowledgementsResponse
-		if err = retry.Do(func() error {
-			// Query the packet commitment
-			res, err = src.QueryPacketAcknowledgementCommitments(srcCtx, 0, 1000)
-			switch {
-			case err != nil:
-				return err
-			case res == nil:
-				return fmt.Errorf("no error on QueryPacketUnrelayedAcknowledgements for %s, however response is nil", src.ChainID())
-			default:
-				return nil
-			}
+		return retry.Do(func() error {
+			var err error
+			srcAcks, err = src.QueryUnfinalizedRelayAcknowledgements(srcCtx, dst)
+			return err
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			log.Printf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), srcCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
 			sh.Updates(src, dst)
-		})); err != nil {
-			return err
-		}
-		for _, pc := range res.Acknowledgements {
-			srcPacketSeq = append(srcPacketSeq, pc.Sequence)
-		}
-		return nil
+		}))
 	})
 
 	eg.Go(func() error {
-		var res *chantypes.QueryPacketAcknowledgementsResponse
-		if err = retry.Do(func() error {
-			res, err = dst.QueryPacketAcknowledgementCommitments(dstCtx, 0, 1000)
-			switch {
-			case err != nil:
-				return err
-			case res == nil:
-				return fmt.Errorf("no error on QueryPacketUnrelayedAcknowledgements for %s, however response is nil", dst.ChainID())
-			default:
-				return nil
-			}
+		return retry.Do(func() error {
+			var err error
+			dstAcks, err = dst.QueryUnfinalizedRelayAcknowledgements(dstCtx, src)
+			return err
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			log.Printf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), dstCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
 			sh.Updates(src, dst)
-		})); err != nil {
-			return err
-		}
-		for _, pc := range res.Acknowledgements {
-			dstPacketSeq = append(dstPacketSeq, pc.Sequence)
-		}
-		return nil
+		}))
 	})
 
 	if err := eg.Wait(); err != nil {
@@ -267,25 +228,20 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 	}
 
 	eg.Go(func() error {
-		// Query all packets sent by src that have been received by dst
-		src, err := dst.QueryUnreceivedAcknowledgements(dstCtx, srcPacketSeq)
-		// return err
+		seqs, err := dst.QueryUnreceivedAcknowledgements(dstCtxLatest, srcAcks.ExtractSequenceList())
 		if err != nil {
 			return err
-		} else if src != nil {
-			rs.Src = src
 		}
+		srcAcks = srcAcks.Filter(seqs)
 		return nil
 	})
 
 	eg.Go(func() error {
-		// Query all packets sent by dst that have been received by src
-		dst, err := src.QueryUnreceivedAcknowledgements(srcCtx, dstPacketSeq)
+		seqs, err := src.QueryUnreceivedAcknowledgements(srcCtxLatest, dstAcks.ExtractSequenceList())
 		if err != nil {
 			return err
-		} else if dst != nil {
-			rs.Dst = dst
 		}
+		dstAcks = dstAcks.Filter(seqs)
 		return nil
 	})
 
@@ -293,24 +249,22 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 		return nil, err
 	}
 
-	return rs, nil
+	return &RelayPackets{
+		Src: srcAcks,
+		Dst: dstAcks,
+	}, nil
 }
 
 // TODO add packet-timeout support
-func collectPackets(ctx QueryContext, chain *ProvableChain, seqs []uint64, signer sdk.AccAddress) ([]sdk.Msg, error) {
+func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
-	for _, seq := range seqs {
-		p, err := chain.QueryPacket(ctx, seq)
+	for _, p := range packets {
+		res, err := chain.QueryPacketCommitmentWithProof(ctx, p.Sequence)
 		if err != nil {
-			log.Println("failed to QueryPacket:", ctx.Height(), seq, err)
+			log.Println("failed to QueryPacketCommitment:", ctx.Height(), p.Sequence, err)
 			return nil, err
 		}
-		res, err := chain.QueryPacketCommitmentWithProof(ctx, seq)
-		if err != nil {
-			log.Println("failed to QueryPacketCommitment:", ctx.Height(), seq, err)
-			return nil, err
-		}
-		msg := chantypes.NewMsgRecvPacket(*p, res.Proof, res.ProofHeight, signer.String())
+		msg := chantypes.NewMsgRecvPacket(p.Packet, res.Proof, res.ProofHeight, signer.String())
 		msgs = append(msgs, msg)
 	}
 	return msgs, nil
@@ -321,7 +275,7 @@ func logPacketsRelayed(src, dst Chain, num int) {
 		num, dst.ChainID(), dst.Path().PortID, src.ChainID(), src.Path().PortID)
 }
 
-func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *RelaySequences, sh SyncHeaders) error {
+func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *RelayPackets, sh SyncHeaders) error {
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -392,24 +346,16 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 	return nil
 }
 
-func collectAcks(senderCtx, receiverCtx QueryContext, senderChain, receiverChain *ProvableChain, seqs []uint64, signer sdk.AccAddress) ([]sdk.Msg, error) {
+func collectAcks(senderCtx, receiverCtx QueryContext, senderChain, receiverChain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
 
-	for _, seq := range seqs {
-		p, err := senderChain.QueryPacket(senderCtx, seq)
-		if err != nil {
-			return nil, err
-		}
-		ack, err := receiverChain.QueryPacketAcknowledgement(receiverCtx, seq)
-		if err != nil {
-			return nil, err
-		}
-		res, err := receiverChain.QueryPacketAcknowledgementCommitmentWithProof(receiverCtx, seq)
+	for _, p := range packets {
+		res, err := receiverChain.QueryPacketAcknowledgementCommitmentWithProof(receiverCtx, p.Sequence)
 		if err != nil {
 			return nil, err
 		}
 
-		msg := chantypes.NewMsgAcknowledgement(*p, ack, res.Proof, res.ProofHeight, signer.String())
+		msg := chantypes.NewMsgAcknowledgement(p.Packet, p.Acknowledgement, res.Proof, res.ProofHeight, signer.String())
 		msgs = append(msgs, msg)
 	}
 
