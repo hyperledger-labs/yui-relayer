@@ -272,7 +272,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 			res, err = src.QueryPacketAcknowledgementCommitments(srcCtx, 0, 1000)
 			switch {
 			case err != nil:
-				logger.Error(fmt.Sprintf("- [%s]@{%d} - error querying packet commitments",
+				logger.Error(fmt.Sprintf("- [%s]@{%d} - error querying packet acknowledgements",
 					src.ChainID(), srcCtx.Height().GetRevisionHeight()), zap.Error(err))
 				return err
 			case res == nil:
@@ -283,11 +283,11 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			logger.Info(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments: %s",
-				src.ChainID(), srcCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err))
+			logger.Info(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements",
+				src.ChainID(), srcCtx.Height().GetRevisionHeight(), n+1, rtyAttNum), zap.Error(err))
 			sh.Updates(src, dst)
 		})); err != nil {
-			logger.Error(fmt.Sprintf("- [%s]@{%d} - max retry exceeded querying packet commitments",
+			logger.Error(fmt.Sprintf("- [%s]@{%d} - max retry exceeded querying packet acknowledgements",
 				src.ChainID(), srcCtx.Height().GetRevisionHeight()), zap.Error(err))
 			return err
 		}
@@ -303,18 +303,18 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 			res, err = dst.QueryPacketAcknowledgementCommitments(dstCtx, 0, 1000)
 			switch {
 			case err != nil:
-				logger.Error(fmt.Sprintf("- [%s]@{%d} - error querying packet commitments",
+				logger.Error(fmt.Sprintf("- [%s]@{%d} - error querying packet acknowledgements",
 					dst.ChainID(), dstCtx.Height().GetRevisionHeight()), zap.Error(err))
 				return err
 			case res == nil:
-				logger.Error(fmt.Sprintf("- [%s]@{%d} - nil packet commitments",
+				logger.Error(fmt.Sprintf("- [%s]@{%d} - nil packet acknowledgements acknowledgements",
 					dst.ChainID(), dstCtx.Height().GetRevisionHeight()))
 				return fmt.Errorf("no error on QueryPacketUnrelayedAcknowledgements for %s, however response is nil", dst.ChainID())
 			default:
 				return nil
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			logger.Info(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet commitments",
+			logger.Info(fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements",
 				dst.ChainID(), dstCtx.Height().GetRevisionHeight(), n+1, rtyAttNum), zap.Error(err))
 			sh.Updates(src, dst)
 		})); err != nil {
