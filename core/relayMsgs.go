@@ -3,6 +3,8 @@ package core
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
+	"github.com/hyperledger-labs/yui-relayer/logger"
+	"go.uber.org/zap"
 )
 
 // RelayMsgs contains the msgs that need to be sent to both a src and dst chain
@@ -48,6 +50,8 @@ func (r *RelayMsgs) IsMaxTx(msgLen, txSize uint64) bool {
 // Send sends the messages with appropriate output
 // TODO: Parallelize? Maybe?
 func (r *RelayMsgs) Send(src, dst Chain) {
+	logger := logger.ZapLogger()
+	defer logger.Sync()
 	//nolint:prealloc // can not be pre allocated
 	var (
 		msgLen, txSize uint64
@@ -60,6 +64,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	for _, msg := range r.Src {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
+			logger.Error("failed to marshal msg", zap.Any("msg", msg), zap.Error(err))
 			panic(err)
 		}
 
@@ -89,6 +94,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	for _, msg := range r.Dst {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
+			logger.Error("failed to marshal msg", zap.Any("msg", msg), zap.Error(err))
 			panic(err)
 		}
 

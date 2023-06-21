@@ -10,6 +10,8 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
+	"github.com/hyperledger-labs/yui-relayer/logger"
+	"go.uber.org/zap"
 )
 
 var (
@@ -20,12 +22,18 @@ var (
 )
 
 func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
+	logger := logger.ZapLogger()
+	defer logger.Sync()
 	ticker := time.NewTicker(to)
 
 	failed := 0
 	for ; true; <-ticker.C {
 		connSteps, err := createConnectionStep(src, dst)
 		if err != nil {
+			logger.Error(fmt.Sprintf("failed to create connection step: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
+				src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
+				dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID),
+				zap.Error(err))
 			return err
 		}
 
@@ -39,9 +47,9 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case connSteps.Success() && connSteps.Last:
-			log.Printf("★ Connection created: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
+			logger.Info(fmt.Sprintf("★ Connection created: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
 				src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
-				dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID)
+				dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID))
 			return nil
 		// In the case of success, reset the failures counter
 		case connSteps.Success():
@@ -53,6 +61,9 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 			log.Println("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failed > 2 {
+				logger.Error(fmt.Sprintf("! Connection failed: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
+					src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
+					dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID))
 				return fmt.Errorf("! Connection failed: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
 					src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
 					dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID)
@@ -65,6 +76,8 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 }
 
 func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
+	logger := logger.ZapLogger()
+	defer logger.Sync()
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
@@ -188,6 +201,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		out.Last = true
 
 	default:
+		logger.Error(fmt.Sprintf("not implemented error: %v %v", srcConn.Connection.State, dstConn.Connection.State))
 		panic(fmt.Sprintf("not implemented error: %v %v", srcConn.Connection.State, dstConn.Connection.State))
 	}
 
@@ -206,7 +220,9 @@ func validatePaths(src, dst Chain) error {
 }
 
 func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnectionResponse) {
-	log.Printf("- [%s]@{%d}conn(%s)-{%s} : [%s]@{%d}conn(%s)-{%s}",
+	logger := logger.ZapLogger()
+	defer logger.Sync()
+	logger.Info(fmt.Sprintf("- [%s]@{%d}conn(%s)-{%s} : [%s]@{%d}conn(%s)-{%s}",
 		src.ChainID(),
 		mustGetHeight(srcConn.ProofHeight),
 		src.Path().ConnectionID,
@@ -215,13 +231,16 @@ func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnec
 		mustGetHeight(dstConn.ProofHeight),
 		dst.Path().ConnectionID,
 		dstConn.Connection.State,
-	)
+	))
 }
 
 // mustGetHeight takes the height inteface and returns the actual height
 func mustGetHeight(h ibcexported.Height) uint64 {
+	logger := logger.ZapLogger()
+	defer logger.Sync()
 	height, ok := h.(clienttypes.Height)
 	if !ok {
+		logger.Error("height is not an instance of height! wtf")
 		panic("height is not an instance of height! wtf")
 	}
 	return height.GetRevisionHeight()
@@ -230,8 +249,11 @@ func mustGetHeight(h ibcexported.Height) uint64 {
 func mustGetAddress(chain interface {
 	GetAddress() (sdk.AccAddress, error)
 }) sdk.AccAddress {
+	logger := logger.ZapLogger()
+	defer logger.Sync()
 	addr, err := chain.GetAddress()
 	if err != nil {
+		logger.Error("failed to get address", zap.Error(err))
 		panic(err)
 	}
 	return addr

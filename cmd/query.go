@@ -12,7 +12,9 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/helpers"
+	"github.com/hyperledger-labs/yui-relayer/logger"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 // queryCmd represents the chain command
@@ -178,6 +180,8 @@ func queryBalanceCmd(ctx *config.Context) *cobra.Command {
 }
 
 func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
+	logger := logger.ZapLogger()
+	defer logger.Sync()
 	cmd := &cobra.Command{
 		Use:   "unrelayed-packets [path]",
 		Short: "Query for the packet sequence numbers that remain to be relayed on a given path",
@@ -205,10 +209,11 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 			}
 			out, err := json.Marshal(sp)
 			if err != nil {
+				logger.Error("failed to marshal sequences", zap.Any("sp", sp), zap.Error(err))
 				return err
 			}
 
-			fmt.Println(string(out))
+			logger.Info("unrelayed sequences", zap.String("sequences", string(out)))
 			return nil
 		},
 	}
@@ -217,6 +222,8 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 }
 
 func queryUnrelayedAcknowledgements(ctx *config.Context) *cobra.Command {
+	logger := logger.ZapLogger()
+	defer logger.Sync()
 	cmd := &cobra.Command{
 		Use:   "unrelayed-acknowledgements [path]",
 		Short: "Query for the packet sequence numbers that remain to be relayed on a given path",
@@ -246,10 +253,11 @@ func queryUnrelayedAcknowledgements(ctx *config.Context) *cobra.Command {
 
 			out, err := json.Marshal(sp)
 			if err != nil {
+				logger.Error("failed to marshal sequences", zap.Any("sp", sp), zap.Error(err))
 				return err
 			}
 
-			fmt.Println(string(out))
+			logger.Info("unrelayed acknowledgements", zap.String("acknowledgements", string(out)))
 			return nil
 		},
 	}

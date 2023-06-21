@@ -2,16 +2,19 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	"github.com/hyperledger-labs/yui-relayer/logger"
+	"go.uber.org/zap"
 )
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
 func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
+	logger := logger.ZapLogger()
+	defer logger.Sync()
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -24,6 +27,10 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 	for ; true; <-ticker.C {
 		chanSteps, err := createChannelStep(src, dst, order)
 		if err != nil {
+			logger.Error(fmt.Sprintf("failed to create channel step: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
+				src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID),
+				zap.Error(err))
 			return err
 		}
 
@@ -37,9 +44,9 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case chanSteps.Success() && chanSteps.Last:
-			log.Printf("★ Channel created: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
+			logger.Info(fmt.Sprintf("★ Channel created: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
 				src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID)
+				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID))
 			return nil
 		// In the case of success, reset the failures counter
 		case chanSteps.Success():
@@ -48,9 +55,12 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !chanSteps.Success():
 			failures++
-			log.Printf("retrying transaction...")
+			logger.Info("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failures > 2 {
+				logger.Error(fmt.Sprintf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
+					src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+					dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID))
 				return fmt.Errorf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
 					src.ChainID(), src.Path().ClientID, src.Path().ChannelID,
 					dst.ChainID(), dst.Path().ClientID, dst.Path().ChannelID)
@@ -164,7 +174,9 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 }
 
 func logChannelStates(src, dst Chain, srcChan, dstChan *chantypes.QueryChannelResponse) {
-	log.Printf("- [%s]@{%d}chan(%s)-{%s} : [%s]@{%d}chan(%s)-{%s}",
+	logger := logger.ZapLogger()
+	defer logger.Sync()
+	logger.Info(fmt.Sprintf("- [%s]@{%d}chan(%s)-{%s} : [%s]@{%d}chan(%s)-{%s}",
 		src.ChainID(),
 		mustGetHeight(srcChan.ProofHeight),
 		src.Path().ChannelID,
@@ -173,5 +185,5 @@ func logChannelStates(src, dst Chain, srcChan, dstChan *chantypes.QueryChannelRe
 		mustGetHeight(dstChan.ProofHeight),
 		dst.Path().ChannelID,
 		dstChan.Channel.State,
-	)
+	))
 }
