@@ -1,6 +1,7 @@
 package tendermint
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -65,20 +66,24 @@ func (pr *Prover) QueryChannelWithProof(ctx core.QueryContext) (chanRes *chantyp
 }
 
 // ProvePacketCommitment returns the proof of packet commitment
-func (pr *Prover) ProvePacketCommitment(ctx core.QueryContext, seq uint64) ([]byte, error) {
+func (pr *Prover) ProvePacketCommitment(ctx core.QueryContext, seq uint64, packetCommitment []byte) ([]byte, clienttypes.Height, error) {
 	if res, err := pr.chain.queryPacketCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true); err != nil {
-		return nil, err
+		return nil, clienttypes.Height{}, err
+	} else if !bytes.Equal(res.Commitment, packetCommitment) {
+		return nil, clienttypes.Height{}, fmt.Errorf("packet commitment unmatch: %x != %x", res.Commitment, packetCommitment)
 	} else {
-		return res.Proof, nil
+		return res.Proof, res.ProofHeight, nil
 	}
 }
 
 // ProvePacketAcknowledgementCommitment returns the proof of packet acknowledgement commitment
-func (pr *Prover) ProvePacketAcknowledgementCommitment(ctx core.QueryContext, seq uint64) ([]byte, error) {
+func (pr *Prover) ProvePacketAcknowledgementCommitment(ctx core.QueryContext, seq uint64, ackCommitment []byte) ([]byte, clienttypes.Height, error) {
 	if res, err := pr.chain.queryPacketAcknowledgementCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true); err != nil {
-		return nil, err
+		return nil, clienttypes.Height{}, err
+	} else if !bytes.Equal(res.Acknowledgement, ackCommitment) {
+		return nil, clienttypes.Height{}, fmt.Errorf("acknowledgement commitment unmatch: %x != %x", res.Acknowledgement, ackCommitment)
 	} else {
-		return res.Proof, nil
+		return res.Proof, res.ProofHeight, nil
 	}
 }
 

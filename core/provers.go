@@ -45,10 +45,10 @@ type IBCProvableQuerier interface {
 
 type IBCPacketProver interface {
 	// ProvePacketCommitment returns the proof of packet commitment at the specified height
-	ProvePacketCommitment(ctx QueryContext, seq uint64) (proof []byte, err error)
+	ProvePacketCommitment(ctx QueryContext, seq uint64, packetCommitment []byte) (proof []byte, proofHeight clienttypes.Height, err error)
 
 	// ProvePacketAcknowledgementCommitment returns the proof of packet acknowledgement commitment at the specified height
-	ProvePacketAcknowledgementCommitment(ctx QueryContext, seq uint64) (proof []byte, err error)
+	ProvePacketAcknowledgementCommitment(ctx QueryContext, seq uint64, ackCommitment []byte) (proof []byte, proofHeight clienttypes.Height, err error)
 }
 
 // LightClient provides functions for creating and updating on-chain light clients on the counterparty chain
