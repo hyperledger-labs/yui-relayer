@@ -25,6 +25,7 @@ type Prover interface {
 
 	LightClient
 	IBCProvableQuerier
+	IBCPacketProver
 }
 
 // IBCProvableQuerier is an interface to the state of IBC and its proof.
@@ -40,12 +41,14 @@ type IBCProvableQuerier interface {
 
 	// QueryChannelWithProof returns the Channel and its proof
 	QueryChannelWithProof(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
+}
 
-	// QueryPacketCommitmentWithProof returns the packet commitment and its proof
-	QueryPacketCommitmentWithProof(ctx QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error)
+type IBCPacketProver interface {
+	// ProvePacketCommitment returns the proof of packet commitment at the specified height
+	ProvePacketCommitment(ctx QueryContext, seq uint64) (proof []byte, err error)
 
-	// QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
-	QueryPacketAcknowledgementCommitmentWithProof(ctx QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error)
+	// ProvePacketAcknowledgementCommitment returns the proof of packet acknowledgement commitment at the specified height
+	ProvePacketAcknowledgementCommitment(ctx QueryContext, seq uint64) (proof []byte, err error)
 }
 
 // LightClient provides functions for creating and updating on-chain light clients on the counterparty chain

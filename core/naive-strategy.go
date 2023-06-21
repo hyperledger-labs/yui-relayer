@@ -6,6 +6,7 @@ import (
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	"golang.org/x/sync/errgroup"
 )
@@ -259,12 +260,13 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
 	for _, p := range packets {
-		res, err := chain.QueryPacketCommitmentWithProof(ctx, p.Sequence)
+		proof, err := chain.ProvePacketCommitment(ctx, p.Sequence)
 		if err != nil {
-			log.Println("failed to QueryPacketCommitment:", ctx.Height(), p.Sequence, err)
+			log.Println("failed to ProvePacketCommitment:", ctx.Height(), p.Sequence, err)
 			return nil, err
 		}
-		msg := chantypes.NewMsgRecvPacket(p.Packet, res.Proof, res.ProofHeight, signer.String())
+		proofHeight := ctx.Height().(clienttypes.Height)
+		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
 		msgs = append(msgs, msg)
 	}
 	return msgs, nil
@@ -350,12 +352,12 @@ func collectAcks(senderCtx, receiverCtx QueryContext, senderChain, receiverChain
 	var msgs []sdk.Msg
 
 	for _, p := range packets {
-		res, err := receiverChain.QueryPacketAcknowledgementCommitmentWithProof(receiverCtx, p.Sequence)
+		proof, err := receiverChain.ProvePacketAcknowledgementCommitment(receiverCtx, p.Sequence)
 		if err != nil {
 			return nil, err
 		}
-
-		msg := chantypes.NewMsgAcknowledgement(p.Packet, p.Acknowledgement, res.Proof, res.ProofHeight, signer.String())
+		proofHeight := receiverCtx.Height().(clienttypes.Height)
+		msg := chantypes.NewMsgAcknowledgement(p.Packet, p.Acknowledgement, proof, proofHeight, signer.String())
 		msgs = append(msgs, msg)
 	}
 

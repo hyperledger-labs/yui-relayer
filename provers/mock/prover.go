@@ -136,25 +136,21 @@ func (pr *Prover) QueryChannelWithProof(ctx core.QueryContext) (chanRes *chantyp
 }
 
 // QueryPacketCommitmentWithProof returns the packet commitment and its proof
-func (pr *Prover) QueryPacketCommitmentWithProof(ctx core.QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
+func (pr *Prover) ProvePacketCommitment(ctx core.QueryContext, seq uint64) ([]byte, error) {
 	res, err := pr.chain.QueryPacketCommitment(ctx, seq)
 	if err != nil {
 		return nil, err
 	}
-	res.Proof = makeProof(res.Commitment)
-	res.ProofHeight = ctx.Height().(clienttypes.Height)
-	return res, nil
+	return makeProof(res.Commitment), nil
 }
 
 // QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
-func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
+func (pr *Prover) ProvePacketAcknowledgementCommitment(ctx core.QueryContext, seq uint64) ([]byte, error) {
 	res, err := pr.chain.QueryPacketAcknowledgementCommitment(ctx, seq)
 	if err != nil {
 		return nil, err
 	}
-	res.Proof = makeProof(res.Acknowledgement)
-	res.ProofHeight = ctx.Height().(clienttypes.Height)
-	return res, nil
+	return makeProof(res.Acknowledgement), nil
 }
 
 func makeProof(bz []byte) []byte {

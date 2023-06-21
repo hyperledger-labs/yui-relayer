@@ -64,14 +64,22 @@ func (pr *Prover) QueryChannelWithProof(ctx core.QueryContext) (chanRes *chantyp
 	return pr.chain.queryChannel(int64(ctx.Height().GetRevisionHeight()), true)
 }
 
-// QueryPacketCommitmentWithProof returns the packet commitment and its proof
-func (pr *Prover) QueryPacketCommitmentWithProof(ctx core.QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	return pr.chain.queryPacketCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true)
+// ProvePacketCommitment returns the proof of packet commitment
+func (pr *Prover) ProvePacketCommitment(ctx core.QueryContext, seq uint64) ([]byte, error) {
+	if res, err := pr.chain.queryPacketCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true); err != nil {
+		return nil, err
+	} else {
+		return res.Proof, nil
+	}
 }
 
-// QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
-func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	return pr.chain.queryPacketAcknowledgementCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true)
+// ProvePacketAcknowledgementCommitment returns the proof of packet acknowledgement commitment
+func (pr *Prover) ProvePacketAcknowledgementCommitment(ctx core.QueryContext, seq uint64) ([]byte, error) {
+	if res, err := pr.chain.queryPacketAcknowledgementCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true); err != nil {
+		return nil, err
+	} else {
+		return res.Proof, nil
+	}
 }
 
 /* LightClient implementation */
