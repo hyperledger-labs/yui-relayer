@@ -205,11 +205,6 @@ func (dst *Chain) queryWrittenAcknowledgement(ctx core.QueryContext, sequence ui
 	return ack.Data(), height, nil
 }
 
-// QueryPacketReciept returns the packet reciept proof at a given height
-func (c *Chain) QueryPacketReciept(ctx core.QueryContext, seq uint64) (recRes *chantypes.QueryPacketReceiptResponse, err error) {
-	return chanutils.QueryPacketReceipt(c.CLIContext(int64(ctx.Height().GetRevisionHeight())), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, true)
-}
-
 // QueryPacketCommitments returns an array of packet commitments
 func (c *Chain) QueryPacketCommitments(
 	ctx core.QueryContext,
