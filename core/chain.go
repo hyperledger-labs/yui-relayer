@@ -135,12 +135,6 @@ type ICS04Querier interface {
 	// QueryChannel returns the channel associated with a channelID
 	QueryChannel(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
 
-	// QueryPacketCommitment returns the packet commitment corresponding to a given sequence
-	QueryPacketCommitment(ctx QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error)
-
-	// QueryPacketAcknowledgementCommitment returns the acknowledgement corresponding to a given sequence
-	QueryPacketAcknowledgementCommitment(ctx QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error)
-
 	// QueryPacketCommitments returns an array of packet commitments
 	QueryPacketCommitments(ctx QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error)
 

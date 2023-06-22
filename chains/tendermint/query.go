@@ -145,20 +145,9 @@ func (c *Chain) QueryDenomTraces(ctx core.QueryContext, offset, limit uint64) (*
 	})
 }
 
-// QueryPacketCommitment returns the packet commitment proof at a given height
-func (c *Chain) QueryPacketCommitment(
-	ctx core.QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	return c.queryPacketCommitment(int64(ctx.Height().GetRevisionHeight()), seq, false)
-}
-
 func (c *Chain) queryPacketCommitment(
 	height int64, seq uint64, prove bool) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
 	return chanutils.QueryPacketCommitment(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, prove)
-}
-
-// QueryPacketAcknowledgementCommitment returns the packet ack proof at a given height
-func (c *Chain) QueryPacketAcknowledgementCommitment(ctx core.QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	return c.queryPacketAcknowledgementCommitment(int64(ctx.Height().GetRevisionHeight()), seq, false)
 }
 
 func (c *Chain) queryPacketAcknowledgementCommitment(height int64, seq uint64, prove bool) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
