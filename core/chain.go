@@ -141,7 +141,7 @@ type ICS04Querier interface {
 	// QueryUnreceivedPackets returns a list of unrelayed packet commitments
 	QueryUnreceivedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
-	// QueryUnfinalizedRelayedPackets returns packets that are sent but not received in the latest finalized block, with their heights
+	// QueryUnfinalizedRelayedPackets returns packets and heights that are sent but not received at the latest finalized block on the counterparty chain
 	QueryUnfinalizedRelayPackets(ctx QueryContext, counterparty *ProvableChain) (PacketInfoList, error)
 
 	// QueryPacketAcknowledgementCommitments returns an array of packet acks
@@ -150,7 +150,7 @@ type ICS04Querier interface {
 	// QueryUnreceivedAcknowledgements returns a list of unrelayed packet acks
 	QueryUnreceivedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
-	// QueryUnfinalizedRelayedAcknowledgements returns acks that are sent but not received in the latest finalized block, with their heights
+	// QueryUnfinalizedRelayedAcknowledgements returns acks and heights that are sent but not received at the latest finalized block on the counterpartychain
 	QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty *ProvableChain) (PacketInfoList, error)
 }
 
