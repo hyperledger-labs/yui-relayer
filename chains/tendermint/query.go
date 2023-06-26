@@ -264,7 +264,7 @@ func (c *Chain) QueryUnfinalizedRelayPackets(ctx core.QueryContext, counterparty
 		packets = append(packets, &core.PacketInfo{
 			Packet:          *packet,
 			Acknowledgement: nil,
-			Height:          height,
+			EventHeight:     height,
 		})
 	}
 
@@ -320,7 +320,7 @@ func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, cou
 		packets = append(packets, &core.PacketInfo{
 			Packet:          *packet,
 			Acknowledgement: ack,
-			Height:          recvPacketH,
+			EventHeight:     recvPacketH,
 		})
 	}
 

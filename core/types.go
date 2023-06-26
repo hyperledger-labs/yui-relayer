@@ -5,11 +5,14 @@ import (
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 )
 
-// PacketInfo represents a packet with the height at which it was sent
+// PacketInfo represents the packet information that is acquired from a SendPacket event or
+// a pair of RecvPacket/WriteAcknowledgement events. In the former case, `Acknowledgement`
+// becomes nil. `EventHeight` represents the height at which the corresponding SendPacket or
+// RecvPacket event was emiited.
 type PacketInfo struct {
 	chantypes.Packet
 	Acknowledgement []byte             `json:"acknowledgement"`
-	Height          clienttypes.Height `json:"height"`
+	EventHeight     clienttypes.Height `json:"event_height"`
 }
 
 type PacketInfoList []*PacketInfo
