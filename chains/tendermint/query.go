@@ -310,12 +310,9 @@ func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, cou
 		if err != nil {
 			return nil, err
 		}
-		ack, writeAckH, err := c.queryWrittenAcknowledgement(ctx, ps.Sequence)
+		ack, _, err := c.queryWrittenAcknowledgement(ctx, ps.Sequence)
 		if err != nil {
 			return nil, err
-		}
-		if recvPacketH != writeAckH {
-			return nil, fmt.Errorf("height unmatch: %v(RecvPacket) != %v(WriteAck)", recvPacketH, writeAckH)
 		}
 		packets = append(packets, &core.PacketInfo{
 			Packet:          *packet,
