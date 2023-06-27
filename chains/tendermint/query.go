@@ -198,7 +198,7 @@ func (c *Chain) QueryUnreceivedPackets(ctx core.QueryContext, seqs []uint64) ([]
 	return res.Sequences, nil
 }
 
-func (c *Chain) QueryUnfinalizedRelayPackets(ctx core.QueryContext, counterparty *core.ProvableChain) (core.PacketInfoList, error) {
+func (c *Chain) QueryUnfinalizedRelayPackets(ctx core.QueryContext, counterparty core.LightClientICS04Querier) (core.PacketInfoList, error) {
 	res, err := c.queryPacketCommitments(ctx, 0, 1000)
 	if err != nil {
 		return nil, err
@@ -247,7 +247,7 @@ func (c *Chain) QueryUnreceivedAcknowledgements(ctx core.QueryContext, seqs []ui
 	return res.Sequences, nil
 }
 
-func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, counterparty *core.ProvableChain) (core.PacketInfoList, error) {
+func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, counterparty core.LightClientICS04Querier) (core.PacketInfoList, error) {
 	res, err := c.queryPacketAcknowledgementCommitments(ctx, 0, 1000)
 	if err != nil {
 		return nil, err

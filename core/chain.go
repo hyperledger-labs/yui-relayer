@@ -139,13 +139,13 @@ type ICS04Querier interface {
 	QueryUnreceivedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
 	// QueryUnfinalizedRelayedPackets returns packets and heights that are sent but not received at the latest finalized block on the counterparty chain
-	QueryUnfinalizedRelayPackets(ctx QueryContext, counterparty *ProvableChain) (PacketInfoList, error)
+	QueryUnfinalizedRelayPackets(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error)
 
 	// QueryUnreceivedAcknowledgements returns a list of unrelayed packet acks
 	QueryUnreceivedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
 	// QueryUnfinalizedRelayedAcknowledgements returns acks and heights that are sent but not received at the latest finalized block on the counterpartychain
-	QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty *ProvableChain) (PacketInfoList, error)
+	QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error)
 }
 
 // ICS20Querier is an interface to the state of ICS-20
@@ -155,6 +155,11 @@ type ICS20Querier interface {
 
 	// QueryDenomTraces returns all the denom traces from a given chain
 	QueryDenomTraces(ctx QueryContext, offset, limit uint64) (*transfertypes.QueryDenomTracesResponse, error)
+}
+
+type LightClientICS04Querier interface {
+	LightClient
+	ICS04Querier
 }
 
 // QueryContext is a context that contains a height of the target chain for querying states
