@@ -101,6 +101,8 @@ func QueryConnectionPair(
 		srcConn, err = src.QueryConnection(srcCtx)
 		if err != nil {
 			return err
+		} else if srcConn.Connection.State == conntypes.UNINITIALIZED {
+			return nil
 		}
 		value, err := src.Codec().Marshal(srcConn.Connection)
 		if err != nil {
@@ -114,6 +116,8 @@ func QueryConnectionPair(
 		dstConn, err = dst.QueryConnection(dstCtx)
 		if err != nil {
 			return err
+		} else if dstConn.Connection.State == conntypes.UNINITIALIZED {
+			return nil
 		}
 		value, err := dst.Codec().Marshal(dstConn.Connection)
 		if err != nil {
@@ -137,6 +141,8 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 		srcChan, err = src.QueryChannel(srcCtx)
 		if err != nil {
 			return err
+		} else if srcChan.Channel.State == chantypes.UNINITIALIZED {
+			return nil
 		}
 		value, err := src.Codec().Marshal(srcChan.Channel)
 		if err != nil {
@@ -150,6 +156,8 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 		dstChan, err = dst.QueryChannel(dstCtx)
 		if err != nil {
 			return err
+		} else if dstChan.Channel.State == chantypes.UNINITIALIZED {
+			return nil
 		}
 		value, err := dst.Codec().Marshal(dstChan.Channel)
 		if err != nil {
