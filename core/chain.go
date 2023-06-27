@@ -135,17 +135,11 @@ type ICS04Querier interface {
 	// QueryChannel returns the channel associated with a channelID
 	QueryChannel(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
 
-	// QueryPacketCommitments returns an array of packet commitments
-	QueryPacketCommitments(ctx QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error)
-
 	// QueryUnreceivedPackets returns a list of unrelayed packet commitments
 	QueryUnreceivedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
 	// QueryUnfinalizedRelayedPackets returns packets and heights that are sent but not received at the latest finalized block on the counterparty chain
 	QueryUnfinalizedRelayPackets(ctx QueryContext, counterparty *ProvableChain) (PacketInfoList, error)
-
-	// QueryPacketAcknowledgementCommitments returns an array of packet acks
-	QueryPacketAcknowledgementCommitments(ctx QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
 
 	// QueryUnreceivedAcknowledgements returns a list of unrelayed packet acks
 	QueryUnreceivedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error)
