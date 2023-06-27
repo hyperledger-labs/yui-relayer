@@ -278,8 +278,8 @@ func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, cou
 }
 
 // querySentPacket finds a SendPacket event corresponding to `seq` and returns the packet in it
-func (src *Chain) querySentPacket(ctx core.QueryContext, seq uint64) (*chantypes.Packet, clienttypes.Height, error) {
-	txs, err := src.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, sendPacketQuery(src.Path().ChannelID, int(seq)))
+func (c *Chain) querySentPacket(ctx core.QueryContext, seq uint64) (*chantypes.Packet, clienttypes.Height, error) {
+	txs, err := c.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, sendPacketQuery(c.Path().ChannelID, int(seq)))
 	switch {
 	case err != nil:
 		return nil, clienttypes.Height{}, err
@@ -297,14 +297,14 @@ func (src *Chain) querySentPacket(ctx core.QueryContext, seq uint64) (*chantypes
 		return nil, clienttypes.Height{}, fmt.Errorf("can't find the packet from events")
 	}
 
-	height := clienttypes.NewHeight(0, uint64(txs[0].Height))
+	height := clienttypes.NewHeight(clienttypes.ParseChainID(c.ChainID()), uint64(txs[0].Height))
 
 	return packet, height, nil
 }
 
-// queryReceivedPacket finds a RecvPacket event corresponding to `sequence` and return the packet in it
-func (c *Chain) queryReceivedPacket(ctx core.QueryContext, sequence uint64) (*chantypes.Packet, clienttypes.Height, error) {
-	txs, err := c.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, recvPacketQuery(c.Path().ChannelID, int(sequence)))
+// queryReceivedPacket finds a RecvPacket event corresponding to `seq` and return the packet in it
+func (c *Chain) queryReceivedPacket(ctx core.QueryContext, seq uint64) (*chantypes.Packet, clienttypes.Height, error) {
+	txs, err := c.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, recvPacketQuery(c.Path().ChannelID, int(seq)))
 	switch {
 	case err != nil:
 		return nil, clienttypes.Height{}, err
@@ -314,7 +314,7 @@ func (c *Chain) queryReceivedPacket(ctx core.QueryContext, sequence uint64) (*ch
 		return nil, clienttypes.Height{}, fmt.Errorf("more than one transaction returned with query")
 	}
 
-	packet, err := core.FindPacketFromEventsBySequence(txs[0].TxResult.Events, chantypes.EventTypeRecvPacket, sequence)
+	packet, err := core.FindPacketFromEventsBySequence(txs[0].TxResult.Events, chantypes.EventTypeRecvPacket, seq)
 	if err != nil {
 		return nil, clienttypes.Height{}, err
 	}
@@ -322,15 +322,15 @@ func (c *Chain) queryReceivedPacket(ctx core.QueryContext, sequence uint64) (*ch
 		return nil, clienttypes.Height{}, fmt.Errorf("can't find the packet from events")
 	}
 
-	height := clienttypes.NewHeight(0, uint64(txs[0].Height))
+	height := clienttypes.NewHeight(clienttypes.ParseChainID(c.ChainID()), uint64(txs[0].Height))
 
 	return packet, height, nil
 
 }
 
-// queryWrittenAcknowledgement finds a WriteAcknowledgement event corresponding to `sequence` and returns the acknowledgement in it
-func (dst *Chain) queryWrittenAcknowledgement(ctx core.QueryContext, sequence uint64) ([]byte, clienttypes.Height, error) {
-	txs, err := dst.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, writeAckQuery(dst.Path().ChannelID, int(sequence)))
+// queryWrittenAcknowledgement finds a WriteAcknowledgement event corresponding to `seq` and returns the acknowledgement in it
+func (c *Chain) queryWrittenAcknowledgement(ctx core.QueryContext, seq uint64) ([]byte, clienttypes.Height, error) {
+	txs, err := c.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, writeAckQuery(c.Path().ChannelID, int(seq)))
 	switch {
 	case err != nil:
 		return nil, clienttypes.Height{}, err
@@ -340,7 +340,7 @@ func (dst *Chain) queryWrittenAcknowledgement(ctx core.QueryContext, sequence ui
 		return nil, clienttypes.Height{}, fmt.Errorf("more than one transaction returned with query")
 	}
 
-	ack, err := core.FindPacketAcknowledgementFromEventsBySequence(txs[0].TxResult.Events, sequence)
+	ack, err := core.FindPacketAcknowledgementFromEventsBySequence(txs[0].TxResult.Events, seq)
 	if err != nil {
 		return nil, clienttypes.Height{}, err
 	}
@@ -348,7 +348,7 @@ func (dst *Chain) queryWrittenAcknowledgement(ctx core.QueryContext, sequence ui
 		return nil, clienttypes.Height{}, fmt.Errorf("can't find the packet from events")
 	}
 
-	height := clienttypes.NewHeight(0, uint64(txs[0].Height))
+	height := clienttypes.NewHeight(clienttypes.ParseChainID(c.ChainID()), uint64(txs[0].Height))
 
 	return ack.Data(), height, nil
 }
