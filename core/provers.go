@@ -7,9 +7,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
-	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 )
 
 // Prover represents a prover that supports generating a commitment proof
@@ -24,31 +21,12 @@ type Prover interface {
 	SetupForRelay(ctx context.Context) error
 
 	LightClient
-	IBCProvableQuerier
-	IBCPacketProver
+	StateProver
 }
 
-// IBCProvableQuerier is an interface to the state of IBC and its proof.
-type IBCProvableQuerier interface {
-	// QueryClientConsensusState returns the ClientConsensusState and its proof
-	QueryClientConsensusStateWithProof(ctx QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error)
-
-	// QueryClientStateWithProof returns the ClientState and its proof
-	QueryClientStateWithProof(ctx QueryContext) (*clienttypes.QueryClientStateResponse, error)
-
-	// QueryConnectionWithProof returns the Connection and its proof
-	QueryConnectionWithProof(ctx QueryContext) (*conntypes.QueryConnectionResponse, error)
-
-	// QueryChannelWithProof returns the Channel and its proof
-	QueryChannelWithProof(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
-}
-
-type IBCPacketProver interface {
-	// ProvePacketCommitment returns the proof of packet commitment at the specified height
-	ProvePacketCommitment(ctx QueryContext, seq uint64, packetCommitment []byte) (proof []byte, proofHeight clienttypes.Height, err error)
-
-	// ProvePacketAcknowledgementCommitment returns the proof of packet acknowledgement commitment at the specified height
-	ProvePacketAcknowledgementCommitment(ctx QueryContext, seq uint64, ackCommitment []byte) (proof []byte, proofHeight clienttypes.Height, err error)
+// StateProver provides a generic way to generate existence proof of IBC states (e.g. ClientState, Connection, PacketCommitment, etc.)
+type StateProver interface {
+	ProveState(ctx QueryContext, path string, value []byte) (proof []byte, proofHeight clienttypes.Height, err error)
 }
 
 // LightClient provides functions for creating and updating on-chain light clients on the counterparty chain

@@ -7,6 +7,7 @@ import (
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -260,9 +261,10 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	var msgs []sdk.Msg
 	for _, p := range packets {
 		commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
-		proof, proofHeight, err := chain.ProvePacketCommitment(ctx, p.Sequence, commitment)
+		path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
+		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 		if err != nil {
-			log.Println("failed to ProvePacketCommitment:", ctx.Height(), p.Sequence, err)
+			log.Printf("failed to ProveState: height=%v, path=%v, commitment=%x, err=%v", ctx.Height(), path, commitment, err)
 			return nil, err
 		}
 		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
@@ -316,11 +318,11 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 		}
 	}
 
-	acksForDst, err := collectAcks(dstCtx, srcCtx, dst, src, sp.Src, dstAddress)
+	acksForDst, err := collectAcks(srcCtx, src, sp.Src, dstAddress)
 	if err != nil {
 		return err
 	}
-	acksForSrc, err := collectAcks(srcCtx, dstCtx, src, dst, sp.Dst, srcAddress)
+	acksForSrc, err := collectAcks(dstCtx, dst, sp.Dst, srcAddress)
 	if err != nil {
 		return err
 	}
@@ -347,13 +349,15 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 	return nil
 }
 
-func collectAcks(senderCtx, receiverCtx QueryContext, senderChain, receiverChain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
+func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	var msgs []sdk.Msg
 
 	for _, p := range packets {
 		commitment := chantypes.CommitAcknowledgement(p.Acknowledgement)
-		proof, proofHeight, err := receiverChain.ProvePacketAcknowledgementCommitment(receiverCtx, p.Sequence, commitment)
+		path := host.PacketAcknowledgementPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
+		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 		if err != nil {
+			log.Printf("failed to ProveState: height=%v, path=%v, commitment=%x, err=%v", ctx.Height(), path, commitment, err)
 			return nil, err
 		}
 		msg := chantypes.NewMsgAcknowledgement(p.Packet, p.Acknowledgement, proof, proofHeight, signer.String())

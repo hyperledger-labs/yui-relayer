@@ -11,8 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	ibcclient "github.com/cosmos/ibc-go/v7/modules/core/client"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	tmclient "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
 
@@ -43,47 +42,15 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
-/* IBCProvableQuerier implementation */
-
-// QueryClientConsensusState returns the ClientConsensusState and its proof
-func (pr *Prover) QueryClientConsensusStateWithProof(ctx core.QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	return pr.chain.queryClientConsensusState(int64(ctx.Height().GetRevisionHeight()), dstClientConsHeight, true)
-}
-
-// QueryClientStateWithProof returns the ClientState and its proof
-func (pr *Prover) QueryClientStateWithProof(ctx core.QueryContext) (*clienttypes.QueryClientStateResponse, error) {
-	return pr.chain.queryClientState(int64(ctx.Height().GetRevisionHeight()), true)
-}
-
-// QueryConnectionWithProof returns the Connection and its proof
-func (pr *Prover) QueryConnectionWithProof(ctx core.QueryContext) (*conntypes.QueryConnectionResponse, error) {
-	return pr.chain.queryConnection(int64(ctx.Height().GetRevisionHeight()), true)
-}
-
-// QueryChannelWithProof returns the Channel and its proof
-func (pr *Prover) QueryChannelWithProof(ctx core.QueryContext) (chanRes *chantypes.QueryChannelResponse, err error) {
-	return pr.chain.queryChannel(int64(ctx.Height().GetRevisionHeight()), true)
-}
-
-// ProvePacketCommitment returns the proof of packet commitment
-func (pr *Prover) ProvePacketCommitment(ctx core.QueryContext, seq uint64, packetCommitment []byte) ([]byte, clienttypes.Height, error) {
-	if res, err := pr.chain.queryPacketCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true); err != nil {
+// ProveState returns the proof of an IBC state specified by `path` and `value`
+func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
+	clientCtx := pr.chain.CLIContext(int64(ctx.Height().GetRevisionHeight()))
+	if v, proof, proofHeight, err := ibcclient.QueryTendermintProof(clientCtx, []byte(path)); err != nil {
 		return nil, clienttypes.Height{}, err
-	} else if !bytes.Equal(res.Commitment, packetCommitment) {
-		return nil, clienttypes.Height{}, fmt.Errorf("packet commitment unmatch: %x != %x", res.Commitment, packetCommitment)
+	} else if !bytes.Equal(v, value) {
+		return nil, clienttypes.Height{}, fmt.Errorf("value unmatch: %x != %x", v, value)
 	} else {
-		return res.Proof, res.ProofHeight, nil
-	}
-}
-
-// ProvePacketAcknowledgementCommitment returns the proof of packet acknowledgement commitment
-func (pr *Prover) ProvePacketAcknowledgementCommitment(ctx core.QueryContext, seq uint64, ackCommitment []byte) ([]byte, clienttypes.Height, error) {
-	if res, err := pr.chain.queryPacketAcknowledgementCommitment(int64(ctx.Height().GetRevisionHeight()), seq, true); err != nil {
-		return nil, clienttypes.Height{}, err
-	} else if !bytes.Equal(res.Acknowledgement, ackCommitment) {
-		return nil, clienttypes.Height{}, fmt.Errorf("acknowledgement commitment unmatch: %x != %x", res.Acknowledgement, ackCommitment)
-	} else {
-		return res.Proof, res.ProofHeight, nil
+		return proof, proofHeight, nil
 	}
 }
 
