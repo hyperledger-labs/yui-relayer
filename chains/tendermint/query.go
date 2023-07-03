@@ -246,18 +246,24 @@ func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, cou
 
 	var packets core.PacketInfoList
 	for _, ps := range res.Acknowledgements {
-		packet, recvPacketH, err := c.queryReceivedPacket(ctx, ps.Sequence)
+		packet, rpHeight, err := c.queryReceivedPacket(ctx, ps.Sequence)
 		if err != nil {
 			return nil, err
 		}
-		ack, _, err := c.queryWrittenAcknowledgement(ctx, ps.Sequence)
+		ack, waHeight, err := c.queryWrittenAcknowledgement(ctx, ps.Sequence)
 		if err != nil {
 			return nil, err
+		}
+		var height clienttypes.Height
+		if rpHeight.LT(waHeight) {
+			height = rpHeight
+		} else {
+			height = waHeight
 		}
 		packets = append(packets, &core.PacketInfo{
 			Packet:          *packet,
 			Acknowledgement: ack,
-			EventHeight:     recvPacketH,
+			EventHeight:     height,
 		})
 	}
 

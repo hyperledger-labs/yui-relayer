@@ -6,9 +6,9 @@ import (
 )
 
 // PacketInfo represents the packet information that is acquired from a SendPacket event or
-// a pair of RecvPacket/WriteAcknowledgement events. In the former case, `Acknowledgement`
-// becomes nil. `EventHeight` represents the height at which the corresponding SendPacket or
-// RecvPacket event was emiited.
+// a pair of RecvPacket/WriteAcknowledgement events. In the former case, the `Acknowledgement`
+// field becomes nil. In the latter case, `EventHeight` represents the smaller height between
+// the ones of the `RecvPacket` event and the `WriteAcknowledgement` event.
 type PacketInfo struct {
 	chantypes.Packet
 	Acknowledgement []byte             `json:"acknowledgement"`
