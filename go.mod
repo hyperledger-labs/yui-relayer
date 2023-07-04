@@ -2,8 +2,6 @@ module github.com/hyperledger-labs/yui-relayer
 
 go 1.20
 
-replace github.com/datachainlab/ibc-mock-client => github.com/siburu/ibc-mock-client v0.0.0-20230703025053-51e5f240714f
-
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/cometbft/cometbft v0.37.2
@@ -12,7 +10,7 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/gogoproto v1.4.10
 	github.com/cosmos/ibc-go/v7 v7.2.0
-	github.com/datachainlab/ibc-mock-client v0.3.1
+	github.com/datachainlab/ibc-mock-client v0.3.2
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	golang.org/x/sync v0.1.0
@@ -166,4 +164,10 @@ require (
 	nhooyr.io/websocket v1.8.6 // indirect
 	pgregory.net/rapid v0.5.5 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
+)
+
+replace (
+	// https://github.com/cosmos/cosmos-sdk/blob/v0.47.3/go.mod#L171-L182
+	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
+	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 )

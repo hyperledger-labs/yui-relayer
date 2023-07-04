@@ -2,8 +2,6 @@ module github.com/hyperledger-labs/yui-relayer/tests/chains/tendermint
 
 go 1.20
 
-replace github.com/datachainlab/ibc-mock-client => github.com/siburu/ibc-mock-client v0.0.0-20230703025053-51e5f240714f
-
 require (
 	cosmossdk.io/api v0.3.1
 	cosmossdk.io/tools/rosetta v0.2.1
@@ -11,7 +9,7 @@ require (
 	github.com/cometbft/cometbft-db v0.8.0
 	github.com/cosmos/cosmos-sdk v0.47.3
 	github.com/cosmos/ibc-go/v7 v7.2.0
-	github.com/datachainlab/ibc-mock-client v0.3.0
+	github.com/datachainlab/ibc-mock-client v0.3.2
 	github.com/gorilla/mux v1.8.0
 	github.com/rakyll/statik v0.1.7
 	github.com/spf13/cast v1.5.1
@@ -167,4 +165,8 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
+replace (
+	// https://github.com/cosmos/cosmos-sdk/blob/v0.47.3/go.mod#L171-L182
+	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
+	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
+)
