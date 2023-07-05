@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	sdkcmd "cosmossdk.io/simapp/simd/cmd"
 	rosettaCmd "cosmossdk.io/tools/rosetta/cmd"
 	dbm "github.com/cometbft/cometbft-db"
 	tmcfg "github.com/cometbft/cometbft/config"
@@ -37,8 +36,8 @@ import (
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 
-	"github.com/hyperledger-labs/yui-relayer/tests/chains/tendermint/simapp"
 	"github.com/cosmos/ibc-go/v7/testing/simapp/params"
+	"github.com/hyperledger-labs/yui-relayer/tests/chains/tendermint/simapp"
 )
 
 // NewRootCmd creates a new root command for simd. It is called once in the
@@ -170,7 +169,6 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		genutilcli.ValidateGenesisCmd(simapp.ModuleBasics),
 		AddGenesisAccountCmd(simapp.DefaultNodeHome),
 		tmcli.NewCompletionCmd(rootCmd, true),
-		sdkcmd.NewTestnetCmd(simapp.ModuleBasics, banktypes.GenesisBalancesIterator{}),
 		debug.Cmd(),
 		config.Cmd(),
 	)
