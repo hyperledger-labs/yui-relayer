@@ -1,7 +1,7 @@
-ARG GOLAGN_VER=1.20.4
+ARG GOLANG_VER=1.20.5
 ARG ALPINE_VER=3.18
 
-FROM golang:${GOLAGN_VER}-alpine${ALPINE_VER} AS scaffold
+FROM golang:${GOLANG_VER}-alpine${ALPINE_VER} AS scaffold
 WORKDIR /root
 
 COPY ./ ./
