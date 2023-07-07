@@ -250,20 +250,14 @@ func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, cou
 		if err != nil {
 			return nil, err
 		}
-		ack, waHeight, err := c.queryWrittenAcknowledgement(ctx, ps.Sequence)
+		ack, _, err := c.queryWrittenAcknowledgement(ctx, ps.Sequence)
 		if err != nil {
 			return nil, err
-		}
-		var height clienttypes.Height
-		if rpHeight.LT(waHeight) {
-			height = rpHeight
-		} else {
-			height = waHeight
 		}
 		packets = append(packets, &core.PacketInfo{
 			Packet:          *packet,
 			Acknowledgement: ack,
-			EventHeight:     height,
+			EventHeight:     rpHeight,
 		})
 	}
 

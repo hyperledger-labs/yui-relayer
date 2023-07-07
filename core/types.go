@@ -7,14 +7,16 @@ import (
 
 // PacketInfo represents the packet information that is acquired from a SendPacket event or
 // a pair of RecvPacket/WriteAcknowledgement events. In the former case, the `Acknowledgement`
-// field becomes nil. In the latter case, `EventHeight` represents the smaller height between
-// the ones of the `RecvPacket` event and the `WriteAcknowledgement` event.
+// field becomes nil. In the latter case, `EventHeight` represents the height in which the
+// underlying `RecvPacket` event occurs.
 type PacketInfo struct {
 	chantypes.Packet
 	Acknowledgement []byte             `json:"acknowledgement"`
 	EventHeight     clienttypes.Height `json:"event_height"`
 }
 
+// PacketInfoList represents a list of PacketInfo that is sorted in the order in which
+// underlying events (SendPacket and RecvPacket) occur.
 type PacketInfoList []*PacketInfo
 
 func (ps PacketInfoList) ExtractSequenceList() []uint64 {
