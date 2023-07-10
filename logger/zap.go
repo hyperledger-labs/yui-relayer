@@ -8,11 +8,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var zapLogger *zap.Logger
+var zapLogger *zap.SugaredLogger
 
 func init() {
 	logLevelEnv := os.Getenv("LOG_LEVEL")
-	logLevel := zapcore.DebugLevel
+	var logLevel zapcore.Level
 	switch logLevelEnv {
 	case "DEBUG":
 		logLevel = zapcore.DebugLevel
@@ -29,7 +29,7 @@ func init() {
 	case "FATAL":
 		logLevel = zapcore.FatalLevel
 	default:
-		logLevel = zapcore.ErrorLevel
+		logLevel = zapcore.DebugLevel
 	}
 	level := zap.NewAtomicLevel()
 	level.SetLevel(logLevel)
@@ -47,16 +47,15 @@ func init() {
 			EncodeDuration: zapcore.StringDurationEncoder,
 			EncodeCaller:   zapcore.ShortCallerEncoder,
 		},
-		OutputPaths:      []string{"stdout", "/tmp/zap.log"},
-		ErrorOutputPaths: []string{"stderr", "/tmp/zap-error.log"},
+		OutputPaths: []string{"stdout", "/tmp/zap.log"},
 	}
 	logger, err := cfg.Build()
 	if err != nil {
 		log.Fatalf("CreateLogger Error: %v", err)
 	}
-	zapLogger = logger
+	zapLogger = logger.Sugar()
 }
 
-func ZapLogger() *zap.Logger {
+func ZapLogger() *zap.SugaredLogger {
 	return zapLogger
 }

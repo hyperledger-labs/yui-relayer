@@ -13,7 +13,7 @@ require (
 	github.com/datachainlab/ibc-mock-client v0.3.2
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
-	go.uber.org/zap v1.23.0
+	go.uber.org/zap v1.24.0
 	golang.org/x/sync v0.1.0
 	gopkg.in/yaml.v2 v2.4.0
 )
