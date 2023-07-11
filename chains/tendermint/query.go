@@ -145,54 +145,8 @@ func (c *Chain) QueryDenomTraces(ctx core.QueryContext, offset, limit uint64) (*
 	})
 }
 
-// QueryPacketCommitment returns the packet commitment proof at a given height
-func (c *Chain) QueryPacketCommitment(
-	ctx core.QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	return c.queryPacketCommitment(int64(ctx.Height().GetRevisionHeight()), seq, false)
-}
-
-func (c *Chain) queryPacketCommitment(
-	height int64, seq uint64, prove bool) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	return chanutils.QueryPacketCommitment(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, prove)
-}
-
-// QueryPacketAcknowledgementCommitment returns the packet ack proof at a given height
-func (c *Chain) QueryPacketAcknowledgementCommitment(ctx core.QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	return c.queryPacketAcknowledgementCommitment(int64(ctx.Height().GetRevisionHeight()), seq, false)
-}
-
-func (c *Chain) queryPacketAcknowledgementCommitment(height int64, seq uint64, prove bool) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	return chanutils.QueryPacketAcknowledgement(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, prove)
-}
-
-func (dst *Chain) QueryPacketAcknowledgement(ctx core.QueryContext, sequence uint64) ([]byte, error) {
-	txs, err := dst.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, ackPacketQuery(dst.Path().ChannelID, int(sequence)))
-	switch {
-	case err != nil:
-		return nil, err
-	case len(txs) == 0:
-		return nil, fmt.Errorf("no transactions returned with query")
-	case len(txs) > 1:
-		return nil, fmt.Errorf("more than one transaction returned with query")
-	}
-
-	ack, err := core.FindPacketAcknowledgementFromEventsBySequence(txs[0].TxResult.Events, sequence)
-	if err != nil {
-		return nil, err
-	}
-	if ack == nil {
-		return nil, fmt.Errorf("can't find the packet from events")
-	}
-	return ack.Data(), nil
-}
-
-// QueryPacketReciept returns the packet reciept proof at a given height
-func (c *Chain) QueryPacketReciept(ctx core.QueryContext, seq uint64) (recRes *chantypes.QueryPacketReceiptResponse, err error) {
-	return chanutils.QueryPacketReceipt(c.CLIContext(int64(ctx.Height().GetRevisionHeight())), c.PathEnd.PortID, c.PathEnd.ChannelID, seq, true)
-}
-
-// QueryPacketCommitments returns an array of packet commitments
-func (c *Chain) QueryPacketCommitments(
+// queryPacketCommitments returns an array of packet commitments
+func (c *Chain) queryPacketCommitments(
 	ctx core.QueryContext,
 	offset, limit uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight())))
@@ -207,8 +161,8 @@ func (c *Chain) QueryPacketCommitments(
 	})
 }
 
-// QueryPacketAcknowledgementCommitments returns an array of packet acks
-func (c *Chain) QueryPacketAcknowledgementCommitments(ctx core.QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+// queryPacketAcknowledgementCommitments returns an array of packet acks
+func (c *Chain) queryPacketAcknowledgementCommitments(ctx core.QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight())))
 	return qc.PacketAcknowledgements(context.Background(), &chantypes.QueryPacketAcknowledgementsRequest{
 		PortId:    c.PathEnd.PortID,
@@ -221,8 +175,8 @@ func (c *Chain) QueryPacketAcknowledgementCommitments(ctx core.QueryContext, off
 	})
 }
 
-// QueryUnrecievedPackets returns a list of unrelayed packet commitments
-func (c *Chain) QueryUnrecievedPackets(ctx core.QueryContext, seqs []uint64) ([]uint64, error) {
+// QueryUnreceivedPackets returns a list of unrelayed packet commitments
+func (c *Chain) QueryUnreceivedPackets(ctx core.QueryContext, seqs []uint64) ([]uint64, error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight())))
 	res, err := qc.UnreceivedPackets(context.Background(), &chantypes.QueryUnreceivedPacketsRequest{
 		PortId:                    c.PathEnd.PortID,
@@ -235,8 +189,43 @@ func (c *Chain) QueryUnrecievedPackets(ctx core.QueryContext, seqs []uint64) ([]
 	return res.Sequences, nil
 }
 
-// QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
-func (c *Chain) QueryUnrecievedAcknowledgements(ctx core.QueryContext, seqs []uint64) ([]uint64, error) {
+func (c *Chain) QueryUnfinalizedRelayPackets(ctx core.QueryContext, counterparty core.LightClientICS04Querier) (core.PacketInfoList, error) {
+	res, err := c.queryPacketCommitments(ctx, 0, 1000)
+	if err != nil {
+		return nil, err
+	}
+
+	var packets core.PacketInfoList
+	for _, ps := range res.Commitments {
+		packet, height, err := c.querySentPacket(ctx, ps.Sequence)
+		if err != nil {
+			return nil, err
+		}
+		packets = append(packets, &core.PacketInfo{
+			Packet:          *packet,
+			Acknowledgement: nil,
+			EventHeight:     height,
+		})
+	}
+
+	var counterpartyCtx core.QueryContext
+	if counterpartyH, err := counterparty.GetLatestFinalizedHeader(); err != nil {
+		return nil, err
+	} else {
+		counterpartyCtx = core.NewQueryContext(context.TODO(), counterpartyH.GetHeight())
+	}
+
+	seqs, err := counterparty.QueryUnreceivedPackets(counterpartyCtx, packets.ExtractSequenceList())
+	if err != nil {
+		return nil, err
+	}
+	packets = packets.Filter(seqs)
+
+	return packets, nil
+}
+
+// QueryUnreceivedAcknowledgements returns a list of unrelayed packet acks
+func (c *Chain) QueryUnreceivedAcknowledgements(ctx core.QueryContext, seqs []uint64) ([]uint64, error) {
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight())))
 	res, err := qc.UnreceivedAcks(context.Background(), &chantypes.QueryUnreceivedAcksRequest{
 		PortId:             c.PathEnd.PortID,
@@ -249,25 +238,119 @@ func (c *Chain) QueryUnrecievedAcknowledgements(ctx core.QueryContext, seqs []ui
 	return res.Sequences, nil
 }
 
-func (src *Chain) QueryPacket(ctx core.QueryContext, seq uint64) (*chantypes.Packet, error) {
-	txs, err := src.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, rcvPacketQuery(src.Path().ChannelID, int(seq)))
-	switch {
-	case err != nil:
-		return nil, err
-	case len(txs) == 0:
-		return nil, fmt.Errorf("no transactions returned with query")
-	case len(txs) > 1:
-		return nil, fmt.Errorf("more than one transaction returned with query")
-	}
-
-	packet, err := core.FindPacketFromEventsBySequence(txs[0].TxResult.Events, seq)
+func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, counterparty core.LightClientICS04Querier) (core.PacketInfoList, error) {
+	res, err := c.queryPacketAcknowledgementCommitments(ctx, 0, 1000)
 	if err != nil {
 		return nil, err
 	}
-	if packet == nil {
-		return nil, fmt.Errorf("can't find the packet from events")
+
+	var packets core.PacketInfoList
+	for _, ps := range res.Acknowledgements {
+		packet, rpHeight, err := c.queryReceivedPacket(ctx, ps.Sequence)
+		if err != nil {
+			return nil, err
+		}
+		ack, _, err := c.queryWrittenAcknowledgement(ctx, ps.Sequence)
+		if err != nil {
+			return nil, err
+		}
+		packets = append(packets, &core.PacketInfo{
+			Packet:          *packet,
+			Acknowledgement: ack,
+			EventHeight:     rpHeight,
+		})
 	}
-	return packet, nil
+
+	var counterpartyCtx core.QueryContext
+	if counterpartyH, err := counterparty.GetLatestFinalizedHeader(); err != nil {
+		return nil, err
+	} else {
+		counterpartyCtx = core.NewQueryContext(context.TODO(), counterpartyH.GetHeight())
+	}
+
+	seqs, err := counterparty.QueryUnreceivedAcknowledgements(counterpartyCtx, packets.ExtractSequenceList())
+	if err != nil {
+		return nil, err
+	}
+	packets = packets.Filter(seqs)
+
+	return packets, nil
+}
+
+// querySentPacket finds a SendPacket event corresponding to `seq` and returns the packet in it
+func (c *Chain) querySentPacket(ctx core.QueryContext, seq uint64) (*chantypes.Packet, clienttypes.Height, error) {
+	txs, err := c.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, sendPacketQuery(c.Path().ChannelID, int(seq)))
+	switch {
+	case err != nil:
+		return nil, clienttypes.Height{}, err
+	case len(txs) == 0:
+		return nil, clienttypes.Height{}, fmt.Errorf("no transactions returned with query")
+	case len(txs) > 1:
+		return nil, clienttypes.Height{}, fmt.Errorf("more than one transaction returned with query")
+	}
+
+	packet, err := core.FindPacketFromEventsBySequence(txs[0].TxResult.Events, chantypes.EventTypeSendPacket, seq)
+	if err != nil {
+		return nil, clienttypes.Height{}, err
+	}
+	if packet == nil {
+		return nil, clienttypes.Height{}, fmt.Errorf("can't find the packet from events")
+	}
+
+	height := clienttypes.NewHeight(clienttypes.ParseChainID(c.ChainID()), uint64(txs[0].Height))
+
+	return packet, height, nil
+}
+
+// queryReceivedPacket finds a RecvPacket event corresponding to `seq` and return the packet in it
+func (c *Chain) queryReceivedPacket(ctx core.QueryContext, seq uint64) (*chantypes.Packet, clienttypes.Height, error) {
+	txs, err := c.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, recvPacketQuery(c.Path().ChannelID, int(seq)))
+	switch {
+	case err != nil:
+		return nil, clienttypes.Height{}, err
+	case len(txs) == 0:
+		return nil, clienttypes.Height{}, fmt.Errorf("no transactions returned with query")
+	case len(txs) > 1:
+		return nil, clienttypes.Height{}, fmt.Errorf("more than one transaction returned with query")
+	}
+
+	packet, err := core.FindPacketFromEventsBySequence(txs[0].TxResult.Events, chantypes.EventTypeRecvPacket, seq)
+	if err != nil {
+		return nil, clienttypes.Height{}, err
+	}
+	if packet == nil {
+		return nil, clienttypes.Height{}, fmt.Errorf("can't find the packet from events")
+	}
+
+	height := clienttypes.NewHeight(clienttypes.ParseChainID(c.ChainID()), uint64(txs[0].Height))
+
+	return packet, height, nil
+
+}
+
+// queryWrittenAcknowledgement finds a WriteAcknowledgement event corresponding to `seq` and returns the acknowledgement in it
+func (c *Chain) queryWrittenAcknowledgement(ctx core.QueryContext, seq uint64) ([]byte, clienttypes.Height, error) {
+	txs, err := c.QueryTxs(int64(ctx.Height().GetRevisionHeight()), 1, 1000, writeAckQuery(c.Path().ChannelID, int(seq)))
+	switch {
+	case err != nil:
+		return nil, clienttypes.Height{}, err
+	case len(txs) == 0:
+		return nil, clienttypes.Height{}, fmt.Errorf("no transactions returned with query")
+	case len(txs) > 1:
+		return nil, clienttypes.Height{}, fmt.Errorf("more than one transaction returned with query")
+	}
+
+	ack, err := core.FindPacketAcknowledgementFromEventsBySequence(txs[0].TxResult.Events, seq)
+	if err != nil {
+		return nil, clienttypes.Height{}, err
+	}
+	if ack == nil {
+		return nil, clienttypes.Height{}, fmt.Errorf("can't find the packet from events")
+	}
+
+	height := clienttypes.NewHeight(clienttypes.ParseChainID(c.ChainID()), uint64(txs[0].Height))
+
+	return ack.Data(), height, nil
 }
 
 // QueryTxs returns an array of transactions given a tag
@@ -372,13 +455,18 @@ func (c *Chain) QueryUnbondingPeriod() (time.Duration, error) {
 
 const (
 	spTag = "send_packet"
+	rpTag = "recv_packet"
 	waTag = "write_acknowledgement"
 )
 
-func rcvPacketQuery(channelID string, seq int) []string {
+func sendPacketQuery(channelID string, seq int) []string {
 	return []string{fmt.Sprintf("%s.packet_src_channel='%s'", spTag, channelID), fmt.Sprintf("%s.packet_sequence='%d'", spTag, seq)}
 }
 
-func ackPacketQuery(channelID string, seq int) []string {
+func recvPacketQuery(channelID string, seq int) []string {
+	return []string{fmt.Sprintf("%s.packet_src_channel='%s'", rpTag, channelID), fmt.Sprintf("%s.packet_sequence='%d'", rpTag, seq)}
+}
+
+func writeAckQuery(channelID string, seq int) []string {
 	return []string{fmt.Sprintf("%s.packet_dst_channel='%s'", waTag, channelID), fmt.Sprintf("%s.packet_sequence='%d'", waTag, seq)}
 }
