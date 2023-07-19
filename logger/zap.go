@@ -53,7 +53,9 @@ func init() {
 		},
 		OutputPaths: []string{"stdout", "/tmp/zap.log"},
 	}
-	logger, err := cfg.Build()
+	logger, err := cfg.Build(
+		zap.AddCallerSkip(2),
+	)
 	if err != nil {
 		log.Fatalf("CreateLogger Error: %v", err)
 	}
@@ -75,7 +77,7 @@ func (zl *ZapLogger) Errorw(
 	zl.Zap.Errorw(
 		msg,
 		"error", zap.Error(err),
-		"stack trace", zap.StackSkip(stackKey, 2),
+		"stack trace", zap.StackSkip(stackKey, 3),
 	)
 }
 
@@ -95,7 +97,7 @@ func (zl *ZapLogger) ErrorwChannel(
 		"destination channel id", dstChannelID,
 		"destination port id", dstPortID,
 		"error", zap.Error(err),
-		"stack trace", zap.StackSkip(stackKey, 2),
+		"stack trace", zap.StackSkip(stackKey, 3),
 	)
 }
 
@@ -115,7 +117,7 @@ func (zl *ZapLogger) ErrorwConnection(
 		"destination client id", dstClientID,
 		"destination connection id", dstConnectionID,
 		"error", zap.Error(err),
-		"stack trace", zap.StackSkip(stackKey, 2),
+		"stack trace", zap.StackSkip(stackKey, 3),
 	)
 }
 
