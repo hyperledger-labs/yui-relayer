@@ -202,7 +202,7 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sp, err := st.UnrelayedSequences(c[src], c[dst], sh)
+			sp, err := st.UnrelayedPackets(c[src], c[dst], sh)
 			if err != nil {
 				return err
 			}

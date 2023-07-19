@@ -8,9 +8,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
-	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 
 	mocktypes "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
@@ -75,86 +72,9 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 	}, nil
 }
 
-// QueryClientConsensusState returns the ClientConsensusState and its proof
-func (pr *Prover) QueryClientConsensusStateWithProof(ctx core.QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	res, err := pr.chain.QueryClientConsensusState(ctx, dstClientConsHeight)
-	if err != nil {
-		return nil, err
-	}
-	bz, err := pr.chain.Codec().Marshal(res.ConsensusState)
-	if err != nil {
-		return nil, err
-	}
-	res.Proof = makeProof(bz)
-	res.ProofHeight = ctx.Height().(clienttypes.Height)
-	return res, nil
-}
-
-// QueryClientStateWithProof returns the ClientState and its proof
-func (pr *Prover) QueryClientStateWithProof(ctx core.QueryContext) (*clienttypes.QueryClientStateResponse, error) {
-	res, err := pr.chain.QueryClientState(ctx)
-	if err != nil {
-		return nil, err
-	}
-	bz, err := pr.chain.Codec().Marshal(res.ClientState)
-	if err != nil {
-		return nil, err
-	}
-	res.Proof = makeProof(bz)
-	res.ProofHeight = ctx.Height().(clienttypes.Height)
-	return res, nil
-}
-
-// QueryConnectionWithProof returns the Connection and its proof
-func (pr *Prover) QueryConnectionWithProof(ctx core.QueryContext) (*conntypes.QueryConnectionResponse, error) {
-	res, err := pr.chain.QueryConnection(ctx)
-	if err != nil {
-		return nil, err
-	}
-	bz, err := pr.chain.Codec().Marshal(res.Connection)
-	if err != nil {
-		return nil, err
-	}
-	res.Proof = makeProof(bz)
-	res.ProofHeight = ctx.Height().(clienttypes.Height)
-	return res, nil
-}
-
-// QueryChannelWithProof returns the Channel and its proof
-func (pr *Prover) QueryChannelWithProof(ctx core.QueryContext) (chanRes *chantypes.QueryChannelResponse, err error) {
-	res, err := pr.chain.QueryChannel(ctx)
-	if err != nil {
-		return nil, err
-	}
-	bz, err := pr.chain.Codec().Marshal(res.Channel)
-	if err != nil {
-		return nil, err
-	}
-	res.Proof = makeProof(bz)
-	res.ProofHeight = ctx.Height().(clienttypes.Height)
-	return res, nil
-}
-
-// QueryPacketCommitmentWithProof returns the packet commitment and its proof
-func (pr *Prover) QueryPacketCommitmentWithProof(ctx core.QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	res, err := pr.chain.QueryPacketCommitment(ctx, seq)
-	if err != nil {
-		return nil, err
-	}
-	res.Proof = makeProof(res.Commitment)
-	res.ProofHeight = ctx.Height().(clienttypes.Height)
-	return res, nil
-}
-
-// QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
-func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	res, err := pr.chain.QueryPacketAcknowledgementCommitment(ctx, seq)
-	if err != nil {
-		return nil, err
-	}
-	res.Proof = makeProof(res.Acknowledgement)
-	res.ProofHeight = ctx.Height().(clienttypes.Height)
-	return res, nil
+// ProveState returns the proof of an IBC state specified by `path` and `value`
+func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
+	return makeProof(value), ctx.Height().(clienttypes.Height), nil
 }
 
 func makeProof(bz []byte) []byte {

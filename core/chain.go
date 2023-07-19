@@ -135,29 +135,17 @@ type ICS04Querier interface {
 	// QueryChannel returns the channel associated with a channelID
 	QueryChannel(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
 
-	// QueryPacketCommitment returns the packet commitment corresponding to a given sequence
-	QueryPacketCommitment(ctx QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error)
+	// QueryUnreceivedPackets returns a list of unrelayed packet commitments
+	QueryUnreceivedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
-	// QueryPacketAcknowledgementCommitment returns the acknowledgement corresponding to a given sequence
-	QueryPacketAcknowledgementCommitment(ctx QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error)
+	// QueryUnfinalizedRelayedPackets returns packets and heights that are sent but not received at the latest finalized block on the counterparty chain
+	QueryUnfinalizedRelayPackets(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error)
 
-	// QueryPacketCommitments returns an array of packet commitments
-	QueryPacketCommitments(ctx QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error)
+	// QueryUnreceivedAcknowledgements returns a list of unrelayed packet acks
+	QueryUnreceivedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
-	// QueryUnrecievedPackets returns a list of unrelayed packet commitments
-	QueryUnrecievedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
-
-	// QueryPacketAcknowledgementCommitments returns an array of packet acks
-	QueryPacketAcknowledgementCommitments(ctx QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error)
-
-	// QueryUnrecievedAcknowledgements returns a list of unrelayed packet acks
-	QueryUnrecievedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error)
-
-	// QueryPacket returns the packet corresponding to a sequence
-	QueryPacket(ctx QueryContext, sequence uint64) (*chantypes.Packet, error)
-
-	// QueryPacketAcknowledgement returns the acknowledgement corresponding to a sequence
-	QueryPacketAcknowledgement(ctx QueryContext, sequence uint64) ([]byte, error)
+	// QueryUnfinalizedRelayedAcknowledgements returns acks and heights that are sent but not received at the latest finalized block on the counterpartychain
+	QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error)
 }
 
 // ICS20Querier is an interface to the state of ICS-20
@@ -167,6 +155,11 @@ type ICS20Querier interface {
 
 	// QueryDenomTraces returns all the denom traces from a given chain
 	QueryDenomTraces(ctx QueryContext, offset, limit uint64) (*transfertypes.QueryDenomTracesResponse, error)
+}
+
+type LightClientICS04Querier interface {
+	LightClient
+	ICS04Querier
 }
 
 // QueryContext is a context that contains a height of the target chain for querying states
@@ -190,7 +183,7 @@ func NewQueryContext(ctx context.Context, height ibcexported.Height) QueryContex
 	return queryContext{ctx: ctx, height: height}
 }
 
-// Context returns `context.Context``
+// Context returns `context.Context`
 func (qc queryContext) Context() context.Context {
 	return qc.ctx
 }

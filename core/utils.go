@@ -11,10 +11,10 @@ import (
 	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 )
 
-func GetPacketsFromEvents(events []abci.Event) ([]channeltypes.Packet, error) {
+func GetPacketsFromEvents(events []abci.Event, eventType string) ([]channeltypes.Packet, error) {
 	var packets []channeltypes.Packet
 	for _, ev := range events {
-		if ev.Type != channeltypes.EventTypeSendPacket {
+		if ev.Type != eventType {
 			continue
 		}
 		// NOTE: Attributes of packet are included in one event.
@@ -76,8 +76,8 @@ func GetPacketsFromEvents(events []abci.Event) ([]channeltypes.Packet, error) {
 	return packets, nil
 }
 
-func FindPacketFromEventsBySequence(events []abci.Event, seq uint64) (*channeltypes.Packet, error) {
-	packets, err := GetPacketsFromEvents(events)
+func FindPacketFromEventsBySequence(events []abci.Event, eventType string, seq uint64) (*channeltypes.Packet, error) {
+	packets, err := GetPacketsFromEvents(events, eventType)
 	if err != nil {
 		return nil, err
 	}
