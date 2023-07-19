@@ -76,8 +76,8 @@ func (zl *ZapLogger) Errorw(
 ) {
 	zl.Zap.Errorw(
 		msg,
-		"error", zap.Error(err),
-		"stack trace", zap.StackSkip(stackKey, 3),
+		zap.Error(err),
+		zap.StackSkip(stackKey, 3),
 	)
 }
 
@@ -96,8 +96,8 @@ func (zl *ZapLogger) ErrorwChannel(
 		"destination chain id", dstChainID,
 		"destination channel id", dstChannelID,
 		"destination port id", dstPortID,
-		"error", zap.Error(err),
-		"stack trace", zap.StackSkip(stackKey, 3),
+		zap.Error(err),
+		zap.StackSkip(stackKey, 3),
 	)
 }
 
@@ -116,8 +116,8 @@ func (zl *ZapLogger) ErrorwConnection(
 		"destination chain id", dstChainID,
 		"destination client id", dstClientID,
 		"destination connection id", dstConnectionID,
-		"error", zap.Error(err),
-		"stack trace", zap.StackSkip(stackKey, 3),
+		zap.Error(err),
+		zap.StackSkip(stackKey, 3),
 	)
 }
 
