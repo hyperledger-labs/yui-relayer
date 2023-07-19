@@ -8,7 +8,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var zapLogger *zap.SugaredLogger
+type ZapLogger struct {
+	Zap *zap.SugaredLogger
+}
+
+var zapLogger *ZapLogger
 
 func init() {
 	logLevelEnv := os.Getenv("LOG_LEVEL")
@@ -53,9 +57,110 @@ func init() {
 	if err != nil {
 		log.Fatalf("CreateLogger Error: %v", err)
 	}
-	zapLogger = logger.Sugar()
+
+	zapLogger = new(ZapLogger)
+	zapLogger.Zap = logger.Sugar()
+
 }
 
-func ZapLogger() *zap.SugaredLogger {
+func GetLogger() *ZapLogger {
 	return zapLogger
+}
+
+func (zl *ZapLogger) Errorw(
+	msg string,
+	err error,
+	stackKey string,
+) {
+	zl.Zap.Errorw(
+		msg,
+		"error", zap.Error(err),
+		"stack trace", zap.StackSkip(stackKey, 2),
+	)
+}
+
+func (zl *ZapLogger) ErrorwChannel(
+	msg string,
+	srcChainID, srcChannelID, srcPortID string,
+	dstChainID, dstChannelID, dstPortID string,
+	err error,
+	stackKey string,
+) {
+	zl.Zap.Errorw(
+		msg,
+		"source chain id", srcChainID,
+		"source channnel id", srcChannelID,
+		"source port id", srcPortID,
+		"destination chain id", dstChainID,
+		"destination channel id", dstChannelID,
+		"destination port id", dstPortID,
+		"error", zap.Error(err),
+		"stack trace", zap.StackSkip(stackKey, 2),
+	)
+}
+
+func (zl *ZapLogger) ErrorwConnection(
+	msg string,
+	srcChainID, srcClientID, srcConnectionID,
+	dstChainID, dstClientID, dstConnectionID string,
+	err error,
+	stackKey string,
+) {
+	zl.Zap.Errorw(
+		msg,
+		"source chain id", srcChainID,
+		"source client id", srcClientID,
+		"source connection id", srcConnectionID,
+		"destination chain id", dstChainID,
+		"destination client id", dstClientID,
+		"destination connection id", dstConnectionID,
+		"error", zap.Error(err),
+		"stack trace", zap.StackSkip(stackKey, 2),
+	)
+}
+
+func (zl *ZapLogger) Infow(
+	msg string,
+	info interface{},
+) {
+	zl.Zap.Infow(
+		msg,
+		"info", info,
+	)
+}
+
+func (zl *ZapLogger) InfowChannel(
+	msg string,
+	srcChainID, srcChannelID, srcPortID string,
+	dstChainID, dstChannelID, dstPortID string,
+	info interface{},
+) {
+	zl.Zap.Infow(
+		msg,
+		"source chain id", srcChainID,
+		"source channnel id", srcChannelID,
+		"source port id", srcPortID,
+		"destination chain id", dstChainID,
+		"destination channel id", dstChannelID,
+		"destination port id", dstPortID,
+		"info", info,
+	)
+}
+
+func (zl *ZapLogger) InfowConnection(
+	msg string,
+	srcChainID, srcClientID, srcConnectionID string,
+	dstChainID, dstClientID, dstConnectionID string,
+	info interface{},
+) {
+	zl.Zap.Infow(
+		msg,
+		"source chain id", srcChainID,
+		"source client id", srcClientID,
+		"source connection id", srcConnectionID,
+		"destination chain id", dstChainID,
+		"destination client id", dstClientID,
+		"destination connection id", dstConnectionID,
+		"info", info,
+	)
 }

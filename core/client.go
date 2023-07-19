@@ -1,48 +1,60 @@
 package core
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hyperledger-labs/yui-relayer/logger"
-	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
 func CreateClients(src, dst *ProvableChain) error {
-	logger := logger.ZapLogger()
-	defer logger.Sync()
+	zapLogger := logger.GetLogger()
+	defer zapLogger.Zap.Sync()
+
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 
 	srcH, dstH, err := getHeadersForCreateClient(src, dst)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to get headers for create client [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-			src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-			dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID),
-			zap.Error(err))
+		clientErrorwChannel(
+			zapLogger,
+			"failed to get headers for create client",
+			src, dst,
+			err,
+		)
 		return err
 	}
 
 	srcAddr, err := src.GetAddress()
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to get address for create client [src: %s]", src.ChainID()), zap.Error(err))
+		clientErrorwChannel(
+			zapLogger,
+			"failed to get address for create client",
+			src, dst,
+			err,
+		)
 		return err
 	}
 	dstAddr, err := dst.GetAddress()
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to get address for create client [dst: %s]", dst.ChainID()), zap.Error(err))
+		clientErrorwChannel(
+			zapLogger,
+			"failed to get address for create client",
+			src, dst,
+			err,
+		)
 		return err
 	}
 
 	{
 		msg, err := dst.CreateMsgCreateClient(src.Path().ClientID, dstH, srcAddr)
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to create client on dst chain [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-				src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID),
-				zap.Error(err))
+			clientErrorwChannel(
+				zapLogger,
+				"failed to create client",
+				src, dst,
+				err,
+			)
 			return err
 		}
 		clients.Src = append(clients.Src, msg)
@@ -51,10 +63,12 @@ func CreateClients(src, dst *ProvableChain) error {
 	{
 		msg, err := src.CreateMsgCreateClient(dst.Path().ClientID, srcH, dstAddr)
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to create client on src chain [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-				src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID),
-				zap.Error(err))
+			clientErrorwChannel(
+				zapLogger,
+				"failed to create client",
+				src, dst,
+				err,
+			)
 			return err
 		}
 		clients.Dst = append(clients.Dst, msg)
@@ -64,34 +78,41 @@ func CreateClients(src, dst *ProvableChain) error {
 	if clients.Ready() {
 		// TODO: Add retry here for out of gas or other errors
 		if clients.Send(src, dst); clients.Success() {
-			logger.Info(fmt.Sprintf("★ Clients created: [%s]client(%s) and [%s]client(%s)",
-				src.ChainID(), src.Path().ClientID, dst.ChainID(), dst.Path().ClientID))
+			clientInfowChannel(
+				zapLogger,
+				"★ Clients created",
+				src, dst,
+			)
 		}
 	}
 	return nil
 }
 
 func UpdateClients(src, dst *ProvableChain) error {
-	logger := logger.ZapLogger()
-	defer logger.Sync()
+	zapLogger := logger.GetLogger()
+	defer zapLogger.Zap.Sync()
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 	// First, update the light clients to the latest header and return the header
 	sh, err := NewSyncHeaders(src, dst)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to create sync headers for update client [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-			src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-			dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID),
-			zap.Error(err))
+		clientErrorwChannel(
+			zapLogger,
+			"failed to create sync headers for update client",
+			src, dst,
+			err,
+		)
 		return err
 	}
 	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(src, dst)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to setup both headers for update client [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-			src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-			dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID),
-			zap.Error(err))
+		clientErrorwChannel(
+			zapLogger,
+			"failed to setup both headers for update client",
+			src, dst,
+			err,
+		)
 		return err
 	}
 	if len(dstUpdateHeaders) > 0 {
@@ -103,8 +124,11 @@ func UpdateClients(src, dst *ProvableChain) error {
 	// Send msgs to both chains
 	if clients.Ready() {
 		if clients.Send(src, dst); clients.Success() {
-			logger.Info(fmt.Sprintf("★ Clients updated: [%s]client(%s) and [%s]client(%s)",
-				src.ChainID(), src.Path().ClientID, dst.ChainID(), dst.Path().ClientID))
+			clientInfowChannel(
+				zapLogger,
+				"★ Clients updated",
+				src, dst,
+			)
 		}
 	}
 	return nil
@@ -125,4 +149,23 @@ func getHeadersForCreateClient(src, dst LightClient) (srch, dsth Header, err err
 		return nil, nil, err
 	}
 	return srch, dsth, nil
+}
+
+func clientErrorwChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
+	zapLogger.ErrorwChannel(
+		msg,
+		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+		err,
+		"core.client",
+	)
+}
+
+func clientInfowChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain) {
+	zapLogger.InfowChannel(
+		msg,
+		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+		"",
+	)
 }

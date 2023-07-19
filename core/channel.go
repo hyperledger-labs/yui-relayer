@@ -7,14 +7,13 @@ import (
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/logger"
-	"go.uber.org/zap"
 )
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
 func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
-	logger := logger.ZapLogger()
-	defer logger.Sync()
+	zapLogger := logger.GetLogger()
+	defer zapLogger.Zap.Sync()
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -27,10 +26,12 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 	for ; true; <-ticker.C {
 		chanSteps, err := createChannelStep(src, dst, order)
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to create channel step: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-				src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID),
-				zap.Error(err))
+			channelErrorw(
+				zapLogger,
+				"failed to create channel step",
+				src, dst,
+				err,
+			)
 			return err
 		}
 
@@ -44,9 +45,11 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case chanSteps.Success() && chanSteps.Last:
-			logger.Info(fmt.Sprintf("★ Channel created: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-				src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID))
+			channnelInfowChannel(
+				zapLogger,
+				"★ Channel created",
+				src, dst,
+			)
 			return nil
 		// In the case of success, reset the failures counter
 		case chanSteps.Success():
@@ -55,15 +58,19 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !chanSteps.Success():
 			failures++
-			logger.Info("retrying transaction...")
+			zapLogger.Zap.Info("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failures > 2 {
-				logger.Error(fmt.Sprintf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-					src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-					dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID))
+				channelErrorw(
+					zapLogger,
+					"! Channel failed",
+					src, dst,
+					err,
+				)
 				return fmt.Errorf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
 					src.ChainID(), src.Path().ClientID, src.Path().ChannelID,
-					dst.ChainID(), dst.Path().ClientID, dst.Path().ChannelID)
+					dst.ChainID(), dst.Path().ClientID, dst.Path().ChannelID,
+				)
 			}
 		}
 	}
@@ -174,16 +181,37 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 }
 
 func logChannelStates(src, dst Chain, srcChan, dstChan *chantypes.QueryChannelResponse) {
-	logger := logger.ZapLogger()
-	defer logger.Sync()
-	logger.Info(fmt.Sprintf("- [%s]@{%d}chan(%s)-{%s} : [%s]@{%d}chan(%s)-{%s}",
-		src.ChainID(),
-		mustGetHeight(srcChan.ProofHeight),
-		src.Path().ChannelID,
-		srcChan.Channel.State,
-		dst.ChainID(),
-		mustGetHeight(dstChan.ProofHeight),
-		dst.Path().ChannelID,
-		dstChan.Channel.State,
-	))
+	zapLogger := logger.GetLogger()
+	defer zapLogger.Zap.Sync()
+	zapLogger.InfowChannel(
+		"channel states",
+		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+		fmt.Sprintf(
+			"src channel height: [%d] state: %s | dst channel height: [%d] state: %s",
+			mustGetHeight(srcChan.ProofHeight),
+			srcChan.Channel.State,
+			mustGetHeight(dstChan.ProofHeight),
+			dstChan.Channel.State,
+		),
+	)
+}
+
+func channelErrorw(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
+	zapLogger.ErrorwChannel(
+		msg,
+		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+		err,
+		"core.channel",
+	)
+}
+
+func channnelInfowChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain) {
+	zapLogger.InfowChannel(
+		msg,
+		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+		"",
+	)
 }

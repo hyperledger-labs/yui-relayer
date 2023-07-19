@@ -14,7 +14,6 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/helpers"
 	"github.com/hyperledger-labs/yui-relayer/logger"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
 // queryCmd represents the chain command
@@ -180,8 +179,8 @@ func queryBalanceCmd(ctx *config.Context) *cobra.Command {
 }
 
 func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
-	logger := logger.ZapLogger()
-	defer logger.Sync()
+	zapLogger := logger.GetLogger()
+	defer zapLogger.Zap.Sync()
 	cmd := &cobra.Command{
 		Use:   "unrelayed-packets [path]",
 		Short: "Query for the packet sequence numbers that remain to be relayed on a given path",
@@ -209,11 +208,11 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 			}
 			out, err := json.Marshal(sp)
 			if err != nil {
-				logger.Error("failed to marshal sequences", zap.Any("sp", sp), zap.Error(err))
+				queryErrorw(zapLogger, "failed to marshal sequences", err)
 				return err
 			}
 
-			logger.Info("unrelayed sequences", zap.String("sequences", string(out)))
+			fmt.Println(string(out))
 			return nil
 		},
 	}
@@ -222,8 +221,8 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 }
 
 func queryUnrelayedAcknowledgements(ctx *config.Context) *cobra.Command {
-	logger := logger.ZapLogger()
-	defer logger.Sync()
+	zapLogger := logger.GetLogger()
+	defer zapLogger.Zap.Sync()
 	cmd := &cobra.Command{
 		Use:   "unrelayed-acknowledgements [path]",
 		Short: "Query for the packet sequence numbers that remain to be relayed on a given path",
@@ -253,14 +252,29 @@ func queryUnrelayedAcknowledgements(ctx *config.Context) *cobra.Command {
 
 			out, err := json.Marshal(sp)
 			if err != nil {
-				logger.Error("failed to marshal sequences", zap.Any("sp", sp), zap.Error(err))
+				queryErrorw(zapLogger, "failed to marshal sequences", err)
 				return err
 			}
 
-			logger.Info("unrelayed acknowledgements", zap.String("acknowledgements", string(out)))
+			queryInfow(zapLogger, "unrelayed acknowledgements", fmt.Sprintf("acknowledgements %s", string(out)))
 			return nil
 		},
 	}
 
 	return cmd
+}
+
+func queryErrorw(zapLogger *logger.ZapLogger, msg string, err error) {
+	zapLogger.Errorw(
+		msg,
+		err,
+		"core.query",
+	)
+}
+
+func queryInfow(zapLogger *logger.ZapLogger, msg string, info string) {
+	zapLogger.Infow(
+		msg,
+		info,
+	)
 }
