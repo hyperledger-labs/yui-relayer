@@ -243,7 +243,7 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelayPackets, 
 	if len(packetsForDst) == 0 && len(packetsForSrc) == 0 {
 		naiveInfowChannel(
 			zapLogger,
-			"Nopackates to relay",
+			"no packates to relay",
 			src, dst,
 			"",
 		)
