@@ -510,7 +510,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 			logPacketsRelayed(dst, src, num, "RelayAcknowledgements")
 		}
 		if num := len(acksForSrc); num > 0 {
-			logPacketsRelayed(src, dst, "RelayAcknowledgements")
+			logPacketsRelayed(src, dst, num, "RelayAcknowledgements")
 		}
 	}
 
