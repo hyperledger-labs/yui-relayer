@@ -256,10 +256,10 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelayPackets, 
 	// send messages to their respective chains
 	if msgs.Send(src, dst); msgs.Success() {
 		if num := len(packetsForDst); num > 0 {
-			logPacketsRelayed(dst, src, num)
+			logPacketsRelayed(dst, src, num, "RelayPackets")
 		}
 		if num := len(packetsForSrc); num > 0 {
-			logPacketsRelayed(src, dst, num)
+			logPacketsRelayed(src, dst, num, "RelayPackets")
 		}
 	}
 
@@ -393,14 +393,14 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	return msgs, nil
 }
 
-func logPacketsRelayed(src, dst Chain, num int) {
+func logPacketsRelayed(src, dst Chain, num int, info string) {
 	zapLogger := logger.GetLogger()
 	defer zapLogger.Zap.Sync()
 	zapLogger.InfowChannel(
 		fmt.Sprintf("★ Relayed %d packets", num),
 		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
 		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
-		"",
+		info,
 	)
 }
 
@@ -507,10 +507,10 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 	// send messages to their respective chains
 	if msgs.Send(src, dst); msgs.Success() {
 		if num := len(acksForDst); num > 0 {
-			logPacketsRelayed(dst, src, num)
+			logPacketsRelayed(dst, src, num, "RelayAcknowledgements")
 		}
 		if num := len(acksForSrc); num > 0 {
-			logPacketsRelayed(src, dst, num)
+			logPacketsRelayed(src, dst, "RelayAcknowledgements")
 		}
 	}
 
