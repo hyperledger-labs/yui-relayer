@@ -203,6 +203,15 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			// Some use cases need `{"src":[],"dst":[]}` instead of `{"src":null,"dst":null}`
+			if sp.Src == nil {
+				sp.Src = []*core.PacketInfo{}
+			}
+			if sp.Dst == nil {
+				sp.Dst = []*core.PacketInfo{}
+			}
+
 			out, err := json.Marshal(sp)
 			if err != nil {
 				return err
@@ -242,6 +251,14 @@ func queryUnrelayedAcknowledgements(ctx *config.Context) *cobra.Command {
 			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh)
 			if err != nil {
 				return err
+			}
+
+			// Some use cases need `{"src":[],"dst":[]}` instead of `{"src":null,"dst":null}`
+			if sp.Src == nil {
+				sp.Src = []*core.PacketInfo{}
+			}
+			if sp.Dst == nil {
+				sp.Dst = []*core.PacketInfo{}
 			}
 
 			out, err := json.Marshal(sp)
