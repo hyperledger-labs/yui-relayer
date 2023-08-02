@@ -3,6 +3,7 @@ package mock
 import (
 	"context"
 	"crypto/sha256"
+	fmt "fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -14,13 +15,14 @@ import (
 )
 
 type Prover struct {
-	chain core.Chain
+	chain  core.Chain
+	config ProverConfig
 }
 
 var _ core.Prover = (*Prover)(nil)
 
-func NewProver(chain core.Chain) *Prover {
-	return &Prover{chain: chain}
+func NewProver(chain core.Chain, config ProverConfig) *Prover {
+	return &Prover{chain: chain, config: config}
 }
 
 func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
@@ -62,6 +64,13 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 	chainLatestHeight, err := pr.chain.LatestHeight()
 	if err != nil {
 		return nil, err
+	}
+	var success bool
+	for i := int64(0); i < pr.config.FinalityDelay; i++ {
+		chainLatestHeight, success = chainLatestHeight.Decrement()
+		if !success {
+			return nil, fmt.Errorf("failed to decrement chainLatestHeight")
+		}
 	}
 	return &mocktypes.Header{
 		Height: clienttypes.Height{

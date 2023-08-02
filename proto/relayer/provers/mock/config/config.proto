@@ -6,4 +6,6 @@ import "gogoproto/gogo.proto";
 option go_package = "github.com/hyperledger-labs/yui-relayer/provers/mock";
 option (gogoproto.goproto_getters_all) = false;
 
-message ProverConfig {}
+message ProverConfig {
+  int64 finality_delay = 1;
+}
