@@ -39,7 +39,7 @@ func (st NaiveStrategy) SetupRelay(ctx context.Context, src, dst *ProvableChain)
 	return nil
 }
 
-func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders) (*RelayPackets, error) {
+func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, scanFinalizedEvents, scanFinalizedRelays bool) (*RelayPackets, error) {
 	var (
 		eg         = new(errgroup.Group)
 		srcPackets PacketInfoList
@@ -182,7 +182,7 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelayPackets, 
 	return nil
 }
 
-func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders) (*RelayPackets, error) {
+func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, scanFinalizedEvents, scanFinalizedRelays bool) (*RelayPackets, error) {
 	var (
 		eg      = new(errgroup.Group)
 		srcAcks PacketInfoList

@@ -9,9 +9,9 @@ import (
 type StrategyI interface {
 	GetType() string
 	SetupRelay(ctx context.Context, src, dst *ProvableChain) error
-	UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders) (*RelayPackets, error)
+	UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, scanFinalizedEvents, scanFinalizedRelays bool) (*RelayPackets, error)
 	RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error
-	UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders) (*RelayPackets, error)
+	UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, scanFinalizedEvents, scanFinalizedRelays bool) (*RelayPackets, error)
 	RelayAcknowledgements(src, dst *ProvableChain, ra *RelayPackets, sh SyncHeaders) error
 }
 
