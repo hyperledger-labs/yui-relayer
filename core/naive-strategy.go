@@ -393,13 +393,13 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	return msgs, nil
 }
 
-func logPacketsRelayed(src, dst Chain, num int, info string) {
+func logPacketsRelayed(src, dst *ProvableChain, num int, info string) {
 	zapLogger := logger.GetLogger()
 	defer zapLogger.Zap.Sync()
-	zapLogger.InfowChannel(
+	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	logger.InfowSugaredLogger(
+		sLogger,
 		fmt.Sprintf("★ Relayed %d packets", num),
-		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
 		info,
 	)
 }
@@ -536,19 +536,20 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 }
 
 func naiveErrorwChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
-	zapLogger.ErrorwChannel(msg,
-		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	logger.ErrorwSugaredLogger(
+		sLogger,
+		msg,
 		err,
 		"core.naive-strategy",
 	)
 }
 
 func naiveInfowChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, info string) {
-	zapLogger.InfowChannel(
+	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	logger.InfowSugaredLogger(
+		sLogger,
 		msg,
-		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
 		info,
 	)
 }

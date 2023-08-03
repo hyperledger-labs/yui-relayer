@@ -79,41 +79,14 @@ func (zl *ZapLogger) Errorw(
 	)
 }
 
-func (zl *ZapLogger) ErrorwChannel(
+func ErrorwSugaredLogger(
+	sLogger *zap.SugaredLogger,
 	msg string,
-	srcChainID, srcChannelID, srcPortID string,
-	dstChainID, dstChannelID, dstPortID string,
 	err error,
 	stackKey string,
 ) {
-	zl.Zap.Errorw(
+	sLogger.Errorw(
 		msg,
-		"source chain id", srcChainID,
-		"source channnel id", srcChannelID,
-		"source port id", srcPortID,
-		"destination chain id", dstChainID,
-		"destination channel id", dstChannelID,
-		"destination port id", dstPortID,
-		zap.Error(err),
-		zap.StackSkip(stackKey, 3),
-	)
-}
-
-func (zl *ZapLogger) ErrorwConnection(
-	msg string,
-	srcChainID, srcClientID, srcConnectionID,
-	dstChainID, dstClientID, dstConnectionID string,
-	err error,
-	stackKey string,
-) {
-	zl.Zap.Errorw(
-		msg,
-		"source chain id", srcChainID,
-		"source client id", srcClientID,
-		"source connection id", srcConnectionID,
-		"destination chain id", dstChainID,
-		"destination client id", dstClientID,
-		"destination connection id", dstConnectionID,
 		zap.Error(err),
 		zap.StackSkip(stackKey, 3),
 	)
@@ -129,38 +102,50 @@ func (zl *ZapLogger) Infow(
 	)
 }
 
-func (zl *ZapLogger) InfowChannel(
+func InfowSugaredLogger(
+	sLogger *zap.SugaredLogger,
 	msg string,
-	srcChainID, srcChannelID, srcPortID string,
-	dstChainID, dstChannelID, dstPortID string,
 	info interface{},
 ) {
-	zl.Zap.Infow(
+	sLogger.Infow(
 		msg,
+		"info", info,
+	)
+}
+
+func GetChannelLogger(
+	logger *zap.SugaredLogger,
+	srcChainID, srcChannelID, srcPortID string,
+	dstChainID, dstChannelID, dstPortID string,
+) *zap.SugaredLogger {
+	return logger.With(
 		"source chain id", srcChainID,
 		"source channnel id", srcChannelID,
 		"source port id", srcPortID,
 		"destination chain id", dstChainID,
 		"destination channel id", dstChannelID,
 		"destination port id", dstPortID,
-		"info", info,
 	)
 }
 
-func (zl *ZapLogger) InfowConnection(
-	msg string,
+func GetConnectionLogger(
+	logger *zap.SugaredLogger,
 	srcChainID, srcClientID, srcConnectionID string,
 	dstChainID, dstClientID, dstConnectionID string,
-	info interface{},
-) {
-	zl.Zap.Infow(
-		msg,
+) *zap.SugaredLogger {
+	return logger.With(
 		"source chain id", srcChainID,
 		"source client id", srcClientID,
 		"source connection id", srcConnectionID,
 		"destination chain id", dstChainID,
 		"destination client id", dstClientID,
 		"destination connection id", dstConnectionID,
-		"info", info,
 	)
+}
+
+func GetModuleLogger(
+	logger *zap.SugaredLogger,
+	moduleName string,
+) *zap.SugaredLogger {
+	return logger.With("module", moduleName)
 }

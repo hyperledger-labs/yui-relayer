@@ -12,6 +12,7 @@ import (
 	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/logger"
+	"go.uber.org/zap"
 )
 
 var (
@@ -84,8 +85,6 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 }
 
 func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
@@ -209,11 +208,6 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		out.Last = true
 
 	default:
-		connectionErrorw(
-			zapLogger,
-			"not implemented",
-			fmt.Errorf("not implemented error: %v %v", srcConn.Connection.State, dstConn.Connection.State),
-		)
 		panic(fmt.Sprintf("not implemented error: %v %v", srcConn.Connection.State, dstConn.Connection.State))
 	}
 
@@ -298,28 +292,32 @@ func connectionErrorw(zapLogger *logger.ZapLogger, msg string, err error) {
 }
 
 func connectionErrorwConnection(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
-	zapLogger.ErrorwChannel(
+	sLogger := GetConnectionLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	logger.ErrorwSugaredLogger(
+		sLogger,
 		msg,
-		src.ChainID(),
-		src.Path().ClientID,
-		src.Path().ConnectionID,
-		dst.ChainID(),
-		dst.Path().ClientID,
-		dst.Path().ConnectionID,
 		err,
 		"core.connection",
 	)
 }
 
 func connectionInfowConnection(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain) {
-	zapLogger.InfowConnection(
+	sLogger := GetConnectionLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	logger.InfowSugaredLogger(
+		sLogger,
 		msg,
+		"",
+	)
+}
+
+func GetConnectionLoggerFromProvaleChain(sugaredLogger *zap.SugaredLogger, src, dst *ProvableChain) *zap.SugaredLogger {
+	return logger.GetConnectionLogger(
+		sugaredLogger,
 		src.ChainID(),
 		src.Path().ClientID,
 		src.Path().ConnectionID,
 		dst.ChainID(),
 		dst.Path().ClientID,
 		dst.Path().ConnectionID,
-		"",
 	)
 }

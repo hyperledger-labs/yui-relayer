@@ -7,6 +7,7 @@ import (
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/logger"
+	"go.uber.org/zap"
 )
 
 // CreateChannel runs the channel creation messages on timeout until they pass
@@ -180,13 +181,13 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 	return out, nil
 }
 
-func logChannelStates(src, dst Chain, srcChan, dstChan *chantypes.QueryChannelResponse) {
+func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.QueryChannelResponse) {
 	zapLogger := logger.GetLogger()
 	defer zapLogger.Zap.Sync()
-	zapLogger.InfowChannel(
+	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	logger.InfowSugaredLogger(
+		sLogger,
 		"channel states",
-		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
 		fmt.Sprintf(
 			"src channel height: [%d] state: %s | dst channel height: [%d] state: %s",
 			mustGetHeight(srcChan.ProofHeight),
@@ -198,20 +199,28 @@ func logChannelStates(src, dst Chain, srcChan, dstChan *chantypes.QueryChannelRe
 }
 
 func channelErrorw(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
-	zapLogger.ErrorwChannel(
+	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	logger.ErrorwSugaredLogger(
+		sLogger,
 		msg,
-		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
 		err,
 		"core.channel",
 	)
 }
 
 func channnelInfowChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain) {
-	zapLogger.InfowChannel(
+	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	logger.InfowSugaredLogger(
+		sLogger,
 		msg,
+		"",
+	)
+}
+
+func GetChannelLoggerFromProvaleChain(sugaredLogger *zap.SugaredLogger, src, dst *ProvableChain) *zap.SugaredLogger {
+	return logger.GetChannelLogger(
+		sugaredLogger,
 		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
 		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
-		"",
 	)
 }

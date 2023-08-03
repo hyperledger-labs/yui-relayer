@@ -71,10 +71,10 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 }
 
 func packetErrorwChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
-	zapLogger.ErrorwChannel(
+	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	logger.ErrorwSugaredLogger(
+		sLogger,
 		msg,
-		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
 		err,
 		"core.packet-tx",
 	)
