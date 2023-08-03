@@ -2,7 +2,6 @@ package logger
 
 import (
 	"log"
-	"os"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -14,10 +13,9 @@ type ZapLogger struct {
 
 var zapLogger *ZapLogger
 
-func init() {
-	logLevelEnv := os.Getenv("LOG_LEVEL")
+func InitLogger(configLevel, configEncoding string, configOutputPaths []string) {
 	var logLevel zapcore.Level
-	switch logLevelEnv {
+	switch configLevel {
 	case "DEBUG":
 		logLevel = zapcore.DebugLevel
 	case "INFO":
@@ -39,7 +37,7 @@ func init() {
 	level.SetLevel(logLevel)
 	cfg := zap.Config{
 		Level:    level,
-		Encoding: "json",
+		Encoding: configEncoding,
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "TimeStamp",
 			LevelKey:       "Severity",
@@ -51,7 +49,7 @@ func init() {
 			EncodeDuration: zapcore.StringDurationEncoder,
 			EncodeCaller:   zapcore.ShortCallerEncoder,
 		},
-		OutputPaths: []string{"stdout", "/tmp/zap.log"},
+		OutputPaths: configOutputPaths,
 	}
 	logger, err := cfg.Build(
 		zap.AddCallerSkip(2),

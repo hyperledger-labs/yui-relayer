@@ -56,16 +56,12 @@ func NewChainProverConfig(m codec.JSONCodec, chain ChainConfig, client ProverCon
 
 // Init initialises the configuration
 func (cc *ChainProverConfig) Init(m codec.Codec) error {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
 	var chain ChainConfig
 	if err := utils.UnmarshalJSONAny(m, &chain, cc.Chain); err != nil {
-		configErrorw(zapLogger, "error unmarshalling chain config", err)
 		return err
 	}
 	var prover ProverConfig
 	if err := utils.UnmarshalJSONAny(m, &prover, cc.Prover); err != nil {
-		configErrorw(zapLogger, "error unmarshalling client config", err)
 		return err
 	}
 	cc.chain = chain
@@ -91,26 +87,20 @@ func (cc ChainProverConfig) GetProverConfig() (ProverConfig, error) {
 
 // Build returns a new ProvableChain instance
 func (cc ChainProverConfig) Build() (*ProvableChain, error) {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
 	chainConfig, err := cc.GetChainConfig()
 	if err != nil {
-		configErrorw(zapLogger, "error getting chain config", err)
 		return nil, err
 	}
 	proverConfig, err := cc.GetProverConfig()
 	if err != nil {
-		configErrorw(zapLogger, "error getting client config", err)
 		return nil, err
 	}
 	chain, err := chainConfig.Build()
 	if err != nil {
-		configErrorw(zapLogger, "error building chain", err)
 		return nil, err
 	}
 	prover, err := proverConfig.Build(chain)
 	if err != nil {
-		configErrorw(zapLogger, "error building prover", err)
 		return nil, err
 	}
 	return NewProvableChain(chain, prover), nil

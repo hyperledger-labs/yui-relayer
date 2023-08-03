@@ -27,8 +27,15 @@ func DefaultConfig() Config {
 
 // GlobalConfig describes any global relayer settings
 type GlobalConfig struct {
-	Timeout        string `yaml:"timeout" json:"timeout"`
-	LightCacheSize int    `yaml:"light-cache-size" json:"light-cache-size"`
+	Timeout        string       `yaml:"timeout" json:"timeout"`
+	LightCacheSize int          `yaml:"light-cache-size" json:"light-cache-size"`
+	LoggerConfig   LoggerConfig `yaml:"logger" json:"logger"`
+}
+
+type LoggerConfig struct {
+	OutputPaths []string `yaml:"output-paths" json:"output-paths"`
+	Level       string   `yaml:"level" json:"level"`
+	Encoding    string   `yaml:"encoding" json:"encoding"`
 }
 
 // newDefaultGlobalConfig returns a global config with defaults set
@@ -36,6 +43,11 @@ func newDefaultGlobalConfig() GlobalConfig {
 	return GlobalConfig{
 		Timeout:        "10s",
 		LightCacheSize: 20,
+		LoggerConfig: LoggerConfig{
+			OutputPaths: []string{"stdout"},
+			Level:       "DEBUG",
+			Encoding:    "json",
+		},
 	}
 }
 
