@@ -92,7 +92,7 @@ func readStdin() (string, error) {
 
 func initLogger(ctx *config.Context) {
 	loggerConfig := ctx.Config.Global.LoggerConfig
-	if loggerConfig.Level != "" && loggerConfig.Encoding != "" && len(loggerConfig.OutputPaths) > 0 {
+	if loggerConfig.Encoding != "" {
 		logger.InitLogger(loggerConfig.Level, loggerConfig.Encoding, loggerConfig.OutputPaths)
 	}
 }
