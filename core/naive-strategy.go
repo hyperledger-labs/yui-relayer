@@ -91,6 +91,9 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 		return nil, err
 	}
 
+	// If scanFinalizedRelays is true, this function should return packets of which RecvPacket is not finalized yet.
+	// In this case, filtering packets by QueryUnreceivedPackets is not needed because QueryUnfinalizedRelayPackets
+	// has already returned packets that completely match this condition.
 	if !scanFinalizedRelays {
 		srcCtx, err := getQueryContext(src, sh, scanFinalizedRelays)
 		if err != nil {
@@ -243,6 +246,9 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 		return nil, err
 	}
 
+	// If scanFinalizedRelays is true, this function should return packets of which AcknowledgePacket is not finalized yet.
+	// In this case, filtering packets by QueryUnreceivedAcknowledgements is not needed because QueryUnfinalizedRelayAcknowledgements
+	// has already returned packets that completely match this condition.
 	if !scanFinalizedRelays {
 		srcCtx, err := getQueryContext(src, sh, scanFinalizedRelays)
 		if err != nil {
