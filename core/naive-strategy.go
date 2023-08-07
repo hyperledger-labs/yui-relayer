@@ -133,7 +133,7 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 	}, nil
 }
 
-func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelayPackets, sh SyncHeaders) error {
+func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -153,7 +153,7 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelayPackets, 
 		return err
 	}
 
-	if len(sp.Src) > 0 {
+	if len(rp.Src) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(src, dst)
 		if err != nil {
 			return err
@@ -163,7 +163,7 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelayPackets, 
 		}
 	}
 
-	if len(sp.Dst) > 0 {
+	if len(rp.Dst) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(dst, src)
 		if err != nil {
 			return err
@@ -173,11 +173,11 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelayPackets, 
 		}
 	}
 
-	packetsForDst, err := collectPackets(srcCtx, src, sp.Src, dstAddress)
+	packetsForDst, err := collectPackets(srcCtx, src, rp.Src, dstAddress)
 	if err != nil {
 		return err
 	}
-	packetsForSrc, err := collectPackets(dstCtx, dst, sp.Dst, srcAddress)
+	packetsForSrc, err := collectPackets(dstCtx, dst, rp.Dst, srcAddress)
 	if err != nil {
 		return err
 	}
@@ -310,7 +310,7 @@ func logPacketsRelayed(src, dst Chain, num int) {
 		num, dst.ChainID(), dst.Path().PortID, src.ChainID(), src.Path().PortID)
 }
 
-func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *RelayPackets, sh SyncHeaders) error {
+func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -330,7 +330,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 		return err
 	}
 
-	if len(sp.Src) > 0 {
+	if len(rp.Src) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(src, dst)
 		if err != nil {
 			return err
@@ -340,7 +340,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 		}
 	}
 
-	if len(sp.Dst) > 0 {
+	if len(rp.Dst) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(dst, src)
 		if err != nil {
 			return err
@@ -350,11 +350,11 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, sp *Relay
 		}
 	}
 
-	acksForDst, err := collectAcks(srcCtx, src, sp.Src, dstAddress)
+	acksForDst, err := collectAcks(srcCtx, src, rp.Src, dstAddress)
 	if err != nil {
 		return err
 	}
-	acksForSrc, err := collectAcks(dstCtx, dst, sp.Dst, srcAddress)
+	acksForSrc, err := collectAcks(dstCtx, dst, rp.Dst, srcAddress)
 	if err != nil {
 		return err
 	}

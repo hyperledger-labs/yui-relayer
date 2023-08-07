@@ -25,7 +25,7 @@ type StrategyI interface {
 	UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error)
 
 	// RelayAcknowledgements executes AcknowledgePacket to the packets contained in `rp` on both chains (`src` and `dst`).
-	RelayAcknowledgements(src, dst *ProvableChain, ra *RelayPackets, sh SyncHeaders) error
+	RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error
 }
 
 // StrategyCfg defines which relaying strategy to take for a given path
