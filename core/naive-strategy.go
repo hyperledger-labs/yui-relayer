@@ -51,18 +51,18 @@ func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bo
 	}
 }
 
-func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, scanFinalizedEvents, scanFinalizedRelays bool) (*RelayPackets, error) {
+func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	var (
 		eg         = new(errgroup.Group)
 		srcPackets PacketInfoList
 		dstPackets PacketInfoList
 	)
 
-	srcCtx, err := getQueryContext(src, sh, scanFinalizedEvents)
+	srcCtx, err := getQueryContext(src, sh, true)
 	if err != nil {
 		return nil, err
 	}
-	dstCtx, err := getQueryContext(dst, sh, scanFinalizedEvents)
+	dstCtx, err := getQueryContext(dst, sh, true)
 	if err != nil {
 		return nil, err
 	}
@@ -91,15 +91,15 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 		return nil, err
 	}
 
-	// If scanFinalizedRelays is true, this function should return packets of which RecvPacket is not finalized yet.
+	// If includeRelayedButUnfinalized is true, this function should return packets of which RecvPacket is not finalized yet.
 	// In this case, filtering packets by QueryUnreceivedPackets is not needed because QueryUnfinalizedRelayPackets
 	// has already returned packets that completely match this condition.
-	if !scanFinalizedRelays {
-		srcCtx, err := getQueryContext(src, sh, scanFinalizedRelays)
+	if !includeRelayedButUnfinalized {
+		srcCtx, err := getQueryContext(src, sh, false)
 		if err != nil {
 			return nil, err
 		}
-		dstCtx, err := getQueryContext(dst, sh, scanFinalizedRelays)
+		dstCtx, err := getQueryContext(dst, sh, false)
 		if err != nil {
 			return nil, err
 		}
@@ -204,18 +204,18 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, sp *RelayPackets, 
 	return nil
 }
 
-func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, scanFinalizedEvents, scanFinalizedRelays bool) (*RelayPackets, error) {
+func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	var (
 		eg      = new(errgroup.Group)
 		srcAcks PacketInfoList
 		dstAcks PacketInfoList
 	)
 
-	srcCtx, err := getQueryContext(src, sh, scanFinalizedEvents)
+	srcCtx, err := getQueryContext(src, sh, true)
 	if err != nil {
 		return nil, err
 	}
-	dstCtx, err := getQueryContext(dst, sh, scanFinalizedEvents)
+	dstCtx, err := getQueryContext(dst, sh, true)
 	if err != nil {
 		return nil, err
 	}
@@ -246,15 +246,15 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 		return nil, err
 	}
 
-	// If scanFinalizedRelays is true, this function should return packets of which AcknowledgePacket is not finalized yet.
+	// If includeRelayedButUnfinalized is true, this function should return packets of which AcknowledgePacket is not finalized yet.
 	// In this case, filtering packets by QueryUnreceivedAcknowledgements is not needed because QueryUnfinalizedRelayAcknowledgements
 	// has already returned packets that completely match this condition.
-	if !scanFinalizedRelays {
-		srcCtx, err := getQueryContext(src, sh, scanFinalizedRelays)
+	if !includeRelayedButUnfinalized {
+		srcCtx, err := getQueryContext(src, sh, false)
 		if err != nil {
 			return nil, err
 		}
-		dstCtx, err := getQueryContext(dst, sh, scanFinalizedRelays)
+		dstCtx, err := getQueryContext(dst, sh, false)
 		if err != nil {
 			return nil, err
 		}

@@ -14,17 +14,15 @@ type StrategyI interface {
 	SetupRelay(ctx context.Context, src, dst *ProvableChain) error
 
 	// UnrelayedPackets returns packets to execute RecvPacket to on `src` and `dst`.
-	// `scanFinalizedEvents` decides whether this function gathers SendPacket events up to the latest FINALIZED height or the latest height.
-	// `scanFinalizedRelays` decides whether this function returns packets that are not received yet at the latest FINALIZED height or the latest height.
-	UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, scanFinalizedEvents, scanFinalizedRelays bool) (*RelayPackets, error)
+	// `includeRelayedButUnfinalized` decides if the result includes packets of which recvPacket has been executed but not finalized
+	UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error)
 
 	// RelayPackets executes RecvPacket to the packets contained in `rp` on both chains (`src` and `dst`).
 	RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error
 
 	// UnrelayedAcknowledgements returns packets to execute AcknowledgePacket to on `src` and `dst`.
-	// `scanFinalizedEvents` decides whether this function gathers RecvPacket/WriteAcknowledgement events up to the latest FINALIZED height or the latest height.
-	// `scanFinalizedRelays` decides whether this function returns packets of which acks are not received yet at the latest FINALIZED height or the latest height.
-	UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, scanFinalizedEvents, scanFinalizedRelays bool) (*RelayPackets, error)
+	// `includeRelayedButUnfinalized` decides if the result includes packets of which acknowledgePacket has been executed but not finalized
+	UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error)
 
 	// RelayAcknowledgements executes AcknowledgePacket to the packets contained in `rp` on both chains (`src` and `dst`).
 	RelayAcknowledgements(src, dst *ProvableChain, ra *RelayPackets, sh SyncHeaders) error
