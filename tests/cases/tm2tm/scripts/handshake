@@ -21,8 +21,8 @@ $RLY chains edit $CHAINID_ONE key $RLYKEY
 $RLY chains edit $CHAINID_TWO key $RLYKEY
 
 # initialize the light client for {{chain_id}}
-retry 50 $RLY tendermint light init $CHAINID_ONE -f
-retry 50 $RLY tendermint light init $CHAINID_TWO -f
+retry 5 $RLY tendermint light init $CHAINID_ONE -f
+retry 5 $RLY tendermint light init $CHAINID_TWO -f
 
 # you should see a balance for the rly key now
 # $RLY q bal $CHAINID_ONE
@@ -31,6 +31,6 @@ retry 50 $RLY tendermint light init $CHAINID_TWO -f
 # add a path between chain0 and chain1
 $RLY paths add $CHAINID_ONE $CHAINID_TWO $PATH_NAME --file=./configs/path.json
 
-retry 50 $RLY tx clients $PATH_NAME
-retry 50 $RLY tx connection $PATH_NAME
-retry 50 $RLY tx channel $PATH_NAME
+retry 5 $RLY tx clients $PATH_NAME
+retry 5 $RLY tx connection $PATH_NAME
+retry 5 $RLY tx channel $PATH_NAME
