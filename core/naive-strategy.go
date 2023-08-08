@@ -392,7 +392,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 func logPacketsRelayed(src, dst *ProvableChain, num int, info string) {
 	zapLogger := logger.GetLogger()
 	defer zapLogger.Zap.Sync()
-	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	sLogger := GetChainLoggerFromProvaleChain(zapLogger.Zap, src, dst)
 	logger.InfowSugaredLogger(
 		sLogger,
 		fmt.Sprintf("★ Relayed %d packets", num),
@@ -532,7 +532,7 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 }
 
 func naiveErrorwChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
-	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	sLogger := GetChainLoggerFromProvaleChain(zapLogger.Zap, src, dst)
 	logger.ErrorwSugaredLogger(
 		sLogger,
 		msg,
@@ -542,7 +542,7 @@ func naiveErrorwChannel(zapLogger *logger.ZapLogger, msg string, src, dst *Prova
 }
 
 func naiveInfowChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, info string) {
-	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	sLogger := GetChainLoggerFromProvaleChain(zapLogger.Zap, src, dst)
 	logger.InfowSugaredLogger(
 		sLogger,
 		msg,

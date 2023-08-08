@@ -113,6 +113,19 @@ func InfowSugaredLogger(
 	)
 }
 
+func GetChainLogger(
+	logger *zap.SugaredLogger,
+	srcChainID, srcPortID string,
+	dstChainID, dstPortID string,
+) *zap.SugaredLogger {
+	return logger.With(
+		"source chain id", srcChainID,
+		"source port id", srcPortID,
+		"destination chain id", dstChainID,
+		"destination port id", dstPortID,
+	)
+}
+
 func GetChannelLogger(
 	logger *zap.SugaredLogger,
 	srcChainID, srcChannelID, srcPortID string,

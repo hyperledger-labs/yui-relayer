@@ -71,7 +71,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 }
 
 func packetErrorwChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
-	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	sLogger := GetChainLoggerFromProvaleChain(zapLogger.Zap, src, dst)
 	logger.ErrorwSugaredLogger(
 		sLogger,
 		msg,

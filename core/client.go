@@ -152,7 +152,7 @@ func getHeadersForCreateClient(src, dst LightClient) (srch, dsth Header, err err
 }
 
 func clientErrorwChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
-	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	sLogger := GetChainLoggerFromProvaleChain(zapLogger.Zap, src, dst)
 	logger.ErrorwSugaredLogger(
 		sLogger,
 		msg,
@@ -162,7 +162,7 @@ func clientErrorwChannel(zapLogger *logger.ZapLogger, msg string, src, dst *Prov
 }
 
 func clientInfowChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain) {
-	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
+	sLogger := GetChainLoggerFromProvaleChain(zapLogger.Zap, src, dst)
 	logger.InfowSugaredLogger(
 		sLogger,
 		msg,
