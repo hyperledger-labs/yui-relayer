@@ -64,9 +64,6 @@ func InitLogger(configLevel, configEncoding string, configOutputPaths []string) 
 }
 
 func GetLogger() *ZapLogger {
-	if zapLogger == nil {
-		InitLogger("DEBUG", "json", []string{"stdout"})
-	}
 	return zapLogger
 }
 

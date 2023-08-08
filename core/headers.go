@@ -71,21 +71,21 @@ func NewSyncHeaders(src, dst ChainInfoLightClient) (SyncHeaders, error) {
 
 // Updates updates the headers on both chains
 func (sh *syncHeaders) Updates(src, dst ChainInfoLightClient) error {
-	// zapLogger := logger.GetLogger()
-	// defer zapLogger.Zap.Sync()
+	zapLogger := logger.GetLogger()
+	defer zapLogger.Zap.Sync()
 	if err := ensureDifferentChains(src, dst); err != nil {
-		// headersErrorw(zapLogger, "error ensuring different chains", err)
+		headersErrorw(zapLogger, "error ensuring different chains", err)
 		return err
 	}
 
 	srcHeader, err := src.GetLatestFinalizedHeader()
 	if err != nil {
-		// headersErrorw(zapLogger, "error getting latest finalized header of src", err)
+		headersErrorw(zapLogger, "error getting latest finalized header of src", err)
 		return err
 	}
 	dstHeader, err := dst.GetLatestFinalizedHeader()
 	if err != nil {
-		// headersErrorw(zapLogger, "error getting latest finalized header of dst", err)
+		headersErrorw(zapLogger, "error getting latest finalized header of dst", err)
 		return err
 	}
 
