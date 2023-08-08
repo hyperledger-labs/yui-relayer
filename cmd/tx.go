@@ -182,7 +182,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			sp, err := st.UnrelayedPackets(c[src], c[dst], sh)
+			sp, err := st.UnrelayedPackets(c[src], c[dst], sh, false)
 			if err != nil {
 				return err
 			}
@@ -224,7 +224,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 
 			// sp.Src contains all sequences acked on SRC but acknowledgement not processed on DST
 			// sp.Dst contains all sequences acked on DST but acknowledgement not processed on SRC
-			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh)
+			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh, false)
 			if err != nil {
 				return err
 			}
