@@ -313,11 +313,17 @@ func connectionInfowConnection(zapLogger *logger.ZapLogger, msg string, src, dst
 func GetConnectionLoggerFromProvaleChain(sugaredLogger *zap.SugaredLogger, src, dst *ProvableChain) *zap.SugaredLogger {
 	return logger.GetConnectionLogger(
 		sugaredLogger,
-		src.ChainID(),
-		src.Path().ClientID,
-		src.Path().ConnectionID,
-		dst.ChainID(),
-		dst.Path().ClientID,
-		dst.Path().ConnectionID,
+		"",
+		"",
+		"",
+		"",
+		"",
+		"",
+		// src.ChainID(),
+		// src.Path().ClientID,
+		// src.Path().ConnectionID,
+		// dst.ChainID(),
+		// dst.Path().ClientID,
+		// dst.Path().ConnectionID,
 	)
 }

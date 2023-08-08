@@ -220,7 +220,9 @@ func channnelInfowChannel(zapLogger *logger.ZapLogger, msg string, src, dst *Pro
 func GetChannelLoggerFromProvaleChain(sugaredLogger *zap.SugaredLogger, src, dst *ProvableChain) *zap.SugaredLogger {
 	return logger.GetChannelLogger(
 		sugaredLogger,
-		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+		"", "", "",
+		"", "", "",
+		// src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+		// dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
 	)
 }

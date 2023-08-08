@@ -198,7 +198,9 @@ func (qc queryContext) Height() ibcexported.Height {
 func GetChainLoggerFromProvaleChain(sugaredLogger *zap.SugaredLogger, src, dst *ProvableChain) *zap.SugaredLogger {
 	return logger.GetChainLogger(
 		sugaredLogger,
-		src.ChainID(), src.Path().PortID,
-		dst.ChainID(), dst.Path().PortID,
+		"", "",
+		"", "",
+		// src.ChainID(), src.Path().PortID,
+		// dst.ChainID(), dst.Path().PortID,
 	)
 }
