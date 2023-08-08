@@ -65,7 +65,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 
 	// relay packets if unrelayed seqs exist
 
-	pseqs, err := srv.st.UnrelayedPackets(srv.src, srv.dst, srv.sh)
+	pseqs, err := srv.st.UnrelayedPackets(srv.src, srv.dst, srv.sh, false)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 
 	// relay acks if unrelayed seqs exist
 
-	aseqs, err := srv.st.UnrelayedAcknowledgements(srv.src, srv.dst, srv.sh)
+	aseqs, err := srv.st.UnrelayedAcknowledgements(srv.src, srv.dst, srv.sh, false)
 	if err != nil {
 		return err
 	}
