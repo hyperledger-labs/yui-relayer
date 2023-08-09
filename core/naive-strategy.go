@@ -16,12 +16,17 @@ type NaiveStrategy struct {
 	Ordered      bool
 	MaxTxSize    uint64 // maximum permitted size of the msgs in a bundled relay transaction
 	MaxMsgLength uint64 // maximum amount of messages in a bundled relay transaction
+	srcNoAck     bool
+	dstNoAck     bool
 }
 
 var _ StrategyI = (*NaiveStrategy)(nil)
 
-func NewNaiveStrategy() *NaiveStrategy {
-	return &NaiveStrategy{}
+func NewNaiveStrategy(srcNoAck, dstNoAck bool) *NaiveStrategy {
+	return &NaiveStrategy{
+		srcNoAck: srcNoAck,
+		dstNoAck: dstNoAck,
+	}
 }
 
 // GetType implements Strategy
@@ -220,27 +225,31 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 		return nil, err
 	}
 
-	eg.Go(func() error {
-		return retry.Do(func() error {
-			var err error
-			srcAcks, err = src.QueryUnfinalizedRelayAcknowledgements(srcCtx, dst)
-			return err
-		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Printf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), srcCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
-			sh.Updates(src, dst)
-		}))
-	})
+	if !st.dstNoAck {
+		eg.Go(func() error {
+			return retry.Do(func() error {
+				var err error
+				srcAcks, err = src.QueryUnfinalizedRelayAcknowledgements(srcCtx, dst)
+				return err
+			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+				log.Printf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), srcCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
+				sh.Updates(src, dst)
+			}))
+		})
+	}
 
-	eg.Go(func() error {
-		return retry.Do(func() error {
-			var err error
-			dstAcks, err = dst.QueryUnfinalizedRelayAcknowledgements(dstCtx, src)
-			return err
-		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Printf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), dstCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
-			sh.Updates(src, dst)
-		}))
-	})
+	if !st.srcNoAck {
+		eg.Go(func() error {
+			return retry.Do(func() error {
+				var err error
+				dstAcks, err = dst.QueryUnfinalizedRelayAcknowledgements(dstCtx, src)
+				return err
+			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+				log.Printf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), dstCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
+				sh.Updates(src, dst)
+			}))
+		})
+	}
 
 	if err := eg.Wait(); err != nil {
 		return nil, err
@@ -259,23 +268,27 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 			return nil, err
 		}
 
-		eg.Go(func() error {
-			seqs, err := dst.QueryUnreceivedAcknowledgements(dstCtx, srcAcks.ExtractSequenceList())
-			if err != nil {
-				return err
-			}
-			srcAcks = srcAcks.Filter(seqs)
-			return nil
-		})
+		if !st.dstNoAck {
+			eg.Go(func() error {
+				seqs, err := dst.QueryUnreceivedAcknowledgements(dstCtx, srcAcks.ExtractSequenceList())
+				if err != nil {
+					return err
+				}
+				srcAcks = srcAcks.Filter(seqs)
+				return nil
+			})
+		}
 
-		eg.Go(func() error {
-			seqs, err := src.QueryUnreceivedAcknowledgements(srcCtx, dstAcks.ExtractSequenceList())
-			if err != nil {
-				return err
-			}
-			dstAcks = dstAcks.Filter(seqs)
-			return nil
-		})
+		if !st.srcNoAck {
+			eg.Go(func() error {
+				seqs, err := src.QueryUnreceivedAcknowledgements(srcCtx, dstAcks.ExtractSequenceList())
+				if err != nil {
+					return err
+				}
+				dstAcks = dstAcks.Filter(seqs)
+				return nil
+			})
+		}
 
 		if err := eg.Wait(); err != nil {
 			return nil, err
@@ -330,7 +343,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Relay
 		return err
 	}
 
-	if len(rp.Src) > 0 {
+	if !st.dstNoAck && len(rp.Src) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(src, dst)
 		if err != nil {
 			return err
@@ -340,7 +353,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Relay
 		}
 	}
 
-	if len(rp.Dst) > 0 {
+	if !st.srcNoAck && len(rp.Dst) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(dst, src)
 		if err != nil {
 			return err
@@ -350,13 +363,18 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Relay
 		}
 	}
 
-	acksForDst, err := collectAcks(srcCtx, src, rp.Src, dstAddress)
-	if err != nil {
-		return err
+	var acksForSrc, acksForDst []sdk.Msg
+	if !st.dstNoAck {
+		acksForDst, err = collectAcks(srcCtx, src, rp.Src, dstAddress)
+		if err != nil {
+			return err
+		}
 	}
-	acksForSrc, err := collectAcks(dstCtx, dst, rp.Dst, srcAddress)
-	if err != nil {
-		return err
+	if !st.srcNoAck {
+		acksForSrc, err = collectAcks(dstCtx, dst, rp.Dst, srcAddress)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(acksForDst) == 0 && len(acksForSrc) == 0 {
