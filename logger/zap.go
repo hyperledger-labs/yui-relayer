@@ -8,7 +8,7 @@ import (
 )
 
 type ZapLogger struct {
-	Zap *zap.SugaredLogger
+	*zap.SugaredLogger
 }
 
 var zapLogger *ZapLogger
@@ -51,66 +51,18 @@ func InitLogger(configLevel, configEncoding string, configOutputPaths []string) 
 		},
 		OutputPaths: configOutputPaths,
 	}
-	logger, err := cfg.Build(
-		zap.AddCallerSkip(2),
-	)
+	logger, err := cfg.Build()
 	if err != nil {
 		log.Fatalf("CreateLogger Error: %v", err)
 	}
 
-	zapLogger = new(ZapLogger)
-	zapLogger.Zap = logger.Sugar()
-
+	zapLogger = &ZapLogger{
+		SugaredLogger: logger.Sugar(),
+	}
 }
 
 func GetLogger() *ZapLogger {
 	return zapLogger
-}
-
-func (zl *ZapLogger) Errorw(
-	msg string,
-	err error,
-	stackKey string,
-) {
-	zl.Zap.Errorw(
-		msg,
-		zap.Error(err),
-		zap.StackSkip(stackKey, 3),
-	)
-}
-
-func ErrorwSugaredLogger(
-	sLogger *zap.SugaredLogger,
-	msg string,
-	err error,
-	stackKey string,
-) {
-	sLogger.Errorw(
-		msg,
-		zap.Error(err),
-		zap.StackSkip(stackKey, 3),
-	)
-}
-
-func (zl *ZapLogger) Infow(
-	msg string,
-	info interface{},
-) {
-	zl.Zap.Infow(
-		msg,
-		"info", info,
-	)
-}
-
-func InfowSugaredLogger(
-	sLogger *zap.SugaredLogger,
-	msg string,
-	info interface{},
-) {
-	sLogger.Infow(
-		msg,
-		"info", info,
-	)
 }
 
 func GetChainLogger(

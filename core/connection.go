@@ -24,18 +24,17 @@ var (
 
 func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
+	defer zapLogger.SugaredLogger.Sync()
 	ticker := time.NewTicker(to)
 
 	failed := 0
 	for ; true; <-ticker.C {
 		connSteps, err := createConnectionStep(src, dst)
 		if err != nil {
-			connectionErrorwConnection(
-				zapLogger,
+			GetConnectionLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 				"failed to create connection step",
-				src, dst,
 				err,
+				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -50,10 +49,8 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case connSteps.Success() && connSteps.Last:
-			connectionInfowConnection(
-				zapLogger,
+			GetConnectionLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
 				"★ Connection created",
-				src, dst,
 			)
 			return nil
 		// In the case of success, reset the failures counter
@@ -66,11 +63,10 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 			log.Println("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failed > 2 {
-				connectionErrorwConnection(
-					zapLogger,
+				GetConnectionLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 					"! Connection failed",
-					src, dst,
 					errors.New("failed 3 times"),
+					zap.Stack("stack"),
 				)
 				return fmt.Errorf("! Connection failed: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
 					src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
@@ -227,10 +223,10 @@ func validatePaths(src, dst Chain) error {
 
 func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnectionResponse) {
 	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
-	connectionInfow(
-		zapLogger,
+	defer zapLogger.SugaredLogger.Sync()
+	zapLogger.SugaredLogger.Infow(
 		"connection states",
+		"msg",
 		fmt.Sprintf("- [%s]@{%d}conn(%s)-{%s} : [%s]@{%d}conn(%s)-{%s}",
 			src.ChainID(),
 			mustGetHeight(srcConn.ProofHeight),
@@ -246,13 +242,13 @@ func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnec
 // mustGetHeight takes the height inteface and returns the actual height
 func mustGetHeight(h ibcexported.Height) uint64 {
 	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
+	defer zapLogger.SugaredLogger.Sync()
 	height, ok := h.(clienttypes.Height)
 	if !ok {
-		connectionErrorw(
-			zapLogger,
+		zapLogger.SugaredLogger.Errorw(
 			"height is not an instance of height! wtf",
 			fmt.Errorf("height is not an instance of height! wtf"),
+			zap.Stack("stack"),
 		)
 		panic("height is not an instance of height! wtf")
 	}
@@ -263,51 +259,17 @@ func mustGetAddress(chain interface {
 	GetAddress() (sdk.AccAddress, error)
 }) sdk.AccAddress {
 	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
+	defer zapLogger.SugaredLogger.Sync()
 	addr, err := chain.GetAddress()
 	if err != nil {
-		connectionErrorw(
-			zapLogger,
+		zapLogger.SugaredLogger.Errorw(
 			"failed to get address",
 			err,
+			zap.Stack("stack"),
 		)
 		panic(err)
 	}
 	return addr
-}
-
-func connectionInfow(zapLogger *logger.ZapLogger, msg string, info string) {
-	zapLogger.Infow(
-		msg,
-		info,
-	)
-}
-
-func connectionErrorw(zapLogger *logger.ZapLogger, msg string, err error) {
-	zapLogger.Errorw(
-		msg,
-		err,
-		"core.connection",
-	)
-}
-
-func connectionErrorwConnection(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
-	sLogger := GetConnectionLoggerFromProvaleChain(zapLogger.Zap, src, dst)
-	logger.ErrorwSugaredLogger(
-		sLogger,
-		msg,
-		err,
-		"core.connection",
-	)
-}
-
-func connectionInfowConnection(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain) {
-	sLogger := GetConnectionLoggerFromProvaleChain(zapLogger.Zap, src, dst)
-	logger.InfowSugaredLogger(
-		sLogger,
-		msg,
-		"",
-	)
 }
 
 func GetConnectionLoggerFromProvaleChain(sugaredLogger *zap.SugaredLogger, src, dst *ProvableChain) *zap.SugaredLogger {

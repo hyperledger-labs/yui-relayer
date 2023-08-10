@@ -14,7 +14,7 @@ import (
 // TODO: add max retries or something to this function
 func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
 	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
+	defer zapLogger.SugaredLogger.Sync()
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -27,11 +27,10 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 	for ; true; <-ticker.C {
 		chanSteps, err := createChannelStep(src, dst, order)
 		if err != nil {
-			channelErrorw(
-				zapLogger,
+			GetChannelLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 				"failed to create channel step",
-				src, dst,
 				err,
+				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -46,10 +45,8 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case chanSteps.Success() && chanSteps.Last:
-			channnelInfowChannel(
-				zapLogger,
+			GetChannelLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
 				"★ Channel created",
-				src, dst,
 			)
 			return nil
 		// In the case of success, reset the failures counter
@@ -59,14 +56,13 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !chanSteps.Success():
 			failures++
-			zapLogger.Zap.Info("retrying transaction...")
+			zapLogger.SugaredLogger.Info("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failures > 2 {
-				channelErrorw(
-					zapLogger,
+				GetChannelLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 					"! Channel failed",
-					src, dst,
 					err,
+					zap.Stack("stack"),
 				)
 				return fmt.Errorf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
 					src.ChainID(), src.Path().ClientID, src.Path().ChannelID,
@@ -183,11 +179,11 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 
 func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.QueryChannelResponse) {
 	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
-	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
-	logger.InfowSugaredLogger(
-		sLogger,
+	defer zapLogger.SugaredLogger.Sync()
+	// sLogger :=
+	GetChannelLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
 		"channel states",
+		"msg",
 		fmt.Sprintf(
 			"src channel height: [%d] state: %s | dst channel height: [%d] state: %s",
 			mustGetHeight(srcChan.ProofHeight),
@@ -195,25 +191,6 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 			mustGetHeight(dstChan.ProofHeight),
 			dstChan.Channel.State,
 		),
-	)
-}
-
-func channelErrorw(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
-	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
-	logger.ErrorwSugaredLogger(
-		sLogger,
-		msg,
-		err,
-		"core.channel",
-	)
-}
-
-func channnelInfowChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain) {
-	sLogger := GetChannelLoggerFromProvaleChain(zapLogger.Zap, src, dst)
-	logger.InfowSugaredLogger(
-		sLogger,
-		msg,
-		"",
 	)
 }
 

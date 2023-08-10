@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/hyperledger-labs/yui-relayer/logger"
+	"go.uber.org/zap"
 )
 
 // RelayMsgs contains the msgs that need to be sent to both a src and dst chain
@@ -50,7 +51,7 @@ func (r *RelayMsgs) IsMaxTx(msgLen, txSize uint64) bool {
 // TODO: Parallelize? Maybe?
 func (r *RelayMsgs) Send(src, dst Chain) {
 	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
+	defer zapLogger.SugaredLogger.Sync()
 	//nolint:prealloc // can not be pre allocated
 	var (
 		msgLen, txSize uint64
@@ -63,7 +64,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	for _, msg := range r.Src {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
-			relayMsgsErrorw(zapLogger, "failed to marshal msg", err)
+			zapLogger.SugaredLogger.Errorw("failed to marshal msg", err, zap.Stack("stack"))
 			panic(err)
 		}
 
@@ -93,7 +94,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	for _, msg := range r.Dst {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
-			relayMsgsErrorw(zapLogger, "failed to marshal msg", err)
+			zapLogger.SugaredLogger.Errorw("failed to marshal msg", err, zap.Stack("stack"))
 			panic(err)
 		}
 
@@ -115,8 +116,4 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	if len(msgs) > 0 && !dst.Send(msgs) {
 		r.Succeeded = false
 	}
-}
-
-func relayMsgsErrorw(zapLogger *logger.ZapLogger, msg string, err error) {
-	zapLogger.Errorw(msg, err, "core.relayMegs")
 }

@@ -3,12 +3,13 @@ package core
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hyperledger-labs/yui-relayer/logger"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
 func CreateClients(src, dst *ProvableChain) error {
 	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
+	defer zapLogger.SugaredLogger.Sync()
 
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
@@ -16,32 +17,29 @@ func CreateClients(src, dst *ProvableChain) error {
 
 	srcH, dstH, err := getHeadersForCreateClient(src, dst)
 	if err != nil {
-		clientErrorwChannel(
-			zapLogger,
+		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 			"failed to get headers for create client",
-			src, dst,
 			err,
+			zap.Stack("stack"),
 		)
 		return err
 	}
 
 	srcAddr, err := src.GetAddress()
 	if err != nil {
-		clientErrorwChannel(
-			zapLogger,
+		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 			"failed to get address for create client",
-			src, dst,
 			err,
+			zap.Stack("stack"),
 		)
 		return err
 	}
 	dstAddr, err := dst.GetAddress()
 	if err != nil {
-		clientErrorwChannel(
-			zapLogger,
+		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 			"failed to get address for create client",
-			src, dst,
 			err,
+			zap.Stack("stack"),
 		)
 		return err
 	}
@@ -49,11 +47,10 @@ func CreateClients(src, dst *ProvableChain) error {
 	{
 		msg, err := dst.CreateMsgCreateClient(src.Path().ClientID, dstH, srcAddr)
 		if err != nil {
-			clientErrorwChannel(
-				zapLogger,
+			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 				"failed to create client",
-				src, dst,
 				err,
+				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -63,11 +60,10 @@ func CreateClients(src, dst *ProvableChain) error {
 	{
 		msg, err := src.CreateMsgCreateClient(dst.Path().ClientID, srcH, dstAddr)
 		if err != nil {
-			clientErrorwChannel(
-				zapLogger,
+			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 				"failed to create client",
-				src, dst,
 				err,
+				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -78,10 +74,8 @@ func CreateClients(src, dst *ProvableChain) error {
 	if clients.Ready() {
 		// TODO: Add retry here for out of gas or other errors
 		if clients.Send(src, dst); clients.Success() {
-			clientInfowChannel(
-				zapLogger,
+			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
 				"★ Clients created",
-				src, dst,
 			)
 		}
 	}
@@ -90,28 +84,26 @@ func CreateClients(src, dst *ProvableChain) error {
 
 func UpdateClients(src, dst *ProvableChain) error {
 	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
+	defer zapLogger.SugaredLogger.Sync()
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 	// First, update the light clients to the latest header and return the header
 	sh, err := NewSyncHeaders(src, dst)
 	if err != nil {
-		clientErrorwChannel(
-			zapLogger,
+		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 			"failed to create sync headers for update client",
-			src, dst,
 			err,
+			zap.Stack("stack"),
 		)
 		return err
 	}
 	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(src, dst)
 	if err != nil {
-		clientErrorwChannel(
-			zapLogger,
+		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
 			"failed to setup both headers for update client",
-			src, dst,
 			err,
+			zap.Stack("stack"),
 		)
 		return err
 	}
@@ -124,10 +116,8 @@ func UpdateClients(src, dst *ProvableChain) error {
 	// Send msgs to both chains
 	if clients.Ready() {
 		if clients.Send(src, dst); clients.Success() {
-			clientInfowChannel(
-				zapLogger,
+			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
 				"★ Clients updated",
-				src, dst,
 			)
 		}
 	}
@@ -149,23 +139,4 @@ func getHeadersForCreateClient(src, dst LightClient) (srch, dsth Header, err err
 		return nil, nil, err
 	}
 	return srch, dsth, nil
-}
-
-func clientErrorwChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain, err error) {
-	sLogger := GetChainLoggerFromProvaleChain(zapLogger.Zap, src, dst)
-	logger.ErrorwSugaredLogger(
-		sLogger,
-		msg,
-		err,
-		"core.client",
-	)
-}
-
-func clientInfowChannel(zapLogger *logger.ZapLogger, msg string, src, dst *ProvableChain) {
-	sLogger := GetChainLoggerFromProvaleChain(zapLogger.Zap, src, dst)
-	logger.InfowSugaredLogger(
-		sLogger,
-		msg,
-		"",
-	)
 }

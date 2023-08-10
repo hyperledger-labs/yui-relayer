@@ -8,6 +8,7 @@ import (
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/hyperledger-labs/yui-relayer/logger"
 	"github.com/hyperledger-labs/yui-relayer/utils"
+	"go.uber.org/zap"
 )
 
 // ChainProverConfig defines the top level configuration for a chain instance
@@ -35,15 +36,15 @@ type ProverConfig interface {
 // NewChainProverConfig returns a new config instance
 func NewChainProverConfig(m codec.JSONCodec, chain ChainConfig, client ProverConfig) (*ChainProverConfig, error) {
 	zapLogger := logger.GetLogger()
-	defer zapLogger.Zap.Sync()
+	defer zapLogger.SugaredLogger.Sync()
 	cbz, err := utils.MarshalJSONAny(m, chain)
 	if err != nil {
-		configErrorw(zapLogger, "error marshalling chain config", err)
+		zapLogger.SugaredLogger.Errorw("error marshalling chain config", err, zap.Stack("stack"))
 		return nil, err
 	}
 	clbz, err := utils.MarshalJSONAny(m, client)
 	if err != nil {
-		configErrorw(zapLogger, "error marshalling client config", err)
+		zapLogger.SugaredLogger.Errorw("error marshalling client config", err, zap.Stack("stack"))
 		return nil, err
 	}
 	return &ChainProverConfig{
@@ -104,12 +105,4 @@ func (cc ChainProverConfig) Build() (*ProvableChain, error) {
 		return nil, err
 	}
 	return NewProvableChain(chain, prover), nil
-}
-
-func configErrorw(zapLogger *logger.ZapLogger, msg string, err error) {
-	zapLogger.Errorw(
-		msg,
-		err,
-		"core.config",
-	)
 }
