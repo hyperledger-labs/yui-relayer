@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 
@@ -170,13 +169,6 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, 
 		)
 		return err
 	}
-
-	// DEBUG Dongri
-	debugError := errors.New("+++++++++++++++new Error+++++++++++++++")
-	GetChainLoggerFromProvaleChain(relayLogger, src, dst).ErrorWithStack(
-		"error getting dongri",
-		debugError,
-	)
 
 	dstAddress, err := dst.GetAddress()
 	if err != nil {

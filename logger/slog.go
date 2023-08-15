@@ -28,15 +28,20 @@ func InitLogger(logLevel string) {
 	default:
 		slogLevel = slog.LevelDebug
 	}
-	slogLogger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
+	slogLogger := slog.New(slog.NewJSONHandler(
+		os.Stdout,
+		&slog.HandlerOptions{
+			Level:     slogLevel,
+			AddSource: true,
+		}))
 	relayLogger = &RelayLogger{
 		*slogLogger,
 	}
 }
 
-func (rl *RelayLogger) ErrorWithStack(msg string, err error, args ...interface{}) {
+func (rl *RelayLogger) ErrorWithStack(msg string, err error) {
 	cError := errors.NewWithDepth(1, err.Error())
-	rl.Error(msg, "error", cError, "stack", fmt.Sprintf("%+v", cError), args)
+	rl.Error(msg, "error", cError, "stack", fmt.Sprintf("%+v", cError))
 }
 
 func GetLogger() *RelayLogger {
