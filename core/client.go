@@ -3,43 +3,37 @@ package core
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hyperledger-labs/yui-relayer/logger"
-	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
 func CreateClients(src, dst *ProvableChain) error {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
-
+	relayLogger := logger.GetLogger()
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 
 	srcH, dstH, err := getHeadersForCreateClient(src, dst)
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"failed to get headers for create client",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
 
 	srcAddr, err := src.GetAddress()
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"failed to get address for create client",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
 	dstAddr, err := dst.GetAddress()
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"failed to get address for create client",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
@@ -47,10 +41,9 @@ func CreateClients(src, dst *ProvableChain) error {
 	{
 		msg, err := dst.CreateMsgCreateClient(src.Path().ClientID, dstH, srcAddr)
 		if err != nil {
-			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 				"failed to create client",
 				err,
-				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -60,10 +53,9 @@ func CreateClients(src, dst *ProvableChain) error {
 	{
 		msg, err := src.CreateMsgCreateClient(dst.Path().ClientID, srcH, dstAddr)
 		if err != nil {
-			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 				"failed to create client",
 				err,
-				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -74,7 +66,7 @@ func CreateClients(src, dst *ProvableChain) error {
 	if clients.Ready() {
 		// TODO: Add retry here for out of gas or other errors
 		if clients.Send(src, dst); clients.Success() {
-			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
+			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Info(
 				"★ Clients created",
 			)
 		}
@@ -83,27 +75,24 @@ func CreateClients(src, dst *ProvableChain) error {
 }
 
 func UpdateClients(src, dst *ProvableChain) error {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 	// First, update the light clients to the latest header and return the header
 	sh, err := NewSyncHeaders(src, dst)
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"failed to create sync headers for update client",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
 	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(src, dst)
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"failed to setup both headers for update client",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
@@ -116,7 +105,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 	// Send msgs to both chains
 	if clients.Ready() {
 		if clients.Send(src, dst); clients.Success() {
-			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
+			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Info(
 				"★ Clients updated",
 			)
 		}

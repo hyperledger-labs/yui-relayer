@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -10,7 +11,6 @@ import (
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
 	"github.com/hyperledger-labs/yui-relayer/logger"
-	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -33,21 +33,18 @@ func (st NaiveStrategy) GetType() string {
 }
 
 func (st NaiveStrategy) SetupRelay(ctx context.Context, src, dst *ProvableChain) error {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	if err := src.SetupForRelay(ctx); err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"failed to setup for src",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
 	if err := dst.SetupForRelay(ctx); err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"failed to setup for dst",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
@@ -67,8 +64,7 @@ func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bo
 }
 
 func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	var (
 		eg         = new(errgroup.Group)
 		srcPackets PacketInfoList
@@ -105,10 +101,9 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 	})
 
 	if err := eg.Wait(); err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"error querying packet commitments",
 			err,
-			zap.Stack("stack"),
 		)
 		return nil, err
 	}
@@ -156,8 +151,7 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 }
 
 func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -170,19 +164,25 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, 
 	dstCtx := sh.GetQueryContext(dst.ChainID())
 	srcAddress, err := src.GetAddress()
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"error getting address",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
+
+	// DEBUG Dongri
+	debugError := errors.New("+++++++++++++++new Error+++++++++++++++")
+	GetChainLoggerFromProvaleChain(relayLogger, src, dst).ErrorWithStack(
+		"error getting dongri",
+		debugError,
+	)
+
 	dstAddress, err := dst.GetAddress()
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"error getting address",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
@@ -190,10 +190,9 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, 
 	if len(rp.Src) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(src, dst)
 		if err != nil {
-			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 				"error setting up headers for update",
 				err,
-				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -205,10 +204,9 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, 
 	if len(rp.Dst) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(dst, src)
 		if err != nil {
-			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 				"error setting up headers for update",
 				err,
-				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -219,25 +217,23 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, 
 
 	packetsForDst, err := collectPackets(srcCtx, src, rp.Src, dstAddress)
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"error collecting packets",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
 	packetsForSrc, err := collectPackets(dstCtx, dst, rp.Dst, srcAddress)
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"error collecting packets",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
 
 	if len(packetsForDst) == 0 && len(packetsForSrc) == 0 {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Info(
 			"no packates to relay",
 		)
 		return nil
@@ -260,8 +256,7 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, 
 }
 
 func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	var (
 		eg      = new(errgroup.Group)
 		srcAcks PacketInfoList
@@ -283,7 +278,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 			srcAcks, err = src.QueryUnfinalizedRelayAcknowledgements(srcCtx, dst)
 			return err
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
+			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Info(
 				"query packet acknowledgements",
 				"msg",
 				fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements [Error: %s]", src.ChainID(), srcCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err.Error()),
@@ -298,7 +293,7 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 			dstAcks, err = dst.QueryUnfinalizedRelayAcknowledgements(dstCtx, src)
 			return err
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
+			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Info(
 				"query packet acknowledgements",
 				"msg",
 				fmt.Sprintf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements [Error: %s]", dst.ChainID(), dstCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err.Error()),
@@ -308,10 +303,9 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 	})
 
 	if err := eg.Wait(); err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"error querying packet commitments",
 			err,
-			zap.Stack("stack"),
 		)
 		return nil, err
 	}
@@ -376,17 +370,15 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 }
 
 func logPacketsRelayed(src, dst *ProvableChain, num int, msg string) {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
-	GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
+	relayLogger := logger.GetLogger()
+	GetChainLoggerFromProvaleChain(relayLogger, src, dst).Info(
 		fmt.Sprintf("★ Relayed %d packets", num),
 		"msg", msg,
 	)
 }
 
 func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -399,19 +391,17 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Relay
 	dstCtx := sh.GetQueryContext(dst.ChainID())
 	srcAddress, err := src.GetAddress()
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"error getting address",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
 	dstAddress, err := dst.GetAddress()
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"error getting address",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
@@ -419,10 +409,9 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Relay
 	if len(rp.Src) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(src, dst)
 		if err != nil {
-			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 				"error setting up headers",
 				err,
-				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -434,10 +423,9 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Relay
 	if len(rp.Dst) > 0 {
 		hs, err := sh.SetupHeadersForUpdate(dst, src)
 		if err != nil {
-			GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 				"error setting up headers",
 				err,
-				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -448,25 +436,23 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Relay
 
 	acksForDst, err := collectAcks(srcCtx, src, rp.Src, dstAddress)
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"error querying unrelayed acknowledgements",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
 	acksForSrc, err := collectAcks(dstCtx, dst, rp.Dst, srcAddress)
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"error querying unrelayed acknowledgements",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
 
 	if len(acksForDst) == 0 && len(acksForSrc) == 0 {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Info(
 			"no acknowledgements to relay",
 		)
 		return nil

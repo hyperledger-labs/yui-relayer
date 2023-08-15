@@ -7,14 +7,12 @@ import (
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/logger"
-	"go.uber.org/zap"
 )
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
 func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -27,10 +25,9 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 	for ; true; <-ticker.C {
 		chanSteps, err := createChannelStep(src, dst, order)
 		if err != nil {
-			GetChannelLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+			GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Error(
 				"failed to create channel step",
 				err,
-				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -45,7 +42,7 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case chanSteps.Success() && chanSteps.Last:
-			GetChannelLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
+			GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Info(
 				"★ Channel created",
 			)
 			return nil
@@ -56,13 +53,12 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !chanSteps.Success():
 			failures++
-			zapLogger.SugaredLogger.Info("retrying transaction...")
+			relayLogger.Info("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failures > 2 {
-				GetChannelLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+				GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Error(
 					"! Channel failed",
 					err,
-					zap.Stack("stack"),
 				)
 				return fmt.Errorf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
 					src.ChainID(), src.Path().ClientID, src.Path().ChannelID,
@@ -178,10 +174,9 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 }
 
 func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.QueryChannelResponse) {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	// sLogger :=
-	GetChannelLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
+	GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Info(
 		"channel states",
 		"msg",
 		fmt.Sprintf(
@@ -194,9 +189,9 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 	)
 }
 
-func GetChannelLoggerFromProvaleChain(sugaredLogger *zap.SugaredLogger, src, dst *ProvableChain) *zap.SugaredLogger {
+func GetChannelLoggerFromProvaleChain(relayLogger *logger.RelayLogger, src, dst *ProvableChain) *logger.RelayLogger {
 	return logger.GetChannelLogger(
-		sugaredLogger,
+		relayLogger,
 		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
 		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
 	)

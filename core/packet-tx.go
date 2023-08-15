@@ -7,12 +7,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hyperledger-labs/yui-relayer/logger"
-	"go.uber.org/zap"
 )
 
 func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Stringer, toHeightOffset uint64, toTimeOffset time.Duration) error {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	var (
 		timeoutHeight    uint64
 		timeoutTimestamp uint64
@@ -42,10 +40,9 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 
 	srcAddr, err := src.GetAddress()
 	if err != nil {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"failed to get address for send transfer",
 			err,
-			zap.Stack("stack"),
 		)
 		return err
 	}
@@ -59,10 +56,9 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 	}
 
 	if txs.Send(src, dst); !txs.Success() {
-		GetChainLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
 			"failed to send transfer message",
 			errors.New("failed to send transfer message"),
-			zap.Stack("stack"),
 		)
 		return fmt.Errorf("failed to send transfer message")
 	}

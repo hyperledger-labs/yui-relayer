@@ -33,9 +33,7 @@ type GlobalConfig struct {
 }
 
 type LoggerConfig struct {
-	OutputPaths []string `yaml:"output-paths" json:"output-paths"`
-	Level       string   `yaml:"level" json:"level"`
-	Encoding    string   `yaml:"encoding" json:"encoding"`
+	Level string `yaml:"level" json:"level"`
 }
 
 // newDefaultGlobalConfig returns a global config with defaults set
@@ -44,9 +42,7 @@ func newDefaultGlobalConfig() GlobalConfig {
 		Timeout:        "10s",
 		LightCacheSize: 20,
 		LoggerConfig: LoggerConfig{
-			OutputPaths: []string{"stdout"},
-			Level:       "DEBUG",
-			Encoding:    "json",
+			Level: "DEBUG",
 		},
 	}
 }

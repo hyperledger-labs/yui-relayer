@@ -12,7 +12,6 @@ import (
 	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/logger"
-	"go.uber.org/zap"
 )
 
 var (
@@ -23,18 +22,16 @@ var (
 )
 
 func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	ticker := time.NewTicker(to)
 
 	failed := 0
 	for ; true; <-ticker.C {
 		connSteps, err := createConnectionStep(src, dst)
 		if err != nil {
-			GetConnectionLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+			GetConnectionLoggerFromProvaleChain(relayLogger, src, dst).Error(
 				"failed to create connection step",
 				err,
-				zap.Stack("stack"),
 			)
 			return err
 		}
@@ -49,7 +46,7 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case connSteps.Success() && connSteps.Last:
-			GetConnectionLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Infow(
+			GetConnectionLoggerFromProvaleChain(relayLogger, src, dst).Info(
 				"★ Connection created",
 			)
 			return nil
@@ -63,10 +60,9 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 			log.Println("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failed > 2 {
-				GetConnectionLoggerFromProvaleChain(zapLogger.SugaredLogger, src, dst).Errorw(
+				GetConnectionLoggerFromProvaleChain(relayLogger, src, dst).Error(
 					"! Connection failed",
 					errors.New("failed 3 times"),
-					zap.Stack("stack"),
 				)
 				return fmt.Errorf("! Connection failed: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
 					src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
@@ -222,9 +218,8 @@ func validatePaths(src, dst Chain) error {
 }
 
 func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnectionResponse) {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
-	zapLogger.SugaredLogger.Infow(
+	relayLogger := logger.GetLogger()
+	relayLogger.Info(
 		"connection states",
 		"msg",
 		fmt.Sprintf("- [%s]@{%d}conn(%s)-{%s} : [%s]@{%d}conn(%s)-{%s}",
@@ -241,14 +236,12 @@ func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnec
 
 // mustGetHeight takes the height inteface and returns the actual height
 func mustGetHeight(h ibcexported.Height) uint64 {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	height, ok := h.(clienttypes.Height)
 	if !ok {
-		zapLogger.SugaredLogger.Errorw(
+		relayLogger.Error(
 			"height is not an instance of height! wtf",
 			fmt.Errorf("height is not an instance of height! wtf"),
-			zap.Stack("stack"),
 		)
 		panic("height is not an instance of height! wtf")
 	}
@@ -258,23 +251,21 @@ func mustGetHeight(h ibcexported.Height) uint64 {
 func mustGetAddress(chain interface {
 	GetAddress() (sdk.AccAddress, error)
 }) sdk.AccAddress {
-	zapLogger := logger.GetLogger()
-	defer zapLogger.SugaredLogger.Sync()
+	relayLogger := logger.GetLogger()
 	addr, err := chain.GetAddress()
 	if err != nil {
-		zapLogger.SugaredLogger.Errorw(
+		relayLogger.Error(
 			"failed to get address",
 			err,
-			zap.Stack("stack"),
 		)
 		panic(err)
 	}
 	return addr
 }
 
-func GetConnectionLoggerFromProvaleChain(sugaredLogger *zap.SugaredLogger, src, dst *ProvableChain) *zap.SugaredLogger {
+func GetConnectionLoggerFromProvaleChain(relayLogger *logger.RelayLogger, src, dst *ProvableChain) *logger.RelayLogger {
 	return logger.GetConnectionLogger(
-		sugaredLogger,
+		relayLogger,
 		src.ChainID(),
 		src.Path().ClientID,
 		src.Path().ConnectionID,
