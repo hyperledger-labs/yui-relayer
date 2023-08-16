@@ -11,6 +11,7 @@ import (
 
 func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Stringer, toHeightOffset uint64, toTimeOffset time.Duration) error {
 	relayLogger := logger.GetLogger()
+	channelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
 	var (
 		timeoutHeight    uint64
 		timeoutTimestamp uint64
@@ -40,7 +41,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 
 	srcAddr, err := src.GetAddress()
 	if err != nil {
-		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
+		channelLogger.Error(
 			"failed to get address for send transfer",
 			err,
 		)
@@ -56,7 +57,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 	}
 
 	if txs.Send(src, dst); !txs.Success() {
-		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
+		channelLogger.Error(
 			"failed to send transfer message",
 			errors.New("failed to send transfer message"),
 		)

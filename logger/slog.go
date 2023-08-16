@@ -14,7 +14,7 @@ type RelayLogger struct {
 
 var relayLogger *RelayLogger
 
-func InitLogger(logLevel string) {
+func InitLogger(logLevel string, format string) {
 	var slogLevel slog.Level
 	switch logLevel {
 	case "DEBUG":
@@ -28,15 +28,28 @@ func InitLogger(logLevel string) {
 	default:
 		slogLevel = slog.LevelDebug
 	}
-	slogLogger := slog.New(slog.NewJSONHandler(
-		os.Stdout,
-		&slog.HandlerOptions{
-			Level:     slogLevel,
-			AddSource: true,
-		}))
+
+	var slogLogger *slog.Logger
+	handlerOpts := &slog.HandlerOptions{
+		Level:     slogLevel,
+		AddSource: true,
+	}
+	if format == "text" {
+		slogLogger = slog.New(slog.NewTextHandler(
+			os.Stdout,
+			handlerOpts,
+		))
+	} else {
+		slogLogger = slog.New(slog.NewJSONHandler(
+			os.Stdout,
+			handlerOpts,
+		))
+	}
+
 	relayLogger = &RelayLogger{
 		*slogLogger,
 	}
+
 }
 
 func (rl *RelayLogger) ErrorWithStack(msg string, err error) {
@@ -48,28 +61,12 @@ func GetLogger() *RelayLogger {
 	return relayLogger
 }
 
-func GetChainLogger(
-	logger *RelayLogger,
-	srcChainID, srcPortID string,
-	dstChainID, dstPortID string,
-) *RelayLogger {
-	return &RelayLogger{
-		*logger.With(
-			"source chain id", srcChainID,
-			"source port id", srcPortID,
-			"destination chain id", dstChainID,
-			"destination port id", dstPortID,
-		),
-	}
-}
-
-func GetChannelLogger(
-	logger *RelayLogger,
+func (rl *RelayLogger) WithChannel(
 	srcChainID, srcChannelID, srcPortID string,
 	dstChainID, dstChannelID, dstPortID string,
 ) *RelayLogger {
 	return &RelayLogger{
-		*logger.With(
+		*rl.With(
 			"source chain id", srcChainID,
 			"source channnel id", srcChannelID,
 			"source port id", srcPortID,
@@ -80,13 +77,12 @@ func GetChannelLogger(
 	}
 }
 
-func GetConnectionLogger(
-	logger *RelayLogger,
+func (rl *RelayLogger) WithConnection(
 	srcChainID, srcClientID, srcConnectionID string,
 	dstChainID, dstClientID, dstConnectionID string,
 ) *RelayLogger {
 	return &RelayLogger{
-		*logger.With(
+		*rl.With(
 			"source chain id", srcChainID,
 			"source client id", srcClientID,
 			"source connection id", srcConnectionID,
@@ -97,9 +93,12 @@ func GetConnectionLogger(
 	}
 }
 
-func GetModuleLogger(
-	logger *slog.Logger,
+func (rl *RelayLogger) WithModule(
 	moduleName string,
-) *slog.Logger {
-	return logger.With("module", moduleName)
+) *RelayLogger {
+	return &RelayLogger{
+		*rl.With(
+			"module", moduleName,
+		),
+	}
 }

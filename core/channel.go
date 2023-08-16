@@ -13,6 +13,7 @@ import (
 // TODO: add max retries or something to this function
 func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
 	relayLogger := logger.GetLogger()
+	channelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -25,7 +26,7 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 	for ; true; <-ticker.C {
 		chanSteps, err := createChannelStep(src, dst, order)
 		if err != nil {
-			GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Error(
+			channelLogger.Error(
 				"failed to create channel step",
 				err,
 			)
@@ -42,7 +43,7 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case chanSteps.Success() && chanSteps.Last:
-			GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Info(
+			channelLogger.Info(
 				"★ Channel created",
 			)
 			return nil
@@ -56,7 +57,7 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 			relayLogger.Info("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failures > 2 {
-				GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Error(
+				channelLogger.Error(
 					"! Channel failed",
 					err,
 				)
@@ -190,9 +191,10 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 }
 
 func GetChannelLoggerFromProvaleChain(relayLogger *logger.RelayLogger, src, dst *ProvableChain) *logger.RelayLogger {
-	return logger.GetChannelLogger(
-		relayLogger,
-		src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-		dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
-	)
+	return relayLogger.
+		WithChannel(
+			src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+			dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+		).
+		WithModule("core.channel")
 }

@@ -33,7 +33,8 @@ type GlobalConfig struct {
 }
 
 type LoggerConfig struct {
-	Level string `yaml:"level" json:"level"`
+	Level  string `yaml:"level" json:"level"`
+	Format string `yaml:"format" json:"format"`
 }
 
 // newDefaultGlobalConfig returns a global config with defaults set
@@ -42,7 +43,8 @@ func newDefaultGlobalConfig() GlobalConfig {
 		Timeout:        "10s",
 		LightCacheSize: 20,
 		LoggerConfig: LoggerConfig{
-			Level: "DEBUG",
+			Level:  "DEBUG",
+			Format: "json",
 		},
 	}
 }

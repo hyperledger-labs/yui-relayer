@@ -8,13 +8,14 @@ import (
 
 func CreateClients(src, dst *ProvableChain) error {
 	relayLogger := logger.GetLogger()
+	channelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 
 	srcH, dstH, err := getHeadersForCreateClient(src, dst)
 	if err != nil {
-		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
+		channelLogger.Error(
 			"failed to get headers for create client",
 			err,
 		)
@@ -23,7 +24,7 @@ func CreateClients(src, dst *ProvableChain) error {
 
 	srcAddr, err := src.GetAddress()
 	if err != nil {
-		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
+		channelLogger.Error(
 			"failed to get address for create client",
 			err,
 		)
@@ -31,7 +32,7 @@ func CreateClients(src, dst *ProvableChain) error {
 	}
 	dstAddr, err := dst.GetAddress()
 	if err != nil {
-		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
+		channelLogger.Error(
 			"failed to get address for create client",
 			err,
 		)
@@ -41,7 +42,7 @@ func CreateClients(src, dst *ProvableChain) error {
 	{
 		msg, err := dst.CreateMsgCreateClient(src.Path().ClientID, dstH, srcAddr)
 		if err != nil {
-			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
+			channelLogger.Error(
 				"failed to create client",
 				err,
 			)
@@ -53,7 +54,7 @@ func CreateClients(src, dst *ProvableChain) error {
 	{
 		msg, err := src.CreateMsgCreateClient(dst.Path().ClientID, srcH, dstAddr)
 		if err != nil {
-			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
+			channelLogger.Error(
 				"failed to create client",
 				err,
 			)
@@ -66,7 +67,7 @@ func CreateClients(src, dst *ProvableChain) error {
 	if clients.Ready() {
 		// TODO: Add retry here for out of gas or other errors
 		if clients.Send(src, dst); clients.Success() {
-			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Info(
+			channelLogger.Info(
 				"★ Clients created",
 			)
 		}
@@ -76,13 +77,14 @@ func CreateClients(src, dst *ProvableChain) error {
 
 func UpdateClients(src, dst *ProvableChain) error {
 	relayLogger := logger.GetLogger()
+	channelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 	// First, update the light clients to the latest header and return the header
 	sh, err := NewSyncHeaders(src, dst)
 	if err != nil {
-		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
+		channelLogger.Error(
 			"failed to create sync headers for update client",
 			err,
 		)
@@ -90,7 +92,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 	}
 	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(src, dst)
 	if err != nil {
-		GetChainLoggerFromProvaleChain(relayLogger, src, dst).Error(
+		channelLogger.Error(
 			"failed to setup both headers for update client",
 			err,
 		)
@@ -105,7 +107,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 	// Send msgs to both chains
 	if clients.Ready() {
 		if clients.Send(src, dst); clients.Success() {
-			GetChainLoggerFromProvaleChain(relayLogger, src, dst).Info(
+			channelLogger.Info(
 				"★ Clients updated",
 			)
 		}

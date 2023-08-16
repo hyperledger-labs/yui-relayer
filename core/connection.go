@@ -23,13 +23,14 @@ var (
 
 func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 	relayLogger := logger.GetLogger()
+	connectionLogger := GetConnectionLoggerFromProvaleChain(relayLogger, src, dst)
 	ticker := time.NewTicker(to)
 
 	failed := 0
 	for ; true; <-ticker.C {
 		connSteps, err := createConnectionStep(src, dst)
 		if err != nil {
-			GetConnectionLoggerFromProvaleChain(relayLogger, src, dst).Error(
+			connectionLogger.Error(
 				"failed to create connection step",
 				err,
 			)
@@ -46,7 +47,7 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case connSteps.Success() && connSteps.Last:
-			GetConnectionLoggerFromProvaleChain(relayLogger, src, dst).Info(
+			connectionLogger.Info(
 				"★ Connection created",
 			)
 			return nil
@@ -60,7 +61,7 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 			log.Println("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failed > 2 {
-				GetConnectionLoggerFromProvaleChain(relayLogger, src, dst).Error(
+				connectionLogger.Error(
 					"! Connection failed",
 					errors.New("failed 3 times"),
 				)
@@ -264,13 +265,14 @@ func mustGetAddress(chain interface {
 }
 
 func GetConnectionLoggerFromProvaleChain(relayLogger *logger.RelayLogger, src, dst *ProvableChain) *logger.RelayLogger {
-	return logger.GetConnectionLogger(
-		relayLogger,
-		src.ChainID(),
-		src.Path().ClientID,
-		src.Path().ConnectionID,
-		dst.ChainID(),
-		dst.Path().ClientID,
-		dst.Path().ConnectionID,
-	)
+	return relayLogger.
+		WithChannel(
+			src.ChainID(),
+			src.Path().ClientID,
+			src.Path().ConnectionID,
+			dst.ChainID(),
+			dst.Path().ClientID,
+			dst.Path().ConnectionID,
+		).
+		WithModule("core.connection")
 }
