@@ -31,23 +31,31 @@ type StrategyI interface {
 // StrategyCfg defines which relaying strategy to take for a given path
 type StrategyCfg struct {
 	Type string `json:"type" yaml:"type"`
+
+	// If set, executions of acknowledgePacket are always skipped on the src chain.
+	// Also `UnrelayedAcknowledgements` returns zero packets for the src chain.
+	SrcNoack bool `json:"src-noack" yaml:"src-noack"`
+
+	// If set, executions of acknowledgePacket are always skipped on the dst chain
+	// Also `UnrelayedAcknowledgements` returns zero packets for the dst chain.
+	DstNoack bool `json:"dst-noack" yaml:"dst-noack"`
 }
 
 func GetStrategy(cfg StrategyCfg) (StrategyI, error) {
 	switch cfg.Type {
 	case "naive":
-		return NewNaiveStrategy(), nil
+		return NewNaiveStrategy(cfg.SrcNoack, cfg.DstNoack), nil
 	default:
 		return nil, fmt.Errorf("unknown strategy type '%v'", cfg.Type)
 	}
 }
 
-// GetStrategy the strategy defined in the relay messages
-func (p *Path) GetStrategy() (StrategyI, error) {
+// ValidateStrategy validates that the strategy of path `p` is valid
+func (p *Path) ValidateStrategy() error {
 	switch p.Strategy.Type {
 	case (&NaiveStrategy{}).GetType():
-		return &NaiveStrategy{}, nil
+		return nil
 	default:
-		return nil, fmt.Errorf("invalid strategy: %s", p.Strategy.Type)
+		return fmt.Errorf("invalid strategy: %s", p.Strategy.Type)
 	}
 }

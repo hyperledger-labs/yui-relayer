@@ -141,7 +141,7 @@ func (p *Path) Validate() (err error) {
 	if err = p.Dst.Validate(); err != nil {
 		return err
 	}
-	if _, err = p.GetStrategy(); err != nil {
+	if err = p.ValidateStrategy(); err != nil {
 		return err
 	}
 	if p.Src.Order != p.Dst.Order {
