@@ -24,16 +24,19 @@ var (
 	meterProvider *metric.MeterProvider
 	meter         api.Meter
 
-	metricSrcProcessedBlockHeight *Int64SyncGauge
-	metricDstProcessedBlockHeight *Int64SyncGauge
-	metricSrcBacklogSize          *Int64SyncGauge
-	metricDstBacklogSize          *Int64SyncGauge
-	metricSrcBacklogOldestHeight  *Int64SyncGauge
-	metricDstBacklogOldestHeight  *Int64SyncGauge
+	metricSrcProcessedBlockHeight *atomic.Int64
+	metricDstProcessedBlockHeight *atomic.Int64
+	metricSrcBacklog              PacketInfoList // take care. this is not thread safe.
+	metricDstBacklog              PacketInfoList // take care. this is not thread safe.
+	metricSrcBacklogSize          *atomic.Int64
+	metricDstBacklogSize          *atomic.Int64
+	metricSrcBacklogOldestHeight  *atomic.Int64
+	metricDstBacklogOldestHeight  *atomic.Int64
 
-	srcBacklog                    PacketInfoList
-	dstBacklog                    PacketInfoList
-	metricReceivePacketsFinalized api.Int64Counter
+	instProcessedBlockHeight    api.Int64ObservableGauge
+	instBacklogSize             api.Int64ObservableGauge
+	instBacklogOldestHeight     api.Int64ObservableGauge
+	instReceivePacketsFinalized api.Int64Counter
 )
 
 func InitializeMetrics(addr string) error {
@@ -49,32 +52,70 @@ func InitializeMetrics(addr string) error {
 
 	meter = meterProvider.Meter(meterName)
 
-	if metricSrcProcessedBlockHeight, err = newProcessedBlockHeightMetric(meter, "src"); err != nil {
-		return err
-	}
-	if metricDstProcessedBlockHeight, err = newProcessedBlockHeightMetric(meter, "dst"); err != nil {
-		return err
-	}
+	metricSrcProcessedBlockHeight = &atomic.Int64{}
+	metricDstProcessedBlockHeight = &atomic.Int64{}
+	metricSrcBacklogSize = &atomic.Int64{}
+	metricDstBacklogSize = &atomic.Int64{}
+	metricSrcBacklogOldestHeight = &atomic.Int64{}
+	metricDstBacklogOldestHeight = &atomic.Int64{}
 
-	if metricSrcBacklogSize, err = newBacklogSizeMetric(meter, "src"); err != nil {
-		return err
+	// create the instrument "relayer.processed_block_height"
+	name := fmt.Sprintf("%s.processed_block_height", namespaceRoot)
+	callback := func(ctx context.Context, observer api.Int64Observer) error {
+		observer.Observe(metricSrcProcessedBlockHeight.Load(), api.WithAttributes(attribute.String("chain", "src")))
+		observer.Observe(metricDstProcessedBlockHeight.Load(), api.WithAttributes(attribute.String("chain", "dst")))
+		return nil
 	}
-	if metricDstBacklogSize, err = newBacklogSizeMetric(meter, "dst"); err != nil {
-		return err
-	}
-
-	if metricSrcBacklogOldestHeight, err = newBacklogOldestHeightMetric(meter, "src"); err != nil {
-		return err
-	}
-	if metricDstBacklogOldestHeight, err = newBacklogOldestHeightMetric(meter, "dst"); err != nil {
-		return err
-	}
-
-	metricReceivePacketsFinalized, err = meter.Int64Counter(
-		fmt.Sprintf("%s.receive_packets_finalized", namespaceRoot),
+	if instProcessedBlockHeight, err = meter.Int64ObservableGauge(
+		name,
 		api.WithUnit("1"),
-		api.WithDescription("the number of finalizedly received packets"),
-	)
+		api.WithDescription("latest finalized height"),
+		api.WithInt64Callback(callback),
+	); err != nil {
+		return fmt.Errorf("failed to create the instrument %s: %v", name, err)
+	}
+
+	// create the instrument "relayer.backlog_size"
+	name = fmt.Sprintf("%s.backlog_size", namespaceRoot)
+	callback = func(ctx context.Context, observer api.Int64Observer) error {
+		observer.Observe(metricSrcBacklogSize.Load(), api.WithAttributes(attribute.String("chain", "src")))
+		observer.Observe(metricDstBacklogSize.Load(), api.WithAttributes(attribute.String("chain", "dst")))
+		return nil
+	}
+	if instBacklogSize, err = meter.Int64ObservableGauge(
+		name,
+		api.WithUnit("1"),
+		api.WithDescription("number of packets that are unreceived or received but unfinalized"),
+		api.WithInt64Callback(callback),
+	); err != nil {
+		return fmt.Errorf("failed to create the instrument %s: %v", name, err)
+	}
+
+	// create the instrument "relayer.backlog_oldest_height"
+	name = fmt.Sprintf("%s.backlog_oldest_height", namespaceRoot)
+	callback = func(ctx context.Context, observer api.Int64Observer) error {
+		observer.Observe(metricSrcBacklogOldestHeight.Load(), api.WithAttributes(attribute.String("chain", "src")))
+		observer.Observe(metricDstBacklogOldestHeight.Load(), api.WithAttributes(attribute.String("chain", "dst")))
+		return nil
+	}
+	if instBacklogOldestHeight, err = meter.Int64ObservableGauge(
+		name,
+		api.WithUnit("1"),
+		api.WithDescription("height when the oldest packet in backlog was sent"),
+		api.WithInt64Callback(callback),
+	); err != nil {
+		return fmt.Errorf("failed to create the instrument %s: %v", name, err)
+	}
+
+	// create the instrument "relayer.receive_packets_finalized"
+	name = fmt.Sprintf("%s.receive_packets_finalized", namespaceRoot)
+	if instReceivePacketsFinalized, err = meter.Int64Counter(
+		name,
+		api.WithUnit("1"),
+		api.WithDescription("number of packets that are received and finalized"),
+	); err != nil {
+		return fmt.Errorf("failed to create the instrument %s: %v", name, err)
+	}
 
 	return nil
 }
@@ -106,8 +147,27 @@ func NewPrometheusMeterProvider(addr string) (*metric.MeterProvider, error) {
 	), nil
 }
 
+func UpdateBlockMetrics(ctx context.Context, newSrcHeight, newDstHeight uint64) {
+	metricSrcProcessedBlockHeight.Store(int64(newSrcHeight))
+	metricDstProcessedBlockHeight.Store(int64(newDstHeight))
+}
+
 func UpdateBacklogMetrics(ctx context.Context, newSrcBacklog, newDstBacklog PacketInfoList) {
-	for _, packet := range srcBacklog {
+	metricSrcBacklogSize.Store(int64(len(newSrcBacklog)))
+	metricDstBacklogSize.Store(int64(len(newDstBacklog)))
+
+	if len(newSrcBacklog) > 0 {
+		metricSrcBacklogOldestHeight.Store(int64(newSrcBacklog[0].EventHeight.RevisionHeight))
+	} else {
+		metricSrcBacklogOldestHeight.Store(0)
+	}
+	if len(newDstBacklog) > 0 {
+		metricDstBacklogOldestHeight.Store(int64(newDstBacklog[0].EventHeight.RevisionHeight))
+	} else {
+		metricDstBacklogOldestHeight.Store(0)
+	}
+
+	for _, packet := range metricSrcBacklog {
 		received := true
 		for _, newPacket := range newSrcBacklog {
 			if packet.Sequence == newPacket.Sequence {
@@ -116,12 +176,12 @@ func UpdateBacklogMetrics(ctx context.Context, newSrcBacklog, newDstBacklog Pack
 			}
 		}
 		if received {
-			metricReceivePacketsFinalized.Add(ctx, 1, api.WithAttributes(attribute.String("chain", "src")))
+			instReceivePacketsFinalized.Add(ctx, 1, api.WithAttributes(attribute.String("chain", "src")))
 		}
 	}
-	srcBacklog = newSrcBacklog
+	metricSrcBacklog = newSrcBacklog
 
-	for _, packet := range dstBacklog {
+	for _, packet := range metricDstBacklog {
 		received := true
 		for _, newPacket := range newDstBacklog {
 			if packet.Sequence == newPacket.Sequence {
@@ -130,83 +190,8 @@ func UpdateBacklogMetrics(ctx context.Context, newSrcBacklog, newDstBacklog Pack
 			}
 		}
 		if received {
-			metricReceivePacketsFinalized.Add(ctx, 1, api.WithAttributes(attribute.String("chain", "dst")))
+			instReceivePacketsFinalized.Add(ctx, 1, api.WithAttributes(attribute.String("chain", "dst")))
 		}
 	}
-	dstBacklog = newDstBacklog
-}
-
-func newProcessedBlockHeightMetric(meter api.Meter, side string) (*Int64SyncGauge, error) {
-	name := fmt.Sprintf("%s.%s.processed_block_height", namespaceRoot, side)
-	if gauge, err := NewInt64SyncGauge(
-		meter,
-		name,
-		0,
-		api.WithUnit("1"),
-		api.WithDescription(fmt.Sprintf("%s chain's latest finalized height", side)),
-	); err != nil {
-		return nil, fmt.Errorf("failed to create the metric %s: %v", name, err)
-	} else {
-		return gauge, nil
-	}
-}
-
-func newBacklogSizeMetric(meter api.Meter, side string) (*Int64SyncGauge, error) {
-	name := fmt.Sprintf("%s.%s.backlog_size", namespaceRoot, side)
-	if gauge, err := NewInt64SyncGauge(
-		meter,
-		name,
-		0,
-		api.WithUnit("1"),
-		api.WithDescription(fmt.Sprintf("%s chain's number of unreceived (or received but unfinalized) packets", side)),
-	); err != nil {
-		return nil, fmt.Errorf("failed to create the metric %s: %v", name, err)
-	} else {
-		return gauge, nil
-	}
-}
-
-func newBacklogOldestHeightMetric(meter api.Meter, side string) (*Int64SyncGauge, error) {
-	name := fmt.Sprintf("%s.%s.backlog_oldest_height", namespaceRoot, side)
-	if gauge, err := NewInt64SyncGauge(
-		meter,
-		name,
-		0,
-		api.WithUnit("1"),
-		api.WithDescription(fmt.Sprintf("%s chain's the height when the oldest unreceived (or received but unfinalized) packet was sent", side)),
-	); err != nil {
-		return nil, fmt.Errorf("failed to create the metric %s: %v", name, err)
-	} else {
-		return gauge, nil
-	}
-}
-
-// Int64SyncGauge is an implementation of int64 synchronous gauge made from the official asynchronous one (Int64ObservableGauge).
-// In the near future, the synchronous version will be supported officially, but is not now.
-// Ref: https://github.com/open-telemetry/opentelemetry-go/issues/3984
-type Int64SyncGauge struct {
-	value *atomic.Int64
-	gauge api.Int64ObservableGauge
-}
-
-// NewInt64SyncGauge creates a int64 synchronous gauge.
-func NewInt64SyncGauge(meter api.Meter, name string, initialValue int64, options ...api.Int64ObservableGaugeOption) (*Int64SyncGauge, error) {
-	value := atomic.Int64{}
-
-	callback := func(ctx context.Context, observer api.Int64Observer) error {
-		observer.Observe(value.Load())
-		return nil
-	}
-	options = append(options, api.WithInt64Callback(callback))
-	gauge, err := meter.Int64ObservableGauge(name, options...)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Int64SyncGauge{&value, gauge}, nil
-}
-
-// Set sets the new value to the gauge in the thread safe manner.
-func (g *Int64SyncGauge) Set(value int64) {
-	g.value.Store(value)
+	metricDstBacklog = newDstBacklog
 }

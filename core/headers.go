@@ -79,8 +79,11 @@ func (sh *syncHeaders) Updates(src, dst ChainInfoLightClient) error {
 		return err
 	}
 
-	metricSrcProcessedBlockHeight.Set(int64(srcHeader.GetHeight().GetRevisionHeight()))
-	metricDstProcessedBlockHeight.Set(int64(dstHeader.GetHeight().GetRevisionHeight()))
+	UpdateBlockMetrics(
+		context.TODO(),
+		srcHeader.GetHeight().GetRevisionHeight(),
+		dstHeader.GetHeight().GetRevisionHeight(),
+	)
 
 	sh.latestFinalizedHeaders[src.ChainID()] = srcHeader
 	sh.latestFinalizedHeaders[dst.ChainID()] = dstHeader
