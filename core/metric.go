@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/exporters/prometheus"
@@ -13,28 +14,42 @@ import (
 )
 
 const (
-	fallbackAddr = "localhost:0"
+	meterName     = "github.com/hyperledger-labs/yui-relayer"
+	namespaceRoot = "relayer"
+	fallbackAddr  = "localhost:0"
 )
 
 var (
 	meterProvider *metric.MeterProvider
 	meter         api.Meter
+
+	metricSrcProcessedBlockHeight *Int64SyncGauge
+	metricDstProcessedBlockHeight *Int64SyncGauge
 )
 
-func InitializeMetrics(addr string) error {
-	var err error
+func metricName(name string) string {
+	return fmt.Sprintf("%s.%s", namespaceRoot, name)
+}
 
+func InitializeMetrics(addr string) error {
 	if addr == "" {
 		addr = fallbackAddr
 	}
-	meterProvider, err = NewPrometheusMeterProvider(addr)
-	if err != nil {
-		return fmt.Errorf("failed to create the MeterProvider with the Prometheus Exporter: %v", err)
+
+	var err error
+
+	if meterProvider, err = NewPrometheusMeterProvider(addr); err != nil {
+		return err
 	}
 
-	meter = meterProvider.Meter(
-		"github.com/hyperledger-labs/yui-relayer",
-	)
+	meter = meterProvider.Meter(meterName)
+
+	if metricSrcProcessedBlockHeight, err = newProcessedBlockHeightMetric(meter, "src.processed_block_height", "src chain's latest finalized height"); err != nil {
+		return err
+	}
+	if metricDstProcessedBlockHeight, err = newProcessedBlockHeightMetric(meter, "dst.processed_block_height", "dst chain's latest finalized height"); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -64,4 +79,48 @@ func NewPrometheusMeterProvider(addr string) (*metric.MeterProvider, error) {
 	return metric.NewMeterProvider(
 		metric.WithReader(exporter),
 	), nil
+}
+
+func newProcessedBlockHeightMetric(meter api.Meter, name, desc string) (*Int64SyncGauge, error) {
+	if gauge, err := NewInt64SyncGauge(
+		meter,
+		metricName(name),
+		0,
+		api.WithUnit("1"),
+		api.WithDescription(desc),
+	); err != nil {
+		return nil, fmt.Errorf("failed to create the sync gauge %s: %v", metricName(name), err)
+	} else {
+		return gauge, nil
+	}
+}
+
+// Int64SyncGauge is an implementation of int64 synchronous gauge made from the official asynchronous one (Int64ObservableGauge).
+// In the near future, the synchronous version will be supported officially, but is not now.
+// Ref: https://github.com/open-telemetry/opentelemetry-go/issues/3984
+type Int64SyncGauge struct {
+	value *atomic.Int64
+	gauge api.Int64ObservableGauge
+}
+
+// NewInt64SyncGauge creates a int64 synchronous gauge.
+func NewInt64SyncGauge(meter api.Meter, name string, initialValue int64, options ...api.Int64ObservableGaugeOption) (*Int64SyncGauge, error) {
+	value := atomic.Int64{}
+
+	callback := func(ctx context.Context, observer api.Int64Observer) error {
+		observer.Observe(value.Load())
+		return nil
+	}
+	options = append(options, api.WithInt64Callback(callback))
+	gauge, err := meter.Int64ObservableGauge(name, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Int64SyncGauge{&value, gauge}, nil
+}
+
+// Set sets the new value to the gauge in the thread safe manner.
+func (g *Int64SyncGauge) Set(value int64) {
+	g.value.Store(value)
 }
