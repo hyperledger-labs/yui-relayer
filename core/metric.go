@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	api "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/metric"
@@ -29,6 +30,10 @@ var (
 	metricDstBacklogSize          *Int64SyncGauge
 	metricSrcBacklogOldestHeight  *Int64SyncGauge
 	metricDstBacklogOldestHeight  *Int64SyncGauge
+
+	srcBacklog                    PacketInfoList
+	dstBacklog                    PacketInfoList
+	metricReceivePacketsFinalized api.Int64Counter
 )
 
 func InitializeMetrics(addr string) error {
@@ -65,6 +70,12 @@ func InitializeMetrics(addr string) error {
 		return err
 	}
 
+	metricReceivePacketsFinalized, err = meter.Int64Counter(
+		fmt.Sprintf("%s.receive_packets_finalized", namespaceRoot),
+		api.WithUnit("1"),
+		api.WithDescription("the number of finalizedly received packets"),
+	)
+
 	return nil
 }
 
@@ -93,6 +104,36 @@ func NewPrometheusMeterProvider(addr string) (*metric.MeterProvider, error) {
 	return metric.NewMeterProvider(
 		metric.WithReader(exporter),
 	), nil
+}
+
+func UpdateBacklogMetrics(ctx context.Context, newSrcBacklog, newDstBacklog PacketInfoList) {
+	for _, packet := range srcBacklog {
+		received := true
+		for _, newPacket := range newSrcBacklog {
+			if packet.Sequence == newPacket.Sequence {
+				received = false
+				break
+			}
+		}
+		if received {
+			metricReceivePacketsFinalized.Add(ctx, 1, api.WithAttributes(attribute.String("chain", "src")))
+		}
+	}
+	srcBacklog = newSrcBacklog
+
+	for _, packet := range dstBacklog {
+		received := true
+		for _, newPacket := range newDstBacklog {
+			if packet.Sequence == newPacket.Sequence {
+				received = false
+				break
+			}
+		}
+		if received {
+			metricReceivePacketsFinalized.Add(ctx, 1, api.WithAttributes(attribute.String("chain", "dst")))
+		}
+	}
+	dstBacklog = newDstBacklog
 }
 
 func newProcessedBlockHeightMetric(meter api.Meter, side string) (*Int64SyncGauge, error) {
