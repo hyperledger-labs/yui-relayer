@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,10 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 )
 
+const (
+	fallbackAddr = "localhost:0"
+)
+
 var (
 	meterProvider *metric.MeterProvider
 	meter         api.Meter
@@ -19,6 +24,9 @@ var (
 func InitializeMetrics(addr string) error {
 	var err error
 
+	if addr == "" {
+		addr = fallbackAddr
+	}
 	meterProvider, err = NewPrometheusMeterProvider(addr)
 	if err != nil {
 		return fmt.Errorf("failed to create the MeterProvider with the Prometheus Exporter: %v", err)
@@ -28,6 +36,13 @@ func InitializeMetrics(addr string) error {
 		"github.com/hyperledger-labs/yui-relayer",
 	)
 
+	return nil
+}
+
+func ShutdownMetrics(ctx context.Context) error {
+	if err := meterProvider.Shutdown(ctx); err != nil {
+		return fmt.Errorf("failed to shutdown the MeterProvider: %v", err)
+	}
 	return nil
 }
 
