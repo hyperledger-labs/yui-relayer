@@ -27,6 +27,8 @@ var (
 	metricDstProcessedBlockHeight *Int64SyncGauge
 	metricSrcBacklogSize          *Int64SyncGauge
 	metricDstBacklogSize          *Int64SyncGauge
+	metricSrcBacklogOldestHeight  *Int64SyncGauge
+	metricDstBacklogOldestHeight  *Int64SyncGauge
 )
 
 func InitializeMetrics(addr string) error {
@@ -53,6 +55,13 @@ func InitializeMetrics(addr string) error {
 		return err
 	}
 	if metricDstBacklogSize, err = newBacklogSizeMetric(meter, "dst"); err != nil {
+		return err
+	}
+
+	if metricSrcBacklogOldestHeight, err = newBacklogOldestHeightMetric(meter, "src"); err != nil {
+		return err
+	}
+	if metricDstBacklogOldestHeight, err = newBacklogOldestHeightMetric(meter, "dst"); err != nil {
 		return err
 	}
 
@@ -109,6 +118,21 @@ func newBacklogSizeMetric(meter api.Meter, side string) (*Int64SyncGauge, error)
 		0,
 		api.WithUnit("1"),
 		api.WithDescription(fmt.Sprintf("%s chain's number of unreceived (or received but unfinalized) packets", side)),
+	); err != nil {
+		return nil, fmt.Errorf("failed to create the metric %s: %v", name, err)
+	} else {
+		return gauge, nil
+	}
+}
+
+func newBacklogOldestHeightMetric(meter api.Meter, side string) (*Int64SyncGauge, error) {
+	name := fmt.Sprintf("%s.%s.backlog_oldest_height", namespaceRoot, side)
+	if gauge, err := NewInt64SyncGauge(
+		meter,
+		name,
+		0,
+		api.WithUnit("1"),
+		api.WithDescription(fmt.Sprintf("%s chain's the height when the oldest unreceived (or received but unfinalized) packet was sent", side)),
 	); err != nil {
 		return nil, fmt.Errorf("failed to create the metric %s: %v", name, err)
 	} else {
