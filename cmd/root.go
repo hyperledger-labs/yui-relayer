@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 
@@ -71,9 +72,15 @@ func Execute(modules ...config.ModuleI) error {
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		// reads `homeDir/config/config.yaml` into `var config *Config` before each command
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
-			return err
+			return fmt.Errorf("failed to bind the flag set to the configuration: %v", err)
 		}
-		return initConfig(ctx, rootCmd)
+		if err := initConfig(ctx, rootCmd); err != nil {
+			return fmt.Errorf("failed to initialize the configuration: %v", err)
+		}
+		if err := core.InitializeMetrics(ctx.Config.Global.PrometheusAddr); err != nil {
+			return fmt.Errorf("failed to initialize the metrics: %v", err)
+		}
+		return nil
 	}
 
 	return rootCmd.Execute()
