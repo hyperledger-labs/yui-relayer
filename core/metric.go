@@ -25,11 +25,9 @@ var (
 
 	metricSrcProcessedBlockHeight *Int64SyncGauge
 	metricDstProcessedBlockHeight *Int64SyncGauge
+	metricSrcBacklogSize          *Int64SyncGauge
+	metricDstBacklogSize          *Int64SyncGauge
 )
-
-func metricName(name string) string {
-	return fmt.Sprintf("%s.%s", namespaceRoot, name)
-}
 
 func InitializeMetrics(addr string) error {
 	if addr == "" {
@@ -44,10 +42,17 @@ func InitializeMetrics(addr string) error {
 
 	meter = meterProvider.Meter(meterName)
 
-	if metricSrcProcessedBlockHeight, err = newProcessedBlockHeightMetric(meter, "src.processed_block_height", "src chain's latest finalized height"); err != nil {
+	if metricSrcProcessedBlockHeight, err = newProcessedBlockHeightMetric(meter, "src"); err != nil {
 		return err
 	}
-	if metricDstProcessedBlockHeight, err = newProcessedBlockHeightMetric(meter, "dst.processed_block_height", "dst chain's latest finalized height"); err != nil {
+	if metricDstProcessedBlockHeight, err = newProcessedBlockHeightMetric(meter, "dst"); err != nil {
+		return err
+	}
+
+	if metricSrcBacklogSize, err = newBacklogSizeMetric(meter, "src"); err != nil {
+		return err
+	}
+	if metricDstBacklogSize, err = newBacklogSizeMetric(meter, "dst"); err != nil {
 		return err
 	}
 
@@ -81,15 +86,31 @@ func NewPrometheusMeterProvider(addr string) (*metric.MeterProvider, error) {
 	), nil
 }
 
-func newProcessedBlockHeightMetric(meter api.Meter, name, desc string) (*Int64SyncGauge, error) {
+func newProcessedBlockHeightMetric(meter api.Meter, side string) (*Int64SyncGauge, error) {
+	name := fmt.Sprintf("%s.%s.processed_block_height", namespaceRoot, side)
 	if gauge, err := NewInt64SyncGauge(
 		meter,
-		metricName(name),
+		name,
 		0,
 		api.WithUnit("1"),
-		api.WithDescription(desc),
+		api.WithDescription(fmt.Sprintf("%s chain's latest finalized height", side)),
 	); err != nil {
-		return nil, fmt.Errorf("failed to create the sync gauge %s: %v", metricName(name), err)
+		return nil, fmt.Errorf("failed to create the metric %s: %v", name, err)
+	} else {
+		return gauge, nil
+	}
+}
+
+func newBacklogSizeMetric(meter api.Meter, side string) (*Int64SyncGauge, error) {
+	name := fmt.Sprintf("%s.%s.backlog_size", namespaceRoot, side)
+	if gauge, err := NewInt64SyncGauge(
+		meter,
+		name,
+		0,
+		api.WithUnit("1"),
+		api.WithDescription(fmt.Sprintf("%s chain's number of unreceived (or received but unfinalized) packets", side)),
+	); err != nil {
+		return nil, fmt.Errorf("failed to create the metric %s: %v", name, err)
 	} else {
 		return gauge, nil
 	}
