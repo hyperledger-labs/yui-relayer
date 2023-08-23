@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
@@ -112,24 +110,13 @@ func pathsAddCmd(ctx *config.Context) *cobra.Command {
 
 func pathsEditCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "edit [path-name] [key] [src/dst] [value]",
+		Use:     "edit [path-name] [src or dst] [key] [value]",
 		Aliases: []string{"e"},
 		Short:   "Edit the config file",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
-				return err
-			}
-			cfgPath := path.Join(home, "config", "config.yaml")
-			if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-				if _, err := os.Stat(home); os.IsNotExist(err) {
-					return fmt.Errorf("home path does not exist: %s", home)
-				}
-				return fmt.Errorf("config does not exist: %s", cfgPath)
-			}
 			pathName := args[0]
-			key := args[1]
-			srcDst := args[2]
+			srcDst := args[1]
+			key := args[2]
 			value := args[3]
 			configPath, err := ctx.Config.Paths.Get(pathName)
 			if err != nil {
@@ -142,7 +129,7 @@ func pathsEditCmd(ctx *config.Context) *cobra.Command {
 			case "dst":
 				pathEnd = configPath.Dst
 			default:
-				return fmt.Errorf("invalid src/dst: %s. Valid values are: src, dst", srcDst)
+				return fmt.Errorf("invalid src or dst: %s. Valid values are: src, dst", srcDst)
 			}
 			switch key {
 			case "client-id":
@@ -156,13 +143,7 @@ func pathsEditCmd(ctx *config.Context) *cobra.Command {
 			default:
 				return fmt.Errorf("invalid key: %s. Valid keys are: client-id, channel-id, connection-id, port-id", key)
 			}
-			ctx.Config.Paths[pathName] = configPath
-			out, err := config.MarshalJSON(*ctx.Config)
-			if err != nil {
-				return err
-			}
-			err = os.WriteFile(cfgPath, out, 0600)
-			if err != nil {
+			if err := overWriteConfig(ctx, cmd); err != nil {
 				return err
 			}
 			fmt.Println("config file updated")
