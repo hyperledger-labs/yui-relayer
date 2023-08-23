@@ -3,9 +3,10 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"path"
 
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
@@ -25,6 +26,7 @@ connection, and channel ids from both the source and destination chains as well 
 	cmd.AddCommand(
 		pathsListCmd(ctx),
 		pathsAddCmd(ctx),
+		pathsEditCmd(ctx),
 	)
 
 	return cmd
@@ -108,6 +110,68 @@ func pathsAddCmd(ctx *config.Context) *cobra.Command {
 	return fileFlag(cmd)
 }
 
+func pathsEditCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "edit [path-name] [key] [src/dst] [value]",
+		Aliases: []string{"e"},
+		Short:   "Edit the config file",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			home, err := cmd.Flags().GetString(flags.FlagHome)
+			if err != nil {
+				return err
+			}
+			cfgPath := path.Join(home, "config", "config.yaml")
+			if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+				if _, err := os.Stat(home); os.IsNotExist(err) {
+					return fmt.Errorf("home path does not exist: %s", home)
+				}
+				return fmt.Errorf("config does not exist: %s", cfgPath)
+			}
+			pathName := args[0]
+			key := args[1]
+			srcDst := args[2]
+			value := args[3]
+			configPath, err := ctx.Config.Paths.Get(pathName)
+			if err != nil {
+				return err
+			}
+			var pathEnd *core.PathEnd
+			switch srcDst {
+			case "src":
+				pathEnd = configPath.Src
+			case "dst":
+				pathEnd = configPath.Dst
+			default:
+				return fmt.Errorf("invalid src/dst: %s. Valid values are: src, dst", srcDst)
+			}
+			switch key {
+			case "client-id":
+				pathEnd.ClientID = value
+			case "channel-id":
+				pathEnd.ChannelID = value
+			case "connection-id":
+				pathEnd.ConnectionID = value
+			case "port-id":
+				pathEnd.PortID = value
+			default:
+				return fmt.Errorf("invalid key: %s. Valid keys are: client-id, channel-id, connection-id, port-id", key)
+			}
+			ctx.Config.Paths[pathName] = configPath
+			out, err := config.MarshalJSON(*ctx.Config)
+			if err != nil {
+				return err
+			}
+			err = os.WriteFile(cfgPath, out, 0600)
+			if err != nil {
+				return err
+			}
+			fmt.Println("config file updated")
+			return nil
+		},
+	}
+	return cmd
+}
+
 func fileInputPathAdd(config *config.Config, file, name string) error {
 	// If the user passes in a file, attempt to read the chain config from that file
 	p := &core.Path{}
@@ -115,7 +179,7 @@ func fileInputPathAdd(config *config.Config, file, name string) error {
 		return err
 	}
 
-	byt, err := ioutil.ReadFile(file)
+	byt, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}

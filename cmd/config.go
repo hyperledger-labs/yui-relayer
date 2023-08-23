@@ -22,7 +22,6 @@ func configCmd(ctx *config.Context) *cobra.Command {
 	cmd.AddCommand(
 		configShowCmd(ctx),
 		configInitCmd(),
-		configEditCmd(ctx),
 	)
 
 	return cmd
@@ -113,62 +112,6 @@ func configShowCmd(ctx *config.Context) *cobra.Command {
 		},
 	}
 
-	return cmd
-}
-
-func configEditCmd(ctx *config.Context) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "edit [path-name] [key] [value]",
-		Aliases: []string{"e"},
-		Short:   "Edit the config file",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
-				return err
-			}
-			cfgPath := path.Join(home, "config", "config.yaml")
-			if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-				if _, err := os.Stat(home); os.IsNotExist(err) {
-					return fmt.Errorf("home path does not exist: %s", home)
-				}
-				return fmt.Errorf("config does not exist: %s", cfgPath)
-			}
-			pathName := args[0]
-			key := args[1]
-			value := args[2]
-			configPath, err := ctx.Config.Paths.Get(pathName)
-			if err != nil {
-				return err
-			}
-			switch key {
-			case "client-id":
-				configPath.Src.ClientID = value
-				configPath.Dst.ClientID = value
-			case "channel-id":
-				configPath.Src.ChannelID = value
-				configPath.Dst.ChannelID = value
-			case "connection-id":
-				configPath.Src.ConnectionID = value
-				configPath.Dst.ConnectionID = value
-			case "port-id":
-				configPath.Src.PortID = value
-				configPath.Dst.PortID = value
-			default:
-				return fmt.Errorf("invalid key: %s. Valid keys are: client-id, channel-id, connection-id, port-id", key)
-			}
-			ctx.Config.Paths[pathName] = configPath
-			out, err := config.MarshalJSON(*ctx.Config)
-			if err != nil {
-				return err
-			}
-			err = os.WriteFile(cfgPath, out, 0600)
-			if err != nil {
-				return err
-			}
-			fmt.Println("config file updated")
-			return nil
-		},
-	}
 	return cmd
 }
 
