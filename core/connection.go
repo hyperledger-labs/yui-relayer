@@ -19,7 +19,7 @@ var (
 	rtyErr    = retry.LastErrorOnly(true)
 )
 
-func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
+func CreateConnection(src, dst *ProvableChain, to, sleepDuration time.Duration) error {
 	ticker := time.NewTicker(to)
 
 	failed := 0
@@ -46,6 +46,7 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of success, reset the failures counter
 		case connSteps.Success():
 			failed = 0
+			time.Sleep(sleepDuration)
 			continue
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !connSteps.Success():

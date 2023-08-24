@@ -16,6 +16,7 @@ const (
 	flagTimeoutHeightOffset = "timeout-height-offset"
 	flagTimeoutTimeOffset   = "timeout-time-offset"
 	flagIBCDenoms           = "ibc-denoms"
+	flagSleepDuration       = "sleep-duration"
 )
 
 func heightFlag(cmd *cobra.Command) *cobra.Command {
@@ -84,4 +85,20 @@ func ibcDenomFlags(cmd *cobra.Command) *cobra.Command {
 		panic(err)
 	}
 	return cmd
+}
+
+func sleepDurationFlag(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().StringP(flagSleepDuration, "s", "1s", "sleep duration between relayer runs")
+	if err := viper.BindPFlag(flagSleepDuration, cmd.Flags().Lookup(flagSleepDuration)); err != nil {
+		panic(err)
+	}
+	return cmd
+}
+
+func getSleepDuration(cmd *cobra.Command) (time.Duration, error) {
+	to, err := cmd.Flags().GetString(flagSleepDuration)
+	if err != nil {
+		return 0, err
+	}
+	return time.ParseDuration(to)
 }

@@ -107,6 +107,11 @@ func createConnectionCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
+			sleepDuration, err := getSleepDuration(cmd)
+			if err != nil {
+				return err
+			}
+
 			// ensure that keys exist
 			if _, err = c[src].GetAddress(); err != nil {
 				return err
@@ -115,11 +120,14 @@ func createConnectionCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateConnection(c[src], c[dst], to)
+			return core.CreateConnection(c[src], c[dst], to, sleepDuration)
 		},
 	}
 
-	return timeoutFlag(cmd)
+	cmd = timeoutFlag(cmd)
+	cmd = sleepDurationFlag(cmd)
+
+	return cmd
 }
 
 func createChannelCmd(ctx *config.Context) *cobra.Command {
@@ -140,6 +148,11 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
+			sleepDuration, err := getSleepDuration(cmd)
+			if err != nil {
+				return err
+			}
+
 			// ensure that keys exist
 			if _, err = c[src].GetAddress(); err != nil {
 				return err
@@ -148,11 +161,14 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateChannel(c[src], c[dst], false, to)
+			return core.CreateChannel(c[src], c[dst], false, to, sleepDuration)
 		},
 	}
 
-	return timeoutFlag(cmd)
+	cmd = timeoutFlag(cmd)
+	cmd = sleepDurationFlag(cmd)
+
+	return cmd
 }
 
 func relayMsgsCmd(ctx *config.Context) *cobra.Command {

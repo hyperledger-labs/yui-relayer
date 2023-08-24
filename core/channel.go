@@ -11,7 +11,7 @@ import (
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
-func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
+func CreateChannel(src, dst *ProvableChain, ordered bool, to, sleepDuration time.Duration) error {
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -44,6 +44,7 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of success, reset the failures counter
 		case chanSteps.Success():
 			failures = 0
+			time.Sleep(sleepDuration)
 			continue
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !chanSteps.Success():
