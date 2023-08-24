@@ -143,11 +143,7 @@ func pathsEditCmd(ctx *config.Context) *cobra.Command {
 			default:
 				return fmt.Errorf("invalid key: %s. Valid keys are: client-id, channel-id, connection-id, port-id", key)
 			}
-			if err := overWriteConfig(ctx, cmd); err != nil {
-				return err
-			}
-			fmt.Println("config file updated")
-			return nil
+			return overWriteConfig(ctx, cmd)
 		},
 	}
 	return cmd
