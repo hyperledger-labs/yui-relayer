@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/hyperledger-labs/yui-relayer/config"
@@ -25,6 +24,7 @@ connection, and channel ids from both the source and destination chains as well 
 	cmd.AddCommand(
 		pathsListCmd(ctx),
 		pathsAddCmd(ctx),
+		pathsEditCmd(ctx),
 	)
 
 	return cmd
@@ -108,6 +108,47 @@ func pathsAddCmd(ctx *config.Context) *cobra.Command {
 	return fileFlag(cmd)
 }
 
+func pathsEditCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "edit [path-name] [src or dst] [key] [value]",
+		Aliases: []string{"e"},
+		Short:   "Edit the config file",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pathName := args[0]
+			srcDst := args[1]
+			key := args[2]
+			value := args[3]
+			configPath, err := ctx.Config.Paths.Get(pathName)
+			if err != nil {
+				return err
+			}
+			var pathEnd *core.PathEnd
+			switch srcDst {
+			case "src":
+				pathEnd = configPath.Src
+			case "dst":
+				pathEnd = configPath.Dst
+			default:
+				return fmt.Errorf("invalid src or dst: %s. Valid values are: src, dst", srcDst)
+			}
+			switch key {
+			case "client-id":
+				pathEnd.ClientID = value
+			case "channel-id":
+				pathEnd.ChannelID = value
+			case "connection-id":
+				pathEnd.ConnectionID = value
+			case "port-id":
+				pathEnd.PortID = value
+			default:
+				return fmt.Errorf("invalid key: %s. Valid keys are: client-id, channel-id, connection-id, port-id", key)
+			}
+			return overWriteConfig(ctx, cmd)
+		},
+	}
+	return cmd
+}
+
 func fileInputPathAdd(config *config.Config, file, name string) error {
 	// If the user passes in a file, attempt to read the chain config from that file
 	p := &core.Path{}
@@ -115,7 +156,7 @@ func fileInputPathAdd(config *config.Config, file, name string) error {
 		return err
 	}
 
-	byt, err := ioutil.ReadFile(file)
+	byt, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}

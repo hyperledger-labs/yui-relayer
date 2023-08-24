@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -136,7 +135,7 @@ func initConfig(ctx *config.Context, cmd *cobra.Command) error {
 		viper.SetConfigFile(cfgPath)
 		if err := viper.ReadInConfig(); err == nil {
 			// read the config file bytes
-			file, err := ioutil.ReadFile(viper.ConfigFileUsed())
+			file, err := os.ReadFile(viper.ConfigFileUsed())
 			if err != nil {
 				fmt.Println("Error reading file:", err)
 				os.Exit(1)
