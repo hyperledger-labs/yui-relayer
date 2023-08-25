@@ -151,6 +151,15 @@ func (c *Chain) LatestHeight() (ibcexported.Height, error) {
 	return clienttypes.NewHeight(version, uint64(res.SyncInfo.LatestBlockHeight)), nil
 }
 
+func (c *Chain) Timestamp(height ibcexported.Height) (time.Time, error) {
+	ht := int64(height.GetRevisionHeight())
+	if header, err := c.Client.Header(context.TODO(), &ht); err != nil {
+		return time.Time{}, err
+	} else {
+		return header.Header.Time, nil
+	}
+}
+
 // RegisterMsgEventListener registers a given EventListener to the chain
 func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
 	c.msgEventListener = listener
