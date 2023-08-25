@@ -71,11 +71,15 @@ jobs:
         with:
           path: ${{ env.CACHE_BIN_RELAYER_PATH }}
           key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y%m%d')"
+        shell: bash
       - name: Restore Tendermint docker image cache
         uses: actions/cache@v2
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
-          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ steps.date.outputs.date }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
       - name: Load Tendermint docker images
         working-directory: ./tests/scripts
         run: |
