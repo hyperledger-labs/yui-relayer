@@ -99,6 +99,9 @@ type ChainInfo interface {
 	// NOTE: The returned height does not have to be finalized.
 	// If a finalized height/header is required, the `Prover`'s `GetLatestFinalizedHeader` function should be called instead.
 	LatestHeight() (ibcexported.Height, error)
+
+	// Timestamp returns the block timestamp
+	Timestamp(ibcexported.Height) (time.Time, error)
 }
 
 // MsgEventListener is a listener that listens a msg send to the chain
