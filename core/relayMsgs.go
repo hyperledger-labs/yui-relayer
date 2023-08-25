@@ -3,7 +3,7 @@ package core
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
-	"github.com/hyperledger-labs/yui-relayer/logger"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 // RelayMsgs contains the msgs that need to be sent to both a src and dst chain
@@ -49,7 +49,7 @@ func (r *RelayMsgs) IsMaxTx(msgLen, txSize uint64) bool {
 // Send sends the messages with appropriate output
 // TODO: Parallelize? Maybe?
 func (r *RelayMsgs) Send(src, dst Chain) {
-	relayLogger := logger.GetLogger()
+	relayLogger := log.GetLogger()
 	//nolint:prealloc // can not be pre allocated
 	var (
 		msgLen, txSize uint64

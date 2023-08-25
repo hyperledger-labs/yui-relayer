@@ -3,7 +3,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	retry "github.com/avast/retry-go"
@@ -11,7 +10,7 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
-	"github.com/hyperledger-labs/yui-relayer/logger"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 var (
@@ -22,15 +21,14 @@ var (
 )
 
 func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
-	relayLogger := logger.GetLogger()
-	connectionLogger := GetConnectionLoggerFromProvaleChain(relayLogger, src, dst)
+	logger := GetConnectionLogger(log.GetLogger(), src, dst)
 	ticker := time.NewTicker(to)
 
 	failed := 0
 	for ; true; <-ticker.C {
 		connSteps, err := createConnectionStep(src, dst)
 		if err != nil {
-			connectionLogger.Error(
+			logger.Error(
 				"failed to create connection step",
 				err,
 			)
@@ -47,7 +45,7 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case connSteps.Success() && connSteps.Last:
-			connectionLogger.Info(
+			logger.Info(
 				"★ Connection created",
 			)
 			return nil
@@ -58,10 +56,10 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !connSteps.Success():
 			failed++
-			log.Println("retrying transaction...")
+			logger.Info("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failed > 2 {
-				connectionLogger.Error(
+				logger.Error(
 					"! Connection failed",
 					errors.New("failed 3 times"),
 				)
@@ -219,9 +217,8 @@ func validatePaths(src, dst Chain) error {
 }
 
 func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnectionResponse) {
-	relayLogger := logger.GetLogger()
-	connectionLogger := GetConnectionLoggerFromProvaleChain(relayLogger, src.(*ProvableChain), dst.(*ProvableChain))
-	connectionLogger.Info(
+	logger := GetConnectionLogger(log.GetLogger(), src.(*ProvableChain), dst.(*ProvableChain))
+	logger.Info(
 		"connection states",
 		"src ProofHeight", mustGetHeight(srcConn.ProofHeight),
 		"src State", srcConn.Connection.State.String(),
@@ -232,7 +229,7 @@ func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnec
 
 // mustGetHeight takes the height inteface and returns the actual height
 func mustGetHeight(h ibcexported.Height) uint64 {
-	relayLogger := logger.GetLogger()
+	relayLogger := log.GetLogger()
 	height, ok := h.(clienttypes.Height)
 	if !ok {
 		relayLogger.Error(
@@ -247,7 +244,7 @@ func mustGetHeight(h ibcexported.Height) uint64 {
 func mustGetAddress(chain interface {
 	GetAddress() (sdk.AccAddress, error)
 }) sdk.AccAddress {
-	relayLogger := logger.GetLogger()
+	relayLogger := log.GetLogger()
 	addr, err := chain.GetAddress()
 	if err != nil {
 		relayLogger.Error(
@@ -259,7 +256,7 @@ func mustGetAddress(chain interface {
 	return addr
 }
 
-func GetConnectionLoggerFromProvaleChain(relayLogger *logger.RelayLogger, src, dst *ProvableChain) *logger.RelayLogger {
+func GetConnectionLogger(relayLogger *log.RelayLogger, src, dst *ProvableChain) *log.RelayLogger {
 	return relayLogger.
 		WithConnection(
 			src.ChainID(),

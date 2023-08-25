@@ -6,7 +6,7 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
-	"github.com/hyperledger-labs/yui-relayer/logger"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 // StartService starts a relay service
@@ -40,7 +40,7 @@ func NewRelayService(st StrategyI, src, dst *ProvableChain, sh SyncHeaders, inte
 
 // Start starts a relay service
 func (srv *RelayService) Start(ctx context.Context) error {
-	relayLogger := logger.GetLogger()
+	relayLogger := log.GetLogger()
 	for {
 		if err := retry.Do(func() error {
 			select {
@@ -64,7 +64,7 @@ func (srv *RelayService) Start(ctx context.Context) error {
 
 // Serve performs packet-relay
 func (srv *RelayService) Serve(ctx context.Context) error {
-	relayLogger := logger.GetLogger()
+	relayLogger := log.GetLogger()
 	// First, update the latest headers for src and dst
 	if err := srv.sh.Updates(srv.src, srv.dst); err != nil {
 		relayLogger.Error("failed to update headers", err)

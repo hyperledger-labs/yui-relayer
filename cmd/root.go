@@ -7,7 +7,7 @@ import (
 
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
-	"github.com/hyperledger-labs/yui-relayer/logger"
+	"github.com/hyperledger-labs/yui-relayer/log"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
@@ -94,5 +94,5 @@ func readStdin() (string, error) {
 
 func initLogger(ctx *config.Context) error {
 	loggerConfig := ctx.Config.Global.LoggerConfig
-	return logger.InitLogger(loggerConfig.Level, loggerConfig.Format, loggerConfig.Output)
+	return log.InitLogger(loggerConfig.Level, loggerConfig.Format, loggerConfig.Output)
 }

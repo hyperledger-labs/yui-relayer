@@ -6,7 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/gogoproto/proto"
-	"github.com/hyperledger-labs/yui-relayer/logger"
+	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/utils"
 )
 
@@ -34,7 +34,7 @@ type ProverConfig interface {
 
 // NewChainProverConfig returns a new config instance
 func NewChainProverConfig(m codec.JSONCodec, chain ChainConfig, client ProverConfig) (*ChainProverConfig, error) {
-	relayLogger := logger.GetLogger()
+	relayLogger := log.GetLogger()
 	cbz, err := utils.MarshalJSONAny(m, chain)
 	if err != nil {
 		relayLogger.Error("error marshalling chain config", err)

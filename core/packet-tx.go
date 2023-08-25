@@ -5,12 +5,11 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/hyperledger-labs/yui-relayer/logger"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Stringer, toHeightOffset uint64, toTimeOffset time.Duration) error {
-	relayLogger := logger.GetLogger()
-	channelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
+	logger := GetChannelLogger(log.GetLogger(), src, dst)
 	var (
 		timeoutHeight    uint64
 		timeoutTimestamp uint64
@@ -40,7 +39,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 
 	srcAddr, err := src.GetAddress()
 	if err != nil {
-		channelLogger.Error(
+		logger.Error(
 			"failed to get address for send transfer",
 			err,
 		)
@@ -56,7 +55,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 	}
 
 	if txs.Send(src, dst); !txs.Success() {
-		channelLogger.Error(
+		logger.Error(
 			"failed to send transfer message",
 		)
 		return fmt.Errorf("failed to send transfer message")

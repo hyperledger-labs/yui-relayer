@@ -6,14 +6,13 @@ import (
 
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
-	"github.com/hyperledger-labs/yui-relayer/logger"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
 func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
-	relayLogger := logger.GetLogger()
-	channelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
+	logger := GetChannelLogger(log.GetLogger(), src, dst)
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -26,7 +25,7 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 	for ; true; <-ticker.C {
 		chanSteps, err := createChannelStep(src, dst, order)
 		if err != nil {
-			channelLogger.Error(
+			logger.Error(
 				"failed to create channel step",
 				err,
 			)
@@ -43,7 +42,7 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case chanSteps.Success() && chanSteps.Last:
-			channelLogger.Info(
+			logger.Info(
 				"★ Channel created",
 			)
 			return nil
@@ -54,10 +53,10 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !chanSteps.Success():
 			failures++
-			relayLogger.Info("retrying transaction...")
+			logger.Info("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failures > 2 {
-				channelLogger.Error(
+				logger.Error(
 					"! Channel failed",
 					err,
 				)
@@ -175,9 +174,8 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 }
 
 func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.QueryChannelResponse) {
-	relayLogger := logger.GetLogger()
-	chainnelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
-	chainnelLogger.Info(
+	logger := GetChannelLogger(log.GetLogger(), src, dst)
+	logger.Info(
 		"channel states",
 		"src ProofHeight", mustGetHeight(srcChan.ProofHeight),
 		"src State", srcChan.Channel.State.String(),
@@ -186,7 +184,7 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 	)
 }
 
-func GetChannelLoggerFromProvaleChain(relayLogger *logger.RelayLogger, src, dst *ProvableChain) *logger.RelayLogger {
+func GetChannelLogger(relayLogger *log.RelayLogger, src, dst *ProvableChain) *log.RelayLogger {
 	return relayLogger.
 		WithChannel(
 			src.ChainID(), src.Path().ChannelID, src.Path().PortID,
