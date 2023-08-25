@@ -24,14 +24,14 @@ var (
 	meterProvider *metric.MeterProvider
 	meter         api.Meter
 
-	metricSrcProcessedBlockHeight *atomic.Int64
-	metricDstProcessedBlockHeight *atomic.Int64
-	metricSrcBacklog              PacketInfoList // take care. this is not thread safe.
-	metricDstBacklog              PacketInfoList // take care. this is not thread safe.
-	metricSrcBacklogSize          *atomic.Int64
-	metricDstBacklogSize          *atomic.Int64
-	metricSrcBacklogOldestHeight  *atomic.Int64
-	metricDstBacklogOldestHeight  *atomic.Int64
+	metricSrcProcessedBlockHeight   *atomic.Int64
+	metricDstProcessedBlockHeight   *atomic.Int64
+	metricSrcBacklog                PacketInfoList // take care. this is not thread safe.
+	metricDstBacklog                PacketInfoList // take care. this is not thread safe.
+	metricSrcBacklogSize            *atomic.Int64
+	metricDstBacklogSize            *atomic.Int64
+	metricSrcBacklogOldestTimestamp *atomic.Int64
+	metricDstBacklogOldestTimestamp *atomic.Int64
 
 	instProcessedBlockHeight    api.Int64ObservableGauge
 	instBacklogSize             api.Int64ObservableGauge
@@ -56,8 +56,8 @@ func InitializeMetrics(addr string) error {
 	metricDstProcessedBlockHeight = &atomic.Int64{}
 	metricSrcBacklogSize = &atomic.Int64{}
 	metricDstBacklogSize = &atomic.Int64{}
-	metricSrcBacklogOldestHeight = &atomic.Int64{}
-	metricDstBacklogOldestHeight = &atomic.Int64{}
+	metricSrcBacklogOldestTimestamp = &atomic.Int64{}
+	metricDstBacklogOldestTimestamp = &atomic.Int64{}
 
 	// create the instrument "relayer.processed_block_height"
 	name := fmt.Sprintf("%s.processed_block_height", namespaceRoot)
@@ -94,8 +94,8 @@ func InitializeMetrics(addr string) error {
 	// create the instrument "relayer.backlog_oldest_height"
 	name = fmt.Sprintf("%s.backlog_oldest_height", namespaceRoot)
 	callback = func(ctx context.Context, observer api.Int64Observer) error {
-		observer.Observe(metricSrcBacklogOldestHeight.Load(), api.WithAttributes(attribute.String("chain", "src")))
-		observer.Observe(metricDstBacklogOldestHeight.Load(), api.WithAttributes(attribute.String("chain", "dst")))
+		observer.Observe(metricSrcBacklogOldestTimestamp.Load(), api.WithAttributes(attribute.String("chain", "src")))
+		observer.Observe(metricDstBacklogOldestTimestamp.Load(), api.WithAttributes(attribute.String("chain", "dst")))
 		return nil
 	}
 	if instBacklogOldestHeight, err = meter.Int64ObservableGauge(
@@ -152,19 +152,29 @@ func UpdateBlockMetrics(ctx context.Context, newSrcHeight, newDstHeight uint64) 
 	metricDstProcessedBlockHeight.Store(int64(newDstHeight))
 }
 
-func UpdateBacklogMetrics(ctx context.Context, newSrcBacklog, newDstBacklog PacketInfoList) {
+func UpdateBacklogMetrics(ctx context.Context, src, dst Chain, newSrcBacklog, newDstBacklog PacketInfoList) error {
 	metricSrcBacklogSize.Store(int64(len(newSrcBacklog)))
 	metricDstBacklogSize.Store(int64(len(newDstBacklog)))
 
 	if len(newSrcBacklog) > 0 {
-		metricSrcBacklogOldestHeight.Store(int64(newSrcBacklog[0].EventHeight.RevisionHeight))
+		oldestHeight := newSrcBacklog[0].EventHeight
+		oldestTimestamp, err := src.Timestamp(oldestHeight)
+		if err != nil {
+			return fmt.Errorf("failed to get the timestamp of block[%d] on the src chain: %v", oldestHeight, err)
+		}
+		metricSrcBacklogOldestTimestamp.Store(oldestTimestamp.UnixNano())
 	} else {
-		metricSrcBacklogOldestHeight.Store(0)
+		metricSrcBacklogOldestTimestamp.Store(0)
 	}
 	if len(newDstBacklog) > 0 {
-		metricDstBacklogOldestHeight.Store(int64(newDstBacklog[0].EventHeight.RevisionHeight))
+		oldestHeight := newDstBacklog[0].EventHeight
+		oldestTimestamp, err := dst.Timestamp(oldestHeight)
+		if err != nil {
+			return fmt.Errorf("failed to get the timestamp of block[%d] on the dst chain: %v", oldestHeight, err)
+		}
+		metricDstBacklogOldestTimestamp.Store(oldestTimestamp.UnixNano())
 	} else {
-		metricDstBacklogOldestHeight.Store(0)
+		metricDstBacklogOldestTimestamp.Store(0)
 	}
 
 	for _, packet := range metricSrcBacklog {
@@ -194,4 +204,6 @@ func UpdateBacklogMetrics(ctx context.Context, newSrcBacklog, newDstBacklog Pack
 		}
 	}
 	metricDstBacklog = newDstBacklog
+
+	return nil
 }

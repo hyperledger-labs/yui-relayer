@@ -96,7 +96,7 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 		return nil, err
 	}
 
-	UpdateBacklogMetrics(context.TODO(), srcPackets, dstPackets)
+	UpdateBacklogMetrics(context.TODO(), src, dst, srcPackets, dstPackets)
 
 	// If includeRelayedButUnfinalized is true, this function should return packets of which RecvPacket is not finalized yet.
 	// In this case, filtering packets by QueryUnreceivedPackets is not needed because QueryUnfinalizedRelayPackets
