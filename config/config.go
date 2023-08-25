@@ -35,6 +35,7 @@ type GlobalConfig struct {
 type LoggerConfig struct {
 	Level  string `yaml:"level" json:"level"`
 	Format string `yaml:"format" json:"format"`
+	Output string `yaml:"output" json:"output"`
 }
 
 // newDefaultGlobalConfig returns a global config with defaults set
@@ -45,6 +46,7 @@ func newDefaultGlobalConfig() GlobalConfig {
 		LoggerConfig: LoggerConfig{
 			Level:  "DEBUG",
 			Format: "json",
+			Output: "stderr",
 		},
 	}
 }

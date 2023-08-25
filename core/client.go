@@ -8,7 +8,7 @@ import (
 
 func CreateClients(src, dst *ProvableChain) error {
 	relayLogger := logger.GetLogger()
-	channelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
+	channelLogger := GetChainLoggerFromProvaleChain(relayLogger, src, dst)
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)

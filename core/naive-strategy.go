@@ -38,15 +38,16 @@ func (st NaiveStrategy) GetType() string {
 
 func (st NaiveStrategy) SetupRelay(ctx context.Context, src, dst *ProvableChain) error {
 	relayLogger := logger.GetLogger()
+	channelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
 	if err := src.SetupForRelay(ctx); err != nil {
-		GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Error(
+		channelLogger.Error(
 			"failed to setup for src",
 			err,
 		)
 		return err
 	}
 	if err := dst.SetupForRelay(ctx); err != nil {
-		GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Error(
+		channelLogger.Error(
 			"failed to setup for dst",
 			err,
 		)
@@ -69,6 +70,7 @@ func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bo
 
 func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	relayLogger := logger.GetLogger()
+	channelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
 	var (
 		eg         = new(errgroup.Group)
 		srcPackets PacketInfoList
@@ -105,7 +107,7 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 	})
 
 	if err := eg.Wait(); err != nil {
-		GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Error(
+		channelLogger.Error(
 			"error querying packet commitments",
 			err,
 		)
@@ -243,10 +245,10 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, 
 	// send messages to their respective chains
 	if msgs.Send(src, dst); msgs.Success() {
 		if num := len(packetsForDst); num > 0 {
-			logPacketsRelayed(dst, src, num, "RelayPackets")
+			logPacketsRelayed(dst, num, "RelayPackets")
 		}
 		if num := len(packetsForSrc); num > 0 {
-			logPacketsRelayed(src, dst, num, "RelayPackets")
+			logPacketsRelayed(src, num, "RelayPackets")
 		}
 	}
 
@@ -278,7 +280,12 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 				srcAcks, err = src.QueryUnfinalizedRelayAcknowledgements(srcCtx, dst)
 				return err
 			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-				log.Printf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", src.ChainID(), srcCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
+				channelLogger.Info(
+					"query packet acknowledgements",
+					"src revision height", srcCtx.Height().GetRevisionHeight(),
+					"try", fmt.Sprintf("%d/%d", n+1, rtyAttNum),
+					"error", err.Error(),
+				)
 				sh.Updates(src, dst)
 			}))
 		})
@@ -291,7 +298,12 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 				dstAcks, err = dst.QueryUnfinalizedRelayAcknowledgements(dstCtx, src)
 				return err
 			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-				log.Printf("- [%s]@{%d} - try(%d/%d) query packet acknowledgements: %s", dst.ChainID(), dstCtx.Height().GetRevisionHeight(), n+1, rtyAttNum, err)
+				channelLogger.Info(
+					"query packet acknowledgements",
+					"dst revision height", dstCtx.Height().GetRevisionHeight(),
+					"try", fmt.Sprintf("%d/%d", n+1, rtyAttNum),
+					"error", err.Error(),
+				)
 				sh.Updates(src, dst)
 			}))
 		})
@@ -368,11 +380,13 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	return msgs, nil
 }
 
-func logPacketsRelayed(src, dst *ProvableChain, num int, msg string) {
+func logPacketsRelayed(targetChain *ProvableChain, num int, msg string) {
 	relayLogger := logger.GetLogger()
-	channelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
-	channelLogger.Info(
+	relayLogger.Info(
 		fmt.Sprintf("★ Relayed %d packets", num),
+		"chain id", targetChain.ChainID(),
+		"channel id", targetChain.Path().ChannelID,
+		"port id", targetChain.Path().PortID,
 		"msg", msg,
 	)
 }
@@ -462,10 +476,10 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Relay
 	// send messages to their respective chains
 	if msgs.Send(src, dst); msgs.Success() {
 		if num := len(acksForDst); num > 0 {
-			logPacketsRelayed(dst, src, num, "RelayAcknowledgements")
+			logPacketsRelayed(dst, num, "RelayAcknowledgements")
 		}
 		if num := len(acksForSrc); num > 0 {
-			logPacketsRelayed(src, dst, num, "RelayAcknowledgements")
+			logPacketsRelayed(src, num, "RelayAcknowledgements")
 		}
 	}
 

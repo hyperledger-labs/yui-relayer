@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -59,7 +58,6 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 	if txs.Send(src, dst); !txs.Success() {
 		channelLogger.Error(
 			"failed to send transfer message",
-			errors.New("failed to send transfer message"),
 		)
 		return fmt.Errorf("failed to send transfer message")
 	}

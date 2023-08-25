@@ -176,17 +176,13 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 
 func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.QueryChannelResponse) {
 	relayLogger := logger.GetLogger()
-	// sLogger :=
-	GetChannelLoggerFromProvaleChain(relayLogger, src, dst).Info(
+	chainnelLogger := GetChannelLoggerFromProvaleChain(relayLogger, src, dst)
+	chainnelLogger.Info(
 		"channel states",
-		"msg",
-		fmt.Sprintf(
-			"src channel height: [%d] state: %s | dst channel height: [%d] state: %s",
-			mustGetHeight(srcChan.ProofHeight),
-			srcChan.Channel.State,
-			mustGetHeight(dstChan.ProofHeight),
-			dstChan.Channel.State,
-		),
+		"src ProofHeight", mustGetHeight(srcChan.ProofHeight),
+		"src State", srcChan.Channel.State.String(),
+		"dst ProofHeight", mustGetHeight(dstChan.ProofHeight),
+		"dst State", dstChan.Channel.State.String(),
 	)
 }
 

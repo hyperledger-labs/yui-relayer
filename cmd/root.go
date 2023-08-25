@@ -77,7 +77,9 @@ func Execute(modules ...config.ModuleI) error {
 		if err := initConfig(ctx, rootCmd); err != nil {
 			return err
 		}
-		initLogger(ctx)
+		if err := initLogger(ctx); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -90,7 +92,7 @@ func readStdin() (string, error) {
 	return strings.TrimSpace(str), err
 }
 
-func initLogger(ctx *config.Context) {
+func initLogger(ctx *config.Context) error {
 	loggerConfig := ctx.Config.Global.LoggerConfig
-	logger.InitLogger(loggerConfig.Level, loggerConfig.Format)
+	return logger.InitLogger(loggerConfig.Level, loggerConfig.Format, loggerConfig.Output)
 }

@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/cockroachdb/errors"
@@ -14,7 +15,8 @@ type RelayLogger struct {
 
 var relayLogger *RelayLogger
 
-func InitLogger(logLevel string, format string) {
+func InitLogger(logLevel, format, output string) error {
+	// level
 	var slogLevel slog.Level
 	switch logLevel {
 	case "DEBUG":
@@ -26,30 +28,46 @@ func InitLogger(logLevel string, format string) {
 	case "ERROR":
 		slogLevel = slog.LevelError
 	default:
-		slogLevel = slog.LevelDebug
+		return errors.New("invalid log level")
 	}
-
-	var slogLogger *slog.Logger
 	handlerOpts := &slog.HandlerOptions{
 		Level:     slogLevel,
 		AddSource: true,
 	}
-	if format == "text" {
-		slogLogger = slog.New(slog.NewTextHandler(
-			os.Stdout,
-			handlerOpts,
-		))
-	} else {
-		slogLogger = slog.New(slog.NewJSONHandler(
-			os.Stdout,
-			handlerOpts,
-		))
+
+	// output
+	var writer io.Writer
+	switch output {
+	case "stdout":
+		writer = os.Stdout
+	case "stderr":
+		writer = os.Stderr
+	default:
+		return errors.New("invalid log output")
 	}
 
+	var slogLogger *slog.Logger
+	// format
+	switch format {
+	case "text":
+		slogLogger = slog.New(slog.NewTextHandler(
+			writer,
+			handlerOpts,
+		))
+	case "json":
+		slogLogger = slog.New(slog.NewJSONHandler(
+			writer,
+			handlerOpts,
+		))
+	default:
+		return errors.New("invalid log format")
+	}
+
+	// set global logger
 	relayLogger = &RelayLogger{
 		*slogLogger,
 	}
-
+	return nil
 }
 
 func (rl *RelayLogger) ErrorWithStack(msg string, err error) {
@@ -59,6 +77,18 @@ func (rl *RelayLogger) ErrorWithStack(msg string, err error) {
 
 func GetLogger() *RelayLogger {
 	return relayLogger
+}
+
+func (rl *RelayLogger) WithChain(
+	srcChainID string,
+	dstChainID string,
+) *RelayLogger {
+	return &RelayLogger{
+		*rl.With(
+			"source chain id", srcChainID,
+			"destination chain id", dstChainID,
+		),
+	}
 }
 
 func (rl *RelayLogger) WithChannel(

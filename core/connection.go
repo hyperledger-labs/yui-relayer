@@ -220,19 +220,14 @@ func validatePaths(src, dst Chain) error {
 
 func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnectionResponse) {
 	relayLogger := logger.GetLogger()
-	relayLogger.Info(
+	connectionLogger := GetConnectionLoggerFromProvaleChain(relayLogger, src.(*ProvableChain), dst.(*ProvableChain))
+	connectionLogger.Info(
 		"connection states",
-		"msg",
-		fmt.Sprintf("- [%s]@{%d}conn(%s)-{%s} : [%s]@{%d}conn(%s)-{%s}",
-			src.ChainID(),
-			mustGetHeight(srcConn.ProofHeight),
-			src.Path().ConnectionID,
-			srcConn.Connection.State,
-			dst.ChainID(),
-			mustGetHeight(dstConn.ProofHeight),
-			dst.Path().ConnectionID,
-			dstConn.Connection.State,
-		))
+		"src ProofHeight", mustGetHeight(srcConn.ProofHeight),
+		"src State", srcConn.Connection.State.String(),
+		"dts ProofHeight", mustGetHeight(dstConn.ProofHeight),
+		"dst State", dstConn.Connection.State.String(),
+	)
 }
 
 // mustGetHeight takes the height inteface and returns the actual height
@@ -266,7 +261,7 @@ func mustGetAddress(chain interface {
 
 func GetConnectionLoggerFromProvaleChain(relayLogger *logger.RelayLogger, src, dst *ProvableChain) *logger.RelayLogger {
 	return relayLogger.
-		WithChannel(
+		WithConnection(
 			src.ChainID(),
 			src.Path().ClientID,
 			src.Path().ConnectionID,
