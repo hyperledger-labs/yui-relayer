@@ -9,6 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
+	"github.com/hyperledger-labs/yui-relayer/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	api "go.opentelemetry.io/otel/metric"
 	"golang.org/x/sync/errgroup"
@@ -436,8 +437,8 @@ func (st *NaiveStrategy) updateBacklogMetrics(ctx context.Context, src, dst Chai
 		attribute.Key("direction").String("dst"),
 	}
 
-	BacklogSizeGauge.Set(int64(len(newSrcBacklog)), srcAttrs...)
-	BacklogSizeGauge.Set(int64(len(newDstBacklog)), dstAttrs...)
+	metrics.BacklogSizeGauge.Set(int64(len(newSrcBacklog)), srcAttrs...)
+	metrics.BacklogSizeGauge.Set(int64(len(newDstBacklog)), dstAttrs...)
 
 	if len(newSrcBacklog) > 0 {
 		oldestHeight := newSrcBacklog[0].EventHeight
@@ -445,9 +446,9 @@ func (st *NaiveStrategy) updateBacklogMetrics(ctx context.Context, src, dst Chai
 		if err != nil {
 			return fmt.Errorf("failed to get the timestamp of block[%d] on the src chain: %v", oldestHeight, err)
 		}
-		BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), srcAttrs...)
+		metrics.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), srcAttrs...)
 	} else {
-		BacklogOldestTimestampGauge.Set(0, srcAttrs...)
+		metrics.BacklogOldestTimestampGauge.Set(0, srcAttrs...)
 	}
 	if len(newDstBacklog) > 0 {
 		oldestHeight := newDstBacklog[0].EventHeight
@@ -455,9 +456,9 @@ func (st *NaiveStrategy) updateBacklogMetrics(ctx context.Context, src, dst Chai
 		if err != nil {
 			return fmt.Errorf("failed to get the timestamp of block[%d] on the dst chain: %v", oldestHeight, err)
 		}
-		BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), dstAttrs...)
+		metrics.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), dstAttrs...)
 	} else {
-		BacklogOldestTimestampGauge.Set(0, dstAttrs...)
+		metrics.BacklogOldestTimestampGauge.Set(0, dstAttrs...)
 	}
 
 outSrc:
@@ -467,7 +468,7 @@ outSrc:
 				continue outSrc
 			}
 		}
-		ReceivePacketsFinalizedCounter.Add(ctx, 1, api.WithAttributes(srcAttrs...))
+		metrics.ReceivePacketsFinalizedCounter.Add(ctx, 1, api.WithAttributes(srcAttrs...))
 	}
 	st.srcBacklog = newSrcBacklog
 
@@ -478,7 +479,7 @@ outDst:
 				continue outDst
 			}
 		}
-		ReceivePacketsFinalizedCounter.Add(ctx, 1, api.WithAttributes(dstAttrs...))
+		metrics.ReceivePacketsFinalizedCounter.Add(ctx, 1, api.WithAttributes(dstAttrs...))
 	}
 	st.dstBacklog = newDstBacklog
 
