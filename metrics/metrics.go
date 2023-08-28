@@ -98,7 +98,7 @@ func NewPrometheusMeterProvider(addr string) (*metric.MeterProvider, error) {
 	go func() {
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", promhttp.Handler())
-		if err := http.ListenAndServe(addr, mux); err != nil && err != http.ErrServerClosed {
+		if err := http.ListenAndServe(addr, mux); err != nil {
 			// TODO: we should replace this with a more proper logger, slog?
 			log.Fatalf("Prometheus exporter server failed: %v", err)
 		}
