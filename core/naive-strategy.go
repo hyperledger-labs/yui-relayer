@@ -461,26 +461,12 @@ func (st *NaiveStrategy) updateBacklogMetrics(ctx context.Context, src, dst Chai
 		metrics.BacklogOldestTimestampGauge.Set(0, dstAttrs...)
 	}
 
-outSrc:
-	for _, packet := range st.srcBacklog {
-		for _, newPacket := range newSrcBacklog {
-			if packet.Sequence == newPacket.Sequence {
-				continue outSrc
-			}
-		}
-		metrics.ReceivePacketsFinalizedCounter.Add(ctx, 1, api.WithAttributes(srcAttrs...))
-	}
+	srcReceivedPackets := st.srcBacklog.Subtract(newSrcBacklog.ExtractSequenceList())
+	metrics.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(srcReceivedPackets)), api.WithAttributes(srcAttrs...))
 	st.srcBacklog = newSrcBacklog
 
-outDst:
-	for _, packet := range st.dstBacklog {
-		for _, newPacket := range newDstBacklog {
-			if packet.Sequence == newPacket.Sequence {
-				continue outDst
-			}
-		}
-		metrics.ReceivePacketsFinalizedCounter.Add(ctx, 1, api.WithAttributes(dstAttrs...))
-	}
+	dstReceivedPackets := st.dstBacklog.Subtract(newDstBacklog.ExtractSequenceList())
+	metrics.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(dstReceivedPackets)), api.WithAttributes(dstAttrs...))
 	st.dstBacklog = newDstBacklog
 
 	return nil
