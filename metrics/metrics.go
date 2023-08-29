@@ -31,6 +31,11 @@ type ExporterConfig interface {
 	exporterType() string
 }
 
+var (
+	_ ExporterConfig = ExporterNull{}
+	_ ExporterConfig = ExporterProm{}
+)
+
 type ExporterNull struct{}
 
 func (e ExporterNull) exporterType() string { return "null" }
