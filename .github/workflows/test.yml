@@ -86,3 +86,32 @@ jobs:
           make network
           make test
           make network-down
+
+  tmmock2tmmock-test:
+    name: tmmock2tmmock-test
+    runs-on: ubuntu-20.04
+    needs:
+      - relayer-build
+      - tendermint-build
+    steps:
+      - uses: actions/checkout@v2
+      - name: Restore relayer binary cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_BIN_RELAYER_PATH }}
+          key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
+      - name: Restore Tendermint docker image cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
+          key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
+      - name: Load Tendermint docker images
+        working-directory: ./tests/scripts
+        run: |
+          ./load_docker_images $CACHE_DOCKER_TENDERMINT_DIR tendermint-chain0:latest tendermint-chain1:latest
+      - name: Run Test
+        working-directory: ./tests/cases/tmmock2tmmock
+        run: |
+          make network
+          make test
+          make network-down
