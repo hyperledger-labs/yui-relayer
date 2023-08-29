@@ -26,7 +26,12 @@ func serviceCmd(ctx *config.Context) *cobra.Command {
 
 func startCmd(ctx *config.Context) *cobra.Command {
 	const (
-		flagRelayInterval = "relay-interval"
+		flagRelayInterval  = "relay-interval"
+		flagPrometheusAddr = "prometheus-addr"
+	)
+	const (
+		defaultRelayInterval  = 3 * time.Second
+		defaultPrometheusAddr = "localhost:2223"
 	)
 
 	cmd := &cobra.Command{
@@ -36,7 +41,7 @@ func startCmd(ctx *config.Context) *cobra.Command {
 			if err := metrics.ShutdownMetrics(cmd.Context()); err != nil {
 				return fmt.Errorf("failed to shutdown the metrics subsystem with null exporter: %v", err)
 			}
-			if err := metrics.InitializeMetrics(metrics.ExporterProm{Addr: ctx.Config.Global.PrometheusAddr}); err != nil {
+			if err := metrics.InitializeMetrics(metrics.ExporterProm{Addr: viper.GetString(flagPrometheusAddr)}); err != nil {
 				return fmt.Errorf("failed to re-initialize the metrics subsystem with prometheus exporter: %v", err)
 			}
 			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
@@ -57,6 +62,7 @@ func startCmd(ctx *config.Context) *cobra.Command {
 			return core.StartService(context.Background(), st, c[src], c[dst], viper.GetDuration(flagRelayInterval))
 		},
 	}
-	cmd.Flags().Duration(flagRelayInterval, 3*time.Second, "time interval to perform relays")
+	cmd.Flags().Duration(flagRelayInterval, defaultRelayInterval, "time interval to perform relays")
+	cmd.Flags().String(flagPrometheusAddr, defaultPrometheusAddr, "host address to which the prometheus exporter listens")
 	return cmd
 }

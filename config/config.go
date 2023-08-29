@@ -29,7 +29,6 @@ func DefaultConfig() Config {
 type GlobalConfig struct {
 	Timeout        string `yaml:"timeout" json:"timeout"`
 	LightCacheSize int    `yaml:"light-cache-size" json:"light-cache-size"`
-	PrometheusAddr string `yaml:"prometheus-addr" json:"prometheus-addr"`
 }
 
 // newDefaultGlobalConfig returns a global config with defaults set
@@ -37,7 +36,6 @@ func newDefaultGlobalConfig() GlobalConfig {
 	return GlobalConfig{
 		Timeout:        "10s",
 		LightCacheSize: 20,
-		PrometheusAddr: "localhost:2223",
 	}
 }
 
