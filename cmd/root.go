@@ -78,7 +78,7 @@ func Execute(modules ...config.ModuleI) error {
 		if err := initConfig(ctx, rootCmd); err != nil {
 			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
-		if err := metrics.InitializeMetrics(ctx.Config.Global.PrometheusAddr); err != nil {
+		if err := metrics.InitializeMetrics(metrics.ExporterNull{}); err != nil {
 			return fmt.Errorf("failed to initialize the metrics: %v", err)
 		}
 		return nil

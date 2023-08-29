@@ -15,7 +15,6 @@ import (
 const (
 	meterName     = "github.com/hyperledger-labs/yui-relayer"
 	namespaceRoot = "relayer"
-	fallbackAddr  = "localhost:0"
 )
 
 var (
@@ -28,15 +27,34 @@ var (
 	ReceivePacketsFinalizedCounter api.Int64Counter
 )
 
-func InitializeMetrics(addr string) error {
-	if addr == "" {
-		addr = fallbackAddr
-	}
+type ExporterConfig interface {
+	exporterType() string
+}
 
+type ExporterNull struct{}
+
+func (e ExporterNull) exporterType() string { return "null" }
+
+type ExporterProm struct {
+	Addr string
+}
+
+func (e ExporterProm) exporterType() string { return "prometheus" }
+
+func InitializeMetrics(exporterConf ExporterConfig) error {
 	var err error
 
-	if meterProvider, err = NewPrometheusMeterProvider(addr); err != nil {
-		return err
+	switch exporterConf := exporterConf.(type) {
+	case ExporterNull:
+		meterProvider = metric.NewMeterProvider()
+	case ExporterProm:
+		if exporter, err := NewPrometheusExporter(exporterConf.Addr); err != nil {
+			return err
+		} else {
+			meterProvider = metric.NewMeterProvider(metric.WithReader(exporter))
+		}
+	default:
+		panic("unexpected exporter type")
 	}
 
 	meter = meterProvider.Meter(meterName)
@@ -94,7 +112,7 @@ func ShutdownMetrics(ctx context.Context) error {
 	return nil
 }
 
-func NewPrometheusMeterProvider(addr string) (*metric.MeterProvider, error) {
+func NewPrometheusExporter(addr string) (*prometheus.Exporter, error) {
 	go func() {
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", promhttp.Handler())
@@ -109,7 +127,5 @@ func NewPrometheusMeterProvider(addr string) (*metric.MeterProvider, error) {
 		return nil, fmt.Errorf("failed to create the Prometheus Exporter: %v", err)
 	}
 
-	return metric.NewMeterProvider(
-		metric.WithReader(exporter),
-	), nil
+	return exporter, nil
 }
