@@ -9,6 +9,7 @@
     "gas_prices": "0.025stake"
   },
   "prover": {
-    "@type": "/relayer.provers.mock.config.ProverConfig"
+    "@type": "/relayer.provers.mock.config.ProverConfig",
+    "finality_delay": 5
   }
 }

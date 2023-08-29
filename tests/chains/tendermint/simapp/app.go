@@ -378,8 +378,10 @@ func NewSimApp(
 	app.IBCKeeper = ibckeeper.NewKeeper(
 		appCodec, keys[ibcexported.StoreKey], app.GetSubspace(ibcexported.ModuleName), app.StakingKeeper, app.UpgradeKeeper, scopedIBCKeeper,
 	)
-	// this is a workaround in case the counterparty chain uses mock-client
-	app.IBCKeeper = overrideIBCClientKeeper(*app.IBCKeeper, appCodec, keys[ibcexported.StoreKey], app.GetSubspace(ibcexported.ModuleName))
+	if _, found := os.LookupEnv("USE_MOCK_CLIENT"); found {
+		// this is a workaround in case the counterparty chain uses mock-client
+		app.IBCKeeper = overrideIBCClientKeeper(*app.IBCKeeper, appCodec, keys[ibcexported.StoreKey], app.GetSubspace(ibcexported.ModuleName), app.StakingKeeper)
+	}
 
 	// register the proposal types
 	govRouter := govv1beta1.NewRouter()

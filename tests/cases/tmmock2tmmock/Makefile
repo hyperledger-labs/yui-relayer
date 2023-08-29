@@ -5,7 +5,7 @@ network:
 	TAG=${DOCKER_TAG} $(DOCKER_COMPOSE) \
 		-f ../docker-compose-test.yaml \
 		up -d \
-		tendermint-chain0 tendermint-chain1
+		tendermint-chain0-mock tendermint-chain1-mock
 
 .PHONY: test
 test:
