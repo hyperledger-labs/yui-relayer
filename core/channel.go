@@ -28,6 +28,10 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 			return err
 		}
 
+		if !chanSteps.Ready() {
+			continue
+		}
+
 		chanSteps.Send(src, dst)
 
 		switch {

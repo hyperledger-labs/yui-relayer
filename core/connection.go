@@ -30,6 +30,10 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 			return err
 		}
 
+		if !connSteps.Ready() {
+			continue
+		}
+
 		connSteps.Send(src, dst)
 
 		switch {
