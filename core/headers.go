@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/cosmos/ibc-go/v7/modules/core/exported"
+	"github.com/hyperledger-labs/yui-relayer/metrics"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type Header interface {
@@ -79,8 +81,26 @@ func (sh *syncHeaders) Updates(src, dst ChainInfoLightClient) error {
 		return err
 	}
 
+	if err := sh.updateBlockMetrics(context.TODO(), src, dst, srcHeader, dstHeader); err != nil {
+		return err
+	}
+
 	sh.latestFinalizedHeaders[src.ChainID()] = srcHeader
 	sh.latestFinalizedHeaders[dst.ChainID()] = dstHeader
+	return nil
+}
+
+func (sh syncHeaders) updateBlockMetrics(ctx context.Context, src, dst ChainInfo, srcHeader, dstHeader Header) error {
+	metrics.ProcessedBlockHeightGauge.Set(
+		int64(srcHeader.GetHeight().GetRevisionHeight()),
+		attribute.Key("chain_id").String(src.ChainID()),
+		attribute.Key("direction").String("src"),
+	)
+	metrics.ProcessedBlockHeightGauge.Set(
+		int64(dstHeader.GetHeight().GetRevisionHeight()),
+		attribute.Key("chain_id").String(dst.ChainID()),
+		attribute.Key("direction").String("dst"),
+	)
 	return nil
 }
 
