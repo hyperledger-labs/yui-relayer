@@ -14,13 +14,14 @@ import (
 )
 
 type Prover struct {
-	chain core.Chain
+	chain  core.Chain
+	config ProverConfig
 }
 
 var _ core.Prover = (*Prover)(nil)
 
-func NewProver(chain core.Chain) *Prover {
-	return &Prover{chain: chain}
+func NewProver(chain core.Chain, config ProverConfig) *Prover {
+	return &Prover{chain: chain, config: config}
 }
 
 func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
@@ -63,12 +64,23 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 	if err != nil {
 		return nil, err
 	}
+	for i := int64(0); i < pr.config.FinalityDelay; i++ {
+		if prevHeight, success := chainLatestHeight.Decrement(); success {
+			chainLatestHeight = prevHeight
+		} else {
+			break
+		}
+	}
+	timestamp, err := pr.chain.Timestamp(chainLatestHeight)
+	if err != nil {
+		return nil, err
+	}
 	return &mocktypes.Header{
 		Height: clienttypes.Height{
 			RevisionNumber: chainLatestHeight.GetRevisionNumber(),
 			RevisionHeight: chainLatestHeight.GetRevisionHeight(),
 		},
-		Timestamp: uint64(time.Now().UnixNano()),
+		Timestamp: uint64(timestamp.UnixNano()),
 	}, nil
 }
 

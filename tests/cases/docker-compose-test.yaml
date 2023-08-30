@@ -5,7 +5,7 @@ networks:
     name: &network-common relayer-e2e
 
 services:
-  tendermint-chain0:
+  tendermint-chain0: &tendermint-chain0
     container_name: tendermint-chain0
     image: tendermint-chain0:${TAG}
     ports:
@@ -20,7 +20,7 @@ services:
       retries: 5
     networks:
       - *network-common
-  tendermint-chain1:
+  tendermint-chain1: &tendermint-chain1
     container_name: tendermint-chain1
     image: tendermint-chain1:${TAG}
     ports:
@@ -35,3 +35,11 @@ services:
       retries: 5
     networks:
       - *network-common
+  tendermint-chain0-mock:
+    <<: *tendermint-chain0
+    environment:
+      USE_MOCK_CLIENT: 1
+  tendermint-chain1-mock:
+    <<: *tendermint-chain1
+    environment:
+      USE_MOCK_CLIENT: 1
