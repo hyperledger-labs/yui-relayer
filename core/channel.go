@@ -29,6 +29,7 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		}
 
 		if !chanSteps.Ready() {
+			log.Println("Waiting for next channel step ...")
 			continue
 		}
 
@@ -197,9 +198,11 @@ func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chant
 		return false, err
 	}
 	if srcChannel.State != srcChanLatest.Channel.State {
+		log.Printf("Source Channel: Finalized state [%s] <> Latest state [%s]", srcChannel.State, srcChanLatest.Channel.State)
 		return false, nil
 	}
 	if dstChannel.State != dstChanLatest.Channel.State {
+		log.Printf("Destination Channel: Finalized state [%s] <> Latest state [%s]", dstChannel.State, dstChanLatest.Channel.State)
 		return false, nil
 	}
 	return true, nil

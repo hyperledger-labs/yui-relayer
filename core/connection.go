@@ -31,6 +31,7 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		}
 
 		if !connSteps.Ready() {
+			log.Println("Waiting for next connection step ...")
 			continue
 		}
 
@@ -258,9 +259,11 @@ func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnecti
 		return false, err
 	}
 	if srcConnection.State != srcConnLatest.Connection.State {
+		log.Printf("Source Connection: Finalized state [%s] <> Latest state [%s]", srcConnection.State, srcConnLatest.Connection.State)
 		return false, nil
 	}
 	if dstConnection.State != dstConnLatest.Connection.State {
+		log.Printf("Destination Connection: Finalized state [%s] <> Latest state [%s]", dstConnection.State, dstConnLatest.Connection.State)
 		return false, nil
 	}
 	return true, nil
