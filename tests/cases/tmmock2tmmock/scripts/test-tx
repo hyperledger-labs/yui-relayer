@@ -9,7 +9,7 @@ RLY="${RLY_BINARY} --debug"
 TM_ADDRESS0=$(${RLY} tendermint keys show ibc0 testkey)
 TM_ADDRESS1=$(${RLY} tendermint keys show ibc1 testkey)
 
-RETRY_COUNT=20
+RETRY_COUNT=5
 RETRY_INTERVAL=1
 
 echo "!!! ibc0 -> ibc1 !!!"

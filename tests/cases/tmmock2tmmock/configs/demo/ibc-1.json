@@ -10,6 +10,6 @@
   },
   "prover": {
     "@type": "/relayer.provers.mock.config.ProverConfig",
-    "finality_delay": 10
+    "finality_delay": 3
   }
 }
