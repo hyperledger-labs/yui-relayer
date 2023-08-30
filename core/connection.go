@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -27,10 +28,6 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		connSteps, err := createConnectionStep(src, dst)
 		if err != nil {
 			return err
-		}
-
-		if !connSteps.Ready() {
-			break
 		}
 
 		connSteps.Send(src, dst)
@@ -98,6 +95,12 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	srcConn, dstConn, err := QueryConnectionPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst)
 	if err != nil {
 		return nil, err
+	}
+
+	if finalized, err := checkConnectionFinality(src, dst, srcConn.Connection, dstConn.Connection); err != nil {
+		return nil, err
+	} else if !finalized {
+		return out, nil
 	}
 
 	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
@@ -235,4 +238,26 @@ func mustGetAddress(chain interface {
 		panic(err)
 	}
 	return addr
+}
+
+func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnection *conntypes.ConnectionEnd) (bool, error) {
+	sh, err := src.LatestHeight()
+	if err != nil {
+		return false, err
+	}
+	dh, err := dst.LatestHeight()
+	if err != nil {
+		return false, err
+	}
+	srcConnLatest, dstConnLatest, err := QueryConnectionPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst)
+	if err != nil {
+		return false, err
+	}
+	if srcConnection.State != srcConnLatest.Connection.State {
+		return false, nil
+	}
+	if dstConnection.State != dstConnLatest.Connection.State {
+		return false, nil
+	}
+	return true, nil
 }
