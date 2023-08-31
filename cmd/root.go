@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"github.com/hyperledger-labs/yui-relayer/metrics"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
@@ -72,13 +74,22 @@ func Execute(modules ...config.ModuleI) error {
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		// reads `homeDir/config/config.yaml` into `var config *Config` before each command
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
-			return err
+			return fmt.Errorf("failed to bind the flag set to the configuration: %v", err)
 		}
 		if err := initConfig(ctx, rootCmd); err != nil {
-			return err
+			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
 		if err := initLogger(ctx); err != nil {
 			return err
+		}
+		if err := metrics.InitializeMetrics(metrics.ExporterNull{}); err != nil {
+			return fmt.Errorf("failed to initialize the metrics: %v", err)
+		}
+		return nil
+	}
+	rootCmd.PersistentPostRunE = func(cmd *cobra.Command, _ []string) error {
+		if err := metrics.ShutdownMetrics(cmd.Context()); err != nil {
+			return fmt.Errorf("failed to shutdown the metrics subsystem: %v", err)
 		}
 		return nil
 	}

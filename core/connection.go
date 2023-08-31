@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -36,7 +37,8 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		}
 
 		if !connSteps.Ready() {
-			break
+			logger.Debug("Waiting for next connection step ...")
+			continue
 		}
 
 		connSteps.Send(src, dst)
@@ -109,6 +111,12 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	srcConn, dstConn, err := QueryConnectionPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst)
 	if err != nil {
 		return nil, err
+	}
+
+	if finalized, err := checkConnectionFinality(src, dst, srcConn.Connection, dstConn.Connection); err != nil {
+		return nil, err
+	} else if !finalized {
+		return out, nil
 	}
 
 	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
@@ -254,6 +262,31 @@ func mustGetAddress(chain interface {
 		panic(err)
 	}
 	return addr
+}
+
+func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnection *conntypes.ConnectionEnd) (bool, error) {
+	logger := GetConnectionLogger(log.GetLogger(), src, dst)
+	sh, err := src.LatestHeight()
+	if err != nil {
+		return false, err
+	}
+	dh, err := dst.LatestHeight()
+	if err != nil {
+		return false, err
+	}
+	srcConnLatest, dstConnLatest, err := QueryConnectionPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst)
+	if err != nil {
+		return false, err
+	}
+	if srcConnection.State != srcConnLatest.Connection.State {
+		logger.Debug("src connection state in transition", "from_state", srcConnection.State, "to_state", srcConnLatest.Connection.State)
+		return false, nil
+	}
+	if dstConnection.State != dstConnLatest.Connection.State {
+		logger.Debug("dst connection state in transition", "from_state", dstConnection.State, "to_state", dstConnLatest.Connection.State)
+		return false, nil
+	}
+	return true, nil
 }
 
 func GetConnectionLogger(relayLogger *log.RelayLogger, src, dst *ProvableChain) *log.RelayLogger {

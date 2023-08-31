@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -33,7 +34,8 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		}
 
 		if !chanSteps.Ready() {
-			break
+			logger.Debug("Waiting for next channel step ...")
+			continue
 		}
 
 		chanSteps.Send(src, dst)
@@ -103,6 +105,12 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 	srcChan, dstChan, err := QueryChannelPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst)
 	if err != nil {
 		return nil, err
+	}
+
+	if finalized, err := checkChannelFinality(src, dst, srcChan.Channel, dstChan.Channel); err != nil {
+		return nil, err
+	} else if !finalized {
+		return out, nil
 	}
 
 	switch {
@@ -182,6 +190,31 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 		"dst ProofHeight", mustGetHeight(dstChan.ProofHeight),
 		"dst State", dstChan.Channel.State.String(),
 	)
+}
+
+func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chantypes.Channel) (bool, error) {
+	logger := GetChannelLogger(log.GetLogger(), src, dst)
+	sh, err := src.LatestHeight()
+	if err != nil {
+		return false, err
+	}
+	dh, err := dst.LatestHeight()
+	if err != nil {
+		return false, err
+	}
+	srcChanLatest, dstChanLatest, err := QueryChannelPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst)
+	if err != nil {
+		return false, err
+	}
+	if srcChannel.State != srcChanLatest.Channel.State {
+		logger.Debug("src channel state in transition", "from_state", srcChannel.State, "to_state", srcChanLatest.Channel.State)
+		return false, nil
+	}
+	if dstChannel.State != dstChanLatest.Channel.State {
+		logger.Debug("dst channel state in transition", "from_state", dstChannel.State, "to_state", dstChanLatest.Channel.State)
+		return false, nil
+	}
+	return true, nil
 }
 
 func GetChannelLogger(relayLogger *log.RelayLogger, src, dst *ProvableChain) *log.RelayLogger {

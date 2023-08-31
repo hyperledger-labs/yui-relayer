@@ -1,0 +1,66 @@
+#!/bin/bash
+
+set -eux
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
+RLY="${RLY_BINARY} --debug"
+
+TM_ADDRESS0=$(${RLY} tendermint keys show ibc0 testkey)
+TM_ADDRESS1=$(${RLY} tendermint keys show ibc1 testkey)
+
+RETRY_COUNT=5
+RETRY_INTERVAL=1
+
+echo "!!! ibc0 -> ibc1 !!!"
+
+echo "Before ibc0 balance: $(${RLY} query balance ibc0 ${TM_ADDRESS0})"
+echo "Before ibc1 balance: $(${RLY} query balance ibc1 ${TM_ADDRESS1})"
+
+# transfer a token (sendPacket)
+${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
+
+# wait for the finalization of the sendPacket execution
+for i in `seq $RETRY_COUNT`
+do
+    echo "[try:$i] waiting for sendPacket finalization ..."
+    sleep $RETRY_INTERVAL
+    unrelayed=$(${RLY} query unrelayed-packets ibc01 | jq '.src | length')
+    if [ $unrelayed -gt 0 ]
+    then
+	break
+    fi
+done
+
+# relay the packet (recvPacket)
+${RLY} tx relay ibc01
+
+# wait for the finalization of the recvPacket execution
+for i in `seq $RETRY_COUNT`
+do
+    echo "[try:$i] waiting for recvPacket finalization ..."
+    sleep $RETRY_INTERVAL
+    unrelayed=$(${RLY} query unrelayed-acknowledgements ibc01 | jq '.dst | length')
+    if [ $unrelayed -gt 0 ]
+    then
+	break
+    fi
+done
+
+# relay the ack for the packet (acknowledgePacket)
+${RLY} tx acks ibc01
+
+# wait for the finalization of the recvPacket execution
+for i in `seq $RETRY_COUNT`
+do
+    echo "[try:$i] waiting for acknowledgePacket finalization ..."
+    sleep $RETRY_INTERVAL
+    unrelayed=$(${RLY} query unrelayed-acknowledgements ibc01 | jq '.dst | length')
+    if [ $unrelayed -eq 0 ]
+    then
+	break
+    fi
+done
+
+echo "After ibc0 balance: $(${RLY} query balance ibc0 ${TM_ADDRESS0})"
+echo "After ibc1 balance: $(${RLY} query balance ibc1 ${TM_ADDRESS1})"

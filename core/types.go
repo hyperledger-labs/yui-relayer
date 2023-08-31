@@ -27,6 +27,20 @@ func (ps PacketInfoList) ExtractSequenceList() []uint64 {
 	return seqs
 }
 
+func (ps PacketInfoList) Subtract(seqs []uint64) PacketInfoList {
+	var ret PacketInfoList
+out:
+	for _, p := range ps {
+		for _, seq := range seqs {
+			if p.Sequence == seq {
+				continue out
+			}
+		}
+		ret = append(ret, p)
+	}
+	return ret
+}
+
 func (ps PacketInfoList) Filter(seqs []uint64) PacketInfoList {
 	var ret PacketInfoList
 	for _, p := range ps {
