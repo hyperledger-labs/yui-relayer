@@ -41,7 +41,7 @@ func (st *NaiveStrategy) GetType() string {
 }
 
 func (st *NaiveStrategy) SetupRelay(ctx context.Context, src, dst *ProvableChain) error {
-	logger := GetChannelLogger(src, dst)
+	logger := GetChannelPairLogger(src, dst)
 	if err := src.SetupForRelay(ctx); err != nil {
 		logger.Error(
 			"failed to setup for src",
@@ -72,7 +72,7 @@ func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bo
 }
 
 func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
-	logger := GetChannelLogger(src, dst)
+	logger := GetChannelPairLogger(src, dst)
 	var (
 		eg         = new(errgroup.Group)
 		srcPackets PacketInfoList
@@ -173,7 +173,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 }
 
 func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
-	logger := GetChannelLogger(src, dst)
+	logger := GetChannelPairLogger(src, dst)
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -271,7 +271,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 }
 
 func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
-	logger := GetChannelLogger(src, dst)
+	logger := GetChannelPairLogger(src, dst)
 	var (
 		eg      = new(errgroup.Group)
 		srcAcks PacketInfoList
@@ -407,7 +407,7 @@ func logPacketsRelayed(targetChain *ProvableChain, num int, msg string) {
 }
 
 func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
-	logger := GetChannelLogger(src, dst)
+	logger := GetChannelPairLogger(src, dst)
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},

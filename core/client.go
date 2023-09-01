@@ -6,7 +6,7 @@ import (
 )
 
 func CreateClients(src, dst *ProvableChain) error {
-	logger := GetChainLogger(src, dst)
+	logger := GetChainPairLogger(src, dst)
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
@@ -74,7 +74,7 @@ func CreateClients(src, dst *ProvableChain) error {
 }
 
 func UpdateClients(src, dst *ProvableChain) error {
-	logger := GetChainLogger(src, dst)
+	logger := GetChainPairLogger(src, dst)
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)

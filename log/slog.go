@@ -79,46 +79,58 @@ func GetLogger() *RelayLogger {
 	return relayLogger
 }
 
-func (rl *RelayLogger) WithChain(
+func (rl *RelayLogger) WithChainPair(
 	srcChainID string,
 	dstChainID string,
 ) *RelayLogger {
 	return &RelayLogger{
 		*rl.With(
-			"source chain id", srcChainID,
-			"destination chain id", dstChainID,
+			slog.Group("src",
+				"chain_id", srcChainID,
+			),
+			slog.Group("dst",
+				"chain_id", dstChainID,
+			),
 		),
 	}
 }
 
-func (rl *RelayLogger) WithChannel(
-	srcChainID, srcChannelID, srcPortID string,
-	dstChainID, dstChannelID, dstPortID string,
+func (rl *RelayLogger) WithChannelPair(
+	srcChainID, srcPortID, srcChannelID string,
+	dstChainID, dstPortID, dstChannelID string,
 ) *RelayLogger {
 	return &RelayLogger{
 		*rl.With(
-			"source chain id", srcChainID,
-			"source channnel id", srcChannelID,
-			"source port id", srcPortID,
-			"destination chain id", dstChainID,
-			"destination channel id", dstChannelID,
-			"destination port id", dstPortID,
+			slog.Group("src",
+				"chain_id", srcChainID,
+				"port_id", srcPortID,
+				"channnel_id", srcChannelID,
+			),
+			slog.Group("dst",
+				"chain_id", dstChainID,
+				"port_id", dstPortID,
+				"channel_id", dstChannelID,
+			),
 		),
 	}
 }
 
-func (rl *RelayLogger) WithConnection(
+func (rl *RelayLogger) WithConnectionPair(
 	srcChainID, srcClientID, srcConnectionID string,
 	dstChainID, dstClientID, dstConnectionID string,
 ) *RelayLogger {
 	return &RelayLogger{
 		*rl.With(
-			"source chain id", srcChainID,
-			"source client id", srcClientID,
-			"source connection id", srcConnectionID,
-			"destination chain id", dstChainID,
-			"destination client id", dstClientID,
-			"destination connection id", dstConnectionID,
+			slog.Group("src",
+				"chain_id", srcChainID,
+				"client_id", srcClientID,
+				"connection_id", srcConnectionID,
+			),
+			slog.Group("dst",
+				"chain_id", dstChainID,
+				"client_id", dstClientID,
+				"connection_id", dstConnectionID,
+			),
 		),
 	}
 }

@@ -13,7 +13,7 @@ import (
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
 func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
-	logger := GetChannelLogger(src, dst)
+	logger := GetChannelPairLogger(src, dst)
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -182,7 +182,7 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 }
 
 func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.QueryChannelResponse) {
-	logger := GetChannelLogger(src, dst)
+	logger := GetChannelPairLogger(src, dst)
 	logger.Info(
 		"channel states",
 		"src ProofHeight", mustGetHeight(srcChan.ProofHeight),
@@ -193,7 +193,7 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 }
 
 func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chantypes.Channel) (bool, error) {
-	logger := GetChannelLogger(src, dst)
+	logger := GetChannelPairLogger(src, dst)
 	sh, err := src.LatestHeight()
 	if err != nil {
 		return false, err
@@ -217,11 +217,11 @@ func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chant
 	return true, nil
 }
 
-func GetChannelLogger(src, dst Chain) *log.RelayLogger {
+func GetChannelPairLogger(src, dst Chain) *log.RelayLogger {
 	return log.GetLogger().
-		WithChannel(
-			src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-			dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+		WithChannelPair(
+			src.ChainID(), src.Path().PortID, src.Path().ChannelID,
+			dst.ChainID(), dst.Path().PortID, dst.Path().ChannelID,
 		).
 		WithModule("core.channel")
 }
