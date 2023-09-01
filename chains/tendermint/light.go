@@ -119,7 +119,7 @@ func (pr *Prover) LightClientWithoutTrust(db dbm.DB) (*light.Client, error) {
 			if err != nil {
 				return err
 			}
-			if time.Now().Unix()-t.Unix() > int64(pr.getTrustingPeriod().Seconds()) {
+			if time.Since(t) > pr.getTrustingPeriod() {
 				return fmt.Errorf("trusting period has expired")
 			}
 			height = int64(h.GetRevisionHeight())
