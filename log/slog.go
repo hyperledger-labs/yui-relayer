@@ -6,11 +6,12 @@ import (
 	"os"
 
 	"github.com/cockroachdb/errors"
+	"github.com/cockroachdb/errors/withstack"
 	"golang.org/x/exp/slog"
 )
 
 type RelayLogger struct {
-	slog.Logger
+	*slog.Logger
 }
 
 var relayLogger *RelayLogger
@@ -65,14 +66,20 @@ func InitLogger(logLevel, format, output string) error {
 
 	// set global logger
 	relayLogger = &RelayLogger{
-		*slogLogger,
+		slogLogger,
 	}
 	return nil
 }
 
-func (rl *RelayLogger) ErrorWithStack(msg string, err error) {
-	cError := errors.NewWithDepth(1, err.Error())
-	rl.Error(msg, "error", cError, "stack", fmt.Sprintf("%+v", cError))
+func (rl *RelayLogger) Error(msg string, err error, otherArgs ...any) {
+	err = withstack.WithStackDepth(err, 1)
+	var args []any
+	args = append(args, "error", err)
+	args = append(args, "stack", fmt.Sprintf("%+v", err))
+	for _, otherArg := range otherArgs {
+		args = append(args, otherArg)
+	}
+	rl.Logger.Error(msg, args...)
 }
 
 func GetLogger() *RelayLogger {
@@ -84,7 +91,7 @@ func (rl *RelayLogger) WithChainPair(
 	dstChainID string,
 ) *RelayLogger {
 	return &RelayLogger{
-		*rl.With(
+		rl.Logger.With(
 			slog.Group("src",
 				"chain_id", srcChainID,
 			),
@@ -95,12 +102,24 @@ func (rl *RelayLogger) WithChainPair(
 	}
 }
 
+func (rl *RelayLogger) WithChannel(
+	chainID, portID, channelID string,
+) *RelayLogger {
+	return &RelayLogger{
+		rl.Logger.With(
+			"chain_id", chainID,
+			"port_id", portID,
+			"channnel_id", channelID,
+		),
+	}
+}
+
 func (rl *RelayLogger) WithChannelPair(
 	srcChainID, srcPortID, srcChannelID string,
 	dstChainID, dstPortID, dstChannelID string,
 ) *RelayLogger {
 	return &RelayLogger{
-		*rl.With(
+		rl.Logger.With(
 			slog.Group("src",
 				"chain_id", srcChainID,
 				"port_id", srcPortID,
@@ -120,7 +139,7 @@ func (rl *RelayLogger) WithConnectionPair(
 	dstChainID, dstClientID, dstConnectionID string,
 ) *RelayLogger {
 	return &RelayLogger{
-		*rl.With(
+		rl.Logger.With(
 			slog.Group("src",
 				"chain_id", srcChainID,
 				"client_id", srcClientID,
@@ -139,7 +158,7 @@ func (rl *RelayLogger) WithModule(
 	moduleName string,
 ) *RelayLogger {
 	return &RelayLogger{
-		*rl.With(
+		rl.Logger.With(
 			"module", moduleName,
 		),
 	}

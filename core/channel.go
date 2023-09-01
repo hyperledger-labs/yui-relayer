@@ -217,6 +217,14 @@ func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chant
 	return true, nil
 }
 
+func GetChannelLogger(c Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithChannel(
+			c.ChainID(), c.Path().PortID, c.Path().ChannelID,
+		).
+		WithModule("core.channel")
+}
+
 func GetChannelPairLogger(src, dst Chain) *log.RelayLogger {
 	return log.GetLogger().
 		WithChannelPair(

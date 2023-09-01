@@ -197,7 +197,7 @@ func (qc queryContext) Height() ibcexported.Height {
 	return qc.height
 }
 
-func GetChainPairLogger(src, dst Chain) *log.RelayLogger {
+func GetChainPairLogger(src, dst ChainInfo) *log.RelayLogger {
 	return log.GetLogger().
 		WithChainPair(
 			src.ChainID(),

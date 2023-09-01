@@ -237,13 +237,8 @@ func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnec
 
 // mustGetHeight takes the height inteface and returns the actual height
 func mustGetHeight(h ibcexported.Height) uint64 {
-	relayLogger := log.GetLogger()
 	height, ok := h.(clienttypes.Height)
 	if !ok {
-		relayLogger.Error(
-			"height is not an instance of height! wtf",
-			fmt.Errorf("height is not an instance of height! wtf"),
-		)
 		panic("height is not an instance of height! wtf")
 	}
 	return height.GetRevisionHeight()
@@ -252,13 +247,8 @@ func mustGetHeight(h ibcexported.Height) uint64 {
 func mustGetAddress(chain interface {
 	GetAddress() (sdk.AccAddress, error)
 }) sdk.AccAddress {
-	relayLogger := log.GetLogger()
 	addr, err := chain.GetAddress()
 	if err != nil {
-		relayLogger.Error(
-			"failed to get address",
-			err,
-		)
 		panic(err)
 	}
 	return addr

@@ -8,7 +8,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
-	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	api "go.opentelemetry.io/otel/metric"
@@ -260,10 +259,10 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 	// send messages to their respective chains
 	if msgs.Send(src, dst); msgs.Success() {
 		if num := len(packetsForDst); num > 0 {
-			logPacketsRelayed(dst, num, "RelayPackets")
+			logPacketsRelayed(src, dst, num, "Packets", "src->dst")
 		}
 		if num := len(packetsForSrc); num > 0 {
-			logPacketsRelayed(src, num, "RelayPackets")
+			logPacketsRelayed(src, dst, num, "Packets", "dst->src")
 		}
 	}
 
@@ -379,14 +378,18 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 
 // TODO add packet-timeout support
 func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
-	relayLogger := log.GetLogger()
+	logger := GetChannelLogger(chain)
 	var msgs []sdk.Msg
 	for _, p := range packets {
 		commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
 		path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
 		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 		if err != nil {
-			relayLogger.Info("failed to ProveState: height=%v, path=%v, commitment=%x, err=%v", ctx.Height(), path, commitment, err)
+			logger.Error("failed to ProveState", err,
+				"height", ctx.Height(),
+				"path", path,
+				"commitment", commitment,
+			)
 			return nil, err
 		}
 		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
@@ -395,14 +398,12 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	return msgs, nil
 }
 
-func logPacketsRelayed(targetChain *ProvableChain, num int, msg string) {
-	relayLogger := log.GetLogger()
-	relayLogger.Info(
-		fmt.Sprintf("★ Relayed %d packets", num),
-		"chain id", targetChain.ChainID(),
-		"channel id", targetChain.Path().ChannelID,
-		"port id", targetChain.Path().PortID,
-		"msg", msg,
+func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
+	logger := GetChannelPairLogger(src, dst)
+	logger.Info(
+		fmt.Sprintf("★ %s relayed", obj),
+		"packets_relayed", num,
+		"direction", dir,
 	)
 }
 
@@ -490,10 +491,10 @@ func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Rela
 	// send messages to their respective chains
 	if msgs.Send(src, dst); msgs.Success() {
 		if num := len(acksForDst); num > 0 {
-			logPacketsRelayed(dst, num, "RelayAcknowledgements")
+			logPacketsRelayed(src, dst, num, "Acknowledgements", "src->dst")
 		}
 		if num := len(acksForSrc); num > 0 {
-			logPacketsRelayed(src, num, "RelayAcknowledgements")
+			logPacketsRelayed(src, dst, num, "Acknowledgements", "dst->src")
 		}
 	}
 
@@ -501,7 +502,7 @@ func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Rela
 }
 
 func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
-	relayLogger := log.GetLogger()
+	logger := GetChannelLogger(chain)
 	var msgs []sdk.Msg
 
 	for _, p := range packets {
@@ -509,7 +510,11 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 		path := host.PacketAcknowledgementPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
 		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 		if err != nil {
-			relayLogger.Info("failed to ProveState: height=%v, path=%v, commitment=%x, err=%v", ctx.Height(), path, commitment, err)
+			logger.Error("failed to ProveState", err,
+				"height", ctx.Height(),
+				"path", path,
+				"commitment", commitment,
+			)
 			return nil, err
 		}
 		msg := chantypes.NewMsgAcknowledgement(p.Packet, p.Acknowledgement, proof, proofHeight, signer.String())
