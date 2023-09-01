@@ -22,7 +22,7 @@ var (
 )
 
 func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
-	logger := GetConnectionLogger(log.GetLogger(), src, dst)
+	logger := GetConnectionLogger(src, dst)
 	ticker := time.NewTicker(to)
 
 	failed := 0
@@ -225,7 +225,7 @@ func validatePaths(src, dst Chain) error {
 }
 
 func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnectionResponse) {
-	logger := GetConnectionLogger(log.GetLogger(), src.(*ProvableChain), dst.(*ProvableChain))
+	logger := GetConnectionLogger(src, dst)
 	logger.Info(
 		"connection states",
 		"src ProofHeight", mustGetHeight(srcConn.ProofHeight),
@@ -265,7 +265,7 @@ func mustGetAddress(chain interface {
 }
 
 func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnection *conntypes.ConnectionEnd) (bool, error) {
-	logger := GetConnectionLogger(log.GetLogger(), src, dst)
+	logger := GetConnectionLogger(src, dst)
 	sh, err := src.LatestHeight()
 	if err != nil {
 		return false, err
@@ -289,8 +289,8 @@ func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnecti
 	return true, nil
 }
 
-func GetConnectionLogger(relayLogger *log.RelayLogger, src, dst *ProvableChain) *log.RelayLogger {
-	return relayLogger.
+func GetConnectionLogger(src, dst Chain) *log.RelayLogger {
+	return log.GetLogger().
 		WithConnection(
 			src.ChainID(),
 			src.Path().ClientID,
