@@ -127,7 +127,7 @@ func (rl *RelayLogger) WithChannel(
 		rl.Logger.With(
 			"chain_id", chainID,
 			"port_id", portID,
-			"channnel_id", channelID,
+			"channel_id", channelID,
 		),
 	}
 }
@@ -141,7 +141,7 @@ func (rl *RelayLogger) WithChannelPair(
 			slog.Group("src",
 				"chain_id", srcChainID,
 				"port_id", srcPortID,
-				"channnel_id", srcChannelID,
+				"channel_id", srcChannelID,
 			),
 			slog.Group("dst",
 				"chain_id", dstChainID,
