@@ -82,6 +82,11 @@ func (rl *RelayLogger) Error(msg string, err error, otherArgs ...any) {
 	rl.Logger.Error(msg, args...)
 }
 
+func (rl *RelayLogger) Fatal(msg string, err error, otherArgs ...any) {
+	rl.Error(msg, err, otherArgs...)
+	panic(msg)
+}
+
 func GetLogger() *RelayLogger {
 	return relayLogger
 }
