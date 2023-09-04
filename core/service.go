@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	retry "github.com/avast/retry-go"
@@ -50,9 +49,12 @@ func (srv *RelayService) Start(ctx context.Context) error {
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			logger.Info(
-				"relay-service",
-				"msg",
-				fmt.Sprintf("- [%s][%s]try(%d/%d) relay-service: %s", srv.src.ChainID(), srv.dst.ChainID(), n+1, rtyAttNum, err),
+				"retrying to serve relays",
+				"src", srv.src.ChainID(),
+				"dst", srv.dst.ChainID(),
+				"try", n+1,
+				"try_limit", rtyAttNum,
+				"error", err.Error(),
 			)
 		})); err != nil {
 			return err

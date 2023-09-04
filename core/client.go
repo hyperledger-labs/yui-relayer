@@ -2,6 +2,7 @@ package core
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/hyperledger-labs/yui-relayer/log"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -74,7 +75,7 @@ func CreateClients(src, dst *ProvableChain) error {
 }
 
 func UpdateClients(src, dst *ProvableChain) error {
-	logger := GetChainPairLogger(src, dst)
+	logger := GetClientPairLogger(src, dst)
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
@@ -127,4 +128,13 @@ func getHeadersForCreateClient(src, dst LightClient) (srch, dsth Header, err err
 		return nil, nil, err
 	}
 	return srch, dsth, nil
+}
+
+func GetClientPairLogger(src, dst Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithClientPair(
+			src.ChainID(), src.Path().ClientID,
+			dst.ChainID(), dst.Path().ClientID,
+		).
+		WithModule("core.client")
 }

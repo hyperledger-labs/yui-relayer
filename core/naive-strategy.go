@@ -94,9 +94,11 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			return err
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			logger.Info(
-				"query unfinalized packets",
-				"src revision height", srcCtx.Height().GetRevisionHeight(),
-				"try", fmt.Sprintf("%d/%d", n+1, rtyAttNum),
+				"retrying to query unfinalized packet relays",
+				"direction", "src",
+				"height", srcCtx.Height().GetRevisionHeight(),
+				"try", n+1,
+				"try_limit", rtyAttNum,
 				"error", err.Error(),
 			)
 		}))
@@ -109,9 +111,11 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			return err
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			logger.Info(
-				"query unfinalized packets",
-				"dst revision height", dstCtx.Height().GetRevisionHeight(),
-				"try", fmt.Sprintf("%d/%d", n+1, rtyAttNum),
+				"retrying to query unfinalized packet relays",
+				"direction", "dst",
+				"height", dstCtx.Height().GetRevisionHeight(),
+				"try", n+1,
+				"try_limit", rtyAttNum,
 				"error", err.Error(),
 			)
 		}))
@@ -294,9 +298,11 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				return err
 			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 				logger.Info(
-					"query packet acknowledgements",
-					"src revision height", srcCtx.Height().GetRevisionHeight(),
-					"try", fmt.Sprintf("%d/%d", n+1, rtyAttNum),
+					"retrying to query unfinalized ack relays",
+					"direction", "src",
+					"height", srcCtx.Height().GetRevisionHeight(),
+					"try", n+1,
+					"try_limit", rtyAttNum,
 					"error", err.Error(),
 				)
 				sh.Updates(src, dst)
@@ -312,9 +318,11 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				return err
 			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 				logger.Info(
-					"query packet acknowledgements",
-					"dst revision height", dstCtx.Height().GetRevisionHeight(),
-					"try", fmt.Sprintf("%d/%d", n+1, rtyAttNum),
+					"retrying to query unfinalized ack relays",
+					"direction", "dst",
+					"height", dstCtx.Height().GetRevisionHeight(),
+					"try", n+1,
+					"try_limit", rtyAttNum,
 					"error", err.Error(),
 				)
 				sh.Updates(src, dst)
@@ -402,7 +410,7 @@ func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 	logger := GetChannelPairLogger(src, dst)
 	logger.Info(
 		fmt.Sprintf("★ %s relayed", obj),
-		"packets_relayed", num,
+		"count", num,
 		"direction", dir,
 	)
 }
