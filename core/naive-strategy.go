@@ -8,7 +8,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
-	"github.com/hyperledger-labs/yui-relayer/log"
+	"github.com/hyperledger-labs/yui-relayer/metrics"
+	"go.opentelemetry.io/otel/attribute"
+	api "go.opentelemetry.io/otel/metric"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -19,6 +21,8 @@ type NaiveStrategy struct {
 	MaxMsgLength uint64 // maximum amount of messages in a bundled relay transaction
 	srcNoAck     bool
 	dstNoAck     bool
+	srcBacklog   PacketInfoList
+	dstBacklog   PacketInfoList
 }
 
 var _ StrategyI = (*NaiveStrategy)(nil)
@@ -31,12 +35,12 @@ func NewNaiveStrategy(srcNoAck, dstNoAck bool) *NaiveStrategy {
 }
 
 // GetType implements Strategy
-func (st NaiveStrategy) GetType() string {
+func (st *NaiveStrategy) GetType() string {
 	return "naive"
 }
 
-func (st NaiveStrategy) SetupRelay(ctx context.Context, src, dst *ProvableChain) error {
-	logger := GetChannelLogger(log.GetLogger(), src, dst)
+func (st *NaiveStrategy) SetupRelay(ctx context.Context, src, dst *ProvableChain) error {
+	logger := GetChannelPairLogger(src, dst)
 	if err := src.SetupForRelay(ctx); err != nil {
 		logger.Error(
 			"failed to setup for src",
@@ -66,8 +70,8 @@ func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bo
 	}
 }
 
-func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
-	logger := GetChannelLogger(log.GetLogger(), src, dst)
+func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
+	logger := GetChannelPairLogger(src, dst)
 	var (
 		eg         = new(errgroup.Group)
 		srcPackets PacketInfoList
@@ -90,9 +94,11 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 			return err
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			logger.Info(
-				"query unfinalized packets",
-				"src revision height", srcCtx.Height().GetRevisionHeight(),
-				"try", fmt.Sprintf("%d/%d", n+1, rtyAttNum),
+				"retrying to query unfinalized packet relays",
+				"direction", "src",
+				"height", srcCtx.Height().GetRevisionHeight(),
+				"try", n+1,
+				"try_limit", rtyAttNum,
 				"error", err.Error(),
 			)
 		}))
@@ -105,9 +111,11 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 			return err
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			logger.Info(
-				"query unfinalized packets",
-				"dst revision height", dstCtx.Height().GetRevisionHeight(),
-				"try", fmt.Sprintf("%d/%d", n+1, rtyAttNum),
+				"retrying to query unfinalized packet relays",
+				"direction", "dst",
+				"height", dstCtx.Height().GetRevisionHeight(),
+				"try", n+1,
+				"try_limit", rtyAttNum,
 				"error", err.Error(),
 			)
 		}))
@@ -118,6 +126,10 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 			"error querying packet commitments",
 			err,
 		)
+		return nil, err
+	}
+
+	if err := st.updateBacklogMetrics(context.TODO(), src, dst, srcPackets, dstPackets); err != nil {
 		return nil, err
 	}
 
@@ -163,8 +175,8 @@ func (st NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders
 	}, nil
 }
 
-func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
-	logger := GetChannelLogger(log.GetLogger(), src, dst)
+func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
+	logger := GetChannelPairLogger(src, dst)
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -251,18 +263,18 @@ func (st NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, 
 	// send messages to their respective chains
 	if msgs.Send(src, dst); msgs.Success() {
 		if num := len(packetsForDst); num > 0 {
-			logPacketsRelayed(dst, num, "RelayPackets")
+			logPacketsRelayed(src, dst, num, "Packets", "src->dst")
 		}
 		if num := len(packetsForSrc); num > 0 {
-			logPacketsRelayed(src, num, "RelayPackets")
+			logPacketsRelayed(src, dst, num, "Packets", "dst->src")
 		}
 	}
 
 	return nil
 }
 
-func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
-	logger := GetChannelLogger(log.GetLogger(), src, dst)
+func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
+	logger := GetChannelPairLogger(src, dst)
 	var (
 		eg      = new(errgroup.Group)
 		srcAcks PacketInfoList
@@ -286,9 +298,11 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 				return err
 			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 				logger.Info(
-					"query packet acknowledgements",
-					"src revision height", srcCtx.Height().GetRevisionHeight(),
-					"try", fmt.Sprintf("%d/%d", n+1, rtyAttNum),
+					"retrying to query unfinalized ack relays",
+					"direction", "src",
+					"height", srcCtx.Height().GetRevisionHeight(),
+					"try", n+1,
+					"try_limit", rtyAttNum,
 					"error", err.Error(),
 				)
 				sh.Updates(src, dst)
@@ -304,9 +318,11 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 				return err
 			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 				logger.Info(
-					"query packet acknowledgements",
-					"dst revision height", dstCtx.Height().GetRevisionHeight(),
-					"try", fmt.Sprintf("%d/%d", n+1, rtyAttNum),
+					"retrying to query unfinalized ack relays",
+					"direction", "dst",
+					"height", dstCtx.Height().GetRevisionHeight(),
+					"try", n+1,
+					"try_limit", rtyAttNum,
 					"error", err.Error(),
 				)
 				sh.Updates(src, dst)
@@ -370,14 +386,18 @@ func (st NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh Sy
 
 // TODO add packet-timeout support
 func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
-	relayLogger := log.GetLogger()
+	logger := GetChannelLogger(chain)
 	var msgs []sdk.Msg
 	for _, p := range packets {
 		commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
 		path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
 		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 		if err != nil {
-			relayLogger.Info("failed to ProveState: height=%v, path=%v, commitment=%x, err=%v", ctx.Height(), path, commitment, err)
+			logger.Error("failed to ProveState", err,
+				"height", ctx.Height(),
+				"path", path,
+				"commitment", commitment,
+			)
 			return nil, err
 		}
 		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
@@ -386,19 +406,17 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	return msgs, nil
 }
 
-func logPacketsRelayed(targetChain *ProvableChain, num int, msg string) {
-	relayLogger := log.GetLogger()
-	relayLogger.Info(
-		fmt.Sprintf("★ Relayed %d packets", num),
-		"chain id", targetChain.ChainID(),
-		"channel id", targetChain.Path().ChannelID,
-		"port id", targetChain.Path().PortID,
-		"msg", msg,
+func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
+	logger := GetChannelPairLogger(src, dst)
+	logger.Info(
+		fmt.Sprintf("★ %s relayed", obj),
+		"count", num,
+		"direction", dir,
 	)
 }
 
-func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
-	logger := GetChannelLogger(log.GetLogger(), src, dst)
+func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
+	logger := GetChannelPairLogger(src, dst)
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -481,10 +499,10 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Relay
 	// send messages to their respective chains
 	if msgs.Send(src, dst); msgs.Success() {
 		if num := len(acksForDst); num > 0 {
-			logPacketsRelayed(dst, num, "RelayAcknowledgements")
+			logPacketsRelayed(src, dst, num, "Acknowledgements", "src->dst")
 		}
 		if num := len(acksForSrc); num > 0 {
-			logPacketsRelayed(src, num, "RelayAcknowledgements")
+			logPacketsRelayed(src, dst, num, "Acknowledgements", "dst->src")
 		}
 	}
 
@@ -492,7 +510,7 @@ func (st NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Relay
 }
 
 func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
-	relayLogger := log.GetLogger()
+	logger := GetChannelLogger(chain)
 	var msgs []sdk.Msg
 
 	for _, p := range packets {
@@ -500,7 +518,11 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 		path := host.PacketAcknowledgementPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
 		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 		if err != nil {
-			relayLogger.Info("failed to ProveState: height=%v, path=%v, commitment=%x, err=%v", ctx.Height(), path, commitment, err)
+			logger.Error("failed to ProveState", err,
+				"height", ctx.Height(),
+				"path", path,
+				"commitment", commitment,
+			)
 			return nil, err
 		}
 		msg := chantypes.NewMsgAcknowledgement(p.Packet, p.Acknowledgement, proof, proofHeight, signer.String())
@@ -508,4 +530,49 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 	}
 
 	return msgs, nil
+}
+
+func (st *NaiveStrategy) updateBacklogMetrics(ctx context.Context, src, dst ChainInfo, newSrcBacklog, newDstBacklog PacketInfoList) error {
+	srcAttrs := []attribute.KeyValue{
+		attribute.Key("chain_id").String(src.ChainID()),
+		attribute.Key("direction").String("src"),
+	}
+	dstAttrs := []attribute.KeyValue{
+		attribute.Key("chain_id").String(dst.ChainID()),
+		attribute.Key("direction").String("dst"),
+	}
+
+	metrics.BacklogSizeGauge.Set(int64(len(newSrcBacklog)), srcAttrs...)
+	metrics.BacklogSizeGauge.Set(int64(len(newDstBacklog)), dstAttrs...)
+
+	if len(newSrcBacklog) > 0 {
+		oldestHeight := newSrcBacklog[0].EventHeight
+		oldestTimestamp, err := src.Timestamp(oldestHeight)
+		if err != nil {
+			return fmt.Errorf("failed to get the timestamp of block[%d] on the src chain: %v", oldestHeight, err)
+		}
+		metrics.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), srcAttrs...)
+	} else {
+		metrics.BacklogOldestTimestampGauge.Set(0, srcAttrs...)
+	}
+	if len(newDstBacklog) > 0 {
+		oldestHeight := newDstBacklog[0].EventHeight
+		oldestTimestamp, err := dst.Timestamp(oldestHeight)
+		if err != nil {
+			return fmt.Errorf("failed to get the timestamp of block[%d] on the dst chain: %v", oldestHeight, err)
+		}
+		metrics.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), dstAttrs...)
+	} else {
+		metrics.BacklogOldestTimestampGauge.Set(0, dstAttrs...)
+	}
+
+	srcReceivedPackets := st.srcBacklog.Subtract(newSrcBacklog.ExtractSequenceList())
+	metrics.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(srcReceivedPackets)), api.WithAttributes(srcAttrs...))
+	st.srcBacklog = newSrcBacklog
+
+	dstReceivedPackets := st.dstBacklog.Subtract(newDstBacklog.ExtractSequenceList())
+	metrics.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(dstReceivedPackets)), api.WithAttributes(dstAttrs...))
+	st.dstBacklog = newDstBacklog
+
+	return nil
 }

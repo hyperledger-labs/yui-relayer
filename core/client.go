@@ -7,7 +7,7 @@ import (
 )
 
 func CreateClients(src, dst *ProvableChain) error {
-	logger := GetChainLogger(log.GetLogger(), src, dst)
+	logger := GetChainPairLogger(src, dst)
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
@@ -75,7 +75,7 @@ func CreateClients(src, dst *ProvableChain) error {
 }
 
 func UpdateClients(src, dst *ProvableChain) error {
-	logger := GetChainLogger(log.GetLogger(), src, dst)
+	logger := GetClientPairLogger(src, dst)
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
@@ -128,4 +128,13 @@ func getHeadersForCreateClient(src, dst LightClient) (srch, dsth Header, err err
 		return nil, nil, err
 	}
 	return srch, dsth, nil
+}
+
+func GetClientPairLogger(src, dst Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithClientPair(
+			src.ChainID(), src.Path().ClientID,
+			dst.ChainID(), dst.Path().ClientID,
+		).
+		WithModule("core.client")
 }

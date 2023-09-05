@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
 func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
-	logger := GetChannelLogger(log.GetLogger(), src, dst)
+	logger := GetChannelPairLogger(src, dst)
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -33,7 +34,8 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		}
 
 		if !chanSteps.Ready() {
-			break
+			logger.Debug("Waiting for next channel step ...")
+			continue
 		}
 
 		chanSteps.Send(src, dst)
@@ -105,6 +107,12 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 		return nil, err
 	}
 
+	if finalized, err := checkChannelFinality(src, dst, srcChan.Channel, dstChan.Channel); err != nil {
+		return nil, err
+	} else if !finalized {
+		return out, nil
+	}
+
 	switch {
 	// Handshake hasn't been started on src or dst, relay `chanOpenInit` to src
 	case srcChan.Channel.State == chantypes.UNINITIALIZED && dstChan.Channel.State == chantypes.UNINITIALIZED:
@@ -174,7 +182,7 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 }
 
 func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.QueryChannelResponse) {
-	logger := GetChannelLogger(log.GetLogger(), src, dst)
+	logger := GetChannelPairLogger(src, dst)
 	logger.Info(
 		"channel states",
 		"src ProofHeight", mustGetHeight(srcChan.ProofHeight),
@@ -184,11 +192,44 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 	)
 }
 
-func GetChannelLogger(relayLogger *log.RelayLogger, src, dst *ProvableChain) *log.RelayLogger {
-	return relayLogger.
+func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chantypes.Channel) (bool, error) {
+	logger := GetChannelPairLogger(src, dst)
+	sh, err := src.LatestHeight()
+	if err != nil {
+		return false, err
+	}
+	dh, err := dst.LatestHeight()
+	if err != nil {
+		return false, err
+	}
+	srcChanLatest, dstChanLatest, err := QueryChannelPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst)
+	if err != nil {
+		return false, err
+	}
+	if srcChannel.State != srcChanLatest.Channel.State {
+		logger.Debug("src channel state in transition", "from_state", srcChannel.State, "to_state", srcChanLatest.Channel.State)
+		return false, nil
+	}
+	if dstChannel.State != dstChanLatest.Channel.State {
+		logger.Debug("dst channel state in transition", "from_state", dstChannel.State, "to_state", dstChanLatest.Channel.State)
+		return false, nil
+	}
+	return true, nil
+}
+
+func GetChannelLogger(c Chain) *log.RelayLogger {
+	return log.GetLogger().
 		WithChannel(
-			src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-			dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+			c.ChainID(), c.Path().PortID, c.Path().ChannelID,
+		).
+		WithModule("core.channel")
+}
+
+func GetChannelPairLogger(src, dst Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithChannelPair(
+			src.ChainID(), src.Path().PortID, src.Path().ChannelID,
+			dst.ChainID(), dst.Path().PortID, dst.Path().ChannelID,
 		).
 		WithModule("core.channel")
 }

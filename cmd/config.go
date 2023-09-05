@@ -155,6 +155,9 @@ func initConfig(ctx *config.Context, cmd *cobra.Command) error {
 				os.Exit(1)
 			}
 		}
+	} else {
+		defConfig := config.DefaultConfig()
+		ctx.Config = &defConfig
 	}
 	return nil
 }

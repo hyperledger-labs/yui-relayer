@@ -6,11 +6,12 @@ import (
 	"os"
 
 	"github.com/cockroachdb/errors"
+	"github.com/cockroachdb/errors/withstack"
 	"golang.org/x/exp/slog"
 )
 
 type RelayLogger struct {
-	slog.Logger
+	*slog.Logger
 }
 
 var relayLogger *RelayLogger
@@ -65,60 +66,113 @@ func InitLogger(logLevel, format, output string) error {
 
 	// set global logger
 	relayLogger = &RelayLogger{
-		*slogLogger,
+		slogLogger,
 	}
 	return nil
 }
 
-func (rl *RelayLogger) ErrorWithStack(msg string, err error) {
-	cError := errors.NewWithDepth(1, err.Error())
-	rl.Error(msg, "error", cError, "stack", fmt.Sprintf("%+v", cError))
+func (rl *RelayLogger) Error(msg string, err error, otherArgs ...any) {
+	err = withstack.WithStackDepth(err, 1)
+	var args []any
+	args = append(args, "error", err)
+	args = append(args, "stack", fmt.Sprintf("%+v", err))
+	for _, otherArg := range otherArgs {
+		args = append(args, otherArg)
+	}
+	rl.Logger.Error(msg, args...)
+}
+
+func (rl *RelayLogger) Fatal(msg string, err error, otherArgs ...any) {
+	rl.Error(msg, err, otherArgs...)
+	panic(msg)
 }
 
 func GetLogger() *RelayLogger {
 	return relayLogger
 }
 
-func (rl *RelayLogger) WithChain(
+func (rl *RelayLogger) WithChainPair(
 	srcChainID string,
 	dstChainID string,
 ) *RelayLogger {
 	return &RelayLogger{
-		*rl.With(
-			"source chain id", srcChainID,
-			"destination chain id", dstChainID,
+		rl.Logger.With(
+			slog.Group("src",
+				"chain_id", srcChainID,
+			),
+			slog.Group("dst",
+				"chain_id", dstChainID,
+			),
+		),
+	}
+}
+
+func (rl *RelayLogger) WithClientPair(
+	srcChainID, srcClientID string,
+	dstChainID, dstClientID string,
+) *RelayLogger {
+	return &RelayLogger{
+		rl.Logger.With(
+			slog.Group("src",
+				"chain_id", srcChainID,
+				"client_id", srcClientID,
+			),
+			slog.Group("dst",
+				"chain_id", dstChainID,
+				"client_id", dstClientID,
+			),
 		),
 	}
 }
 
 func (rl *RelayLogger) WithChannel(
-	srcChainID, srcChannelID, srcPortID string,
-	dstChainID, dstChannelID, dstPortID string,
+	chainID, portID, channelID string,
 ) *RelayLogger {
 	return &RelayLogger{
-		*rl.With(
-			"source chain id", srcChainID,
-			"source channnel id", srcChannelID,
-			"source port id", srcPortID,
-			"destination chain id", dstChainID,
-			"destination channel id", dstChannelID,
-			"destination port id", dstPortID,
+		rl.Logger.With(
+			"chain_id", chainID,
+			"port_id", portID,
+			"channel_id", channelID,
 		),
 	}
 }
 
-func (rl *RelayLogger) WithConnection(
+func (rl *RelayLogger) WithChannelPair(
+	srcChainID, srcPortID, srcChannelID string,
+	dstChainID, dstPortID, dstChannelID string,
+) *RelayLogger {
+	return &RelayLogger{
+		rl.Logger.With(
+			slog.Group("src",
+				"chain_id", srcChainID,
+				"port_id", srcPortID,
+				"channel_id", srcChannelID,
+			),
+			slog.Group("dst",
+				"chain_id", dstChainID,
+				"port_id", dstPortID,
+				"channel_id", dstChannelID,
+			),
+		),
+	}
+}
+
+func (rl *RelayLogger) WithConnectionPair(
 	srcChainID, srcClientID, srcConnectionID string,
 	dstChainID, dstClientID, dstConnectionID string,
 ) *RelayLogger {
 	return &RelayLogger{
-		*rl.With(
-			"source chain id", srcChainID,
-			"source client id", srcClientID,
-			"source connection id", srcConnectionID,
-			"destination chain id", dstChainID,
-			"destination client id", dstClientID,
-			"destination connection id", dstConnectionID,
+		rl.Logger.With(
+			slog.Group("src",
+				"chain_id", srcChainID,
+				"client_id", srcClientID,
+				"connection_id", srcConnectionID,
+			),
+			slog.Group("dst",
+				"chain_id", dstChainID,
+				"client_id", dstClientID,
+				"connection_id", dstConnectionID,
+			),
 		),
 	}
 }
@@ -127,7 +181,7 @@ func (rl *RelayLogger) WithModule(
 	moduleName string,
 ) *RelayLogger {
 	return &RelayLogger{
-		*rl.With(
+		rl.Logger.With(
 			"module", moduleName,
 		),
 	}

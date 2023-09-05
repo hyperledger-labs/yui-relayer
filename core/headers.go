@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	"github.com/cosmos/ibc-go/v7/modules/core/exported"
-	"github.com/hyperledger-labs/yui-relayer/log"
+	"github.com/hyperledger-labs/yui-relayer/metrics"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type Header interface {
@@ -53,16 +54,16 @@ var _ SyncHeaders = (*syncHeaders)(nil)
 // NewSyncHeaders returns a new instance of SyncHeaders that can be easily
 // kept "reasonably up to date"
 func NewSyncHeaders(src, dst ChainInfoLightClient) (SyncHeaders, error) {
-	relayLogger := log.GetLogger()
+	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
-		relayLogger.Error("error ensuring different chains", err)
+		logger.Error("error ensuring different chains", err)
 		return nil, err
 	}
 	sh := &syncHeaders{
 		latestFinalizedHeaders: map[string]Header{src.ChainID(): nil, dst.ChainID(): nil},
 	}
 	if err := sh.Updates(src, dst); err != nil {
-		relayLogger.Error("error updating headers", err)
+		logger.Error("error updating headers", err)
 		return nil, err
 	}
 	return sh, nil
@@ -70,25 +71,43 @@ func NewSyncHeaders(src, dst ChainInfoLightClient) (SyncHeaders, error) {
 
 // Updates updates the headers on both chains
 func (sh *syncHeaders) Updates(src, dst ChainInfoLightClient) error {
-	relayLogger := log.GetLogger()
+	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
-		relayLogger.Error("error ensuring different chains", err)
+		logger.Error("error ensuring different chains", err)
 		return err
 	}
 
 	srcHeader, err := src.GetLatestFinalizedHeader()
 	if err != nil {
-		relayLogger.Error("error getting latest finalized header of src", err)
+		logger.Error("error getting latest finalized header of src", err)
 		return err
 	}
 	dstHeader, err := dst.GetLatestFinalizedHeader()
 	if err != nil {
-		relayLogger.Error("error getting latest finalized header of dst", err)
+		logger.Error("error getting latest finalized header of dst", err)
+		return err
+	}
+
+	if err := sh.updateBlockMetrics(context.TODO(), src, dst, srcHeader, dstHeader); err != nil {
 		return err
 	}
 
 	sh.latestFinalizedHeaders[src.ChainID()] = srcHeader
 	sh.latestFinalizedHeaders[dst.ChainID()] = dstHeader
+	return nil
+}
+
+func (sh syncHeaders) updateBlockMetrics(ctx context.Context, src, dst ChainInfo, srcHeader, dstHeader Header) error {
+	metrics.ProcessedBlockHeightGauge.Set(
+		int64(srcHeader.GetHeight().GetRevisionHeight()),
+		attribute.Key("chain_id").String(src.ChainID()),
+		attribute.Key("direction").String("src"),
+	)
+	metrics.ProcessedBlockHeightGauge.Set(
+		int64(dstHeader.GetHeight().GetRevisionHeight()),
+		attribute.Key("chain_id").String(dst.ChainID()),
+		attribute.Key("direction").String("dst"),
+	)
 	return nil
 }
 
@@ -104,9 +123,9 @@ func (sh syncHeaders) GetQueryContext(chainID string) QueryContext {
 
 // SetupHeadersForUpdate returns `src` chain's headers to update the client on `dst` chain
 func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]Header, error) {
-	relayLogger := log.GetLogger()
+	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
-		relayLogger.Error("error ensuring different chains", err)
+		logger.Error("error ensuring different chains", err)
 		return nil, err
 	}
 	return src.SetupHeadersForUpdate(dst, sh.GetLatestFinalizedHeader(src.ChainID()))
@@ -114,15 +133,15 @@ func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainICS02QuerierLightClien
 
 // SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers to update the clients on each chain
 func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]Header, []Header, error) {
-	relayLogger := log.GetLogger()
+	logger := GetChainPairLogger(src, dst)
 	srcHs, err := sh.SetupHeadersForUpdate(src, dst)
 	if err != nil {
-		relayLogger.Error("error setting up headers for update on src", err)
+		logger.Error("error setting up headers for update on src", err)
 		return nil, nil, err
 	}
 	dstHs, err := sh.SetupHeadersForUpdate(dst, src)
 	if err != nil {
-		relayLogger.Error("error setting up headers for update on dst", err)
+		logger.Error("error setting up headers for update on dst", err)
 		return nil, nil, err
 	}
 	return srcHs, dstHs, nil

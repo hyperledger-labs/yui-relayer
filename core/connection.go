@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -21,7 +22,7 @@ var (
 )
 
 func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
-	logger := GetConnectionLogger(log.GetLogger(), src, dst)
+	logger := GetConnectionPairLogger(src, dst)
 	ticker := time.NewTicker(to)
 
 	failed := 0
@@ -36,7 +37,8 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		}
 
 		if !connSteps.Ready() {
-			break
+			logger.Debug("Waiting for next connection step ...")
+			continue
 		}
 
 		connSteps.Send(src, dst)
@@ -109,6 +111,12 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	srcConn, dstConn, err := QueryConnectionPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst)
 	if err != nil {
 		return nil, err
+	}
+
+	if finalized, err := checkConnectionFinality(src, dst, srcConn.Connection, dstConn.Connection); err != nil {
+		return nil, err
+	} else if !finalized {
+		return out, nil
 	}
 
 	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
@@ -217,7 +225,7 @@ func validatePaths(src, dst Chain) error {
 }
 
 func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnectionResponse) {
-	logger := GetConnectionLogger(log.GetLogger(), src.(*ProvableChain), dst.(*ProvableChain))
+	logger := GetConnectionPairLogger(src, dst)
 	logger.Info(
 		"connection states",
 		"src ProofHeight", mustGetHeight(srcConn.ProofHeight),
@@ -229,13 +237,8 @@ func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnec
 
 // mustGetHeight takes the height inteface and returns the actual height
 func mustGetHeight(h ibcexported.Height) uint64 {
-	relayLogger := log.GetLogger()
 	height, ok := h.(clienttypes.Height)
 	if !ok {
-		relayLogger.Error(
-			"height is not an instance of height! wtf",
-			fmt.Errorf("height is not an instance of height! wtf"),
-		)
 		panic("height is not an instance of height! wtf")
 	}
 	return height.GetRevisionHeight()
@@ -244,21 +247,41 @@ func mustGetHeight(h ibcexported.Height) uint64 {
 func mustGetAddress(chain interface {
 	GetAddress() (sdk.AccAddress, error)
 }) sdk.AccAddress {
-	relayLogger := log.GetLogger()
 	addr, err := chain.GetAddress()
 	if err != nil {
-		relayLogger.Error(
-			"failed to get address",
-			err,
-		)
 		panic(err)
 	}
 	return addr
 }
 
-func GetConnectionLogger(relayLogger *log.RelayLogger, src, dst *ProvableChain) *log.RelayLogger {
-	return relayLogger.
-		WithConnection(
+func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnection *conntypes.ConnectionEnd) (bool, error) {
+	logger := GetConnectionPairLogger(src, dst)
+	sh, err := src.LatestHeight()
+	if err != nil {
+		return false, err
+	}
+	dh, err := dst.LatestHeight()
+	if err != nil {
+		return false, err
+	}
+	srcConnLatest, dstConnLatest, err := QueryConnectionPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst)
+	if err != nil {
+		return false, err
+	}
+	if srcConnection.State != srcConnLatest.Connection.State {
+		logger.Debug("src connection state in transition", "from_state", srcConnection.State, "to_state", srcConnLatest.Connection.State)
+		return false, nil
+	}
+	if dstConnection.State != dstConnLatest.Connection.State {
+		logger.Debug("dst connection state in transition", "from_state", dstConnection.State, "to_state", dstConnLatest.Connection.State)
+		return false, nil
+	}
+	return true, nil
+}
+
+func GetConnectionPairLogger(src, dst Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithConnectionPair(
 			src.ChainID(),
 			src.Path().ClientID,
 			src.Path().ConnectionID,

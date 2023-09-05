@@ -34,15 +34,15 @@ type ProverConfig interface {
 
 // NewChainProverConfig returns a new config instance
 func NewChainProverConfig(m codec.JSONCodec, chain ChainConfig, client ProverConfig) (*ChainProverConfig, error) {
-	relayLogger := log.GetLogger()
+	logger := log.GetLogger().WithModule("core.config")
 	cbz, err := utils.MarshalJSONAny(m, chain)
 	if err != nil {
-		relayLogger.Error("error marshalling chain config", err)
+		logger.Error("error marshalling chain config", err)
 		return nil, err
 	}
 	clbz, err := utils.MarshalJSONAny(m, client)
 	if err != nil {
-		relayLogger.Error("error marshalling client config", err)
+		logger.Error("error marshalling client config", err)
 		return nil, err
 	}
 	return &ChainProverConfig{
