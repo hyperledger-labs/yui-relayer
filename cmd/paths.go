@@ -19,6 +19,7 @@ func pathsCmd(ctx *config.Context) *cobra.Command {
 		Long: `
 A path represents the "full path" or "link" for communication between two chains. This includes the client, 
 connection, and channel ids from both the source and destination chains as well as the strategy to use when relaying`,
+		Run: noCommand,
 	}
 
 	cmd.AddCommand(

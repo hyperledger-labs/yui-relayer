@@ -12,6 +12,7 @@ func modulesCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "modules",
 		Short: "show an info about Relayer Module",
+		Run:   noCommand,
 	}
 
 	cmd.AddCommand(

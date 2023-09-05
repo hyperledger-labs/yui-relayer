@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -18,6 +17,7 @@ func chainsCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "chains",
 		Short: "manage chain configurations",
+		Run:   noCommand,
 	}
 
 	cmd.AddCommand(
@@ -46,7 +46,7 @@ func chainsAddDirCmd(ctx *config.Context) *cobra.Command {
 
 func filesAdd(ctx *config.Context, dir string) error {
 	dir = path.Clean(dir)
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func filesAdd(ctx *config.Context, dir string) error {
 			fmt.Printf("directory at %s, skipping...\n", pth)
 			continue
 		}
-		byt, err := ioutil.ReadFile(pth)
+		byt, err := os.ReadFile(pth)
 		if err != nil {
 			fmt.Printf("failed to read file %s, skipping...\n", pth)
 			continue
@@ -105,7 +105,7 @@ func overWriteConfig(ctx *config.Context, cmd *cobra.Command) error {
 			}
 
 			// overwrite the config file
-			err = ioutil.WriteFile(viper.ConfigFileUsed(), out, 0600)
+			err = os.WriteFile(viper.ConfigFileUsed(), out, 0600)
 			if err != nil {
 				return err
 			}

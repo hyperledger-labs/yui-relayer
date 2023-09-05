@@ -28,6 +28,7 @@ func Execute(modules ...config.ModuleI) error {
 	var rootCmd = &cobra.Command{
 		Use:   "yrly",
 		Short: "This application relays data between configured IBC enabled chains",
+		Run:   noCommand,
 	}
 
 	cobra.EnableCommandSorting = false
@@ -97,4 +98,10 @@ func Execute(modules ...config.ModuleI) error {
 func readStdin() (string, error) {
 	str, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	return strings.TrimSpace(str), err
+}
+
+func noCommand(cmd *cobra.Command, args []string) {
+	fmt.Println("No command specified.")
+	cmd.Help()
+	os.Exit(1)
 }

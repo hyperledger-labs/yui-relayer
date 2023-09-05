@@ -19,6 +19,7 @@ func transactionCmd(ctx *config.Context) *cobra.Command {
 		Most of these commands take a '[path]' argument. Make sure:
 	1. Chains are properly configured to relay over by using the 'rly chains list' command
 	2. Path is properly configured to relay over by using the 'rly paths list' command`),
+		Run: noCommand,
 	}
 
 	cmd.AddCommand(
