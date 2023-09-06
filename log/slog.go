@@ -19,17 +19,8 @@ var relayLogger *RelayLogger
 func InitLogger(logLevel, format, output string) error {
 	// level
 	var slogLevel slog.Level
-	switch logLevel {
-	case "DEBUG":
-		slogLevel = slog.LevelDebug
-	case "INFO":
-		slogLevel = slog.LevelInfo
-	case "WARN":
-		slogLevel = slog.LevelWarn
-	case "ERROR":
-		slogLevel = slog.LevelError
-	default:
-		return errors.New("invalid log level")
+	if err := slogLevel.UnmarshalText([]byte(logLevel)); err != nil {
+		return fmt.Errorf("failed to unmarshal level: %v", err)
 	}
 	handlerOpts := &slog.HandlerOptions{
 		Level:     slogLevel,
@@ -76,9 +67,7 @@ func (rl *RelayLogger) Error(msg string, err error, otherArgs ...any) {
 	var args []any
 	args = append(args, "error", err)
 	args = append(args, "stack", fmt.Sprintf("%+v", err))
-	for _, otherArg := range otherArgs {
-		args = append(args, otherArg)
-	}
+	args = append(args, otherArgs...)
 	rl.Logger.Error(msg, args...)
 }
 

@@ -64,8 +64,8 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 					err,
 				)
 				return fmt.Errorf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-					src.ChainID(), src.Path().ClientID, src.Path().ChannelID,
-					dst.ChainID(), dst.Path().ClientID, dst.Path().ChannelID,
+					src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+					dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
 				)
 			}
 		}
