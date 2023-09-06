@@ -48,6 +48,7 @@ func (r *RelayMsgs) IsMaxTx(msgLen, txSize uint64) bool {
 // Send sends the messages with appropriate output
 // TODO: Parallelize? Maybe?
 func (r *RelayMsgs) Send(src, dst Chain) {
+	logger := GetChannelPairLogger(src, dst)
 	//nolint:prealloc // can not be pre allocated
 	var (
 		msgLen, txSize uint64
@@ -60,6 +61,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	for _, msg := range r.Src {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
+			logger.Error("failed to marshal msg", err)
 			panic(err)
 		}
 
@@ -89,6 +91,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	for _, msg := range r.Dst {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
+			logger.Error("failed to marshal msg", err)
 			panic(err)
 		}
 

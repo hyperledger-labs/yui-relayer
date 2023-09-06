@@ -9,6 +9,7 @@ import (
 
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/metrics"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -80,6 +81,9 @@ func Execute(modules ...config.ModuleI) error {
 		if err := initConfig(ctx, rootCmd); err != nil {
 			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
+		if err := initLogger(ctx); err != nil {
+			return err
+		}
 		if err := metrics.InitializeMetrics(metrics.ExporterNull{}); err != nil {
 			return fmt.Errorf("failed to initialize the metrics: %v", err)
 		}
@@ -99,6 +103,11 @@ func Execute(modules ...config.ModuleI) error {
 func readStdin() (string, error) {
 	str, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	return strings.TrimSpace(str), err
+}
+
+func initLogger(ctx *config.Context) error {
+	c := ctx.Config.Global.LoggerConfig
+	return log.InitLogger(c.Level, c.Format, c.Output)
 }
 
 func noCommand(cmd *cobra.Command, args []string) error {

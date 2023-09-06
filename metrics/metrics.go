@@ -3,9 +3,9 @@ package metrics
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	api "go.opentelemetry.io/otel/metric"
@@ -122,8 +122,8 @@ func NewPrometheusExporter(addr string) (*prometheus.Exporter, error) {
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", promhttp.Handler())
 		if err := http.ListenAndServe(addr, mux); err != nil {
-			// TODO: we should replace this with a more proper logger, slog?
-			log.Fatalf("Prometheus exporter server failed: %v", err)
+			logger := log.GetLogger().WithModule("core.metrics")
+			logger.Fatal("Prometheus exporter server failed", err)
 		}
 	}()
 

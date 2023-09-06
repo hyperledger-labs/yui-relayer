@@ -2,8 +2,8 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	retry "github.com/avast/retry-go"
@@ -11,6 +11,8 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
+	"github.com/hyperledger-labs/yui-relayer/log"
+	"golang.org/x/exp/slog"
 )
 
 var (
@@ -21,17 +23,22 @@ var (
 )
 
 func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
+	logger := GetConnectionPairLogger(src, dst)
 	ticker := time.NewTicker(to)
 
 	failed := 0
 	for ; true; <-ticker.C {
 		connSteps, err := createConnectionStep(src, dst)
 		if err != nil {
+			logger.Error(
+				"failed to create connection step",
+				err,
+			)
 			return err
 		}
 
 		if !connSteps.Ready() {
-			log.Println("Waiting for next connection step ...")
+			logger.Debug("Waiting for next connection step ...")
 			continue
 		}
 
@@ -41,9 +48,9 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case connSteps.Success() && connSteps.Last:
-			log.Printf("★ Connection created: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
-				src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
-				dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID)
+			logger.Info(
+				"★ Connection created",
+			)
 			return nil
 		// In the case of success, reset the failures counter
 		case connSteps.Success():
@@ -52,12 +59,17 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !connSteps.Success():
 			failed++
-			log.Println("retrying transaction...")
+			logger.Info("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failed > 2 {
+				logger.Error(
+					"! Connection failed",
+					errors.New("failed 3 times"),
+				)
 				return fmt.Errorf("! Connection failed: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
 					src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
-					dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID)
+					dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID,
+				)
 			}
 		}
 
@@ -214,16 +226,17 @@ func validatePaths(src, dst Chain) error {
 }
 
 func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnectionResponse) {
-	log.Printf("- [%s]@{%d}conn(%s)-{%s} : [%s]@{%d}conn(%s)-{%s}",
-		src.ChainID(),
-		mustGetHeight(srcConn.ProofHeight),
-		src.Path().ConnectionID,
-		srcConn.Connection.State,
-		dst.ChainID(),
-		mustGetHeight(dstConn.ProofHeight),
-		dst.Path().ConnectionID,
-		dstConn.Connection.State,
-	)
+	logger := GetConnectionPairLogger(src, dst)
+	logger.Info(
+		"connection states",
+		slog.Group("src",
+			slog.Uint64("proof_height", mustGetHeight(srcConn.ProofHeight)),
+			slog.String("state", srcConn.Connection.State.String()),
+		),
+		slog.Group("dst",
+			slog.Uint64("proof_height", mustGetHeight(dstConn.ProofHeight)),
+			slog.String("state", dstConn.Connection.State.String()),
+		))
 }
 
 // mustGetHeight takes the height inteface and returns the actual height
@@ -246,6 +259,7 @@ func mustGetAddress(chain interface {
 }
 
 func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnection *conntypes.ConnectionEnd) (bool, error) {
+	logger := GetConnectionPairLogger(src, dst)
 	sh, err := src.LatestHeight()
 	if err != nil {
 		return false, err
@@ -259,12 +273,25 @@ func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnecti
 		return false, err
 	}
 	if srcConnection.State != srcConnLatest.Connection.State {
-		log.Printf("Source Connection: Finalized state [%s] <> Latest state [%s]", srcConnection.State, srcConnLatest.Connection.State)
+		logger.Debug("src connection state in transition", "from_state", srcConnection.State, "to_state", srcConnLatest.Connection.State)
 		return false, nil
 	}
 	if dstConnection.State != dstConnLatest.Connection.State {
-		log.Printf("Destination Connection: Finalized state [%s] <> Latest state [%s]", dstConnection.State, dstConnLatest.Connection.State)
+		logger.Debug("dst connection state in transition", "from_state", dstConnection.State, "to_state", dstConnLatest.Connection.State)
 		return false, nil
 	}
 	return true, nil
+}
+
+func GetConnectionPairLogger(src, dst Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithConnectionPair(
+			src.ChainID(),
+			src.Path().ClientID,
+			src.Path().ConnectionID,
+			dst.ChainID(),
+			dst.Path().ClientID,
+			dst.Path().ConnectionID,
+		).
+		WithModule("core.connection")
 }

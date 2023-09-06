@@ -3,16 +3,18 @@ package core
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	"github.com/hyperledger-labs/yui-relayer/log"
+	"golang.org/x/exp/slog"
 )
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
 func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
+	logger := GetChannelPairLogger(src, dst)
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED
@@ -25,11 +27,15 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 	for ; true; <-ticker.C {
 		chanSteps, err := createChannelStep(src, dst, order)
 		if err != nil {
+			logger.Error(
+				"failed to create channel step",
+				err,
+			)
 			return err
 		}
 
 		if !chanSteps.Ready() {
-			log.Println("Waiting for next channel step ...")
+			logger.Debug("Waiting for next channel step ...")
 			continue
 		}
 
@@ -39,9 +45,9 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of success and this being the last transaction
 		// debug logging, log created connection and break
 		case chanSteps.Success() && chanSteps.Last:
-			log.Printf("★ Channel created: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-				src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-				dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID)
+			logger.Info(
+				"★ Channel created",
+			)
 			return nil
 		// In the case of success, reset the failures counter
 		case chanSteps.Success():
@@ -50,12 +56,17 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 		case !chanSteps.Success():
 			failures++
-			log.Printf("retrying transaction...")
+			logger.Info("retrying transaction...")
 			time.Sleep(5 * time.Second)
 			if failures > 2 {
+				logger.Error(
+					"! Channel failed",
+					err,
+				)
 				return fmt.Errorf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-					src.ChainID(), src.Path().ClientID, src.Path().ChannelID,
-					dst.ChainID(), dst.Path().ClientID, dst.Path().ChannelID)
+					src.ChainID(), src.Path().ChannelID, src.Path().PortID,
+					dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
+				)
 			}
 		}
 	}
@@ -171,20 +182,22 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 	return out, nil
 }
 
-func logChannelStates(src, dst Chain, srcChan, dstChan *chantypes.QueryChannelResponse) {
-	log.Printf("- [%s]@{%d}chan(%s)-{%s} : [%s]@{%d}chan(%s)-{%s}",
-		src.ChainID(),
-		mustGetHeight(srcChan.ProofHeight),
-		src.Path().ChannelID,
-		srcChan.Channel.State,
-		dst.ChainID(),
-		mustGetHeight(dstChan.ProofHeight),
-		dst.Path().ChannelID,
-		dstChan.Channel.State,
-	)
+func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.QueryChannelResponse) {
+	logger := GetChannelPairLogger(src, dst)
+	logger.Info(
+		"channel states",
+		slog.Group("src",
+			slog.Uint64("proof_height", mustGetHeight(srcChan.ProofHeight)),
+			slog.String("state", srcChan.Channel.State.String()),
+		),
+		slog.Group("dst",
+			slog.Uint64("proof_height", mustGetHeight(dstChan.ProofHeight)),
+			slog.String("state", dstChan.Channel.State.String()),
+		))
 }
 
 func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chantypes.Channel) (bool, error) {
+	logger := GetChannelPairLogger(src, dst)
 	sh, err := src.LatestHeight()
 	if err != nil {
 		return false, err
@@ -198,12 +211,29 @@ func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chant
 		return false, err
 	}
 	if srcChannel.State != srcChanLatest.Channel.State {
-		log.Printf("Source Channel: Finalized state [%s] <> Latest state [%s]", srcChannel.State, srcChanLatest.Channel.State)
+		logger.Debug("src channel state in transition", "from_state", srcChannel.State, "to_state", srcChanLatest.Channel.State)
 		return false, nil
 	}
 	if dstChannel.State != dstChanLatest.Channel.State {
-		log.Printf("Destination Channel: Finalized state [%s] <> Latest state [%s]", dstChannel.State, dstChanLatest.Channel.State)
+		logger.Debug("dst channel state in transition", "from_state", dstChannel.State, "to_state", dstChanLatest.Channel.State)
 		return false, nil
 	}
 	return true, nil
+}
+
+func GetChannelLogger(c Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithChannel(
+			c.ChainID(), c.Path().PortID, c.Path().ChannelID,
+		).
+		WithModule("core.channel")
+}
+
+func GetChannelPairLogger(src, dst Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithChannelPair(
+			src.ChainID(), src.Path().PortID, src.Path().ChannelID,
+			dst.ChainID(), dst.Path().PortID, dst.Path().ChannelID,
+		).
+		WithModule("core.channel")
 }

@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"log"
 	"time"
 
 	retry "github.com/avast/retry-go"
@@ -39,6 +38,7 @@ func NewRelayService(st StrategyI, src, dst *ProvableChain, sh SyncHeaders, inte
 
 // Start starts a relay service
 func (srv *RelayService) Start(ctx context.Context) error {
+	logger := GetChannelPairLogger(srv.src, srv.dst)
 	for {
 		if err := retry.Do(func() error {
 			select {
@@ -48,7 +48,14 @@ func (srv *RelayService) Start(ctx context.Context) error {
 				return srv.Serve(ctx)
 			}
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
-			log.Printf("- [%s][%s]try(%d/%d) relay-service: %s", srv.src.ChainID(), srv.dst.ChainID(), n+1, rtyAttNum, err)
+			logger.Info(
+				"retrying to serve relays",
+				"src", srv.src.ChainID(),
+				"dst", srv.dst.ChainID(),
+				"try", n+1,
+				"try_limit", rtyAttNum,
+				"error", err.Error(),
+			)
 		})); err != nil {
 			return err
 		}
@@ -58,8 +65,10 @@ func (srv *RelayService) Start(ctx context.Context) error {
 
 // Serve performs packet-relay
 func (srv *RelayService) Serve(ctx context.Context) error {
+	logger := GetChannelPairLogger(srv.src, srv.dst)
 	// First, update the latest headers for src and dst
 	if err := srv.sh.Updates(srv.src, srv.dst); err != nil {
+		logger.Error("failed to update headers", err)
 		return err
 	}
 
@@ -67,9 +76,11 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 
 	pseqs, err := srv.st.UnrelayedPackets(srv.src, srv.dst, srv.sh, false)
 	if err != nil {
+		logger.Error("failed to get unrelayed sequences", err)
 		return err
 	}
 	if err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh); err != nil {
+		logger.Error("failed to relay packets", err)
 		return err
 	}
 
@@ -77,9 +88,11 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 
 	aseqs, err := srv.st.UnrelayedAcknowledgements(srv.src, srv.dst, srv.sh, false)
 	if err != nil {
+		logger.Error("failed to get unrelayed acknowledgements", err)
 		return err
 	}
 	if err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh); err != nil {
+		logger.Error("failed to relay acknowledgements", err)
 		return err
 	}
 

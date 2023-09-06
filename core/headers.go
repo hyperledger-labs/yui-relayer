@@ -54,13 +54,16 @@ var _ SyncHeaders = (*syncHeaders)(nil)
 // NewSyncHeaders returns a new instance of SyncHeaders that can be easily
 // kept "reasonably up to date"
 func NewSyncHeaders(src, dst ChainInfoLightClient) (SyncHeaders, error) {
+	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
+		logger.Error("error ensuring different chains", err)
 		return nil, err
 	}
 	sh := &syncHeaders{
 		latestFinalizedHeaders: map[string]Header{src.ChainID(): nil, dst.ChainID(): nil},
 	}
 	if err := sh.Updates(src, dst); err != nil {
+		logger.Error("error updating headers", err)
 		return nil, err
 	}
 	return sh, nil
@@ -68,16 +71,20 @@ func NewSyncHeaders(src, dst ChainInfoLightClient) (SyncHeaders, error) {
 
 // Updates updates the headers on both chains
 func (sh *syncHeaders) Updates(src, dst ChainInfoLightClient) error {
+	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
+		logger.Error("error ensuring different chains", err)
 		return err
 	}
 
 	srcHeader, err := src.GetLatestFinalizedHeader()
 	if err != nil {
+		logger.Error("error getting latest finalized header of src", err)
 		return err
 	}
 	dstHeader, err := dst.GetLatestFinalizedHeader()
 	if err != nil {
+		logger.Error("error getting latest finalized header of dst", err)
 		return err
 	}
 
@@ -116,7 +123,9 @@ func (sh syncHeaders) GetQueryContext(chainID string) QueryContext {
 
 // SetupHeadersForUpdate returns `src` chain's headers to update the client on `dst` chain
 func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]Header, error) {
+	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
+		logger.Error("error ensuring different chains", err)
 		return nil, err
 	}
 	return src.SetupHeadersForUpdate(dst, sh.GetLatestFinalizedHeader(src.ChainID()))
@@ -124,12 +133,15 @@ func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainICS02QuerierLightClien
 
 // SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers to update the clients on each chain
 func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]Header, []Header, error) {
+	logger := GetChainPairLogger(src, dst)
 	srcHs, err := sh.SetupHeadersForUpdate(src, dst)
 	if err != nil {
+		logger.Error("error setting up headers for update on src", err)
 		return nil, nil, err
 	}
 	dstHs, err := sh.SetupHeadersForUpdate(dst, src)
 	if err != nil {
+		logger.Error("error setting up headers for update on dst", err)
 		return nil, nil, err
 	}
 	return srcHs, dstHs, nil
