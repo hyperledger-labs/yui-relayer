@@ -21,7 +21,7 @@ func queryCmd(ctx *config.Context) *cobra.Command {
 		Use:   "query",
 		Short: "IBC Query Commands",
 		Long:  "Commands to query IBC primitives, and other useful data on configured chains.",
-		Run:   noCommand,
+		RunE:  noCommand,
 	}
 
 	cmd.AddCommand(

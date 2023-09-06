@@ -17,7 +17,7 @@ func serviceCmd(ctx *config.Context) *cobra.Command {
 		Use:   "service",
 		Short: "Relay Service Commands",
 		Long:  "Commands to manage the relay service",
-		Run:   noCommand,
+		RunE:  noCommand,
 	}
 	cmd.AddCommand(
 		startCmd(ctx),

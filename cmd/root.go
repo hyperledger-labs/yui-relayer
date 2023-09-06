@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -28,7 +29,7 @@ func Execute(modules ...config.ModuleI) error {
 	var rootCmd = &cobra.Command{
 		Use:   "yrly",
 		Short: "This application relays data between configured IBC enabled chains",
-		Run:   noCommand,
+		RunE:  noCommand,
 	}
 
 	cobra.EnableCommandSorting = false
@@ -100,8 +101,7 @@ func readStdin() (string, error) {
 	return strings.TrimSpace(str), err
 }
 
-func noCommand(cmd *cobra.Command, args []string) {
-	fmt.Println("No command specified.")
+func noCommand(cmd *cobra.Command, args []string) error {
 	cmd.Help()
-	os.Exit(1)
+	return errors.New("specified command does not exist")
 }

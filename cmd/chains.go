@@ -17,7 +17,7 @@ func chainsCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "chains",
 		Short: "manage chain configurations",
-		Run:   noCommand,
+		RunE:  noCommand,
 	}
 
 	cmd.AddCommand(
