@@ -12,6 +12,7 @@ import (
 	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"golang.org/x/exp/slog"
 )
 
 var (
@@ -228,11 +229,14 @@ func logConnectionStates(src, dst Chain, srcConn, dstConn *conntypes.QueryConnec
 	logger := GetConnectionPairLogger(src, dst)
 	logger.Info(
 		"connection states",
-		"src ProofHeight", mustGetHeight(srcConn.ProofHeight),
-		"src State", srcConn.Connection.State.String(),
-		"dts ProofHeight", mustGetHeight(dstConn.ProofHeight),
-		"dst State", dstConn.Connection.State.String(),
-	)
+		slog.Group("src",
+			slog.Uint64("proof_height", mustGetHeight(srcConn.ProofHeight)),
+			slog.String("state", srcConn.Connection.State.String()),
+		),
+		slog.Group("dst",
+			slog.Uint64("proof_height", mustGetHeight(dstConn.ProofHeight)),
+			slog.String("state", dstConn.Connection.State.String()),
+		))
 }
 
 // mustGetHeight takes the height inteface and returns the actual height

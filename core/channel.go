@@ -8,6 +8,7 @@ import (
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"golang.org/x/exp/slog"
 )
 
 // CreateChannel runs the channel creation messages on timeout until they pass
@@ -185,11 +186,14 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 	logger := GetChannelPairLogger(src, dst)
 	logger.Info(
 		"channel states",
-		"src ProofHeight", mustGetHeight(srcChan.ProofHeight),
-		"src State", srcChan.Channel.State.String(),
-		"dst ProofHeight", mustGetHeight(dstChan.ProofHeight),
-		"dst State", dstChan.Channel.State.String(),
-	)
+		slog.Group("src",
+			slog.Uint64("proof_height", mustGetHeight(srcChan.ProofHeight)),
+			slog.String("state", srcChan.Channel.State.String()),
+		),
+		slog.Group("dst",
+			slog.Uint64("proof_height", mustGetHeight(dstChan.ProofHeight)),
+			slog.String("state", dstChan.Channel.State.String()),
+		))
 }
 
 func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chantypes.Channel) (bool, error) {
