@@ -16,10 +16,6 @@ PATH_NAME=ibc01
 $RLY tendermint keys show $CHAINID_ONE $RLYKEY
 $RLY tendermint keys show $CHAINID_TWO $RLYKEY
 
-# configure the chain to use that key by default
-$RLY chains edit $CHAINID_ONE key $RLYKEY
-$RLY chains edit $CHAINID_TWO key $RLYKEY
-
 # add a path between chain0 and chain1
 $RLY paths add $CHAINID_ONE $CHAINID_TWO $PATH_NAME --file=./configs/path.json
 

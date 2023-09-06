@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -29,6 +30,7 @@ func Execute(modules ...config.ModuleI) error {
 	var rootCmd = &cobra.Command{
 		Use:   "yrly",
 		Short: "This application relays data between configured IBC enabled chains",
+		RunE:  noCommand,
 	}
 
 	cobra.EnableCommandSorting = false
@@ -106,4 +108,9 @@ func readStdin() (string, error) {
 func initLogger(ctx *config.Context) error {
 	c := ctx.Config.Global.LoggerConfig
 	return log.InitLogger(c.Level, c.Format, c.Output)
+}
+
+func noCommand(cmd *cobra.Command, args []string) error {
+	cmd.Help()
+	return errors.New("specified command does not exist")
 }

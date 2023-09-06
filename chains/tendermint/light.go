@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/avast/retry-go"
 	dbm "github.com/cometbft/cometbft-db"
@@ -114,6 +115,13 @@ func (pr *Prover) LightClientWithoutTrust(db dbm.DB) (*light.Client, error) {
 		case h.GetRevisionHeight() == 0:
 			return fmt.Errorf("shouldn't be here")
 		default:
+			t, err := pr.chain.Timestamp(h)
+			if err != nil {
+				return err
+			}
+			if time.Since(t) > pr.getTrustingPeriod() {
+				return fmt.Errorf("trusting period has expired")
+			}
 			height = int64(h.GetRevisionHeight())
 			return nil
 		}

@@ -10,16 +10,16 @@ env:
 jobs:
   relayer-build:
     name: relayer-build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-      - name: Set up Go 1.20
-        uses: actions/setup-go@v1
+      - name: Set up Go 1.21
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.20
+          go-version: 1.21
         id: go
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
-      - uses: actions/cache@v2
+        uses: actions/checkout@v3
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cache/go-build
@@ -32,17 +32,17 @@ jobs:
       - name: Build
         run: make build
       - name: Save relayer binary cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_BIN_RELAYER_PATH }}
           key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
 
   tendermint-build:
     name: tendermint-build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
         id: cache-docker-tendermint
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
@@ -60,19 +60,19 @@ jobs:
 
   tm2tm-test:
     name: tm2tm-test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
       - relayer-build
       - tendermint-build
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Restore relayer binary cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_BIN_RELAYER_PATH }}
           key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
       - name: Restore Tendermint docker image cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
           key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
@@ -89,19 +89,19 @@ jobs:
 
   tmmock2tmmock-test:
     name: tmmock2tmmock-test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
       - relayer-build
       - tendermint-build
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Restore relayer binary cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_BIN_RELAYER_PATH }}
           key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
       - name: Restore Tendermint docker image cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
           key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
