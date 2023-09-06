@@ -17,6 +17,7 @@ func configCmd(ctx *config.Context) *cobra.Command {
 		Use:     "config",
 		Aliases: []string{"cfg"},
 		Short:   "manage configuration file",
+		RunE:    noCommand,
 	}
 
 	cmd.AddCommand(
