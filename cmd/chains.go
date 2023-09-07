@@ -58,20 +58,17 @@ func filesAdd(ctx *config.Context, dir string) error {
 		}
 		byt, err := os.ReadFile(pth)
 		if err != nil {
-			fmt.Printf("failed to read file %s, skipping...\n", pth)
-			return err
+			return fmt.Errorf("failed to read file %s, error: %v", pth, err)
 		}
 		var c core.ChainProverConfig
 		if err := json.Unmarshal(byt, &c); err != nil {
-			fmt.Printf("failed to unmarshal file %s, skipping...\n", pth)
-			return err
+			return fmt.Errorf("failed to unmarshal file %s, error: %v", pth, err)
 		}
 		if err := c.Init(ctx.Codec); err != nil {
 			return err
 		}
 		if err = ctx.Config.AddChain(ctx.Codec, c); err != nil {
-			fmt.Printf("%s: %s\n", pth, err.Error())
-			return err
+			return fmt.Errorf("failed add chain %s, error: %v", pth, err)
 		}
 		chain, err := c.Build()
 		if err != nil {
