@@ -65,10 +65,10 @@ func filesAdd(ctx *config.Context, dir string) error {
 			return fmt.Errorf("failed to unmarshal file %s, error: %v", pth, err)
 		}
 		if err := c.Init(ctx.Codec); err != nil {
-			return err
+			return fmt.Errorf("failed to init chain %s, error: %v", pth, err)
 		}
 		if err = ctx.Config.AddChain(ctx.Codec, c); err != nil {
-			return fmt.Errorf("failed add chain %s, error: %v", pth, err)
+			return fmt.Errorf("failed to add chain %s, error: %v", pth, err)
 		}
 		chain, err := c.Build()
 		if err != nil {
