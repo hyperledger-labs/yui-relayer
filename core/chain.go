@@ -76,7 +76,10 @@ type Chain interface {
 	SetupForRelay(ctx context.Context) error
 
 	// SendMsgs sends msgs to the chain
-	SendMsgs(msgs []sdk.Msg) ([]byte, error)
+	SendMsgs(msgs []sdk.Msg) ([]MsgID, error)
+
+	// GetMsgResult returns the execution result of `sdk.Msg` specified by `MsgID`
+	GetMsgResult(id MsgID) (MsgResult, error)
 
 	// Send sends msgs to the chain and logging a result of it
 	// It returns a boolean value whether the result is success

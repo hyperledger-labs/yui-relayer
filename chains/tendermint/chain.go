@@ -2,6 +2,7 @@ package tendermint
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path"
@@ -323,13 +324,56 @@ func CalculateGas(
 	return simRes, uint64(txf.GasAdjustment() * float64(simRes.GasInfo.GasUsed)), nil
 }
 
-func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]byte, error) {
+func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]core.MsgID, error) {
 	// Broadcast those bytes
 	res, err := c.sendMsgs(msgs)
 	if err != nil {
 		return nil, err
 	}
-	return []byte(res.Logs.String()), nil
+	var msgIDs []core.MsgID
+	for msgIndex := range msgs {
+		msgIDs = append(msgIDs, &MsgID{
+			txHash:   res.TxHash,
+			msgIndex: uint32(msgIndex),
+		})
+	}
+	return msgIDs, nil
+}
+
+func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
+	msgID, ok := id.(*MsgID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected message id type: %T", id)
+	}
+
+	txHash, err := hex.DecodeString(msgID.txHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode hex string: %v", err)
+	}
+
+	ctx := c.CLIContext(0)
+	resTx, err := ctx.Client.Tx(context.TODO(), txHash, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query tx result: %v", err)
+	}
+
+	abciLogs, err := sdk.ParseABCILogs(resTx.TxResult.Log)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ABCI logs: %v", err)
+	}
+
+	events, err := parseMsgEventLogs(ctx.Codec, abciLogs, msgID.msgIndex)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse msg event log: %v", err)
+	}
+
+	version := clienttypes.ParseChainID(c.ChainID())
+	height := clienttypes.NewHeight(version, uint64(resTx.Height))
+	return &MsgResult{
+		height: height,
+		status: resTx.TxResult.IsOK(),
+		events: events,
+	}, nil
 }
 
 func (c *Chain) Send(msgs []sdk.Msg) bool {
