@@ -20,11 +20,11 @@ var (
 )
 
 type MsgID struct {
+	core.IsMsgID
+
 	txHash   string
 	msgIndex uint32
 }
-
-func (i *MsgID) IsMsgID() {}
 
 type MsgResult struct {
 	height clienttypes.Height

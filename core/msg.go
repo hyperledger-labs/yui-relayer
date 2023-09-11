@@ -7,8 +7,14 @@ import (
 )
 
 type MsgID interface {
-	IsMsgID()
+	is_MsgID()
 }
+
+type IsMsgID struct{}
+
+func (IsMsgID) is_MsgID() {}
+
+var _ MsgID = IsMsgID{}
 
 type MsgResult interface {
 	BlockHeight() clienttypes.Height
@@ -17,10 +23,15 @@ type MsgResult interface {
 }
 
 type MsgEventLog interface {
-	isMsgEventLog()
+	is_MsgEventLog()
 }
 
+type isMsgEventLog struct{}
+
+func (isMsgEventLog) is_MsgEventLog() {}
+
 var (
+	_ MsgEventLog = isMsgEventLog{}
 	_ MsgEventLog = (*EventGenerateClientIdentifier)(nil)
 	_ MsgEventLog = (*EventGenerateConnectionIdentifier)(nil)
 	_ MsgEventLog = (*EventGenerateChannelIdentifier)(nil)
@@ -31,28 +42,27 @@ var (
 	_ MsgEventLog = (*EventUnknown)(nil)
 )
 
-func (*EventGenerateClientIdentifier) isMsgEventLog()     {}
-func (*EventGenerateConnectionIdentifier) isMsgEventLog() {}
-func (*EventGenerateChannelIdentifier) isMsgEventLog()    {}
-func (*EventSendPacket) isMsgEventLog()                   {}
-func (*EventRecvPacket) isMsgEventLog()                   {}
-func (*EventWriteAcknowledgement) isMsgEventLog()         {}
-func (*EventAcknowledgePacket) isMsgEventLog()            {}
-func (*EventUnknown) isMsgEventLog()                      {}
-
 type EventGenerateClientIdentifier struct {
+	isMsgEventLog
+
 	ID string
 }
 
 type EventGenerateConnectionIdentifier struct {
+	isMsgEventLog
+
 	ID string
 }
 
 type EventGenerateChannelIdentifier struct {
+	isMsgEventLog
+
 	ID string
 }
 
 type EventSendPacket struct {
+	isMsgEventLog
+
 	Sequence         uint64
 	SrcPort          string
 	SrcChannel       string
@@ -62,6 +72,8 @@ type EventSendPacket struct {
 }
 
 type EventRecvPacket struct {
+	isMsgEventLog
+
 	Sequence         uint64
 	DstPort          string
 	DstChannel       string
@@ -71,6 +83,8 @@ type EventRecvPacket struct {
 }
 
 type EventWriteAcknowledgement struct {
+	isMsgEventLog
+
 	Sequence        uint64
 	DstPort         string
 	DstChannel      string
@@ -78,6 +92,8 @@ type EventWriteAcknowledgement struct {
 }
 
 type EventAcknowledgePacket struct {
+	isMsgEventLog
+
 	Sequence         uint64
 	SrcPort          string
 	SrcChannel       string
@@ -86,5 +102,7 @@ type EventAcknowledgePacket struct {
 }
 
 type EventUnknown struct {
+	isMsgEventLog
+
 	Value any
 }
