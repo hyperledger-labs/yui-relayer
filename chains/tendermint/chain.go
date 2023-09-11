@@ -362,7 +362,7 @@ func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
 		return nil, fmt.Errorf("failed to parse ABCI logs: %v", err)
 	}
 
-	events, err := parseMsgEventLogs(ctx.Codec, abciLogs, msgID.msgIndex)
+	events, err := parseMsgEventLogs(abciLogs, msgID.msgIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse msg event log: %v", err)
 	}
