@@ -75,15 +75,12 @@ type Chain interface {
 	// SetupForRelay performs chain-specific setup before starting the relay
 	SetupForRelay(ctx context.Context) error
 
-	// SendMsgs sends msgs to the chain
+	// SendMsgs sends msgs to the chain and waits for them to be included in a block.
+	// It should be noted that the block is not finalized at that point and can be reverted, in general.
 	SendMsgs(msgs []sdk.Msg) ([]MsgID, error)
 
 	// GetMsgResult returns the execution result of `sdk.Msg` specified by `MsgID`
 	GetMsgResult(id MsgID) (MsgResult, error)
-
-	// Send sends msgs to the chain and logging a result of it
-	// It returns a boolean value whether the result is success
-	Send(msgs []sdk.Msg) bool
 
 	// RegisterMsgEventListener registers a given EventListener to the chain
 	RegisterMsgEventListener(MsgEventListener)

@@ -9,10 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"cosmossdk.io/errors"
 	"github.com/avast/retry-go"
 	"github.com/cometbft/cometbft/libs/log"
 	rpcclient "github.com/cometbft/cometbft/rpc/client"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	libclient "github.com/cometbft/cometbft/rpc/jsonrpc/client"
 	sdkCtx "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -167,16 +169,28 @@ func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
 }
 
 func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
+	// broadcast tx
 	res, _, err := c.rawSendMsgs(msgs)
 	if err != nil {
 		return nil, err
+	} else if res.Code != 0 {
+		return nil, errors.ABCIError(res.Codespace, res.Code, res.RawLog)
 	}
-	if res.Code == 0 && c.msgEventListener != nil {
+
+	// wait for tx to be committed
+	_ = retry.Do(func() error {
+		_, err = c.rawQueryTx(res.TxHash)
+		return err
+	}, rtyAtt, rtyDel, rtyErr)
+
+	// call msgEventListener if needed
+	if c.msgEventListener != nil {
 		if err := c.msgEventListener.OnSentMsg(msgs); err != nil {
 			c.logger.Error("failed to OnSendMsg call", "msgs", msgs, "err", err)
 			return res, nil
 		}
 	}
+
 	return res, nil
 }
 
@@ -235,6 +249,27 @@ func (c *Chain) rawSendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
 
 	c.LogSuccessTx(res, msgs)
 	return res, true, nil
+}
+
+func (c *Chain) rawQueryTx(hexTxHash string) (*coretypes.ResultTx, error) {
+	ctx := c.CLIContext(0)
+
+	txHash, err := hex.DecodeString(hexTxHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode the hex string of tx hash: %v", err)
+	}
+
+	node, err := ctx.GetNode()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node: %v", err)
+	}
+
+	resTx, err := node.Tx(context.TODO(), txHash, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve tx: %v", err)
+	}
+
+	return resTx, nil
 }
 
 func prepareFactory(clientCtx sdkCtx.Context, txf tx.Factory) (tx.Factory, error) {
@@ -346,15 +381,15 @@ func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
 		return nil, fmt.Errorf("unexpected message id type: %T", id)
 	}
 
-	txHash, err := hex.DecodeString(msgID.txHash)
+	resTx, err := c.rawQueryTx(msgID.txHash)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode hex string: %v", err)
+		return nil, fmt.Errorf("failed to query tx: %v", err)
 	}
 
-	ctx := c.CLIContext(0)
-	resTx, err := ctx.Client.Tx(context.TODO(), txHash, false)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query tx result: %v", err)
+	var txFailureReason string
+	if resTx.TxResult.Code != 0 {
+		err := errors.ABCIError(resTx.TxResult.Codespace, resTx.TxResult.Code, resTx.TxResult.Log)
+		txFailureReason = err.Error()
 	}
 
 	abciLogs, err := sdk.ParseABCILogs(resTx.TxResult.Log)
@@ -369,23 +404,13 @@ func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
 
 	version := clienttypes.ParseChainID(c.ChainID())
 	height := clienttypes.NewHeight(version, uint64(resTx.Height))
+
 	return &MsgResult{
-		height: height,
-		status: resTx.TxResult.IsOK(),
-		events: events,
+		height:          height,
+		txStatus:        resTx.TxResult.IsOK(),
+		txFailureReason: txFailureReason,
+		events:          events,
 	}, nil
-}
-
-func (c *Chain) Send(msgs []sdk.Msg) bool {
-	res, err := c.sendMsgs(msgs)
-	if err != nil || res.Code != 0 {
-		c.LogFailedTx(res, err, msgs)
-		return false
-	}
-	// NOTE: Add more data to this such as identifiers
-	c.LogSuccessTx(res, msgs)
-
-	return true
 }
 
 // ------------------------------- //

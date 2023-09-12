@@ -28,7 +28,12 @@ type MsgID struct {
 
 type MsgResult struct {
 	height clienttypes.Height
-	status bool
+
+	// These show the status of the tx that contains the message.
+	// It should be noted that the cause of the failure can be a different message.
+	txStatus        bool
+	txFailureReason string
+
 	events []core.MsgEventLog
 }
 
@@ -37,7 +42,7 @@ func (r *MsgResult) BlockHeight() clienttypes.Height {
 }
 
 func (r *MsgResult) Status() (bool, string) {
-	return r.status, ""
+	return r.txStatus, r.txFailureReason
 }
 
 func (r *MsgResult) Events() []core.MsgEventLog {
