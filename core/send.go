@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"time"
 
 	retry "github.com/avast/retry-go"
 	"github.com/cosmos/cosmos-sdk/types"
@@ -25,13 +26,13 @@ func SendMsgsAndCheckResult(chain Chain, msgs []types.Msg) error {
 }
 
 // GetFinalizedMsgResult is an utility function that waits for the finalization of the message execution and then returns the result.
-func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID) (MsgResult, error) {
+func GetFinalizedMsgResult(chain ProvableChain, averageBlockTime time.Duration, msgID MsgID) (MsgResult, error) {
 	var msgRes MsgResult
 	if err := retry.Do(func() error {
 		var err error
 
 		// query LFH for each retry because it can proceed.
-		header, err := chain.GetLatestFinalizedHeader()
+		lfHeader, err := chain.GetLatestFinalizedHeader()
 		if err != nil {
 			return fmt.Errorf("failed to get latest finalized header: %v", err)
 		}
@@ -43,8 +44,18 @@ func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID) (MsgResult, error) 
 		}
 
 		// check whether the block that includes the message has been finalized, or not
-		if msgRes.BlockHeight().GT(header.GetHeight()) {
-			return fmt.Errorf("message_height(%v) > latest_finalized_height(%v)", msgRes.BlockHeight(), header.GetHeight())
+		msgHeight := msgRes.BlockHeight()
+		lfHeight := lfHeader.GetHeight()
+		if msgHeight.GT(lfHeight) {
+			var waitTime time.Duration
+			if msgHeight.GetRevisionNumber() != lfHeight.GetRevisionNumber() {
+				// TODO: should return an unrecoverable error?
+				waitTime = averageBlockTime
+			} else {
+				waitTime = averageBlockTime * time.Duration(msgHeight.GetRevisionHeight()-lfHeight.GetRevisionHeight())
+			}
+			time.Sleep(waitTime)
+			return fmt.Errorf("message_height(%v) > latest_finalized_height(%v)", msgHeight, lfHeight)
 		}
 
 		return nil
