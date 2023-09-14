@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/errors/withstack"
@@ -174,4 +175,9 @@ func (rl *RelayLogger) WithModule(
 			"module", moduleName,
 		),
 	}
+}
+
+func (rl *RelayLogger) TimeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	rl.Logger.Info("time track", "name", name, "elapsed", elapsed.Nanoseconds())
 }
