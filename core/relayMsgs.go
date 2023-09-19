@@ -70,9 +70,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transactions to src chain and update its status
-			if SendMsgsAndCheckResult(src, msgs) != nil {
-				r.Succeeded = false
-			}
+			r.Succeeded = r.Succeeded && SendCheckMsgs(src, msgs)
 
 			// clear the current batch and reset variables
 			msgLen, txSize = 1, uint64(len(bz))
@@ -82,7 +80,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	}
 
 	// submit leftover msgs
-	if len(msgs) > 0 && SendMsgsAndCheckResult(src, msgs) != nil {
+	if len(msgs) > 0 && !SendCheckMsgs(src, msgs) {
 		r.Succeeded = false
 	}
 
@@ -102,9 +100,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transaction to dst chain and update its status
-			if SendMsgsAndCheckResult(dst, msgs) != nil {
-				r.Succeeded = false
-			}
+			r.Succeeded = r.Succeeded && SendCheckMsgs(dst, msgs)
 
 			// clear the current batch and reset variables
 			msgLen, txSize = 1, uint64(len(bz))
@@ -114,7 +110,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	}
 
 	// submit leftover msgs
-	if len(msgs) > 0 && SendMsgsAndCheckResult(dst, msgs) != nil {
+	if len(msgs) > 0 && !SendCheckMsgs(dst, msgs) {
 		r.Succeeded = false
 	}
 }

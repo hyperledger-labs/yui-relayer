@@ -26,6 +26,10 @@ type MsgID struct {
 	msgIndex uint32
 }
 
+func (i *MsgID) String() string {
+	return fmt.Sprintf("%s:%d", i.txHash, i.msgIndex)
+}
+
 type MsgResult struct {
 	height clienttypes.Height
 

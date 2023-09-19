@@ -39,6 +39,8 @@ var (
 	rtyAtt    = retry.Attempts(rtyAttNum)
 	rtyDel    = retry.Delay(time.Millisecond * 400)
 	rtyErr    = retry.LastErrorOnly(true)
+
+	rtyAttCommit = retry.Attempts(25) // 400msec * 25 = 10sec
 )
 
 // Chain represents the necessary data for connecting to and indentifying a chain and its counterparites
@@ -174,14 +176,17 @@ func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 	if err != nil {
 		return nil, err
 	} else if res.Code != 0 {
-		return nil, errors.ABCIError(res.Codespace, res.Code, res.RawLog)
+		// CheckTx failed
+		return nil, fmt.Errorf("CheckTx failed: %v", errors.ABCIError(res.Codespace, res.Code, res.RawLog))
 	}
 
-	// wait for tx to be committed
-	_ = retry.Do(func() error {
-		_, err = c.rawQueryTx(res.TxHash)
-		return err
-	}, rtyAtt, rtyDel, rtyErr)
+	// wait for tx being committed
+	if resTx, err := c.waitForCommit(res.TxHash); err != nil {
+		return nil, err
+	} else if resTx.TxResult.IsErr() {
+		// DeliverTx failed
+		return nil, fmt.Errorf("DeliverTx failed: %v", errors.ABCIError(res.Codespace, res.Code, res.RawLog))
+	}
 
 	// call msgEventListener if needed
 	if c.msgEventListener != nil {
@@ -251,6 +256,25 @@ func (c *Chain) rawSendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
 	return res, true, nil
 }
 
+func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
+	var resTx *coretypes.ResultTx
+
+	if err := retry.Do(func() error {
+		var err error
+		resTx, err = c.rawQueryTx(txHash)
+		if err != nil {
+			return err
+		}
+		return nil
+	}, rtyAttCommit, rtyDel, rtyErr); err != nil {
+		return resTx, fmt.Errorf("failed to make sure that tx is committed: %v", err)
+	}
+
+	return resTx, nil
+}
+
+// rawQueryTx returns a tx of which hash equals to `hexTxHash`.
+// If the RPC is successful but the tx is not found, this returns nil with nil error.
 func (c *Chain) rawQueryTx(hexTxHash string) (*coretypes.ResultTx, error) {
 	ctx := c.CLIContext(0)
 
@@ -381,35 +405,43 @@ func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
 		return nil, fmt.Errorf("unexpected message id type: %T", id)
 	}
 
-	resTx, err := c.rawQueryTx(msgID.txHash)
+	// find tx
+	resTx, err := c.waitForCommit(msgID.txHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query tx: %v", err)
 	}
 
-	var txFailureReason string
-	if resTx.TxResult.Code != 0 {
+	// check height of the delivered tx
+	version := clienttypes.ParseChainID(c.ChainID())
+	height := clienttypes.NewHeight(version, uint64(resTx.Height))
+
+	// check if the tx execution succeeded
+	if resTx.TxResult.IsErr() {
 		err := errors.ABCIError(resTx.TxResult.Codespace, resTx.TxResult.Code, resTx.TxResult.Log)
-		txFailureReason = err.Error()
+		txFailureReason := err.Error()
+		return &MsgResult{
+			height:          height,
+			txStatus:        false,
+			txFailureReason: txFailureReason,
+		}, nil
 	}
 
+	// parse the log into ABCI logs
 	abciLogs, err := sdk.ParseABCILogs(resTx.TxResult.Log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ABCI logs: %v", err)
 	}
 
+	// parse the ABCI logs into core.MsgEventLog's
 	events, err := parseMsgEventLogs(abciLogs, msgID.msgIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse msg event log: %v", err)
 	}
 
-	version := clienttypes.ParseChainID(c.ChainID())
-	height := clienttypes.NewHeight(version, uint64(resTx.Height))
-
 	return &MsgResult{
-		height:          height,
-		txStatus:        resTx.TxResult.IsOK(),
-		txFailureReason: txFailureReason,
-		events:          events,
+		height:   height,
+		txStatus: true,
+		events:   events,
 	}, nil
 }
 

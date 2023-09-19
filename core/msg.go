@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"time"
 
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
@@ -8,6 +9,7 @@ import (
 
 // MsgID represents an identifier of `sdk.Msg` that has been sent to a chain by `Chain::SendMsgs`.
 type MsgID interface {
+	fmt.Stringer
 	is_MsgID()
 }
 
@@ -15,7 +17,8 @@ type MsgID interface {
 // This struct is exported, so each chain module can implement the `MsgID` interface.
 type IsMsgID struct{}
 
-func (IsMsgID) is_MsgID() {}
+func (IsMsgID) is_MsgID()      {}
+func (IsMsgID) String() string { panic("MsgID::String must be overridden.") }
 
 var _ MsgID = IsMsgID{}
 

@@ -8,29 +8,20 @@ import (
 	"github.com/cosmos/cosmos-sdk/types"
 )
 
-// SendMsgsAndCheckResult is an utility function that executes `Chain::SendMsgs` and checks the results of all the messages.
-func SendMsgsAndCheckResult(chain Chain, msgs []types.Msg) error {
-	ids, err := chain.SendMsgs(msgs)
-	if err != nil {
-		return fmt.Errorf("failed to send messages: %v", err)
+// SendCheckMsgs is an utility function that executes `Chain::SendMsgs` and checks the execution results of all the messages.
+func SendCheckMsgs(chain Chain, msgs []types.Msg) bool {
+	if _, err := chain.SendMsgs(msgs); err != nil {
+		GetChainLogger(chain).Error("failed to send msgs", err)
+		return false
 	}
-	for i, id := range ids {
-		res, err := chain.GetMsgResult(id)
-		if err != nil {
-			return fmt.Errorf("failed to get the result of msg(%v): %v", msgs[i], err)
-		} else if ok, reason := res.Status(); !ok {
-			return fmt.Errorf("msg(%v) was successfully broadcasted, but its execution failed: failure_reason=%v", msgs[i], reason)
-		}
-	}
-	return nil
+	return true
 }
 
 // GetFinalizedMsgResult is an utility function that waits for the finalization of the message execution and then returns the result.
-func GetFinalizedMsgResult(chain ProvableChain, averageBlockTime time.Duration, msgID MsgID) (MsgResult, error) {
+func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID, retryInterval time.Duration, maxRetry uint) (MsgResult, error) {
 	var msgRes MsgResult
-	if err := retry.Do(func() error {
-		var err error
 
+	if err := retry.Do(func() error {
 		// query LFH for each retry because it can proceed.
 		lfHeader, err := chain.GetLatestFinalizedHeader()
 		if err != nil {
@@ -40,28 +31,20 @@ func GetFinalizedMsgResult(chain ProvableChain, averageBlockTime time.Duration, 
 		// query MsgResult for each retry because it can be included in a different block because of reorg
 		msgRes, err = chain.GetMsgResult(msgID)
 		if err != nil {
-			return fmt.Errorf("failed to get messge result: %v", err)
+			return retry.Unrecoverable(fmt.Errorf("failed to get message result: %v", err))
+		} else if ok, failureReason := msgRes.Status(); !ok {
+			return retry.Unrecoverable(fmt.Errorf("msg(id=%v) execution failed: %v", msgID, failureReason))
 		}
 
 		// check whether the block that includes the message has been finalized, or not
-		msgHeight := msgRes.BlockHeight()
-		lfHeight := lfHeader.GetHeight()
-		if msgHeight.GT(lfHeight) {
-			var waitTime time.Duration
-			if msgHeight.GetRevisionNumber() != lfHeight.GetRevisionNumber() {
-				// TODO: should return an unrecoverable error?
-				waitTime = averageBlockTime
-			} else {
-				waitTime = averageBlockTime * time.Duration(msgHeight.GetRevisionHeight()-lfHeight.GetRevisionHeight())
-			}
-			time.Sleep(waitTime)
-			return fmt.Errorf("message_height(%v) > latest_finalized_height(%v)", msgHeight, lfHeight)
+		if msgHeight, lfHeight := msgRes.BlockHeight(), lfHeader.GetHeight(); msgHeight.GT(lfHeight) {
+			return fmt.Errorf("msg(id=%v) not finalied: msg.height(%v) > lfh.height(%v)", msgID, msgHeight, lfHeight)
 		}
 
 		return nil
-	}, rtyAtt, rtyDel, rtyErr); err != nil {
+	}, retry.Attempts(maxRetry), retry.Delay(retryInterval), rtyErr); err != nil {
 		return nil, err
-	} else {
-		return msgRes, nil
 	}
+
+	return msgRes, nil
 }
