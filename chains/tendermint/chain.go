@@ -39,8 +39,6 @@ var (
 	rtyAtt    = retry.Attempts(rtyAttNum)
 	rtyDel    = retry.Delay(time.Millisecond * 400)
 	rtyErr    = retry.LastErrorOnly(true)
-
-	rtyAttCommit = retry.Attempts(25) // 400msec * 25 = 10sec
 )
 
 // Chain represents the necessary data for connecting to and indentifying a chain and its counterparites
@@ -259,6 +257,9 @@ func (c *Chain) rawSendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
 func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 	var resTx *coretypes.ResultTx
 
+	retryInterval := time.Duration(c.config.RetryIntervalMsec) * time.Millisecond
+	maxRetry := uint(c.config.MaxRetryForCommit)
+
 	if err := retry.Do(func() error {
 		var err error
 		resTx, err = c.rawQueryTx(txHash)
@@ -266,7 +267,7 @@ func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 			return err
 		}
 		return nil
-	}, rtyAttCommit, rtyDel, rtyErr); err != nil {
+	}, retry.Attempts(maxRetry), retry.Delay(retryInterval), rtyErr); err != nil {
 		return resTx, fmt.Errorf("failed to make sure that tx is committed: %v", err)
 	}
 
