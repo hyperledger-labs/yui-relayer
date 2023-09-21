@@ -163,6 +163,10 @@ func (c *Chain) Timestamp(height ibcexported.Height) (time.Time, error) {
 	}
 }
 
+func (c *Chain) CommitWaitTime() time.Duration {
+	return time.Duration(c.config.RetryIntervalMsec) * time.Millisecond * time.Duration(c.config.MaxRetryForCommit)
+}
+
 // RegisterMsgEventListener registers a given EventListener to the chain
 func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
 	c.msgEventListener = listener
