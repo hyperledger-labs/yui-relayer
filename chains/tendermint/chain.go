@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -266,9 +267,14 @@ func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 
 	if err := retry.Do(func() error {
 		var err error
-		resTx, err = c.rawQueryTx(txHash)
+		var recoverable bool
+		resTx, recoverable, err = c.rawQueryTx(txHash)
 		if err != nil {
-			return err
+			if recoverable {
+				return err
+			} else {
+				return retry.Unrecoverable(err)
+			}
 		}
 		return nil
 	}, retry.Attempts(maxRetry), retry.Delay(retryInterval), rtyErr); err != nil {
@@ -280,25 +286,26 @@ func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 
 // rawQueryTx returns a tx of which hash equals to `hexTxHash`.
 // If the RPC is successful but the tx is not found, this returns nil with nil error.
-func (c *Chain) rawQueryTx(hexTxHash string) (*coretypes.ResultTx, error) {
+func (c *Chain) rawQueryTx(hexTxHash string) (*coretypes.ResultTx, bool, error) {
 	ctx := c.CLIContext(0)
 
 	txHash, err := hex.DecodeString(hexTxHash)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode the hex string of tx hash: %v", err)
+		return nil, false, fmt.Errorf("failed to decode the hex string of tx hash: %v", err)
 	}
 
 	node, err := ctx.GetNode()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get node: %v", err)
+		return nil, false, fmt.Errorf("failed to get node: %v", err)
 	}
 
 	resTx, err := node.Tx(context.TODO(), txHash, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve tx: %v", err)
+		recoverable := !strings.Contains(err.Error(), "transaction indexing is disabled")
+		return nil, recoverable, fmt.Errorf("failed to retrieve tx: %v", err)
 	}
 
-	return resTx, nil
+	return resTx, false, nil
 }
 
 func prepareFactory(clientCtx sdkCtx.Context, txf tx.Factory) (tx.Factory, error) {
