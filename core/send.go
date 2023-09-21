@@ -11,7 +11,7 @@ import (
 // SendCheckMsgs is an utility function that executes `Chain::SendMsgs` and checks the execution results of all the messages.
 func SendCheckMsgs(chain Chain, msgs []types.Msg) bool {
 	if _, err := chain.SendMsgs(msgs); err != nil {
-		GetChainLogger(chain).Error("failed to send msgs", err)
+		GetChainLogger(chain).Error("failed to send msgs", err, "msgs", msgs)
 		return false
 	}
 	return true
