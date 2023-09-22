@@ -1,6 +1,8 @@
 package core
 
 import (
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"golang.org/x/sync/errgroup"
@@ -8,6 +10,7 @@ import (
 
 func CreateClients(src, dst *ProvableChain) error {
 	logger := GetChainPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "CreateClients")
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
@@ -76,6 +79,7 @@ func CreateClients(src, dst *ProvableChain) error {
 
 func UpdateClients(src, dst *ProvableChain) error {
 	logger := GetClientPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "UpdateClients")
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)

@@ -15,6 +15,7 @@ import (
 // TODO: add max retries or something to this function
 func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
 	logger := GetChannelPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "CreateChannel")
 	var order chantypes.Order
 	if ordered {
 		order = chantypes.ORDERED

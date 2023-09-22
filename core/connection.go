@@ -24,6 +24,7 @@ var (
 
 func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 	logger := GetConnectionPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "CreateConnection")
 	ticker := time.NewTicker(to)
 
 	failed := 0

@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"time"
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -72,6 +73,7 @@ func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bo
 
 func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	logger := GetChannelPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "UnrelayedPackets")
 	var (
 		eg         = new(errgroup.Group)
 		srcPackets PacketInfoList
@@ -177,6 +179,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 
 func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
 	logger := GetChannelPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "RelayPackets")
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -275,6 +278,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 
 func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	logger := GetChannelPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "UnrelayedAcknowledgements")
 	var (
 		eg      = new(errgroup.Group)
 		srcAcks PacketInfoList
@@ -417,6 +421,7 @@ func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 
 func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
 	logger := GetChannelPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements")
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},

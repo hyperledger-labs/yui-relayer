@@ -9,6 +9,7 @@ import (
 
 func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Stringer, toHeightOffset uint64, toTimeOffset time.Duration) error {
 	logger := GetChannelPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "SendTransferMsg")
 	var (
 		timeoutHeight    uint64
 		timeoutTimestamp uint64
