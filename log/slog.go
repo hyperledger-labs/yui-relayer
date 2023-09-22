@@ -81,6 +81,16 @@ func GetLogger() *RelayLogger {
 	return relayLogger
 }
 
+func (rl *RelayLogger) WithChain(
+	chainID string,
+) *RelayLogger {
+	return &RelayLogger{
+		rl.Logger.With(
+			"chain_id", chainID,
+		),
+	}
+}
+
 func (rl *RelayLogger) WithChainPair(
 	srcChainID string,
 	dstChainID string,
