@@ -18,8 +18,10 @@ func SendCheckMsgs(chain Chain, msgs []types.Msg) bool {
 }
 
 // GetFinalizedMsgResult is an utility function that waits for the finalization of the message execution and then returns the result.
-func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID, retryInterval time.Duration, maxRetry uint) (MsgResult, error) {
+func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID) (MsgResult, error) {
 	var msgRes MsgResult
+
+	avgBlockTime := chain.AverageBlockTime()
 
 	if err := retry.Do(func() error {
 		// query LFH for each retry because it can proceed.
@@ -38,11 +40,19 @@ func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID, retryInterval time.
 
 		// check whether the block that includes the message has been finalized, or not
 		if msgHeight, lfHeight := msgRes.BlockHeight(), lfHeader.GetHeight(); msgHeight.GT(lfHeight) {
+			// wait for the block including the msg to be finalized
+			var waitTime time.Duration
+			if msgHeight.GetRevisionNumber() != lfHeight.GetRevisionNumber() {
+				waitTime = avgBlockTime //TODO: is there better default value?
+			} else {
+				waitTime = avgBlockTime * time.Duration(msgHeight.GetRevisionHeight()-lfHeight.GetRevisionHeight())
+			}
+			time.Sleep(waitTime)
 			return fmt.Errorf("msg(id=%v) not finalied: msg.height(%v) > lfh.height(%v)", msgID, msgHeight, lfHeight)
 		}
 
 		return nil
-	}, retry.Attempts(maxRetry), retry.Delay(retryInterval), rtyErr); err != nil {
+	}, rtyAtt, rtyDel, rtyErr); err != nil {
 		return nil, err
 	}
 

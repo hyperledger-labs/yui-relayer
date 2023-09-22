@@ -106,11 +106,8 @@ type ChainInfo interface {
 	// Timestamp returns the block timestamp
 	Timestamp(ibcexported.Height) (time.Time, error)
 
-	// CommitWaitTime returns enough time to wait for tx to be commited in a block
-	//
-	// NOTE: Basically this value is much longer than "average block time".
-	// For example, this value might be defined as 10 times the average block time.
-	CommitWaitTime() time.Duration
+	// AverageBlockTime returns the average time required for each new block to be committed
+	AverageBlockTime() time.Duration
 }
 
 // MsgEventListener is a listener that listens a msg send to the chain

@@ -164,8 +164,8 @@ func (c *Chain) Timestamp(height ibcexported.Height) (time.Time, error) {
 	}
 }
 
-func (c *Chain) CommitWaitTime() time.Duration {
-	return time.Duration(c.config.RetryIntervalMsec) * time.Millisecond * time.Duration(c.config.MaxRetryForCommit)
+func (c *Chain) AverageBlockTime() time.Duration {
+	return time.Duration(c.config.AverageBlockTimeMsec) * time.Millisecond
 }
 
 // RegisterMsgEventListener registers a given EventListener to the chain
@@ -262,7 +262,7 @@ func (c *Chain) rawSendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
 func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 	var resTx *coretypes.ResultTx
 
-	retryInterval := time.Duration(c.config.RetryIntervalMsec) * time.Millisecond
+	retryInterval := c.AverageBlockTime()
 	maxRetry := uint(c.config.MaxRetryForCommit)
 
 	if err := retry.Do(func() error {
