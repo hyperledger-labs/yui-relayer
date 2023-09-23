@@ -6,8 +6,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	proto "github.com/cosmos/gogoproto/proto"
-	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 )
 
 // LogFailedTx takes the transaction and the messages to create it and logs the appropriate data
@@ -73,15 +71,6 @@ func (c *Chain) Print(toPrint proto.Message, text, indent bool) error {
 
 	fmt.Println(string(out))
 	return nil
-}
-
-// MustGetHeight takes the height inteface and returns the actual height
-func MustGetHeight(h ibcexported.Height) uint64 {
-	height, ok := h.(clienttypes.Height)
-	if !ok {
-		panic("height is not an instance of height! wtf")
-	}
-	return height.GetRevisionHeight()
 }
 
 func getMsgAction(msgs []sdk.Msg) string {

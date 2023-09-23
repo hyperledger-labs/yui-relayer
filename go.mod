@@ -3,6 +3,7 @@ module github.com/hyperledger-labs/yui-relayer
 go 1.20
 
 require (
+	cosmossdk.io/errors v1.0.0-beta.7
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/cockroachdb/errors v1.9.1
 	github.com/cometbft/cometbft v0.37.2
@@ -33,7 +34,6 @@ require (
 	cosmossdk.io/api v0.3.1 // indirect
 	cosmossdk.io/core v0.5.1 // indirect
 	cosmossdk.io/depinject v1.0.0-alpha.3 // indirect
-	cosmossdk.io/errors v1.0.0-beta.7 // indirect
 	cosmossdk.io/log v1.1.0 // indirect
 	cosmossdk.io/math v1.0.1 // indirect
 	cosmossdk.io/tools/rosetta v0.2.1 // indirect

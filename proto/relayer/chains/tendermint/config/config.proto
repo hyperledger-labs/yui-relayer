@@ -13,6 +13,8 @@ message ChainConfig {
   string account_prefix = 4;
   double gas_adjustment = 5;
   string gas_prices = 6;
+  uint64 average_block_time_msec = 7;
+  uint64 max_retry_for_commit = 8;
 }
 
 message ProverConfig {
