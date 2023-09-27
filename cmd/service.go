@@ -27,12 +27,16 @@ func serviceCmd(ctx *config.Context) *cobra.Command {
 
 func startCmd(ctx *config.Context) *cobra.Command {
 	const (
-		flagRelayInterval  = "relay-interval"
-		flagPrometheusAddr = "prometheus-addr"
+		flagRelayInterval         = "relay-interval"
+		flagPrometheusAddr        = "prometheus-addr"
+		flagRelayOptimizeInterval = "relay-optimize-interval"
+		flagRelayOptimizeCount    = "relay-optimize-count"
 	)
 	const (
-		defaultRelayInterval  = 3 * time.Second
-		defaultPrometheusAddr = "localhost:2223"
+		defaultRelayInterval         = 3 * time.Second
+		defaultPrometheusAddr        = "localhost:2223"
+		defaultRelayOptimizeInterval = 10 * time.Second
+		defaultRelayOptimizeCount    = 5
 	)
 
 	cmd := &cobra.Command{
@@ -60,10 +64,12 @@ func startCmd(ctx *config.Context) *cobra.Command {
 			if err := st.SetupRelay(context.TODO(), c[src], c[dst]); err != nil {
 				return err
 			}
-			return core.StartService(context.Background(), st, c[src], c[dst], viper.GetDuration(flagRelayInterval))
+			return core.StartService(context.Background(), st, c[src], c[dst], viper.GetDuration(flagRelayInterval), viper.GetDuration(flagRelayOptimizeInterval), viper.GetInt64(flagRelayOptimizeCount))
 		},
 	}
 	cmd.Flags().Duration(flagRelayInterval, defaultRelayInterval, "time interval to perform relays")
 	cmd.Flags().String(flagPrometheusAddr, defaultPrometheusAddr, "host address to which the prometheus exporter listens")
+	cmd.Flags().Duration(flagRelayOptimizeInterval, defaultRelayOptimizeInterval, "time interval to perform relays optimization")
+	cmd.Flags().Int64(flagRelayOptimizeCount, defaultRelayOptimizeCount, "number of packets to relays optimization")
 	return cmd
 }

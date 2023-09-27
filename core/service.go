@@ -7,32 +7,48 @@ import (
 	retry "github.com/avast/retry-go"
 )
 
+var currentTime = time.Now()
+
 // StartService starts a relay service
-func StartService(ctx context.Context, st StrategyI, src, dst *ProvableChain, relayInterval time.Duration) error {
+func StartService(
+	ctx context.Context,
+	st StrategyI,
+	src, dst *ProvableChain,
+	relayInterval, relayOptimizeInterval time.Duration,
+	relayOptimizeCount int64) error {
 	sh, err := NewSyncHeaders(src, dst)
 	if err != nil {
 		return err
 	}
-	srv := NewRelayService(st, src, dst, sh, relayInterval)
+	srv := NewRelayService(st, src, dst, sh, relayInterval, relayOptimizeInterval, relayOptimizeCount)
 	return srv.Start(ctx)
 }
 
 type RelayService struct {
-	src      *ProvableChain
-	dst      *ProvableChain
-	st       StrategyI
-	sh       SyncHeaders
-	interval time.Duration
+	src              *ProvableChain
+	dst              *ProvableChain
+	st               StrategyI
+	sh               SyncHeaders
+	interval         time.Duration
+	optimizeInterval time.Duration
+	optimizeCount    int64
 }
 
 // NewRelayService returns a new service
-func NewRelayService(st StrategyI, src, dst *ProvableChain, sh SyncHeaders, interval time.Duration) *RelayService {
+func NewRelayService(
+	st StrategyI,
+	src, dst *ProvableChain,
+	sh SyncHeaders,
+	interval, optimizeInterval time.Duration,
+	optimizeCount int64) *RelayService {
 	return &RelayService{
-		src:      src,
-		dst:      dst,
-		st:       st,
-		sh:       sh,
-		interval: interval,
+		src:              src,
+		dst:              dst,
+		st:               st,
+		sh:               sh,
+		interval:         interval,
+		optimizeInterval: optimizeInterval,
+		optimizeCount:    optimizeCount,
 	}
 }
 
@@ -117,4 +133,21 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	srv.st.Send(srv.src, srv.dst, msgs)
 
 	return nil
+}
+
+func optimizeRelay(pseqs RelayPackets, optimizeInterval time.Duration, optimizeCount int64) bool {
+	// time interval
+	elapseTime := time.Since(currentTime)
+	if elapseTime >= optimizeInterval {
+		currentTime = time.Now()
+		return true
+	}
+	// packet count
+	srcPacketCount := len(pseqs.Src)
+	dstPacketCount := len(pseqs.Dst)
+	if int64(srcPacketCount) >= optimizeCount || int64(dstPacketCount) >= optimizeCount {
+		return true
+	}
+
+	return false
 }

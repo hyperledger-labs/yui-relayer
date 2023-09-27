@@ -14,6 +14,10 @@ test:
 	./scripts/handshake
 	./scripts/test-tx
 
+.PHONY: test-service
+test-service:
+	./scripts/test-service
+
 .PHONY: network-down
 network-down:
 	TAG=${DOCKER_TAG} $(DOCKER_COMPOSE) \
