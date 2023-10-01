@@ -104,7 +104,7 @@ func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*Rela
 		return nil, err
 	}
 
-	srcChan, dstChan, err := QueryChannelPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst)
+	srcChan, dstChan, err := QueryChannelPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst, true)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chant
 	if err != nil {
 		return false, err
 	}
-	srcChanLatest, dstChanLatest, err := QueryChannelPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst)
+	srcChanLatest, dstChanLatest, err := QueryChannelPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst, false)
 	if err != nil {
 		return false, err
 	}

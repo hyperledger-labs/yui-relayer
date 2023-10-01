@@ -16,6 +16,7 @@ func QueryClientStatePair(
 		Chain
 		StateProver
 	},
+	prove bool,
 ) (srcCsRes, dstCsRes *clienttypes.QueryClientStateResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
@@ -27,8 +28,10 @@ func QueryClientStatePair(
 		if err != nil {
 			return err
 		}
-		path := host.FullClientStatePath(src.Path().ClientID)
-		srcCsRes.Proof, srcCsRes.ProofHeight, err = src.ProveState(srcCtx, path, value)
+		if prove {
+			path := host.FullClientStatePath(src.Path().ClientID)
+			srcCsRes.Proof, srcCsRes.ProofHeight, err = src.ProveState(srcCtx, path, value)
+		}
 		return err
 	})
 	eg.Go(func() error {
@@ -40,8 +43,10 @@ func QueryClientStatePair(
 		if err != nil {
 			return err
 		}
-		path := host.FullClientStatePath(dst.Path().ClientID)
-		dstCsRes.Proof, dstCsRes.ProofHeight, err = dst.ProveState(dstCtx, path, value)
+		if prove {
+			path := host.FullClientStatePath(dst.Path().ClientID)
+			dstCsRes.Proof, dstCsRes.ProofHeight, err = dst.ProveState(dstCtx, path, value)
+		}
 		return err
 	})
 	err = eg.Wait()
@@ -56,7 +61,9 @@ func QueryClientConsensusStatePair(
 		StateProver
 	},
 	srcClientConsH,
-	dstClientConsH ibcexported.Height) (srcCsRes, dstCsRes *clienttypes.QueryConsensusStateResponse, err error) {
+	dstClientConsH ibcexported.Height,
+	prove bool,
+) (srcCsRes, dstCsRes *clienttypes.QueryConsensusStateResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
 		srcCsRes, err = src.QueryClientConsensusState(srcCtx, srcClientConsH)
@@ -67,8 +74,10 @@ func QueryClientConsensusStatePair(
 		if err != nil {
 			return err
 		}
-		path := host.FullConsensusStatePath(src.Path().ClientID, srcClientConsH)
-		srcCsRes.Proof, srcCsRes.ProofHeight, err = src.ProveState(srcCtx, path, value)
+		if prove {
+			path := host.FullConsensusStatePath(src.Path().ClientID, srcClientConsH)
+			srcCsRes.Proof, srcCsRes.ProofHeight, err = src.ProveState(srcCtx, path, value)
+		}
 		return err
 	})
 	eg.Go(func() error {
@@ -80,8 +89,10 @@ func QueryClientConsensusStatePair(
 		if err != nil {
 			return err
 		}
-		path := host.FullConsensusStatePath(dst.Path().ClientID, dstClientConsH)
-		dstCsRes.Proof, dstCsRes.ProofHeight, err = dst.ProveState(dstCtx, path, value)
+		if prove {
+			path := host.FullConsensusStatePath(dst.Path().ClientID, dstClientConsH)
+			dstCsRes.Proof, dstCsRes.ProofHeight, err = dst.ProveState(dstCtx, path, value)
+		}
 		return err
 	})
 	err = eg.Wait()
@@ -95,6 +106,7 @@ func QueryConnectionPair(
 		Chain
 		StateProver
 	},
+	prove bool,
 ) (srcConn, dstConn *conntypes.QueryConnectionResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
@@ -108,8 +120,10 @@ func QueryConnectionPair(
 		if err != nil {
 			return err
 		}
-		path := host.ConnectionPath(src.Path().ConnectionID)
-		srcConn.Proof, srcConn.ProofHeight, err = src.ProveState(srcCtx, path, value)
+		if prove {
+			path := host.ConnectionPath(src.Path().ConnectionID)
+			srcConn.Proof, srcConn.ProofHeight, err = src.ProveState(srcCtx, path, value)
+		}
 		return err
 	})
 	eg.Go(func() error {
@@ -123,8 +137,10 @@ func QueryConnectionPair(
 		if err != nil {
 			return err
 		}
-		path := host.ConnectionPath(dst.Path().ConnectionID)
-		dstConn.Proof, dstConn.ProofHeight, err = dst.ProveState(dstCtx, path, value)
+		if prove {
+			path := host.ConnectionPath(dst.Path().ConnectionID)
+			dstConn.Proof, dstConn.ProofHeight, err = dst.ProveState(dstCtx, path, value)
+		}
 		return err
 	})
 	err = eg.Wait()
@@ -135,7 +151,7 @@ func QueryConnectionPair(
 func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 	Chain
 	StateProver
-}) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
+}, prove bool) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
 		srcChan, err = src.QueryChannel(srcCtx)
@@ -148,8 +164,10 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 		if err != nil {
 			return err
 		}
-		path := host.ChannelPath(src.Path().PortID, src.Path().ChannelID)
-		srcChan.Proof, srcChan.ProofHeight, err = src.ProveState(srcCtx, path, value)
+		if prove {
+			path := host.ChannelPath(src.Path().PortID, src.Path().ChannelID)
+			srcChan.Proof, srcChan.ProofHeight, err = src.ProveState(srcCtx, path, value)
+		}
 		return err
 	})
 	eg.Go(func() error {
@@ -163,8 +181,10 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 		if err != nil {
 			return err
 		}
-		path := host.ChannelPath(dst.Path().PortID, dst.Path().ChannelID)
-		dstChan.Proof, dstChan.ProofHeight, err = dst.ProveState(dstCtx, path, value)
+		if prove {
+			path := host.ChannelPath(dst.Path().PortID, dst.Path().ChannelID)
+			dstChan.Proof, dstChan.ProofHeight, err = dst.ProveState(dstCtx, path, value)
+		}
 		return err
 	})
 	err = eg.Wait()
