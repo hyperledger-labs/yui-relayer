@@ -110,7 +110,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		return nil, err
 	}
 
-	srcConn, dstConn, err := QueryConnectionPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst)
+	srcConn, dstConn, err := QueryConnectionPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst, true)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 
 	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
 		// Query client state from each chain's client
-		srcCsRes, dstCsRes, err = QueryClientStatePair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst)
+		srcCsRes, dstCsRes, err = QueryClientStatePair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst, true)
 		if err != nil && (srcCsRes == nil || dstCsRes == nil) {
 			return nil, err
 		}
@@ -138,7 +138,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		srcConsH, dstConsH = srcCS.GetLatestHeight(), dstCS.GetLatestHeight()
 		srcCons, dstCons, err = QueryClientConsensusStatePair(
 			sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()),
-			src, dst, srcConsH, dstConsH)
+			src, dst, srcConsH, dstConsH, true)
 		if err != nil {
 			return nil, err
 		}
@@ -269,7 +269,7 @@ func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnecti
 	if err != nil {
 		return false, err
 	}
-	srcConnLatest, dstConnLatest, err := QueryConnectionPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst)
+	srcConnLatest, dstConnLatest, err := QueryConnectionPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst, false)
 	if err != nil {
 		return false, err
 	}
