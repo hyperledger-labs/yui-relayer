@@ -7,8 +7,6 @@ import (
 	retry "github.com/avast/retry-go"
 )
 
-var currentTime = time.Now()
-
 // StartService starts a relay service
 func StartService(
 	ctx context.Context,
@@ -32,6 +30,7 @@ type RelayService struct {
 	interval         time.Duration
 	optimizeInterval time.Duration
 	optimizeCount    int64
+	currentTime      time.Time
 }
 
 // NewRelayService returns a new service
@@ -49,6 +48,7 @@ func NewRelayService(
 		interval:         interval,
 		optimizeInterval: optimizeInterval,
 		optimizeCount:    optimizeCount,
+		currentTime:      time.Now(),
 	}
 }
 
@@ -135,19 +135,17 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	return nil
 }
 
-func optimizeRelay(pseqs RelayPackets, optimizeInterval time.Duration, optimizeCount int64) bool {
+func (srv *RelayService) optimizeRelay(pseqs RelayPackets) bool {
 	// time interval
-	elapseTime := time.Since(currentTime)
-	if elapseTime >= optimizeInterval {
-		currentTime = time.Now()
+	elapseTime := time.Since(srv.currentTime)
+	if elapseTime >= srv.optimizeInterval {
 		return true
 	}
 	// packet count
 	srcPacketCount := len(pseqs.Src)
 	dstPacketCount := len(pseqs.Dst)
-	if int64(srcPacketCount) >= optimizeCount || int64(dstPacketCount) >= optimizeCount {
+	if int64(srcPacketCount) >= srv.optimizeCount || int64(dstPacketCount) >= srv.optimizeCount {
 		return true
 	}
-
 	return false
 }

@@ -6,10 +6,10 @@
 * relay-optimize-count = 3
 
 - relay service [query = 0, time = 0] -> skip
-	- transfer
-	- 
-	- 
-	- finality
+    - transfer
+    - 
+    - 
+    - finality
     - query = 1
     - 
     - 
