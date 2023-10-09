@@ -58,11 +58,7 @@ func xfersend(ctx *config.Context) *cobra.Command {
 			if denom.Path != "" {
 				amount.Denom = denom.IBCDenom()
 			}
-
-			dstAddr, err := sdk.AccAddressFromBech32(args[4])
-			if err != nil {
-				return err
-			}
+			dstAddr := args[4]
 
 			switch {
 			case toHeightOffset > 0 && toTimeOffset > 0:
