@@ -7,7 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Stringer, toHeightOffset uint64, toTimeOffset time.Duration) error {
+func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr string, toHeightOffset uint64, toTimeOffset time.Duration) error {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "SendTransferMsg")
 	var (
@@ -19,9 +19,6 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 	if err != nil {
 		return err
 	}
-
-	// Properly render the address string
-	dstAddrString := dstAddr.String()
 
 	switch {
 	case toHeightOffset > 0 && toTimeOffset > 0:
@@ -49,7 +46,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr fmt.Strin
 	// MsgTransfer will call SendPacket on src chain
 	txs := RelayMsgs{
 		Src: []sdk.Msg{src.Path().MsgTransfer(
-			dst.Path(), amount, dstAddrString, srcAddr, timeoutHeight, timeoutTimestamp, "",
+			dst.Path(), amount, dstAddr, srcAddr, timeoutHeight, timeoutTimestamp, "",
 		)},
 		Dst: []sdk.Msg{},
 	}
