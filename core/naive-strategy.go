@@ -22,8 +22,13 @@ type NaiveStrategy struct {
 	MaxMsgLength uint64 // maximum amount of messages in a bundled relay transaction
 	srcNoAck     bool
 	dstNoAck     bool
-	srcBacklog   PacketInfoList
-	dstBacklog   PacketInfoList
+
+	metrics naiveStrategyMetrics
+}
+
+type naiveStrategyMetrics struct {
+	srcBacklog PacketInfoList
+	dstBacklog PacketInfoList
 }
 
 var _ StrategyI = (*NaiveStrategy)(nil)
@@ -131,7 +136,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 		return nil, err
 	}
 
-	if err := st.updateBacklogMetrics(context.TODO(), src, dst, srcPackets, dstPackets); err != nil {
+	if err := st.metrics.updateBacklogMetrics(context.TODO(), src, dst, srcPackets, dstPackets); err != nil {
 		return nil, err
 	}
 
@@ -537,7 +542,7 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 	return msgs, nil
 }
 
-func (st *NaiveStrategy) updateBacklogMetrics(ctx context.Context, src, dst ChainInfo, newSrcBacklog, newDstBacklog PacketInfoList) error {
+func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, dst ChainInfo, newSrcBacklog, newDstBacklog PacketInfoList) error {
 	srcAttrs := []attribute.KeyValue{
 		attribute.Key("chain_id").String(src.ChainID()),
 		attribute.Key("direction").String("src"),
