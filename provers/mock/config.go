@@ -9,3 +9,7 @@ var _ core.ProverConfig = (*ProverConfig)(nil)
 func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
 	return NewProver(chain, c), nil
 }
+
+func (c ProverConfig) Validate() error {
+	return nil
+}

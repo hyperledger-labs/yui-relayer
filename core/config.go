@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/gogoproto/proto"
@@ -24,12 +25,14 @@ type ChainProverConfig struct {
 type ChainConfig interface {
 	proto.Message
 	Build() (Chain, error)
+	Validate() error
 }
 
 // ProverConfig defines a prover configuration and its builder
 type ProverConfig interface {
 	proto.Message
 	Build(Chain) (Prover, error)
+	Validate() error
 }
 
 // NewChainProverConfig returns a new config instance
@@ -58,10 +61,14 @@ func (cc *ChainProverConfig) Init(m codec.Codec) error {
 	var chain ChainConfig
 	if err := utils.UnmarshalJSONAny(m, &chain, cc.Chain); err != nil {
 		return err
+	} else if err := chain.Validate(); err != nil {
+		return fmt.Errorf("invalid chain config: %v", err)
 	}
 	var prover ProverConfig
 	if err := utils.UnmarshalJSONAny(m, &prover, cc.Prover); err != nil {
 		return err
+	} else if err := prover.Validate(); err != nil {
+		return fmt.Errorf("invalid prover config: %v", err)
 	}
 	cc.chain = chain
 	cc.prover = prover
