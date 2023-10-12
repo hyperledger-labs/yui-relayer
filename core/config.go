@@ -24,12 +24,14 @@ type ChainProverConfig struct {
 type ChainConfig interface {
 	proto.Message
 	Build() (Chain, error)
+	Validate() error
 }
 
 // ProverConfig defines a prover configuration and its builder
 type ProverConfig interface {
 	proto.Message
 	Build(Chain) (Prover, error)
+	Validate() error
 }
 
 // NewChainProverConfig returns a new config instance
