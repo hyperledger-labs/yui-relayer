@@ -188,6 +188,10 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
+			if err := st.UpdateClients(c[src], c[dst], sp, &core.RelayPackets{}, sh, false); err != nil {
+				return err
+			}
+
 			if err = st.RelayPackets(c[src], c[dst], sp, sh); err != nil {
 				return err
 			}
@@ -227,6 +231,10 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			// sp.Dst contains all sequences acked on DST but acknowledgement not processed on SRC
 			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh, false)
 			if err != nil {
+				return err
+			}
+
+			if err := st.UpdateClients(c[src], c[dst], &core.RelayPackets{}, sp, sh, false); err != nil {
 				return err
 			}
 

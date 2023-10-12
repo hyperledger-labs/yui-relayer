@@ -26,6 +26,9 @@ type StrategyI interface {
 
 	// RelayAcknowledgements executes AcknowledgePacket to the packets contained in `rp` on both chains (`src` and `dst`).
 	RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error
+
+	// UpdateClients executes UpdateClient only if needed
+	UpdateClients(src, dst *ProvableChain, rpForRecv, rpForAck *RelayPackets, sh SyncHeaders, doRefresh bool) error
 }
 
 // StrategyCfg defines which relaying strategy to take for a given path

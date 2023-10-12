@@ -86,6 +86,12 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		return err
 	}
 
+	// update clients
+	if err := srv.st.UpdateClients(srv.src, srv.dst, pseqs, aseqs, srv.sh, true); err != nil {
+		logger.Error("failed to update clients", err)
+		return err
+	}
+
 	// relay packets if unrelayed seqs exist
 	if err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh); err != nil {
 		logger.Error("failed to relay packets", err)
