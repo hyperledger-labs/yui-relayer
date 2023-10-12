@@ -64,7 +64,7 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 	if err != nil {
 		return nil, err
 	}
-	for i := int64(0); i < pr.config.FinalityDelay; i++ {
+	for i := uint64(0); i < pr.config.FinalityDelay; i++ {
 		if prevHeight, success := chainLatestHeight.Decrement(); success {
 			chainLatestHeight = prevHeight
 		} else {
