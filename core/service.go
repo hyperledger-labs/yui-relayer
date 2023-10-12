@@ -72,25 +72,27 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		return err
 	}
 
-	// relay packets if unrelayed seqs exist
-
+	// get unrelayed packets
 	pseqs, err := srv.st.UnrelayedPackets(srv.src, srv.dst, srv.sh, false)
 	if err != nil {
 		logger.Error("failed to get unrelayed sequences", err)
 		return err
 	}
+
+	// get unrelayed acks
+	aseqs, err := srv.st.UnrelayedAcknowledgements(srv.src, srv.dst, srv.sh, false)
+	if err != nil {
+		logger.Error("failed to get unrelayed acknowledgements", err)
+		return err
+	}
+
+	// relay packets if unrelayed seqs exist
 	if err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh); err != nil {
 		logger.Error("failed to relay packets", err)
 		return err
 	}
 
 	// relay acks if unrelayed seqs exist
-
-	aseqs, err := srv.st.UnrelayedAcknowledgements(srv.src, srv.dst, srv.sh, false)
-	if err != nil {
-		logger.Error("failed to get unrelayed acknowledgements", err)
-		return err
-	}
 	if err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh); err != nil {
 		logger.Error("failed to relay acknowledgements", err)
 		return err
