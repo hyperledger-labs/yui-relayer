@@ -404,8 +404,8 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]core.MsgID, error) {
 	var msgIDs []core.MsgID
 	for msgIndex := range msgs {
 		msgIDs = append(msgIDs, &MsgID{
-			txHash:   res.TxHash,
-			msgIndex: uint32(msgIndex),
+			TxHash:   res.TxHash,
+			MsgIndex: uint32(msgIndex),
 		})
 	}
 	return msgIDs, nil
@@ -418,7 +418,7 @@ func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
 	}
 
 	// find tx
-	resTx, err := c.waitForCommit(msgID.txHash)
+	resTx, err := c.waitForCommit(msgID.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query tx: %v", err)
 	}
@@ -445,7 +445,7 @@ func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
 	}
 
 	// parse the ABCI logs into core.MsgEventLog's
-	events, err := parseMsgEventLogs(abciLogs, msgID.msgIndex)
+	events, err := parseMsgEventLogs(abciLogs, msgID.MsgIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse msg event log: %v", err)
 	}

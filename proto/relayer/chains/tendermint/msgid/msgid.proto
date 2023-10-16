@@ -1,0 +1,12 @@
+syntax = "proto3";
+package relayer.chains.tendermint.msgid;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/hyperledger-labs/yui-relayer/chains/tendermint";
+option (gogoproto.goproto_getters_all) = false;
+
+message MsgID {
+  string tx_hash = 1;
+  uint32 msg_index = 2;
+}
