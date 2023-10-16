@@ -16,4 +16,8 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		(*core.ProverConfig)(nil),
 		&ProverConfig{},
 	)
+	registry.RegisterImplementations(
+		(*core.MsgID)(nil),
+		&MsgID{},
+	)
 }
