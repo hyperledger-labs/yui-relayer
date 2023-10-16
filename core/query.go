@@ -20,13 +20,15 @@ func QueryClientStatePair(
 ) (srcCsRes, dstCsRes *clienttypes.QueryClientStateResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
+		var err error
 		srcCsRes, err = src.QueryClientState(srcCtx)
 		if err != nil {
 			return err
 		}
 		if prove {
 			path := host.FullClientStatePath(src.Path().ClientID)
-			value, err := src.Codec().Marshal(srcCsRes.ClientState)
+			var value []byte
+			value, err = src.Codec().Marshal(srcCsRes.ClientState)
 			if err != nil {
 				return err
 			}
@@ -35,13 +37,15 @@ func QueryClientStatePair(
 		return err
 	})
 	eg.Go(func() error {
+		var err error
 		dstCsRes, err = dst.QueryClientState(dstCtx)
 		if err != nil {
 			return err
 		}
 		if prove {
 			path := host.FullClientStatePath(dst.Path().ClientID)
-			value, err := dst.Codec().Marshal(dstCsRes.ClientState)
+			var value []byte
+			value, err = dst.Codec().Marshal(dstCsRes.ClientState)
 			if err != nil {
 				return err
 			}
@@ -66,13 +70,15 @@ func QueryClientConsensusStatePair(
 ) (srcCsRes, dstCsRes *clienttypes.QueryConsensusStateResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
+		var err error
 		srcCsRes, err = src.QueryClientConsensusState(srcCtx, srcClientConsH)
 		if err != nil {
 			return err
 		}
 		if prove {
 			path := host.FullConsensusStatePath(src.Path().ClientID, srcClientConsH)
-			value, err := src.Codec().Marshal(srcCsRes.ConsensusState)
+			var value []byte
+			value, err = src.Codec().Marshal(srcCsRes.ConsensusState)
 			if err != nil {
 				return err
 			}
@@ -81,13 +87,15 @@ func QueryClientConsensusStatePair(
 		return err
 	})
 	eg.Go(func() error {
+		var err error
 		dstCsRes, err = dst.QueryClientConsensusState(dstCtx, dstClientConsH)
 		if err != nil {
 			return err
 		}
 		if prove {
 			path := host.FullConsensusStatePath(dst.Path().ClientID, dstClientConsH)
-			value, err := dst.Codec().Marshal(dstCsRes.ConsensusState)
+			var value []byte
+			value, err = dst.Codec().Marshal(dstCsRes.ConsensusState)
 			if err != nil {
 				return err
 			}
@@ -110,6 +118,7 @@ func QueryConnectionPair(
 ) (srcConn, dstConn *conntypes.QueryConnectionResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
+		var err error
 		srcConn, err = src.QueryConnection(srcCtx)
 		if err != nil {
 			return err
@@ -118,7 +127,8 @@ func QueryConnectionPair(
 		}
 		if prove {
 			path := host.ConnectionPath(src.Path().ConnectionID)
-			value, err := src.Codec().Marshal(srcConn.Connection)
+			var value []byte
+			value, err = src.Codec().Marshal(srcConn.Connection)
 			if err != nil {
 				return err
 			}
@@ -127,6 +137,7 @@ func QueryConnectionPair(
 		return err
 	})
 	eg.Go(func() error {
+		var err error
 		dstConn, err = dst.QueryConnection(dstCtx)
 		if err != nil {
 			return err
@@ -135,7 +146,8 @@ func QueryConnectionPair(
 		}
 		if prove {
 			path := host.ConnectionPath(dst.Path().ConnectionID)
-			value, err := dst.Codec().Marshal(dstConn.Connection)
+			var value []byte
+			value, err = dst.Codec().Marshal(dstConn.Connection)
 			if err != nil {
 				return err
 			}
@@ -154,6 +166,7 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 }, prove bool) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
+		var err error
 		srcChan, err = src.QueryChannel(srcCtx)
 		if err != nil {
 			return err
@@ -162,7 +175,8 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 		}
 		if prove {
 			path := host.ChannelPath(src.Path().PortID, src.Path().ChannelID)
-			value, err := src.Codec().Marshal(srcChan.Channel)
+			var value []byte
+			value, err = src.Codec().Marshal(srcChan.Channel)
 			if err != nil {
 				return err
 			}
@@ -171,6 +185,7 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 		return err
 	})
 	eg.Go(func() error {
+		var err error
 		dstChan, err = dst.QueryChannel(dstCtx)
 		if err != nil {
 			return err
@@ -179,7 +194,8 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 		}
 		if prove {
 			path := host.ChannelPath(dst.Path().PortID, dst.Path().ChannelID)
-			value, err := dst.Codec().Marshal(dstChan.Channel)
+			var value []byte
+			value, err = dst.Codec().Marshal(dstChan.Channel)
 			if err != nil {
 				return err
 			}
