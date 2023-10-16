@@ -276,6 +276,15 @@ func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 				return retry.Unrecoverable(err)
 			}
 		}
+		// In a tendermint chain, when the latest height of the chain is N+1,
+		// proofs of states updated up to height N are available.
+		// In order to make the proof of the state updated by a tx available just after `sendMsgs`,
+		// `waitForCommit` must wait until the latest height is greater than the tx height.
+		if height, err := c.LatestHeight(); err != nil {
+			return fmt.Errorf("failed to obtain latest height: %v", err)
+		} else if height.GetRevisionHeight() <= uint64(resTx.Height) {
+			return fmt.Errorf("latest_height(%v) is less than or equal to tx_height(%v) yet", height, resTx.Height)
+		}
 		return nil
 	}, retry.Attempts(maxRetry), retry.Delay(retryInterval), rtyErr); err != nil {
 		return resTx, fmt.Errorf("failed to make sure that tx is committed: %v", err)
