@@ -19,16 +19,7 @@ var (
 	_ core.MsgResult = (*MsgResult)(nil)
 )
 
-type MsgID struct {
-	core.IsMsgID
-
-	txHash   string
-	msgIndex uint32
-}
-
-func (i *MsgID) String() string {
-	return fmt.Sprintf("%s:%d", i.txHash, i.msgIndex)
-}
+func (*MsgID) Is_MsgID() {}
 
 type MsgResult struct {
 	height clienttypes.Height
