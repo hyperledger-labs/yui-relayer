@@ -490,10 +490,21 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, rpForRecv, rpFor
 		MaxMsgLength: st.MaxMsgLength,
 	}
 
+	needsRefreshForSrc, err := src.CheckRefreshRequired(dst)
+	if err != nil {
+		return fmt.Errorf("failed to check if the LC on the src chain needs to be refreshed: %v", err)
+	}
+	needsRefreshForDst, err := dst.CheckRefreshRequired(src)
+	if err != nil {
+		return fmt.Errorf("failed to check if the LC on the dst chain needs to be refreshed: %v", err)
+	}
+
 	// check if unrelayed packets or acks exist
-	needsUpdateForSrc := len(rpForRecv.Dst) > 0 ||
+	needsUpdateForSrc := needsRefreshForSrc ||
+		len(rpForRecv.Dst) > 0 ||
 		!st.srcNoAck && len(rpForAck.Dst) > 0
-	needsUpdateForDst := len(rpForRecv.Src) > 0 ||
+	needsUpdateForDst := needsRefreshForDst ||
+		len(rpForRecv.Src) > 0 ||
 		!st.dstNoAck && len(rpForAck.Src) > 0
 
 	// check if LC refresh is needed
