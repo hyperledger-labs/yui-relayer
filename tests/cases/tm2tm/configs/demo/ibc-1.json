@@ -12,6 +12,7 @@
   },
   "prover": {
     "@type": "/relayer.chains.tendermint.config.ProverConfig",
-    "trusting_period": "336h"
+    "trusting_period": "336h",
+    "refresh_threshold_rate": 0.5
   }
 }

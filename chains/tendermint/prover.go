@@ -128,19 +128,27 @@ func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) 
 		return false, fmt.Errorf("failed to query the client state on the counterparty chain: %v", err)
 	}
 
-	var cs tmclient.ClientState
+	var cs ibcexported.ClientState
 	if err := pr.chain.codec.UnpackAny(resCs.ClientState, &cs); err != nil {
 		return false, fmt.Errorf("failed to unpack Any into tendermint client state: %v", err)
 	}
+	tmCs, ok := cs.(*tmclient.ClientState)
+	if !ok {
+		return false, fmt.Errorf("unexpected instance type of exported.ClientState: %T", cs)
+	}
 
-	resCons, err := counterparty.QueryClientConsensusState(cpQueryCtx, cs.LatestHeight)
+	resCons, err := counterparty.QueryClientConsensusState(cpQueryCtx, tmCs.LatestHeight)
 	if err != nil {
 		return false, fmt.Errorf("failed to query the consensus state on the counterparty chain: %v", err)
 	}
 
-	var cons tmclient.ConsensusState
+	var cons ibcexported.ConsensusState
 	if err := pr.chain.codec.UnpackAny(resCons.ConsensusState, &cons); err != nil {
 		return false, fmt.Errorf("failed to unpack Any into tendermint consensus state: %v", err)
+	}
+	tmCons, ok := cons.(*tmclient.ConsensusState)
+	if !ok {
+		return false, fmt.Errorf("unexpected instance type of exported.ConsensusState: %T", cons)
 	}
 
 	selfQueryHeight, err := pr.chain.LatestHeight()
@@ -153,14 +161,14 @@ func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) 
 		return false, fmt.Errorf("failed to get timestamp of the self chain: %v", err)
 	}
 
-	elapsedTime := selfTimestamp.Sub(cons.Timestamp)
+	elapsedTime := selfTimestamp.Sub(tmCons.Timestamp)
 
 	durationMulByFloat := func(d time.Duration, f float64) time.Duration {
 		nsec := float64(d.Nanoseconds())
 		nsec *= f
 		return time.Duration(nsec) * time.Nanosecond
 	}
-	needsRefresh := elapsedTime > durationMulByFloat(cs.TrustingPeriod, pr.config.RefreshThresholdRate)
+	needsRefresh := elapsedTime > durationMulByFloat(tmCs.TrustingPeriod, pr.config.RefreshThresholdRate)
 
 	return needsRefresh, nil
 }
