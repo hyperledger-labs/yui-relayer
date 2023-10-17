@@ -85,7 +85,7 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 }
 
 // CheckRefreshRequired always returns false because mock clients don't need refresh.
-func (pr *Prover) CheckRefreshRequired(dst core.Chain) (bool, error) {
+func (pr *Prover) CheckRefreshRequired(dst core.ChainInfoICS02Querier) (bool, error) {
 	return false, nil
 }
 

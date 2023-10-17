@@ -45,7 +45,7 @@ type LightClient interface {
 
 	// CheckRefreshRequired returns if the on-chain light client needs to be updated.
 	// For example, this requirement arises due to the trusting period mechanism.
-	CheckRefreshRequired(counterparty Chain) (bool, error)
+	CheckRefreshRequired(counterparty ChainInfoICS02Querier) (bool, error)
 }
 
 // ChainInfoICS02Querier is ChainInfo + ICS02Querier

@@ -116,7 +116,7 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 	return h, nil
 }
 
-func (pr *Prover) CheckRefreshRequired(counterparty core.Chain) (bool, error) {
+func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) (bool, error) {
 	cpQueryHeight, err := counterparty.LatestHeight()
 	if err != nil {
 		return false, fmt.Errorf("failed to get the latest height of the counterparty chain: %v", err)
