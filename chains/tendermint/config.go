@@ -68,5 +68,8 @@ func (c ProverConfig) Validate() error {
 	if isEmpty(c.TrustingPeriod) {
 		return fmt.Errorf("config attribute \"trusting_period\" is empty")
 	}
+	if c.RefreshThresholdRate <= 0 {
+		return fmt.Errorf("config attribute \"refresh_threshold_rate\" is too small: %v", c.RefreshThresholdRate)
+	}
 	return nil
 }

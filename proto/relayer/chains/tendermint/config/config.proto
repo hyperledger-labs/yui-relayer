@@ -19,4 +19,5 @@ message ChainConfig {
 
 message ProverConfig {
   string trusting_period = 1;
+  double refresh_threshold_rate = 2;
 }
