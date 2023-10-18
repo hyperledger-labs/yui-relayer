@@ -30,7 +30,8 @@ type RelayService struct {
 	interval         time.Duration
 	optimizeInterval time.Duration
 	optimizeCount    int64
-	currentTime      time.Time
+	srcCurrentTime   time.Time
+	dstCurrentTime   time.Time
 }
 
 // NewRelayService returns a new service
@@ -48,7 +49,8 @@ func NewRelayService(
 		interval:         interval,
 		optimizeInterval: optimizeInterval,
 		optimizeCount:    optimizeCount,
-		currentTime:      time.Now(),
+		srcCurrentTime:   time.Now(),
+		dstCurrentTime:   time.Now(),
 	}
 }
 
@@ -136,16 +138,22 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 }
 
 func (srv *RelayService) optimizeRelay(pseqs RelayPackets) bool {
-	// time interval
-	elapseTime := time.Since(srv.currentTime)
-	if elapseTime >= srv.optimizeInterval {
-		return true
-	}
 	// packet count
 	srcPacketCount := len(pseqs.Src)
 	dstPacketCount := len(pseqs.Dst)
 	if int64(srcPacketCount) >= srv.optimizeCount || int64(dstPacketCount) >= srv.optimizeCount {
 		return true
+	}
+	// time interval
+	if time.Since(srv.srcCurrentTime) >= srv.optimizeInterval || time.Since(srv.dstCurrentTime) >= srv.optimizeInterval {
+		return true
+	}
+	// set current time
+	if srcPacketCount > 0 {
+		srv.srcCurrentTime = time.Now()
+	}
+	if dstPacketCount > 0 {
+		srv.dstCurrentTime = time.Now()
 	}
 	return false
 }
