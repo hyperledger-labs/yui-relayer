@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
@@ -62,14 +63,19 @@ func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
 }
 
 func (c ProverConfig) Validate() error {
-	isEmpty := func(s string) bool {
-		return strings.TrimSpace(s) == ""
-	}
-	if isEmpty(c.TrustingPeriod) {
-		return fmt.Errorf("config attribute \"trusting_period\" is empty")
+	if _, err := time.ParseDuration(c.TrustingPeriod); err != nil {
+		return fmt.Errorf("config attribute \"trusting_period\" is invalid: %v", err)
 	}
 	if c.RefreshThresholdRate <= 0 {
 		return fmt.Errorf("config attribute \"refresh_threshold_rate\" is too small: %v", c.RefreshThresholdRate)
 	}
 	return nil
+}
+
+func (c ProverConfig) GetTrustingPeriod() time.Duration {
+	if d, err := time.ParseDuration(c.TrustingPeriod); err != nil {
+		panic(err)
+	} else {
+		return d
+	}
 }
