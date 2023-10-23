@@ -19,5 +19,10 @@ message ChainConfig {
 
 message ProverConfig {
   string trusting_period = 1;
-  double refresh_threshold_rate = 2;
+  Fraction refresh_threshold_rate = 2;
+}
+
+message Fraction {
+  uint64 numerator   = 1;
+  uint64 denominator = 2;
 }

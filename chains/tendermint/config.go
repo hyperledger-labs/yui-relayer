@@ -66,8 +66,14 @@ func (c ProverConfig) Validate() error {
 	if _, err := time.ParseDuration(c.TrustingPeriod); err != nil {
 		return fmt.Errorf("config attribute \"trusting_period\" is invalid: %v", err)
 	}
-	if c.RefreshThresholdRate <= 0 {
-		return fmt.Errorf("config attribute \"refresh_threshold_rate\" is too small: %v", c.RefreshThresholdRate)
+	if c.RefreshThresholdRate.Denominator == 0 {
+		return fmt.Errorf("config attribute \"refresh_threshold_rate.denominator\" must not be zero")
+	}
+	if c.RefreshThresholdRate.Numerator == 0 {
+		return fmt.Errorf("config attribute \"refresh_threshold_rate.numerator\" must not be zero")
+	}
+	if c.RefreshThresholdRate.Numerator > c.RefreshThresholdRate.Denominator {
+		return fmt.Errorf("config attribute \"refresh_threshold_rate\" must be less than or equal to 1.0: actual=%v/%v", c.RefreshThresholdRate.Numerator, c.RefreshThresholdRate.Denominator)
 	}
 	return nil
 }

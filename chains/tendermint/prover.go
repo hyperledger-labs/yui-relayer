@@ -156,12 +156,11 @@ func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) 
 
 	elapsedTime := selfTimestamp.Sub(lcLastTimestamp)
 
-	durationMulByFloat := func(d time.Duration, f float64) time.Duration {
-		nsec := float64(d.Nanoseconds())
-		nsec *= f
+	durationMulByFraction := func(d time.Duration, f *Fraction) time.Duration {
+		nsec := d.Nanoseconds() * int64(f.Numerator) / int64(f.Denominator)
 		return time.Duration(nsec) * time.Nanosecond
 	}
-	needsRefresh := elapsedTime > durationMulByFloat(pr.config.GetTrustingPeriod(), pr.config.RefreshThresholdRate)
+	needsRefresh := elapsedTime > durationMulByFraction(pr.config.GetTrustingPeriod(), pr.config.RefreshThresholdRate)
 
 	return needsRefresh, nil
 }
