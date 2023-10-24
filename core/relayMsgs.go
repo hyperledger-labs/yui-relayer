@@ -47,7 +47,7 @@ func (r *RelayMsgs) IsMaxTx(msgLen, txSize uint64) bool {
 
 // Send sends the messages with appropriate output
 // TODO: Parallelize? Maybe?
-func (r *RelayMsgs) Send(src, dst Chain) {
+func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
 	logger := GetChannelPairLogger(src, dst)
 	//nolint:prealloc // can not be pre allocated
 	var (
@@ -57,6 +57,8 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 
 	r.Succeeded = true
 
+	srcMsgIDs := []MsgID{}
+	dstMsgIDs := []MsgID{}
 	// submit batches of relay transactions
 	for _, msg := range r.Src {
 		bz, err := proto.Marshal(msg)
@@ -70,7 +72,9 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transactions to src chain and update its status
-			r.Succeeded = r.Succeeded && SendCheckMsgs(src, msgs)
+			msgIDs, err := SendMsgs(src, msgs)
+			r.Succeeded = r.Succeeded && err == nil
+			srcMsgIDs = append(srcMsgIDs, msgIDs...)
 
 			// clear the current batch and reset variables
 			msgLen, txSize = 1, uint64(len(bz))
@@ -80,8 +84,12 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	}
 
 	// submit leftover msgs
-	if len(msgs) > 0 && !SendCheckMsgs(src, msgs) {
-		r.Succeeded = false
+	if len(msgs) > 0 {
+		msgIDs, err := SendMsgs(src, msgs)
+		if err != nil {
+			r.Succeeded = false
+		}
+		srcMsgIDs = append(srcMsgIDs, msgIDs...)
 	}
 
 	// reset variables
@@ -100,7 +108,9 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transaction to dst chain and update its status
-			r.Succeeded = r.Succeeded && SendCheckMsgs(dst, msgs)
+			msgIDs, err := SendMsgs(dst, msgs)
+			r.Succeeded = r.Succeeded && err == nil
+			dstMsgIDs = append(dstMsgIDs, msgIDs...)
 
 			// clear the current batch and reset variables
 			msgLen, txSize = 1, uint64(len(bz))
@@ -110,9 +120,15 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	}
 
 	// submit leftover msgs
-	if len(msgs) > 0 && !SendCheckMsgs(dst, msgs) {
-		r.Succeeded = false
+	if len(msgs) > 0 {
+		msgIDs, err := SendMsgs(dst, msgs)
+		if err != nil {
+			r.Succeeded = false
+		}
+		dstMsgIDs = append(dstMsgIDs, msgIDs...)
 	}
+
+	return srcMsgIDs, dstMsgIDs
 }
 
 // Merge merges the argument into the receiver

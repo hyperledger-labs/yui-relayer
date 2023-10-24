@@ -20,6 +20,15 @@ func SendCheckMsgs(chain Chain, msgs []types.Msg) bool {
 	return true
 }
 
+func SendMsgs(chain Chain, msgs []types.Msg) ([]MsgID, error) {
+	msgIDs, err := chain.SendMsgs(msgs)
+	if err != nil {
+		GetChainLogger(chain).Error("failed to send msgs", err, "msgs", msgs)
+		return nil, err
+	}
+	return msgIDs, nil
+}
+
 // GetFinalizedMsgResult is an utility function that waits for the finalization of the message execution and then returns the result.
 func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID) (MsgResult, error) {
 	var msgRes MsgResult

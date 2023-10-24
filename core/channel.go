@@ -40,7 +40,10 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 			continue
 		}
 
-		chanSteps.Send(src, dst)
+		srcMsgIDs, dstMsgIDs := chanSteps.Send(src, dst)
+		if err := SyncChainConfigFromEvents(srcMsgIDs, dstMsgIDs, src, dst, "channel"); err != nil {
+			return err
+		}
 
 		switch {
 		// In the case of success and this being the last transaction
