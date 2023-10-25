@@ -66,6 +66,7 @@ func (srv *RelayService) Start(ctx context.Context) error {
 // Serve performs packet-relay
 func (srv *RelayService) Serve(ctx context.Context) error {
 	logger := GetChannelPairLogger(srv.src, srv.dst)
+
 	// First, update the latest headers for src and dst
 	if err := srv.sh.Updates(srv.src, srv.dst); err != nil {
 		logger.Error("failed to update headers", err)
@@ -86,23 +87,34 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		return err
 	}
 
+	msgs := NewRelayMsgs()
+
 	// update clients
-	if err := srv.st.UpdateClients(srv.src, srv.dst, pseqs, aseqs, srv.sh, true); err != nil {
+	if m, err := srv.st.UpdateClients(srv.src, srv.dst, pseqs, aseqs, srv.sh, true); err != nil {
 		logger.Error("failed to update clients", err)
 		return err
+	} else {
+		msgs.Merge(m)
 	}
 
 	// relay packets if unrelayed seqs exist
-	if err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh); err != nil {
+	if m, err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh); err != nil {
 		logger.Error("failed to relay packets", err)
 		return err
+	} else {
+		msgs.Merge(m)
 	}
 
 	// relay acks if unrelayed seqs exist
-	if err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh); err != nil {
+	if m, err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh); err != nil {
 		logger.Error("failed to relay acknowledgements", err)
 		return err
+	} else {
+		msgs.Merge(m)
 	}
+
+	// send all msgs to src/dst chains
+	srv.st.Send(srv.src, srv.dst, msgs)
 
 	return nil
 }

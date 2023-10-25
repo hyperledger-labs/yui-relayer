@@ -195,13 +195,21 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			if err := st.UpdateClients(c[src], c[dst], sp, &core.RelayPackets{}, sh, viper.GetBool(flagDoRefresh)); err != nil {
+			msgs := core.NewRelayMsgs()
+
+			if m, err := st.UpdateClients(c[src], c[dst], sp, &core.RelayPackets{}, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
+			} else {
+				msgs.Merge(m)
 			}
 
-			if err = st.RelayPackets(c[src], c[dst], sp, sh); err != nil {
+			if m, err := st.RelayPackets(c[src], c[dst], sp, sh); err != nil {
 				return err
+			} else {
+				msgs.Merge(m)
 			}
+
+			st.Send(c[src], c[dst], msgs)
 
 			return nil
 		},
@@ -248,13 +256,21 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			if err := st.UpdateClients(c[src], c[dst], &core.RelayPackets{}, sp, sh, viper.GetBool(flagDoRefresh)); err != nil {
+			msgs := core.NewRelayMsgs()
+
+			if m, err := st.UpdateClients(c[src], c[dst], &core.RelayPackets{}, sp, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
+			} else {
+				msgs.Merge(m)
 			}
 
-			if err = st.RelayAcknowledgements(c[src], c[dst], sp, sh); err != nil {
+			if m, err := st.RelayAcknowledgements(c[src], c[dst], sp, sh); err != nil {
 				return err
+			} else {
+				msgs.Merge(m)
 			}
+
+			st.Send(c[src], c[dst], msgs)
 
 			return nil
 		},

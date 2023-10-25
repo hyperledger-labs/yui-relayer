@@ -18,17 +18,20 @@ type StrategyI interface {
 	UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error)
 
 	// RelayPackets executes RecvPacket to the packets contained in `rp` on both chains (`src` and `dst`).
-	RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error
+	RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) (*RelayMsgs, error)
 
 	// UnrelayedAcknowledgements returns packets to execute AcknowledgePacket to on `src` and `dst`.
 	// `includeRelayedButUnfinalized` decides if the result includes packets of which acknowledgePacket has been executed but not finalized
 	UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error)
 
 	// RelayAcknowledgements executes AcknowledgePacket to the packets contained in `rp` on both chains (`src` and `dst`).
-	RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error
+	RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) (*RelayMsgs, error)
 
 	// UpdateClients executes UpdateClient only if needed
-	UpdateClients(src, dst *ProvableChain, rpForRecv, rpForAck *RelayPackets, sh SyncHeaders, doRefresh bool) error
+	UpdateClients(src, dst *ProvableChain, rpForRecv, rpForAck *RelayPackets, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error)
+
+	// Send executes submission of msgs to src/dst chains
+	Send(src, dst Chain, msgs *RelayMsgs)
 }
 
 // StrategyCfg defines which relaying strategy to take for a given path

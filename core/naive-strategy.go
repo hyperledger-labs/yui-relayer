@@ -12,6 +12,7 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	api "go.opentelemetry.io/otel/metric"
+	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -182,16 +183,11 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 	}, nil
 }
 
-func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
+func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayPackets")
-	// set the maximum relay transaction constraints
-	msgs := &RelayMsgs{
-		Src:          []sdk.Msg{},
-		Dst:          []sdk.Msg{},
-		MaxTxSize:    st.MaxTxSize,
-		MaxMsgLength: st.MaxMsgLength,
-	}
+
+	msgs := NewRelayMsgs()
 
 	srcCtx := sh.GetQueryContext(src.ChainID())
 	dstCtx := sh.GetQueryContext(dst.ChainID())
@@ -201,7 +197,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 			"error getting address",
 			err,
 		)
-		return err
+		return nil, err
 	}
 
 	dstAddress, err := dst.GetAddress()
@@ -210,7 +206,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 			"error getting address",
 			err,
 		)
-		return err
+		return nil, err
 	}
 
 	msgs.Dst, err = collectPackets(srcCtx, src, rp.Src, dstAddress)
@@ -219,7 +215,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 			"error collecting packets",
 			err,
 		)
-		return err
+		return nil, err
 	}
 	msgs.Src, err = collectPackets(dstCtx, dst, rp.Dst, srcAddress)
 	if err != nil {
@@ -227,18 +223,12 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 			"error collecting packets",
 			err,
 		)
-		return err
+		return nil, err
 	}
 
 	if len(msgs.Dst) == 0 && len(msgs.Src) == 0 {
-		logger.Info(
-			"no packates to relay",
-		)
-		return nil
-	}
-
-	// send messages to their respective chains
-	if msgs.Send(src, dst); msgs.Success() {
+		logger.Info("no packates to relay")
+	} else {
 		if num := len(msgs.Dst); num > 0 {
 			logPacketsRelayed(src, dst, num, "Packets", "src->dst")
 		}
@@ -247,7 +237,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 		}
 	}
 
-	return nil
+	return msgs, nil
 }
 
 func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
@@ -387,22 +377,17 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 	logger := GetChannelPairLogger(src, dst)
 	logger.Info(
-		fmt.Sprintf("★ %s relayed", obj),
+		fmt.Sprintf("★ %s are scheduled for relay", obj),
 		"count", num,
 		"direction", dir,
 	)
 }
 
-func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
+func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements")
-	// set the maximum relay transaction constraints
-	msgs := &RelayMsgs{
-		Src:          []sdk.Msg{},
-		Dst:          []sdk.Msg{},
-		MaxTxSize:    st.MaxTxSize,
-		MaxMsgLength: st.MaxMsgLength,
-	}
+
+	msgs := NewRelayMsgs()
 
 	srcCtx := sh.GetQueryContext(src.ChainID())
 	dstCtx := sh.GetQueryContext(dst.ChainID())
@@ -412,7 +397,7 @@ func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Rela
 			"error getting address",
 			err,
 		)
-		return err
+		return nil, err
 	}
 	dstAddress, err := dst.GetAddress()
 	if err != nil {
@@ -420,31 +405,25 @@ func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Rela
 			"error getting address",
 			err,
 		)
-		return err
+		return nil, err
 	}
 
 	if !st.dstNoAck {
 		msgs.Dst, err = collectAcks(srcCtx, src, rp.Src, dstAddress)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if !st.srcNoAck {
 		msgs.Src, err = collectAcks(dstCtx, dst, rp.Dst, srcAddress)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if len(msgs.Dst) == 0 && len(msgs.Src) == 0 {
-		logger.Info(
-			"no acknowledgements to relay",
-		)
-		return nil
-	}
-
-	// send messages to their respective chains
-	if msgs.Send(src, dst); msgs.Success() {
+		logger.Info("no acknowledgements to relay")
+	} else {
 		if num := len(msgs.Dst); num > 0 {
 			logPacketsRelayed(src, dst, num, "Acknowledgements", "src->dst")
 		}
@@ -453,7 +432,7 @@ func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Rela
 		}
 	}
 
-	return nil
+	return msgs, nil
 }
 
 func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
@@ -479,16 +458,10 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 	return msgs, nil
 }
 
-func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, rpForRecv, rpForAck *RelayPackets, sh SyncHeaders, doRefresh bool) error {
+func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, rpForRecv, rpForAck *RelayPackets, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 
-	// set the maximum relay transaction constraints
-	msgs := &RelayMsgs{
-		Src:          []sdk.Msg{},
-		Dst:          []sdk.Msg{},
-		MaxTxSize:    st.MaxTxSize,
-		MaxMsgLength: st.MaxMsgLength,
-	}
+	msgs := NewRelayMsgs()
 
 	// check if unrelayed packets or acks exist
 	needsUpdateForSrc := len(rpForRecv.Dst) > 0 ||
@@ -501,25 +474,25 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, rpForRecv, rpFor
 		var err error
 		needsUpdateForSrc, err = src.CheckRefreshRequired(dst)
 		if err != nil {
-			return fmt.Errorf("failed to check if the LC on the src chain needs to be refreshed: %v", err)
+			return nil, fmt.Errorf("failed to check if the LC on the src chain needs to be refreshed: %v", err)
 		}
 	}
 	if !needsUpdateForDst && doRefresh {
 		var err error
 		needsUpdateForDst, err = dst.CheckRefreshRequired(src)
 		if err != nil {
-			return fmt.Errorf("failed to check if the LC on the dst chain needs to be refreshed: %v", err)
+			return nil, fmt.Errorf("failed to check if the LC on the dst chain needs to be refreshed: %v", err)
 		}
 	}
 
 	if needsUpdateForSrc {
 		srcAddress, err := src.GetAddress()
 		if err != nil {
-			return fmt.Errorf("failed to get relayer address on src chain: %v", err)
+			return nil, fmt.Errorf("failed to get relayer address on src chain: %v", err)
 		}
 		hs, err := sh.SetupHeadersForUpdate(dst, src)
 		if err != nil {
-			return fmt.Errorf("failed to set up headers for updating client on src chain: %v", err)
+			return nil, fmt.Errorf("failed to set up headers for updating client on src chain: %v", err)
 		}
 		if len(hs) > 0 {
 			msgs.Src = src.Path().UpdateClients(hs, srcAddress)
@@ -529,29 +502,38 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, rpForRecv, rpFor
 	if needsUpdateForDst {
 		dstAddress, err := dst.GetAddress()
 		if err != nil {
-			return fmt.Errorf("failed to get relayer address on dst chain: %v", err)
+			return nil, fmt.Errorf("failed to get relayer address on dst chain: %v", err)
 		}
 		hs, err := sh.SetupHeadersForUpdate(src, dst)
 		if err != nil {
-			return fmt.Errorf("failed to set up headers for updating client on dst chain: %v", err)
+			return nil, fmt.Errorf("failed to set up headers for updating client on dst chain: %v", err)
 		}
 		if len(hs) > 0 {
 			msgs.Dst = dst.Path().UpdateClients(hs, dstAddress)
 		}
 	}
 
-	// send messages to their respective chains
-	if msgs.Send(src, dst); msgs.Success() {
-		if len(msgs.Src) > 0 {
-			logger.Info("client on src chain was updated", "num_sent_msgs", len(msgs.Src))
-		}
-		if len(msgs.Dst) > 0 {
-			logger.Info("client on dst chain was updated", "num_sent_msgs", len(msgs.Dst))
-		}
+	if len(msgs.Src) > 0 {
+		logger.Info("client on src chain was scheduled for update", "num_sent_msgs", len(msgs.Src))
+	}
+	if len(msgs.Dst) > 0 {
+		logger.Info("client on dst chain was scheduled for update", "num_sent_msgs", len(msgs.Dst))
 	}
 
-	return nil
+	return msgs, nil
+}
 
+func (st *NaiveStrategy) Send(src, dst Chain, msgs *RelayMsgs) {
+	logger := GetChannelPairLogger(src, dst)
+
+	msgs.MaxTxSize = st.MaxTxSize
+	msgs.MaxMsgLength = st.MaxMsgLength
+	msgs.Send(src, dst)
+
+	logger.Info("msgs relayed",
+		slog.Group("src", "msg_count", len(msgs.Src)),
+		slog.Group("dst", "msg_count", len(msgs.Dst)),
+	)
 }
 
 func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, dst ChainInfo, newSrcBacklog, newDstBacklog PacketInfoList) error {
