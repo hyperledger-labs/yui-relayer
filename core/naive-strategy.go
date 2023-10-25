@@ -73,7 +73,7 @@ func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bo
 
 func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "UnrelayedPackets")
+	now := time.Now()
 	var (
 		eg         = new(errgroup.Group)
 		srcPackets PacketInfoList
@@ -131,6 +131,8 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 		return nil, err
 	}
 
+	defer logger.TimeTrack(now, "UnrelayedPackets", "num_src", len(srcPackets), "num_dst", len(dstPackets))
+
 	if err := st.updateBacklogMetrics(context.TODO(), src, dst, srcPackets, dstPackets); err != nil {
 		return nil, err
 	}
@@ -179,7 +181,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 
 func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
 	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "RelayPackets")
+	defer logger.TimeTrack(time.Now(), "RelayPackets", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},
@@ -278,7 +280,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 
 func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "UnrelayedAcknowledgements")
+	now := time.Now()
 	var (
 		eg      = new(errgroup.Group)
 		srcAcks PacketInfoList
@@ -341,6 +343,8 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 		)
 		return nil, err
 	}
+
+	defer logger.TimeTrack(now, "UnrelayedAcknowledgements", "num_src", len(srcAcks), "num_dst", len(dstAcks))
 
 	// If includeRelayedButUnfinalized is true, this function should return packets of which AcknowledgePacket is not finalized yet.
 	// In this case, filtering packets by QueryUnreceivedAcknowledgements is not needed because QueryUnfinalizedRelayAcknowledgements
@@ -421,7 +425,7 @@ func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 
 func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) error {
 	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements")
+	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 	// set the maximum relay transaction constraints
 	msgs := &RelayMsgs{
 		Src:          []sdk.Msg{},

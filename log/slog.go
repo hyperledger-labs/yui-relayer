@@ -189,5 +189,6 @@ func (rl *RelayLogger) WithModule(
 
 func (rl *RelayLogger) TimeTrack(start time.Time, name string, otherArgs ...any) {
 	elapsed := time.Since(start)
-	rl.Logger.Info("time track", "name", name, "elapsed", elapsed.Nanoseconds(), otherArgs)
+	allArgs := append([]any{"name", name, "elapsed", elapsed.Nanoseconds()}, otherArgs...)
+	rl.Logger.Info("time track", allArgs...)
 }
