@@ -131,8 +131,6 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 		return nil, err
 	}
 
-	defer logger.TimeTrack(now, "UnrelayedPackets", "num_src", len(srcPackets), "num_dst", len(dstPackets))
-
 	if err := st.updateBacklogMetrics(context.TODO(), src, dst, srcPackets, dstPackets); err != nil {
 		return nil, err
 	}
@@ -172,6 +170,8 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			return nil, err
 		}
 	}
+
+	defer logger.TimeTrack(now, "UnrelayedPackets", "num_src", len(srcPackets), "num_dst", len(dstPackets))
 
 	return &RelayPackets{
 		Src: srcPackets,
@@ -344,8 +344,6 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 		return nil, err
 	}
 
-	defer logger.TimeTrack(now, "UnrelayedAcknowledgements", "num_src", len(srcAcks), "num_dst", len(dstAcks))
-
 	// If includeRelayedButUnfinalized is true, this function should return packets of which AcknowledgePacket is not finalized yet.
 	// In this case, filtering packets by QueryUnreceivedAcknowledgements is not needed because QueryUnfinalizedRelayAcknowledgements
 	// has already returned packets that completely match this condition.
@@ -385,6 +383,8 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 			return nil, err
 		}
 	}
+
+	defer logger.TimeTrack(now, "UnrelayedAcknowledgements", "num_src", len(srcAcks), "num_dst", len(dstAcks))
 
 	return &RelayPackets{
 		Src: srcAcks,
