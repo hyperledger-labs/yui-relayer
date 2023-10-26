@@ -8,6 +8,7 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // transactionCmd represents the tx command
@@ -157,6 +158,12 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 }
 
 func relayMsgsCmd(ctx *config.Context) *cobra.Command {
+	const (
+		flagDoRefresh = "do-refresh"
+	)
+	const (
+		defaultDoRefresh = false
+	)
 	cmd := &cobra.Command{
 		Use:   "relay [path-name]",
 		Short: "relay any packets that remain to be relayed on a given path, in both directions",
@@ -188,18 +195,37 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			if err = st.RelayPackets(c[src], c[dst], sp, sh); err != nil {
+			msgs := core.NewRelayMsgs()
+
+			if m, err := st.UpdateClients(c[src], c[dst], sp, &core.RelayPackets{}, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
+			} else {
+				msgs.Merge(m)
 			}
+
+			if m, err := st.RelayPackets(c[src], c[dst], sp, sh); err != nil {
+				return err
+			} else {
+				msgs.Merge(m)
+			}
+
+			st.Send(c[src], c[dst], msgs)
 
 			return nil
 		},
 	}
+	cmd.Flags().Bool(flagDoRefresh, defaultDoRefresh, "execute light client refresh (updateClient) if required")
 	// TODO add option support for strategy
 	return cmd
 }
 
 func relayAcksCmd(ctx *config.Context) *cobra.Command {
+	const (
+		flagDoRefresh = "do-refresh"
+	)
+	const (
+		defaultDoRefresh = false
+	)
 	cmd := &cobra.Command{
 		Use:     "relay-acknowledgements [path-name]",
 		Aliases: []string{"acks"},
@@ -230,13 +256,25 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			if err = st.RelayAcknowledgements(c[src], c[dst], sp, sh); err != nil {
+			msgs := core.NewRelayMsgs()
+
+			if m, err := st.UpdateClients(c[src], c[dst], &core.RelayPackets{}, sp, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
+			} else {
+				msgs.Merge(m)
 			}
+
+			if m, err := st.RelayAcknowledgements(c[src], c[dst], sp, sh); err != nil {
+				return err
+			} else {
+				msgs.Merge(m)
+			}
+
+			st.Send(c[src], c[dst], msgs)
 
 			return nil
 		},
 	}
-
+	cmd.Flags().Bool(flagDoRefresh, defaultDoRefresh, "execute light client refresh (updateClient) if required")
 	return cmd
 }

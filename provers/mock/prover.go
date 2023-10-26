@@ -84,6 +84,11 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 	}, nil
 }
 
+// CheckRefreshRequired always returns false because mock clients don't need refresh.
+func (pr *Prover) CheckRefreshRequired(dst core.ChainInfoICS02Querier) (bool, error) {
+	return false, nil
+}
+
 // ProveState returns the proof of an IBC state specified by `path` and `value`
 func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
 	return makeProof(value), ctx.Height().(clienttypes.Height), nil

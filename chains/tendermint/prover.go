@@ -116,6 +116,55 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 	return h, nil
 }
 
+func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) (bool, error) {
+	cpQueryHeight, err := counterparty.LatestHeight()
+	if err != nil {
+		return false, fmt.Errorf("failed to get the latest height of the counterparty chain: %v", err)
+	}
+	cpQueryCtx := core.NewQueryContext(context.TODO(), cpQueryHeight)
+
+	resCs, err := counterparty.QueryClientState(cpQueryCtx)
+	if err != nil {
+		return false, fmt.Errorf("failed to query the client state on the counterparty chain: %v", err)
+	}
+
+	var cs ibcexported.ClientState
+	if err := pr.chain.codec.UnpackAny(resCs.ClientState, &cs); err != nil {
+		return false, fmt.Errorf("failed to unpack Any into tendermint client state: %v", err)
+	}
+
+	resCons, err := counterparty.QueryClientConsensusState(cpQueryCtx, cs.GetLatestHeight())
+	if err != nil {
+		return false, fmt.Errorf("failed to query the consensus state on the counterparty chain: %v", err)
+	}
+
+	var cons ibcexported.ConsensusState
+	if err := pr.chain.codec.UnpackAny(resCons.ConsensusState, &cons); err != nil {
+		return false, fmt.Errorf("failed to unpack Any into tendermint consensus state: %v", err)
+	}
+	lcLastTimestamp := time.Unix(0, int64(cons.GetTimestamp()))
+
+	selfQueryHeight, err := pr.chain.LatestHeight()
+	if err != nil {
+		return false, fmt.Errorf("failed to get the latest height of the self chain: %v", err)
+	}
+
+	selfTimestamp, err := pr.chain.Timestamp(selfQueryHeight)
+	if err != nil {
+		return false, fmt.Errorf("failed to get timestamp of the self chain: %v", err)
+	}
+
+	elapsedTime := selfTimestamp.Sub(lcLastTimestamp)
+
+	durationMulByFraction := func(d time.Duration, f *Fraction) time.Duration {
+		nsec := d.Nanoseconds() * int64(f.Numerator) / int64(f.Denominator)
+		return time.Duration(nsec) * time.Nanosecond
+	}
+	needsRefresh := elapsedTime > durationMulByFraction(pr.config.GetTrustingPeriod(), pr.config.RefreshThresholdRate)
+
+	return needsRefresh, nil
+}
+
 /* Local LightClient implementation */
 
 // GetLatestLightHeight uses the CLI utilities to pull the latest height from a given chain

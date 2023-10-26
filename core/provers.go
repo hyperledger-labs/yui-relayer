@@ -42,6 +42,10 @@ type LightClient interface {
 	// The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
 	// if the header slice's length == 0 and err == nil, the relayer should skips the update-client
 	SetupHeadersForUpdate(dstChain ChainInfoICS02Querier, latestFinalizedHeader Header) ([]Header, error)
+
+	// CheckRefreshRequired returns if the on-chain light client needs to be updated.
+	// For example, this requirement arises due to the trusting period mechanism.
+	CheckRefreshRequired(counterparty ChainInfoICS02Querier) (bool, error)
 }
 
 // ChainInfoICS02Querier is ChainInfo + ICS02Querier
