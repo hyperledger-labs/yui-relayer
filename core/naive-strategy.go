@@ -79,7 +79,7 @@ func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bo
 
 func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "UnrelayedPackets")
+	now := time.Now()
 	var (
 		eg         = new(errgroup.Group)
 		srcPackets PacketInfoList
@@ -177,6 +177,8 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 		}
 	}
 
+	defer logger.TimeTrack(now, "UnrelayedPackets", "num_src", len(srcPackets), "num_dst", len(dstPackets))
+
 	return &RelayPackets{
 		Src: srcPackets,
 		Dst: dstPackets,
@@ -185,7 +187,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 
 func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "RelayPackets")
+	defer logger.TimeTrack(time.Now(), "RelayPackets", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
 	msgs := NewRelayMsgs()
 
@@ -242,7 +244,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 
 func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "UnrelayedAcknowledgements")
+	now := time.Now()
 	var (
 		eg      = new(errgroup.Group)
 		srcAcks PacketInfoList
@@ -346,6 +348,8 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 		}
 	}
 
+	defer logger.TimeTrack(now, "UnrelayedAcknowledgements", "num_src", len(srcAcks), "num_dst", len(dstAcks))
+
 	return &RelayPackets{
 		Src: srcAcks,
 		Dst: dstAcks,
@@ -385,7 +389,7 @@ func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 
 func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements")
+	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
 	msgs := NewRelayMsgs()
 
