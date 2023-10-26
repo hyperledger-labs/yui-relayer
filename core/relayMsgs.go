@@ -114,3 +114,9 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 		r.Succeeded = false
 	}
 }
+
+// Merge merges the argument into the receiver
+func (r *RelayMsgs) Merge(other *RelayMsgs) {
+	r.Src = append(r.Src, other.Src...)
+	r.Dst = append(r.Dst, other.Dst...)
+}
