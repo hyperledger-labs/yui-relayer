@@ -27,10 +27,10 @@ type SyncHeaders interface {
 	GetQueryContext(chainID string) QueryContext
 
 	// SetupHeadersForUpdate returns `src` chain's headers needed to update the client on `dst` chain
-	SetupHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]Header, error)
+	SetupHeadersForUpdate(src, dst ChainLightClient) ([]Header, error)
 
 	// SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers needed to update the clients on each chain
-	SetupBothHeadersForUpdate(src, dst ChainICS02QuerierLightClient) (srcHeaders []Header, dstHeaders []Header, err error)
+	SetupBothHeadersForUpdate(src, dst ChainLightClient) (srcHeaders []Header, dstHeaders []Header, err error)
 }
 
 // ChainInfoLightClient = ChainInfo + LightClient
@@ -39,10 +39,10 @@ type ChainInfoLightClient interface {
 	LightClient
 }
 
-// ChainICS02QuerierLightClient = ChainInfoLightClient + ICS02Querier
-type ChainICS02QuerierLightClient interface {
-	ChainInfoLightClient
-	ICS02Querier
+// ChainLightClient = Chain + LightClient
+type ChainLightClient interface {
+	Chain
+	LightClient
 }
 
 type syncHeaders struct {
@@ -122,7 +122,7 @@ func (sh syncHeaders) GetQueryContext(chainID string) QueryContext {
 }
 
 // SetupHeadersForUpdate returns `src` chain's headers to update the client on `dst` chain
-func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]Header, error) {
+func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainLightClient) ([]Header, error) {
 	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
 		logger.Error("error ensuring different chains", err)
@@ -132,7 +132,7 @@ func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainICS02QuerierLightClien
 }
 
 // SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers to update the clients on each chain
-func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst ChainICS02QuerierLightClient) ([]Header, []Header, error) {
+func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst ChainLightClient) ([]Header, []Header, error) {
 	logger := GetChainPairLogger(src, dst)
 	srcHs, err := sh.SetupHeadersForUpdate(src, dst)
 	if err != nil {

@@ -54,7 +54,7 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, 
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainInfoICS02Querier, latestFinalizedHeader core.Header) ([]core.Header, error) {
+func (pr *Prover) SetupHeadersForUpdate(_ core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	return []core.Header{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }
 
