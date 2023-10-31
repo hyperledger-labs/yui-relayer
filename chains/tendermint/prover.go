@@ -82,7 +82,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 		return nil, err
 	}
 
-	// retrieve counterparty client from dst chain
+	// retrieve the client state from the counterparty chain
 	counterpartyClientRes, err := counterparty.QueryClientState(core.NewQueryContext(context.TODO(), cph))
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 	// inject TrustedHeight as latest height stored on counterparty client
 	h.TrustedHeight = cs.GetLatestHeight().(clienttypes.Height)
 
-	// query TrustedValidators at Trusted Height from srcChain
+	// query TrustedValidators at Trusted Height from the self chain
 	valSet, err := self.QueryValsetAtHeight(h.TrustedHeight)
 	if err != nil {
 		return nil, err
