@@ -103,7 +103,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			if err != nil {
 				return err
 			}
-			logger.TimeTrack(now, "QueryUnfinalizedRelayPackets", "num_packets", len(srcPackets))
+			logger.TimeTrack(now, "QueryUnfinalizedRelayPackets", "queried_chain", "src", "num_packets", len(srcPackets))
 			return nil
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			logger.Info(
@@ -125,7 +125,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			if err != nil {
 				return err
 			}
-			logger.TimeTrack(now, "QueryUnfinalizedRelayPackets", "num_packets", len(dstPackets))
+			logger.TimeTrack(now, "QueryUnfinalizedRelayPackets", "queried_chain", "dst", "num_packets", len(dstPackets))
 			return nil
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			logger.Info(
@@ -170,7 +170,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			if err != nil {
 				return err
 			}
-			logger.TimeTrack(now, "QueryUnreceivedPackets", "num_seqs", len(seqs))
+			logger.TimeTrack(now, "QueryUnreceivedPackets", "queried_chain", "dst", "num_seqs", len(seqs))
 			srcPackets = srcPackets.Filter(seqs)
 			return nil
 		})
@@ -181,7 +181,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			if err != nil {
 				return err
 			}
-			logger.TimeTrack(now, "QueryUnreceivedPackets", "num_seqs", len(seqs))
+			logger.TimeTrack(now, "QueryUnreceivedPackets", "queried_chain", "src", "num_seqs", len(seqs))
 			dstPackets = dstPackets.Filter(seqs)
 			return nil
 		})
@@ -283,7 +283,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				if err != nil {
 					return err
 				}
-				logger.TimeTrack(now, "QueryUnfinalizedRelayAcknowledgements", "num_packets", len(srcAcks))
+				logger.TimeTrack(now, "QueryUnfinalizedRelayAcknowledgements", "queried_chain", "src", "num_packets", len(srcAcks))
 				return nil
 			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 				logger.Info(
@@ -308,7 +308,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				if err != nil {
 					return err
 				}
-				logger.TimeTrack(now, "QueryUnfinalizedRelayAcknowledgements", "num_packets", len(dstAcks))
+				logger.TimeTrack(now, "QueryUnfinalizedRelayAcknowledgements", "queried_chain", "dst", "num_packets", len(dstAcks))
 				return nil
 			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 				logger.Info(
@@ -352,7 +352,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				if err != nil {
 					return err
 				}
-				logger.TimeTrack(now, "QueryUnreceivedAcknowledgements", "num_seqs", len(seqs))
+				logger.TimeTrack(now, "QueryUnreceivedAcknowledgements", "queried_chain", "dst", "num_seqs", len(seqs))
 				srcAcks = srcAcks.Filter(seqs)
 				return nil
 			})
@@ -365,7 +365,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				if err != nil {
 					return err
 				}
-				logger.TimeTrack(now, "QueryUnreceivedAcknowledgements", "num_seqs", len(seqs))
+				logger.TimeTrack(now, "QueryUnreceivedAcknowledgements", "queried_chain", "src", "num_seqs", len(seqs))
 				dstAcks = dstAcks.Filter(seqs)
 				return nil
 			})
