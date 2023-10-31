@@ -37,9 +37,9 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
-// CreateMsgCreateClient creates a CreateClientMsg to this chain
-func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
-	h := dstHeader.(*mocktypes.Header)
+// CreateMsgCreateClient creates a MsgCreateClient for the counterparty chain
+func (pr *Prover) CreateMsgCreateClient(clientID string, selfHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
+	h := selfHeader.(*mocktypes.Header)
 	clientState := &mocktypes.ClientState{
 		LatestHeight: h.Height,
 	}
@@ -54,7 +54,7 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, 
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainInfoICS02Querier, latestFinalizedHeader core.Header) ([]core.Header, error) {
+func (pr *Prover) SetupHeadersForUpdate(_ core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	return []core.Header{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }
 

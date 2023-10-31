@@ -56,14 +56,14 @@ func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) (
 
 /* LightClient implementation */
 
-// CreateMsgCreateClient creates a CreateClientMsg to this chain
-func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
+// CreateMsgCreateClient creates a MsgCreateClient for the counterparty chain
+func (pr *Prover) CreateMsgCreateClient(clientID string, selfHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
 	ubdPeriod, err := pr.chain.QueryUnbondingPeriod()
 	if err != nil {
 		return nil, err
 	}
 	return createClient(
-		dstHeader.(*tmclient.Header),
+		selfHeader.(*tmclient.Header),
 		pr.getTrustingPeriod(),
 		ubdPeriod,
 		signer,
@@ -71,33 +71,33 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, 
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainInfoICS02Querier, latestFinalizedHeader core.Header) ([]core.Header, error) {
-	srcChain := pr.chain
+func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
+	self := pr.chain
 	// make copy of header stored in mop
 	tmp := latestFinalizedHeader.(*tmclient.Header)
 	h := *tmp
 
-	dsth, err := dstChain.LatestHeight()
+	cph, err := counterparty.LatestHeight()
 	if err != nil {
 		return nil, err
 	}
 
-	// retrieve counterparty client from dst chain
-	counterpartyClientRes, err := dstChain.QueryClientState(core.NewQueryContext(context.TODO(), dsth))
+	// retrieve the client state from the counterparty chain
+	counterpartyClientRes, err := counterparty.QueryClientState(core.NewQueryContext(context.TODO(), cph))
 	if err != nil {
 		return nil, err
 	}
 
 	var cs ibcexported.ClientState
-	if err := srcChain.codec.UnpackAny(counterpartyClientRes.ClientState, &cs); err != nil {
+	if err := self.codec.UnpackAny(counterpartyClientRes.ClientState, &cs); err != nil {
 		return nil, err
 	}
 
 	// inject TrustedHeight as latest height stored on counterparty client
 	h.TrustedHeight = cs.GetLatestHeight().(clienttypes.Height)
 
-	// query TrustedValidators at Trusted Height from srcChain
-	valSet, err := srcChain.QueryValsetAtHeight(h.TrustedHeight)
+	// query TrustedValidators at Trusted Height from the self chain
+	valSet, err := self.QueryValsetAtHeight(h.TrustedHeight)
 	if err != nil {
 		return nil, err
 	}

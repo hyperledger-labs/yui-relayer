@@ -31,21 +31,32 @@ type StateProver interface {
 
 // LightClient provides functions for creating and updating on-chain light clients on the counterparty chain
 type LightClient interface {
-	// CreateMsgCreateClient creates a CreateClientMsg to this chain
-	CreateMsgCreateClient(clientID string, dstHeader Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
+	FinalityAware
 
-	// GetLatestFinalizedHeader returns the latest finalized header on this chain
-	// The returned header is expected to be the latest one of headers that can be verified by the light client
-	GetLatestFinalizedHeader() (latestFinalizedHeader Header, err error)
+	// CreateMsgCreateClient creates a MsgCreateClient for the counterparty chain
+	CreateMsgCreateClient(clientID string, selfHeader Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
 
 	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 	// The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
 	// if the header slice's length == 0 and err == nil, the relayer should skips the update-client
-	SetupHeadersForUpdate(dstChain ChainInfoICS02Querier, latestFinalizedHeader Header) ([]Header, error)
+	SetupHeadersForUpdate(counterparty FinalityAwareChain, latestFinalizedHeader Header) ([]Header, error)
 
 	// CheckRefreshRequired returns if the on-chain light client needs to be updated.
 	// For example, this requirement arises due to the trusting period mechanism.
 	CheckRefreshRequired(counterparty ChainInfoICS02Querier) (bool, error)
+}
+
+// FinalityAware provides the capability to determine the finality of the chain
+type FinalityAware interface {
+	// GetLatestFinalizedHeader returns the latest finalized header on this chain
+	// The returned header is expected to be the latest one of headers that can be verified by the light client
+	GetLatestFinalizedHeader() (latestFinalizedHeader Header, err error)
+}
+
+// FinalityAwareChain is FinalityAware + Chain
+type FinalityAwareChain interface {
+	FinalityAware
+	Chain
 }
 
 // ChainInfoICS02Querier is ChainInfo + ICS02Querier
