@@ -33,8 +33,8 @@ type StateProver interface {
 type LightClient interface {
 	FinalityAware
 
-	// CreateMsgCreateClient creates a CreateClientMsg to this chain
-	CreateMsgCreateClient(clientID string, dstHeader Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
+	// CreateMsgCreateClient creates a MsgCreateClient for the counterparty chain
+	CreateMsgCreateClient(clientID string, selfHeader Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
 
 	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 	// The order of the returned header slice should be as: [<intermediate headers>..., <update header>]

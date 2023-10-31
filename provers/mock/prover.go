@@ -37,9 +37,9 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
-// CreateMsgCreateClient creates a CreateClientMsg to this chain
-func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
-	h := dstHeader.(*mocktypes.Header)
+// CreateMsgCreateClient creates a MsgCreateClient for the counterparty chain
+func (pr *Prover) CreateMsgCreateClient(clientID string, selfHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
+	h := selfHeader.(*mocktypes.Header)
 	clientState := &mocktypes.ClientState{
 		LatestHeight: h.Height,
 	}
