@@ -19,7 +19,7 @@ const (
 )
 
 func heightFlag(cmd *cobra.Command) *cobra.Command {
-	cmd.Flags().Int64(flags.FlagHeight, 0, "Height of headers to fetch")
+	cmd.Flags().Uint64(flags.FlagHeight, 0, "Height of headers to fetch")
 	if err := viper.BindPFlag(flags.FlagHeight, cmd.Flags().Lookup(flags.FlagHeight)); err != nil {
 		panic(err)
 	}
