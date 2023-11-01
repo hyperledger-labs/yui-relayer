@@ -98,8 +98,13 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 	eg.Go(func() error {
 		return retry.Do(func() error {
 			var err error
+			now := time.Now()
 			srcPackets, err = src.QueryUnfinalizedRelayPackets(srcCtx, dst)
-			return err
+			if err != nil {
+				return err
+			}
+			logger.TimeTrack(now, "QueryUnfinalizedRelayPackets", "queried_chain", "src", "num_packets", len(srcPackets))
+			return nil
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			logger.Info(
 				"retrying to query unfinalized packet relays",
@@ -115,8 +120,13 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 	eg.Go(func() error {
 		return retry.Do(func() error {
 			var err error
+			now := time.Now()
 			dstPackets, err = dst.QueryUnfinalizedRelayPackets(dstCtx, src)
-			return err
+			if err != nil {
+				return err
+			}
+			logger.TimeTrack(now, "QueryUnfinalizedRelayPackets", "queried_chain", "dst", "num_packets", len(dstPackets))
+			return nil
 		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 			logger.Info(
 				"retrying to query unfinalized packet relays",
@@ -155,19 +165,23 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 		}
 
 		eg.Go(func() error {
+			now := time.Now()
 			seqs, err := dst.QueryUnreceivedPackets(dstCtx, srcPackets.ExtractSequenceList())
 			if err != nil {
 				return err
 			}
+			logger.TimeTrack(now, "QueryUnreceivedPackets", "queried_chain", "dst", "num_seqs", len(seqs))
 			srcPackets = srcPackets.Filter(seqs)
 			return nil
 		})
 
 		eg.Go(func() error {
+			now := time.Now()
 			seqs, err := src.QueryUnreceivedPackets(srcCtx, dstPackets.ExtractSequenceList())
 			if err != nil {
 				return err
 			}
+			logger.TimeTrack(now, "QueryUnreceivedPackets", "queried_chain", "src", "num_seqs", len(seqs))
 			dstPackets = dstPackets.Filter(seqs)
 			return nil
 		})
@@ -264,8 +278,13 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 		eg.Go(func() error {
 			return retry.Do(func() error {
 				var err error
+				now := time.Now()
 				srcAcks, err = src.QueryUnfinalizedRelayAcknowledgements(srcCtx, dst)
-				return err
+				if err != nil {
+					return err
+				}
+				logger.TimeTrack(now, "QueryUnfinalizedRelayAcknowledgements", "queried_chain", "src", "num_packets", len(srcAcks))
+				return nil
 			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 				logger.Info(
 					"retrying to query unfinalized ack relays",
@@ -284,8 +303,13 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 		eg.Go(func() error {
 			return retry.Do(func() error {
 				var err error
+				now := time.Now()
 				dstAcks, err = dst.QueryUnfinalizedRelayAcknowledgements(dstCtx, src)
-				return err
+				if err != nil {
+					return err
+				}
+				logger.TimeTrack(now, "QueryUnfinalizedRelayAcknowledgements", "queried_chain", "dst", "num_packets", len(dstAcks))
+				return nil
 			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 				logger.Info(
 					"retrying to query unfinalized ack relays",
@@ -323,10 +347,12 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 
 		if !st.dstNoAck {
 			eg.Go(func() error {
+				now := time.Now()
 				seqs, err := dst.QueryUnreceivedAcknowledgements(dstCtx, srcAcks.ExtractSequenceList())
 				if err != nil {
 					return err
 				}
+				logger.TimeTrack(now, "QueryUnreceivedAcknowledgements", "queried_chain", "dst", "num_seqs", len(seqs))
 				srcAcks = srcAcks.Filter(seqs)
 				return nil
 			})
@@ -334,10 +360,12 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 
 		if !st.srcNoAck {
 			eg.Go(func() error {
+				now := time.Now()
 				seqs, err := src.QueryUnreceivedAcknowledgements(srcCtx, dstAcks.ExtractSequenceList())
 				if err != nil {
 					return err
 				}
+				logger.TimeTrack(now, "QueryUnreceivedAcknowledgements", "queried_chain", "src", "num_seqs", len(seqs))
 				dstAcks = dstAcks.Filter(seqs)
 				return nil
 			})
