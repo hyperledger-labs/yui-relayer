@@ -42,7 +42,7 @@ func CreateClients(src, dst *ProvableChain) error {
 	}
 
 	{
-		msg, err := dst.CreateMsgCreateClient(src.Path().ClientID, dstH, srcAddr)
+		msg, err := dst.CreateMsgCreateClient(dstH, srcAddr)
 		if err != nil {
 			logger.Error(
 				"failed to create client",
@@ -54,7 +54,7 @@ func CreateClients(src, dst *ProvableChain) error {
 	}
 
 	{
-		msg, err := src.CreateMsgCreateClient(dst.Path().ClientID, srcH, dstAddr)
+		msg, err := src.CreateMsgCreateClient(srcH, dstAddr)
 		if err != nil {
 			logger.Error(
 				"failed to create client",
