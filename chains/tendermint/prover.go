@@ -12,6 +12,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	ibcclient "github.com/cosmos/ibc-go/v7/modules/core/client"
+	"github.com/cosmos/ibc-go/v7/modules/core/exported"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	tmclient "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
 
@@ -114,6 +115,14 @@ func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header,
 		return nil, err
 	}
 	return h, nil
+}
+
+// GetLatestFinalizedHeader returns the finalized header at `height`
+func (pr *Prover) GetFinalizedHeader(height exported.Height) (core.Header, error) {
+	if _, err := pr.UpdateLightClient(); err != nil {
+		return nil, err
+	}
+	return pr.GetLightSignedHeaderAtHeight(int64(height.GetRevisionHeight()))
 }
 
 func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) (bool, error) {
