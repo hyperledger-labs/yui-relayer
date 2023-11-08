@@ -57,7 +57,7 @@ func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) (
 /* LightClient implementation */
 
 // CreateMsgCreateClient creates a MsgCreateClient for the counterparty chain
-func (pr *Prover) CreateMsgCreateClient(clientID string, selfHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
+func (pr *Prover) CreateMsgCreateClient(selfHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
 	ubdPeriod, err := pr.chain.QueryUnbondingPeriod()
 	if err != nil {
 		return nil, err
