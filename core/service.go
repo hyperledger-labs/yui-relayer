@@ -116,19 +116,23 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	}
 
 	// relay packets if unrelayed seqs exist
-	if m, err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh); err != nil {
-		logger.Error("failed to relay packets", err)
-		return err
-	} else {
-		msgs.Merge(m)
+	if srv.optimizeRelay(pseqs) {
+		if m, err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh); err != nil {
+			logger.Error("failed to relay packets", err)
+			return err
+		} else {
+			msgs.Merge(m)
+		}
 	}
 
 	// relay acks if unrelayed seqs exist
-	if m, err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh); err != nil {
-		logger.Error("failed to relay acknowledgements", err)
-		return err
-	} else {
-		msgs.Merge(m)
+	if srv.optimizeRelay(aseqs) {
+		if m, err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh); err != nil {
+			logger.Error("failed to relay acknowledgements", err)
+			return err
+		} else {
+			msgs.Merge(m)
+		}
 	}
 
 	// send all msgs to src/dst chains
@@ -137,7 +141,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	return nil
 }
 
-func (srv *RelayService) optimizeRelay(pseqs RelayPackets) bool {
+func (srv *RelayService) optimizeRelay(pseqs *RelayPackets) bool {
 	// packet count
 	srcPacketCount := len(pseqs.Src)
 	dstPacketCount := len(pseqs.Dst)

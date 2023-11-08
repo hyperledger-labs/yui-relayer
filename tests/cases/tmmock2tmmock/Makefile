@@ -13,9 +13,6 @@ test:
 	./scripts/init-rly
 	./scripts/handshake
 	./scripts/test-tx
-
-.PHONY: test-service
-test-service:
 	./scripts/test-service
 
 .PHONY: network-down
