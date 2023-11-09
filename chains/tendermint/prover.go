@@ -195,17 +195,16 @@ func (pr *Prover) UpdateLightClient(height int64) (core.Header, error) {
 
 	var sh *types.LightBlock
 	if height == 0 {
-		sh, err = client.Update(context.Background(), time.Now())
+		if sh, err = client.Update(context.Background(), time.Now()); err != nil {
+			return nil, lightError(err)
+		} else if sh == nil {
+			sh, err = client.TrustedLightBlock(0)
+			if err != nil {
+				return nil, lightError(err)
+			}
+		}
 	} else {
-		sh, err = client.VerifyLightBlockAtHeight(context.Background(), height, time.Now())
-	}
-	if err != nil {
-		return nil, lightError(err)
-	}
-
-	if sh == nil {
-		sh, err = client.TrustedLightBlock(height)
-		if err != nil {
+		if sh, err = client.VerifyLightBlockAtHeight(context.Background(), height, time.Now()); err != nil {
 			return nil, lightError(err)
 		}
 	}
