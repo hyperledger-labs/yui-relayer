@@ -8,14 +8,14 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func CreateClients(src, dst *ProvableChain) error {
+func CreateClients(src, dst *ProvableChain, srcHeight, dstHeight *uint64) error {
 	logger := GetChainPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateClients")
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 
-	srcH, dstH, err := getHeadersForCreateClient(src, dst)
+	srcH, dstH, err := getHeadersForCreateClient(src, dst, srcHeight, dstHeight)
 	if err != nil {
 		logger.Error(
 			"failed to get headers for create client",
@@ -118,14 +118,14 @@ func UpdateClients(src, dst *ProvableChain) error {
 }
 
 // getHeadersForCreateClient calls UpdateLightWithHeader on the passed chains concurrently
-func getHeadersForCreateClient(src, dst LightClient) (srch, dsth Header, err error) {
+func getHeadersForCreateClient(src, dst LightClient, srcHeight, dstHeight *uint64) (srch, dsth Header, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
-		srch, err = src.GetFinalizedHeader(nil)
+		srch, err = src.GetFinalizedHeader(srcHeight)
 		return err
 	})
 	eg.Go(func() error {
-		dsth, err = dst.GetFinalizedHeader(nil)
+		dsth, err = dst.GetFinalizedHeader(dstHeight)
 		return err
 	})
 	if err := eg.Wait(); err != nil {
