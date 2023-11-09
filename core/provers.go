@@ -49,11 +49,8 @@ type LightClient interface {
 
 // FinalityAware provides the capability to determine the finality of the chain
 type FinalityAware interface {
-	// GetLatestFinalizedHeader returns the latest finalized header on this chain
-	// The returned header is expected to be the latest one of headers that can be verified by the light client
-	GetLatestFinalizedHeader() (latestFinalizedHeader Header, err error)
-
-	// GetFinalizedHeader returns the finalized header corresponding to `height`.
+	// GetFinalizedHeader returns the finalized header on this chain corresponding to `height`.
+	// If `height` is nil or zero, this function returns the latest finalized header.
 	// If the header at `height` isn't finalized yet, this function returns an error.
 	GetFinalizedHeader(height exported.Height) (Header, error)
 }

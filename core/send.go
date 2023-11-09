@@ -28,7 +28,7 @@ func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID) (MsgResult, error) 
 
 	if err := retry.Do(func() error {
 		// query LFH for each retry because it can proceed.
-		lfHeader, err := chain.GetLatestFinalizedHeader()
+		lfHeader, err := chain.GetFinalizedHeader(nil)
 		if err != nil {
 			return fmt.Errorf("failed to get latest finalized header: %v", err)
 		}

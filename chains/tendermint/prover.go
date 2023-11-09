@@ -108,21 +108,15 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 	return []core.Header{&h}, nil
 }
 
-// GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header, err error) {
-	h, err := pr.UpdateLightClient()
-	if err != nil {
-		return nil, err
-	}
-	return h, nil
-}
-
-// GetLatestFinalizedHeader returns the finalized header at `height`
+// GetFinalizedHeader returns the finalized header at `height`
 func (pr *Prover) GetFinalizedHeader(height exported.Height) (core.Header, error) {
-	if _, err := pr.UpdateLightClient(); err != nil {
+	if latest, err := pr.UpdateLightClient(); err != nil {
 		return nil, err
+	} else if height == nil || height.IsZero() {
+		return latest, nil
+	} else {
+		return pr.GetLightSignedHeaderAtHeight(int64(height.GetRevisionHeight()))
 	}
-	return pr.GetLightSignedHeaderAtHeight(int64(height.GetRevisionHeight()))
 }
 
 func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) (bool, error) {

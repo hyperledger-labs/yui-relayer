@@ -89,23 +89,17 @@ func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
 	return height, nil
 }
 
-// GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header, err error) {
-	latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight()
-	if err != nil {
-		return nil, err
-	}
-	return pr.createMockHeader(latestFinalizedHeight)
-}
-
 // GetFinalizedHeader returns the finalized header at `height`
 func (pr *Prover) GetFinalizedHeader(height exported.Height) (core.Header, error) {
 	if latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight(); err != nil {
 		return nil, err
 	} else if height.GT(latestFinalizedHeight) {
 		return nil, fmt.Errorf("the requested height is greater than the latest finalized height: %v > %v", height, latestFinalizedHeight)
+	} else if height == nil || height.IsZero() {
+		return pr.createMockHeader(latestFinalizedHeight)
+	} else {
+		return pr.createMockHeader(height)
 	}
-	return pr.createMockHeader(height)
 }
 
 // CheckRefreshRequired always returns false because mock clients don't need refresh.

@@ -121,11 +121,11 @@ func UpdateClients(src, dst *ProvableChain) error {
 func getHeadersForCreateClient(src, dst LightClient) (srch, dsth Header, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
-		srch, err = src.GetLatestFinalizedHeader()
+		srch, err = src.GetFinalizedHeader(nil)
 		return err
 	})
 	eg.Go(func() error {
-		dsth, err = dst.GetLatestFinalizedHeader()
+		dsth, err = dst.GetFinalizedHeader(nil)
 		return err
 	})
 	if err := eg.Wait(); err != nil {
