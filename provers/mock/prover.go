@@ -93,10 +93,10 @@ func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
 func (pr *Prover) GetFinalizedHeader(height exported.Height) (core.Header, error) {
 	if latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight(); err != nil {
 		return nil, err
-	} else if height.GT(latestFinalizedHeight) {
-		return nil, fmt.Errorf("the requested height is greater than the latest finalized height: %v > %v", height, latestFinalizedHeight)
 	} else if height == nil || height.IsZero() {
 		return pr.createMockHeader(latestFinalizedHeight)
+	} else if height.GT(latestFinalizedHeight) {
+		return nil, fmt.Errorf("the requested height is greater than the latest finalized height: %v > %v", height, latestFinalizedHeight)
 	} else {
 		return pr.createMockHeader(height)
 	}
