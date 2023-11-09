@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func CreateClients(src, dst *ProvableChain, srcHeight, dstHeight *uint64) error {
+func CreateClients(src, dst *ProvableChain, srcHeight, dstHeight uint64) error {
 	logger := GetChainPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateClients")
 	var (
@@ -118,7 +118,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 }
 
 // getHeadersForCreateClient calls UpdateLightWithHeader on the passed chains concurrently
-func getHeadersForCreateClient(src, dst LightClient, srcHeight, dstHeight *uint64) (srch, dsth Header, err error) {
+func getHeadersForCreateClient(src, dst LightClient, srcHeight, dstHeight uint64) (srch, dsth Header, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
 		srch, err = src.GetFinalizedHeader(srcHeight)

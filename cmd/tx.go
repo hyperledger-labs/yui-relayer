@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"math"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -43,6 +42,10 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 		flagSrcHeight = "src-height"
 		flagDstHeight = "dst-height"
 	)
+	const (
+		defaultSrcHeight = 0
+		defaultDstHeight = 0
+	)
 	cmd := &cobra.Command{
 		Use:   "clients [path-name]",
 		Short: "create a clients between two configured chains with a configured path",
@@ -63,29 +66,21 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var srcHeight *uint64
-			if h, err := cmd.Flags().GetUint64(flagSrcHeight); err != nil {
+			srcHeight, err := cmd.Flags().GetUint64(flagSrcHeight)
+			if err != nil {
 				return err
-			} else if h == math.MaxUint64 {
-				srcHeight = nil
-			} else {
-				srcHeight = &h
 			}
 
-			var dstHeight *uint64
-			if h, err := cmd.Flags().GetUint64(flagDstHeight); err != nil {
+			dstHeight, err := cmd.Flags().GetUint64(flagDstHeight)
+			if err != nil {
 				return err
-			} else if h == math.MaxUint64 {
-				dstHeight = nil
-			} else {
-				dstHeight = &h
 			}
 
 			return core.CreateClients(c[src], c[dst], srcHeight, dstHeight)
 		},
 	}
-	cmd.Flags().Uint64(flagSrcHeight, math.MaxUint64, "src header at this height is submitted to dst chain")
-	cmd.Flags().Uint64(flagDstHeight, math.MaxUint64, "dst header at this height is submitted to src chain")
+	cmd.Flags().Uint64(flagSrcHeight, defaultSrcHeight, "src header at this height is submitted to dst chain")
+	cmd.Flags().Uint64(flagDstHeight, defaultDstHeight, "dst header at this height is submitted to src chain")
 	return cmd
 }
 

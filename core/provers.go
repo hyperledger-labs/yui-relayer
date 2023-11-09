@@ -51,7 +51,7 @@ type FinalityAware interface {
 	// GetFinalizedHeader returns the finalized header on this chain corresponding to `height`.
 	// If `height` is nil, this function returns the latest finalized header.
 	// If the header at `height` isn't finalized yet, this function returns an error.
-	GetFinalizedHeader(height *uint64) (Header, error)
+	GetFinalizedHeader(height uint64) (Header, error)
 }
 
 // FinalityAwareChain is FinalityAware + Chain
