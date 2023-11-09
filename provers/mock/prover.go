@@ -90,15 +90,16 @@ func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
 }
 
 // GetFinalizedHeader returns the finalized header at `height`
-func (pr *Prover) GetFinalizedHeader(height exported.Height) (core.Header, error) {
+func (pr *Prover) GetFinalizedHeader(height *uint64) (core.Header, error) {
 	if latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight(); err != nil {
 		return nil, err
-	} else if height == nil || height.IsZero() {
+	} else if height == nil {
 		return pr.createMockHeader(latestFinalizedHeight)
-	} else if height.GT(latestFinalizedHeight) {
-		return nil, fmt.Errorf("the requested height is greater than the latest finalized height: %v > %v", height, latestFinalizedHeight)
+	} else if *height > latestFinalizedHeight.GetRevisionHeight() {
+		return nil, fmt.Errorf("the requested height is greater than the latest finalized height: %v > %v", *height, latestFinalizedHeight)
 	} else {
-		return pr.createMockHeader(height)
+		ics02Height := clienttypes.NewHeight(latestFinalizedHeight.GetRevisionNumber(), *height)
+		return pr.createMockHeader(ics02Height)
 	}
 }
 

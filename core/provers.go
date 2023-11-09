@@ -7,7 +7,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v7/modules/core/exported"
 )
 
 // Prover represents a prover that supports generating a commitment proof
@@ -50,9 +49,9 @@ type LightClient interface {
 // FinalityAware provides the capability to determine the finality of the chain
 type FinalityAware interface {
 	// GetFinalizedHeader returns the finalized header on this chain corresponding to `height`.
-	// If `height` is nil or zero, this function returns the latest finalized header.
+	// If `height` is nil, this function returns the latest finalized header.
 	// If the header at `height` isn't finalized yet, this function returns an error.
-	GetFinalizedHeader(height exported.Height) (Header, error)
+	GetFinalizedHeader(height *uint64) (Header, error)
 }
 
 // FinalityAwareChain is FinalityAware + Chain

@@ -13,7 +13,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	ibcclient "github.com/cosmos/ibc-go/v7/modules/core/client"
-	"github.com/cosmos/ibc-go/v7/modules/core/exported"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	tmclient "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
 
@@ -110,11 +109,11 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 }
 
 // GetFinalizedHeader returns the finalized header at `height`
-func (pr *Prover) GetFinalizedHeader(height exported.Height) (core.Header, error) {
-	if height == nil || height.IsZero() {
+func (pr *Prover) GetFinalizedHeader(height *uint64) (core.Header, error) {
+	if height == nil {
 		return pr.UpdateLightClient(0)
 	} else {
-		return pr.UpdateLightClient(int64(height.GetRevisionHeight()))
+		return pr.UpdateLightClient(int64(*height))
 	}
 }
 
