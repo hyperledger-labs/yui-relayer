@@ -504,14 +504,14 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, rpForRecv, rpFor
 	// check if LC refresh is needed
 	if !needsUpdateForSrc && doRefresh {
 		var err error
-		needsUpdateForSrc, err = src.CheckRefreshRequired(dst)
+		needsUpdateForSrc, err = dst.CheckRefreshRequired(src)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if the LC on the src chain needs to be refreshed: %v", err)
 		}
 	}
 	if !needsUpdateForDst && doRefresh {
 		var err error
-		needsUpdateForDst, err = dst.CheckRefreshRequired(src)
+		needsUpdateForDst, err = src.CheckRefreshRequired(dst)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if the LC on the dst chain needs to be refreshed: %v", err)
 		}
