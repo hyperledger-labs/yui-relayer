@@ -19,6 +19,6 @@ $RLY tendermint keys show $CHAINID_TWO $RLYKEY
 # add a path between chain0 and chain1
 $RLY paths add $CHAINID_ONE $CHAINID_TWO $PATH_NAME --file=./configs/path.json
 
-retry 5 $RLY tx clients $PATH_NAME
+retry 5 $RLY tx clients --dst-height 2 $PATH_NAME
 retry 5 $RLY tx connection $PATH_NAME
 retry 5 $RLY tx channel $PATH_NAME

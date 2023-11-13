@@ -38,6 +38,14 @@ func transactionCmd(ctx *config.Context) *cobra.Command {
 }
 
 func createClientsCmd(ctx *config.Context) *cobra.Command {
+	const (
+		flagSrcHeight = "src-height"
+		flagDstHeight = "dst-height"
+	)
+	const (
+		defaultSrcHeight = 0
+		defaultDstHeight = 0
+	)
 	cmd := &cobra.Command{
 		Use:   "clients [path-name]",
 		Short: "create a clients between two configured chains with a configured path",
@@ -58,9 +66,21 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateClients(c[src], c[dst])
+			srcHeight, err := cmd.Flags().GetUint64(flagSrcHeight)
+			if err != nil {
+				return err
+			}
+
+			dstHeight, err := cmd.Flags().GetUint64(flagDstHeight)
+			if err != nil {
+				return err
+			}
+
+			return core.CreateClients(c[src], c[dst], srcHeight, dstHeight)
 		},
 	}
+	cmd.Flags().Uint64(flagSrcHeight, defaultSrcHeight, "src header at this height is submitted to dst chain")
+	cmd.Flags().Uint64(flagDstHeight, defaultDstHeight, "dst header at this height is submitted to src chain")
 	return cmd
 }
 

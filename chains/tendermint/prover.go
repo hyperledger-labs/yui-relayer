@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cometbft/cometbft/light"
+	"github.com/cometbft/cometbft/types"
 	tmtypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -107,13 +108,9 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 	return []core.Header{&h}, nil
 }
 
-// GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header, err error) {
-	h, err := pr.UpdateLightClient()
-	if err != nil {
-		return nil, err
-	}
-	return h, nil
+// GetFinalizedHeader returns the finalized header at `height`
+func (pr *Prover) GetFinalizedHeader(height uint64) (core.Header, error) {
+	return pr.UpdateLightClient(int64(height))
 }
 
 func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) (bool, error) {
@@ -183,7 +180,7 @@ func (pr *Prover) GetLatestLightHeight() (int64, error) {
 	return client.LastTrustedHeight()
 }
 
-func (pr *Prover) UpdateLightClient() (core.Header, error) {
+func (pr *Prover) UpdateLightClient(height int64) (core.Header, error) {
 	// create database connection
 	db, df, err := pr.NewLightDB()
 	if err != nil {
@@ -196,14 +193,18 @@ func (pr *Prover) UpdateLightClient() (core.Header, error) {
 		return nil, lightError(err)
 	}
 
-	sh, err := client.Update(context.Background(), time.Now())
-	if err != nil {
-		return nil, lightError(err)
-	}
-
-	if sh == nil {
-		sh, err = client.TrustedLightBlock(0)
-		if err != nil {
+	var sh *types.LightBlock
+	if height == 0 {
+		if sh, err = client.Update(context.Background(), time.Now()); err != nil {
+			return nil, lightError(err)
+		} else if sh == nil {
+			sh, err = client.TrustedLightBlock(0)
+			if err != nil {
+				return nil, lightError(err)
+			}
+		}
+	} else {
+		if sh, err = client.VerifyLightBlockAtHeight(context.Background(), height, time.Now()); err != nil {
 			return nil, lightError(err)
 		}
 	}

@@ -3,11 +3,13 @@ package mock
 import (
 	"context"
 	"crypto/sha256"
+	fmt "fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	"github.com/cosmos/ibc-go/v7/modules/core/exported"
 
 	mocktypes "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
@@ -58,30 +60,47 @@ func (pr *Prover) SetupHeadersForUpdate(_ core.FinalityAwareChain, latestFinaliz
 	return []core.Header{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }
 
-// GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (latestFinalizedHeader core.Header, err error) {
-	chainLatestHeight, err := pr.chain.LatestHeight()
+func (pr *Prover) createMockHeader(height exported.Height) (core.Header, error) {
+	timestamp, err := pr.chain.Timestamp(height)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get block timestamp at height:%v", height)
+	}
+	return &mocktypes.Header{
+		Height: clienttypes.Height{
+			RevisionNumber: height.GetRevisionNumber(),
+			RevisionHeight: height.GetRevisionHeight(),
+		},
+		Timestamp: uint64(timestamp.UnixNano()),
+	}, nil
+}
+
+func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
+	height, err := pr.chain.LatestHeight()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest height: %v", err)
 	}
 	for i := uint64(0); i < pr.config.FinalityDelay; i++ {
-		if prevHeight, success := chainLatestHeight.Decrement(); success {
-			chainLatestHeight = prevHeight
+		if h, ok := height.Decrement(); ok {
+			height = h
 		} else {
 			break
 		}
 	}
-	timestamp, err := pr.chain.Timestamp(chainLatestHeight)
-	if err != nil {
+	return height, nil
+}
+
+// GetFinalizedHeader returns the finalized header at `height`
+func (pr *Prover) GetFinalizedHeader(height uint64) (core.Header, error) {
+	if latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight(); err != nil {
 		return nil, err
+	} else if height == 0 {
+		return pr.createMockHeader(latestFinalizedHeight)
+	} else if height > latestFinalizedHeight.GetRevisionHeight() {
+		return nil, fmt.Errorf("the requested height is greater than the latest finalized height: %v > %v", height, latestFinalizedHeight)
+	} else {
+		ics02Height := clienttypes.NewHeight(latestFinalizedHeight.GetRevisionNumber(), height)
+		return pr.createMockHeader(ics02Height)
 	}
-	return &mocktypes.Header{
-		Height: clienttypes.Height{
-			RevisionNumber: chainLatestHeight.GetRevisionNumber(),
-			RevisionHeight: chainLatestHeight.GetRevisionHeight(),
-		},
-		Timestamp: uint64(timestamp.UnixNano()),
-	}, nil
 }
 
 // CheckRefreshRequired always returns false because mock clients don't need refresh.

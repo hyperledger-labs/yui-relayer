@@ -209,7 +209,7 @@ func (c *Chain) QueryUnfinalizedRelayPackets(ctx core.QueryContext, counterparty
 	}
 
 	var counterpartyCtx core.QueryContext
-	if counterpartyH, err := counterparty.GetLatestFinalizedHeader(); err != nil {
+	if counterpartyH, err := counterparty.GetFinalizedHeader(0); err != nil {
 		return nil, err
 	} else {
 		counterpartyCtx = core.NewQueryContext(context.TODO(), counterpartyH.GetHeight())
@@ -262,7 +262,7 @@ func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, cou
 	}
 
 	var counterpartyCtx core.QueryContext
-	if counterpartyH, err := counterparty.GetLatestFinalizedHeader(); err != nil {
+	if counterpartyH, err := counterparty.GetFinalizedHeader(0); err != nil {
 		return nil, err
 	} else {
 		counterpartyCtx = core.NewQueryContext(context.TODO(), counterpartyH.GetHeight())
