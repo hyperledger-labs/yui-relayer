@@ -32,6 +32,9 @@ type StrategyI interface {
 
 	// Send executes submission of msgs to src/dst chains
 	Send(src, dst Chain, msgs *RelayMsgs)
+
+	// SkipRelay skips relay on `src` and `dst`
+	SkipRelay(src, dst bool)
 }
 
 // StrategyCfg defines which relaying strategy to take for a given path

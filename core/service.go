@@ -23,15 +23,27 @@ func StartService(
 }
 
 type RelayService struct {
-	src              *ProvableChain
-	dst              *ProvableChain
-	st               StrategyI
-	sh               SyncHeaders
-	interval         time.Duration
+	src           *ProvableChain
+	dst           *ProvableChain
+	st            StrategyI
+	sh            SyncHeaders
+	interval      time.Duration
+	optimizeRelay OptimizeRelay
+}
+
+type OptimizeRelay struct {
 	optimizeInterval time.Duration
 	optimizeCount    int64
-	srcCurrentTime   time.Time
-	dstCurrentTime   time.Time
+
+	srcRelayPacketStartTime WatchStartTime
+	dstRelayPacketStartTime WatchStartTime
+	srcRelayAckStartTime    WatchStartTime
+	dstRelayAckStartTime    WatchStartTime
+}
+
+type WatchStartTime struct {
+	Reset     bool
+	StartTime time.Time
 }
 
 // NewRelayService returns a new service
@@ -42,15 +54,31 @@ func NewRelayService(
 	interval, optimizeInterval time.Duration,
 	optimizeCount int64) *RelayService {
 	return &RelayService{
-		src:              src,
-		dst:              dst,
-		st:               st,
-		sh:               sh,
-		interval:         interval,
-		optimizeInterval: optimizeInterval,
-		optimizeCount:    optimizeCount,
-		srcCurrentTime:   time.Now(),
-		dstCurrentTime:   time.Now(),
+		src:      src,
+		dst:      dst,
+		st:       st,
+		sh:       sh,
+		interval: interval,
+		optimizeRelay: OptimizeRelay{
+			optimizeInterval: optimizeInterval,
+			optimizeCount:    optimizeCount,
+			srcRelayPacketStartTime: WatchStartTime{
+				Reset:     false,
+				StartTime: time.Now(),
+			},
+			dstRelayPacketStartTime: WatchStartTime{
+				Reset:     false,
+				StartTime: time.Now(),
+			},
+			srcRelayAckStartTime: WatchStartTime{
+				Reset:     false,
+				StartTime: time.Now(),
+			},
+			dstRelayAckStartTime: WatchStartTime{
+				Reset:     false,
+				StartTime: time.Now(),
+			},
+		},
 	}
 }
 
@@ -115,24 +143,52 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		msgs.Merge(m)
 	}
 
+	// reset watch start time for packets
+	if len(pseqs.Src) > 0 {
+		resetWatchStartTime(&srv.optimizeRelay.srcRelayPacketStartTime)
+	}
+	if len(pseqs.Dst) > 0 {
+		resetWatchStartTime(&srv.optimizeRelay.dstRelayPacketStartTime)
+	}
+
 	// relay packets if unrelayed seqs exist
-	if srv.optimizeRelay(pseqs) {
-		if m, err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh); err != nil {
-			logger.Error("failed to relay packets", err)
-			return err
-		} else {
-			msgs.Merge(m)
+	srcRelayPackets, dstRelayPackets := srv.shouldExecuteRelay(pseqs, srv.optimizeRelay.srcRelayPacketStartTime, srv.optimizeRelay.dstRelayPacketStartTime)
+	srv.st.SkipRelay(!srcRelayPackets, !dstRelayPackets)
+	if m, err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh); err != nil {
+		logger.Error("failed to relay packets", err)
+		return err
+	} else {
+		if srcRelayPackets {
+			srv.optimizeRelay.srcRelayPacketStartTime.Reset = true
 		}
+		if dstRelayPackets {
+			srv.optimizeRelay.dstRelayPacketStartTime.Reset = true
+		}
+		msgs.Merge(m)
+	}
+
+	// reset watch start time for acks
+	if len(aseqs.Src) > 0 {
+		resetWatchStartTime(&srv.optimizeRelay.srcRelayAckStartTime)
+	}
+	if len(aseqs.Dst) > 0 {
+		resetWatchStartTime(&srv.optimizeRelay.dstRelayAckStartTime)
 	}
 
 	// relay acks if unrelayed seqs exist
-	if srv.optimizeRelay(aseqs) {
-		if m, err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh); err != nil {
-			logger.Error("failed to relay acknowledgements", err)
-			return err
-		} else {
-			msgs.Merge(m)
+	srcRelayAcks, dstRelayAcks := srv.shouldExecuteRelay(aseqs, srv.optimizeRelay.srcRelayAckStartTime, srv.optimizeRelay.dstRelayAckStartTime)
+	srv.st.SkipRelay(!srcRelayAcks, !dstRelayAcks)
+	if m, err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh); err != nil {
+		logger.Error("failed to relay acknowledgements", err)
+		return err
+	} else {
+		if srcRelayAcks {
+			srv.optimizeRelay.srcRelayAckStartTime.Reset = true
 		}
+		if dstRelayAcks {
+			srv.optimizeRelay.dstRelayAckStartTime.Reset = true
+		}
+		msgs.Merge(m)
 	}
 
 	// send all msgs to src/dst chains
@@ -141,23 +197,35 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	return nil
 }
 
-func (srv *RelayService) optimizeRelay(pseqs *RelayPackets) bool {
+func (srv *RelayService) shouldExecuteRelay(seqs *RelayPackets, srcRelayStartTime, dstRelayStartTime WatchStartTime) (bool, bool) {
+	srcRelay := false
+	dstRelay := false
+
 	// packet count
-	srcPacketCount := len(pseqs.Src)
-	dstPacketCount := len(pseqs.Dst)
-	if int64(srcPacketCount) >= srv.optimizeCount || int64(dstPacketCount) >= srv.optimizeCount {
-		return true
+	srcRelayCount := len(seqs.Src)
+	dstRelayCount := len(seqs.Dst)
+	if int64(srcRelayCount) >= srv.optimizeRelay.optimizeCount {
+		srcRelay = true
 	}
+	if int64(dstRelayCount) >= srv.optimizeRelay.optimizeCount {
+		dstRelay = true
+	}
+
 	// time interval
-	if time.Since(srv.srcCurrentTime) >= srv.optimizeInterval || time.Since(srv.dstCurrentTime) >= srv.optimizeInterval {
-		return true
+	if time.Since(srcRelayStartTime.StartTime) >= srv.optimizeRelay.optimizeInterval {
+		srcRelay = true
 	}
-	// set current time
-	if srcPacketCount > 0 {
-		srv.srcCurrentTime = time.Now()
+	if time.Since(dstRelayStartTime.StartTime) >= srv.optimizeRelay.optimizeInterval {
+		dstRelay = true
 	}
-	if dstPacketCount > 0 {
-		srv.dstCurrentTime = time.Now()
+
+	return srcRelay, dstRelay
+}
+
+func resetWatchStartTime(watchStartTime *WatchStartTime) {
+	if !watchStartTime.Reset {
+		return
 	}
-	return false
+	watchStartTime.Reset = false
+	watchStartTime.StartTime = time.Now()
 }
