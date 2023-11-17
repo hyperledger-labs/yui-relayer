@@ -25,9 +25,6 @@ type NaiveStrategy struct {
 	dstNoAck     bool
 
 	metrics naiveStrategyMetrics
-
-	srcSkipRelay bool
-	dstSkipRelay bool
 }
 
 type naiveStrategyMetrics struct {
@@ -202,7 +199,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 	}, nil
 }
 
-func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) (*RelayMsgs, error) {
+func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, srcOptimizeRelay, dstOptimizeRelay bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayPackets", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
@@ -228,7 +225,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 		return nil, err
 	}
 
-	if !st.srcSkipRelay {
+	if srcOptimizeRelay {
 		msgs.Dst, err = collectPackets(srcCtx, src, rp.Src, dstAddress)
 		if err != nil {
 			logger.Error(
@@ -239,7 +236,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 		}
 	}
 
-	if !st.dstSkipRelay {
+	if dstOptimizeRelay {
 		msgs.Src, err = collectPackets(dstCtx, dst, rp.Dst, srcAddress)
 		if err != nil {
 			logger.Error(
@@ -423,7 +420,7 @@ func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 	)
 }
 
-func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders) (*RelayMsgs, error) {
+func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, srcOptimizeRelay, dstOptimizeRelay bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
@@ -448,13 +445,13 @@ func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Rela
 		return nil, err
 	}
 
-	if !st.dstNoAck && !st.srcSkipRelay {
+	if !st.dstNoAck && srcOptimizeRelay {
 		msgs.Dst, err = collectAcks(srcCtx, src, rp.Src, dstAddress)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if !st.srcNoAck && !st.dstSkipRelay {
+	if !st.srcNoAck && dstOptimizeRelay {
 		msgs.Src, err = collectAcks(dstCtx, dst, rp.Dst, srcAddress)
 		if err != nil {
 			return nil, err
@@ -574,11 +571,6 @@ func (st *NaiveStrategy) Send(src, dst Chain, msgs *RelayMsgs) {
 		slog.Group("src", "msg_count", len(msgs.Src)),
 		slog.Group("dst", "msg_count", len(msgs.Dst)),
 	)
-}
-
-func (st *NaiveStrategy) SkipRelay(src, dst bool) {
-	st.srcSkipRelay = src
-	st.dstSkipRelay = dst
 }
 
 func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, dst ChainInfo, newSrcBacklog, newDstBacklog PacketInfoList) error {

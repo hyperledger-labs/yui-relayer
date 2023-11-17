@@ -50,7 +50,7 @@ TM_ADDRESS1=$(${RLY} tendermint keys show ibc1 testkey)
 RETRY_COUNT=10
 RETRY_INTERVAL=1
 
-${RLY} service start ibc01 --relay-interval 10s --relay-optimize-interval 15s --relay-optimize-count 3 &
+${RLY} service start ibc01 --relay-interval 10s --src-relay-optimize-interval 15s --src-relay-optimize-count 3 --dst-relay-optimize-interval 15s --dst-relay-optimize-count 3 &
 RLY_PID=$!
 
 # transfer a token

@@ -27,10 +27,12 @@ func serviceCmd(ctx *config.Context) *cobra.Command {
 
 func startCmd(ctx *config.Context) *cobra.Command {
 	const (
-		flagRelayInterval         = "relay-interval"
-		flagPrometheusAddr        = "prometheus-addr"
-		flagRelayOptimizeInterval = "relay-optimize-interval"
-		flagRelayOptimizeCount    = "relay-optimize-count"
+		flagRelayInterval            = "relay-interval"
+		flagPrometheusAddr           = "prometheus-addr"
+		flagSrcRelayOptimizeInterval = "src-relay-optimize-interval"
+		flagSrcRelayOptimizeCount    = "src-relay-optimize-count"
+		flagDstRelayOptimizeInterval = "dst-relay-optimize-interval"
+		flagDstRelayOptimizeCount    = "dst-relay-optimize-count"
 	)
 	const (
 		defaultRelayInterval         = 3 * time.Second
@@ -64,12 +66,24 @@ func startCmd(ctx *config.Context) *cobra.Command {
 			if err := st.SetupRelay(context.TODO(), c[src], c[dst]); err != nil {
 				return err
 			}
-			return core.StartService(context.Background(), st, c[src], c[dst], viper.GetDuration(flagRelayInterval), viper.GetDuration(flagRelayOptimizeInterval), viper.GetInt64(flagRelayOptimizeCount))
+			return core.StartService(
+				context.Background(),
+				st,
+				c[src],
+				c[dst],
+				viper.GetDuration(flagRelayInterval),
+				viper.GetDuration(flagSrcRelayOptimizeInterval),
+				viper.GetInt64(flagSrcRelayOptimizeCount),
+				viper.GetDuration(flagDstRelayOptimizeInterval),
+				viper.GetInt64(flagDstRelayOptimizeCount),
+			)
 		},
 	}
 	cmd.Flags().Duration(flagRelayInterval, defaultRelayInterval, "time interval to perform relays")
 	cmd.Flags().String(flagPrometheusAddr, defaultPrometheusAddr, "host address to which the prometheus exporter listens")
-	cmd.Flags().Duration(flagRelayOptimizeInterval, defaultRelayOptimizeInterval, "time interval to perform relays optimization")
-	cmd.Flags().Int64(flagRelayOptimizeCount, defaultRelayOptimizeCount, "number of packets to relays optimization")
+	cmd.Flags().Duration(flagSrcRelayOptimizeInterval, defaultRelayOptimizeInterval, "time interval to perform relays optimization on source chain")
+	cmd.Flags().Int64(flagSrcRelayOptimizeCount, defaultRelayOptimizeCount, "number of packets to relays optimization on source chain")
+	cmd.Flags().Duration(flagDstRelayOptimizeInterval, defaultRelayOptimizeInterval, "time interval to perform relays optimization on destination chain")
+	cmd.Flags().Int64(flagDstRelayOptimizeCount, defaultRelayOptimizeCount, "number of packets to relays optimization on destination chain")
 	return cmd
 }
