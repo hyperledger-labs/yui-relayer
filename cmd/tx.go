@@ -69,18 +69,24 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
+			// if the option "src-height" is not set or is set zero, the latest finalized height is used.
 			var srcHeight exported.Height
 			if height, err := cmd.Flags().GetUint64(flagSrcHeight); err != nil {
 				return err
+			} else if height == 0 {
+				srcHeight = nil
 			} else if latestHeight, err := c[src].LatestHeight(); err != nil {
 				return fmt.Errorf("failed to get the latest height of src chain: %v", err)
 			} else {
 				srcHeight = clienttypes.NewHeight(latestHeight.GetRevisionNumber(), height)
 			}
 
+			// if the option "dst-height" is not set or is set zero, the latest finalized height is used.
 			var dstHeight exported.Height
 			if height, err := cmd.Flags().GetUint64(flagDstHeight); err != nil {
 				return err
+			} else if height == 0 {
+				dstHeight = nil
 			} else if latestHeight, err := c[dst].LatestHeight(); err != nil {
 				return fmt.Errorf("failed to get the latest height of dst chain: %v", err)
 			} else {

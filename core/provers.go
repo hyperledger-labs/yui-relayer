@@ -35,6 +35,7 @@ type LightClient interface {
 
 	// CreateInitialLightClientState returns a pair of ClientState and ConsensusState based on the state of the self chain at `height`.
 	// These states will be submitted to the counterparty chain as MsgCreateClient.
+	// If `height` is nil, the latest finalized height is selected automatically.
 	CreateInitialLightClientState(height exported.Height) (exported.ClientState, exported.ConsensusState, error)
 
 	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain

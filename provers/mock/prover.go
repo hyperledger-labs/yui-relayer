@@ -40,6 +40,14 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 
 // CreateInitialLightClientState creates a pair of ClientState and ConsensusState for building MsgCreateClient submitted to the counterparty chain
 func (pr *Prover) CreateInitialLightClientState(height exported.Height) (exported.ClientState, exported.ConsensusState, error) {
+	if height == nil {
+		if head, err := pr.GetLatestFinalizedHeader(); err != nil {
+			return nil, nil, fmt.Errorf("failed to get the latest finalized header: %v", err)
+		} else {
+			height = head.GetHeight()
+		}
+	}
+
 	clientState := &mocktypes.ClientState{
 		LatestHeight: clienttypes.NewHeight(
 			height.GetRevisionNumber(),

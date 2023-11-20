@@ -58,9 +58,13 @@ func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) (
 
 // CreateInitialLightClientState creates a pair of ClientState and ConsensusState submitted to the counterparty chain as MsgCreateClient
 func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibcexported.ClientState, ibcexported.ConsensusState, error) {
-	selfHeader, err := pr.UpdateLightClient(int64(height.GetRevisionHeight()))
+	var tmHeight int64
+	if height != nil {
+		tmHeight = int64(height.GetRevisionHeight())
+	}
+	selfHeader, err := pr.UpdateLightClient(tmHeight)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to update the local light client and get the header@%d: %v", height, err)
+		return nil, nil, fmt.Errorf("failed to update the local light client and get the header@%d: %v", tmHeight, err)
 	}
 
 	ubdPeriod, err := pr.chain.QueryUnbondingPeriod()
