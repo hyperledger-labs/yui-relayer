@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	"github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
@@ -66,14 +69,22 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			srcHeight, err := cmd.Flags().GetUint64(flagSrcHeight)
-			if err != nil {
+			var srcHeight exported.Height
+			if height, err := cmd.Flags().GetUint64(flagSrcHeight); err != nil {
 				return err
+			} else if latestHeight, err := c[src].LatestHeight(); err != nil {
+				return fmt.Errorf("failed to get the latest height of src chain: %v", err)
+			} else {
+				srcHeight = clienttypes.NewHeight(latestHeight.GetRevisionNumber(), height)
 			}
 
-			dstHeight, err := cmd.Flags().GetUint64(flagDstHeight)
-			if err != nil {
+			var dstHeight exported.Height
+			if height, err := cmd.Flags().GetUint64(flagDstHeight); err != nil {
 				return err
+			} else if latestHeight, err := c[dst].LatestHeight(); err != nil {
+				return fmt.Errorf("failed to get the latest height of dst chain: %v", err)
+			} else {
+				dstHeight = clienttypes.NewHeight(latestHeight.GetRevisionNumber(), height)
 			}
 
 			return core.CreateClients(c[src], c[dst], srcHeight, dstHeight)
