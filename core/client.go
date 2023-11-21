@@ -1,28 +1,21 @@
 package core
 
 import (
+	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	"github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/log"
-	"golang.org/x/sync/errgroup"
 )
 
-func CreateClients(src, dst *ProvableChain, srcHeight, dstHeight uint64) error {
+func CreateClients(src, dst *ProvableChain, srcHeight, dstHeight exported.Height) error {
 	logger := GetChainPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateClients")
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
-
-	srcH, dstH, err := getHeadersForCreateClient(src, dst, srcHeight, dstHeight)
-	if err != nil {
-		logger.Error(
-			"failed to get headers for create client",
-			err,
-		)
-		return err
-	}
 
 	srcAddr, err := src.GetAddress()
 	if err != nil {
@@ -42,24 +35,27 @@ func CreateClients(src, dst *ProvableChain, srcHeight, dstHeight uint64) error {
 	}
 
 	{
-		msg, err := dst.CreateMsgCreateClient(dstH, srcAddr)
+		cs, cons, err := dst.CreateInitialLightClientState(dstHeight)
 		if err != nil {
-			logger.Error(
-				"failed to create client",
-				err,
-			)
+			logger.Error("failed to create initial light client state", err)
 			return err
+		}
+		msg, err := clienttypes.NewMsgCreateClient(cs, cons, srcAddr.String())
+		if err != nil {
+			return fmt.Errorf("failed to create MsgCreateClient: %v", err)
 		}
 		clients.Src = append(clients.Src, msg)
 	}
 
 	{
-		msg, err := src.CreateMsgCreateClient(srcH, dstAddr)
+		cs, cons, err := src.CreateInitialLightClientState(srcHeight)
 		if err != nil {
-			logger.Error(
-				"failed to create client",
-				err,
-			)
+			logger.Error("failed to create initial light client state", err)
+			return err
+		}
+		msg, err := clienttypes.NewMsgCreateClient(cs, cons, dstAddr.String())
+		if err != nil {
+			logger.Error("failed to create MsgCreateClient: %v", err)
 			return err
 		}
 		clients.Dst = append(clients.Dst, msg)
@@ -115,23 +111,6 @@ func UpdateClients(src, dst *ProvableChain) error {
 		}
 	}
 	return nil
-}
-
-// getHeadersForCreateClient calls UpdateLightWithHeader on the passed chains concurrently
-func getHeadersForCreateClient(src, dst LightClient, srcHeight, dstHeight uint64) (srch, dsth Header, err error) {
-	var eg = new(errgroup.Group)
-	eg.Go(func() error {
-		srch, err = src.GetFinalizedHeader(srcHeight)
-		return err
-	})
-	eg.Go(func() error {
-		dsth, err = dst.GetFinalizedHeader(dstHeight)
-		return err
-	})
-	if err := eg.Wait(); err != nil {
-		return nil, nil, err
-	}
-	return srch, dsth, nil
 }
 
 func GetClientPairLogger(src, dst Chain) *log.RelayLogger {

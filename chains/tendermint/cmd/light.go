@@ -108,7 +108,7 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("Updated light client for %s from height %d -> height %d\n", args[0], bh.Header.Height, ah.(*tmclient.Header).Header.Height)
+			fmt.Printf("Updated light client for %s from height %d -> height %d\n", args[0], bh.Header.Height, ah.Header.Height)
 			return nil
 		},
 	}

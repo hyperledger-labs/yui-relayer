@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/cometbft/cometbft/light"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v7/modules/core/23-commitment/types"
 	tmclient "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
@@ -13,7 +12,7 @@ import (
 func createClient(
 	dstHeader *tmclient.Header,
 	trustingPeriod, unbondingPeriod time.Duration,
-	signer sdk.AccAddress) *clienttypes.MsgCreateClient {
+) *tmclient.ClientState {
 	if err := dstHeader.ValidateBasic(); err != nil {
 		panic(err)
 	}
@@ -30,17 +29,5 @@ func createClient(
 		[]string{"upgrade", "upgradedIBCState"},
 	)
 
-	msg, err := clienttypes.NewMsgCreateClient(
-		clientState,
-		dstHeader.ConsensusState(),
-		signer.String(),
-	)
-
-	if err != nil {
-		panic(err)
-	}
-	if err = msg.ValidateBasic(); err != nil {
-		panic(err)
-	}
-	return msg
+	return clientState
 }

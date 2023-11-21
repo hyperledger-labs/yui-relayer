@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	"github.com/cosmos/ibc-go/v7/modules/core/exported"
 )
 
 // Prover represents a prover that supports generating a commitment proof
@@ -33,8 +33,10 @@ type StateProver interface {
 type LightClient interface {
 	FinalityAware
 
-	// CreateMsgCreateClient creates a MsgCreateClient for the counterparty chain
-	CreateMsgCreateClient(selfHeader Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error)
+	// CreateInitialLightClientState returns a pair of ClientState and ConsensusState based on the state of the self chain at `height`.
+	// These states will be submitted to the counterparty chain as MsgCreateClient.
+	// If `height` is nil, the latest finalized height is selected automatically.
+	CreateInitialLightClientState(height exported.Height) (exported.ClientState, exported.ConsensusState, error)
 
 	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 	// The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
@@ -48,10 +50,9 @@ type LightClient interface {
 
 // FinalityAware provides the capability to determine the finality of the chain
 type FinalityAware interface {
-	// GetFinalizedHeader returns the finalized header on this chain corresponding to `height`.
-	// If `height` is zero, this function returns the latest finalized header.
-	// If the header at `height` isn't finalized yet, this function returns an error.
-	GetFinalizedHeader(height uint64) (Header, error)
+	// GetLatestFinalizedHeader returns the latest finalized header on this chain
+	// The returned header is expected to be the latest one of headers that can be verified by the light client
+	GetLatestFinalizedHeader() (latestFinalizedHeader Header, err error)
 }
 
 // FinalityAwareChain is FinalityAware + Chain

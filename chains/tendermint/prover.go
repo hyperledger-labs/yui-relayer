@@ -10,7 +10,6 @@ import (
 	"github.com/cometbft/cometbft/types"
 	tmtypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	ibcclient "github.com/cosmos/ibc-go/v7/modules/core/client"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
@@ -57,18 +56,31 @@ func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) (
 
 /* LightClient implementation */
 
-// CreateMsgCreateClient creates a MsgCreateClient for the counterparty chain
-func (pr *Prover) CreateMsgCreateClient(selfHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
+// CreateInitialLightClientState creates a pair of ClientState and ConsensusState submitted to the counterparty chain as MsgCreateClient
+func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibcexported.ClientState, ibcexported.ConsensusState, error) {
+	var tmHeight int64
+	if height != nil {
+		tmHeight = int64(height.GetRevisionHeight())
+	}
+	selfHeader, err := pr.UpdateLightClient(tmHeight)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to update the local light client and get the header@%d: %v", tmHeight, err)
+	}
+
 	ubdPeriod, err := pr.chain.QueryUnbondingPeriod()
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("failed to query for the unbonding period: %v", err)
 	}
-	return createClient(
-		selfHeader.(*tmclient.Header),
+
+	cs := createClient(
+		selfHeader,
 		pr.getTrustingPeriod(),
 		ubdPeriod,
-		signer,
-	), nil
+	)
+
+	cons := selfHeader.ConsensusState()
+
+	return cs, cons, nil
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
@@ -108,9 +120,9 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 	return []core.Header{&h}, nil
 }
 
-// GetFinalizedHeader returns the finalized header at `height`
-func (pr *Prover) GetFinalizedHeader(height uint64) (core.Header, error) {
-	return pr.UpdateLightClient(int64(height))
+// GetLatestFinalizedHeader returns the latest finalized header
+func (pr *Prover) GetLatestFinalizedHeader() (core.Header, error) {
+	return pr.UpdateLightClient(0)
 }
 
 func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) (bool, error) {
@@ -180,7 +192,7 @@ func (pr *Prover) GetLatestLightHeight() (int64, error) {
 	return client.LastTrustedHeight()
 }
 
-func (pr *Prover) UpdateLightClient(height int64) (core.Header, error) {
+func (pr *Prover) UpdateLightClient(height int64) (*tmclient.Header, error) {
 	// create database connection
 	db, df, err := pr.NewLightDB()
 	if err != nil {
