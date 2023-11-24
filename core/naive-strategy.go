@@ -199,7 +199,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 	}, nil
 }
 
-func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, srcOptimizeRelay, dstOptimizeRelay bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayPackets", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
@@ -225,7 +225,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 		return nil, err
 	}
 
-	if srcOptimizeRelay {
+	if doExecuteRelaySrc {
 		msgs.Dst, err = collectPackets(srcCtx, src, rp.Src, dstAddress)
 		if err != nil {
 			logger.Error(
@@ -236,7 +236,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 		}
 	}
 
-	if dstOptimizeRelay {
+	if doExecuteRelayDst {
 		msgs.Src, err = collectPackets(dstCtx, dst, rp.Dst, srcAddress)
 		if err != nil {
 			logger.Error(
@@ -420,7 +420,7 @@ func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 	)
 }
 
-func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, srcOptimizeRelay, dstOptimizeRelay bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
@@ -445,13 +445,13 @@ func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Rela
 		return nil, err
 	}
 
-	if !st.dstNoAck && srcOptimizeRelay {
+	if !st.dstNoAck && doExecuteRelaySrc {
 		msgs.Dst, err = collectAcks(srcCtx, src, rp.Src, dstAddress)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if !st.srcNoAck && dstOptimizeRelay {
+	if !st.srcNoAck && doExecuteRelayDst {
 		msgs.Src, err = collectAcks(dstCtx, dst, rp.Dst, srcAddress)
 		if err != nil {
 			return nil, err
@@ -495,16 +495,13 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 	return msgs, nil
 }
 
-func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, rpForRecv, rpForAck *RelayPackets, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 
 	msgs := NewRelayMsgs()
 
-	// check if unrelayed packets or acks exist
-	needsUpdateForSrc := len(rpForRecv.Dst) > 0 ||
-		!st.srcNoAck && len(rpForAck.Dst) > 0
-	needsUpdateForDst := len(rpForRecv.Src) > 0 ||
-		!st.dstNoAck && len(rpForAck.Src) > 0
+	needsUpdateForSrc := doExecuteRelaySrc || (doExecuteAckSrc && !st.srcNoAck)
+	needsUpdateForDst := doExecuteRelayDst || (doExecuteAckDst && !st.dstNoAck)
 
 	// check if LC refresh is needed
 	if !needsUpdateForSrc && doRefresh {

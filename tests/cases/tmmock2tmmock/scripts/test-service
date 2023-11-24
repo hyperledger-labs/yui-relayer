@@ -2,8 +2,10 @@
 
 : <<'END_COMMENT'
 * relay-interval = 10s
-* relay-optimize-interval = 15s
-* relay-optimize-count = 3
+* src-relay-optimize-interval = 15s
+* src-relay-optimize-count = 3
+* dst-relay-optimize-interval = 15s
+* dst-relay-optimize-count = 3
 
 - relay service [query = 0, time = 0] -> skip
     - transfer
@@ -15,12 +17,22 @@
     - 
     - 
     - 
-- relay service [query = 1, time = 10] -> skip
+- relay service [query = 1, time = 0] -> skip
     - transfer
     - 
     - 
     - finality
     - query = 2
+    - 
+    - 
+    - 
+    - 
+- relay service [query = 2, time = 10] -> skip
+    - 
+    - 
+    - 
+    - 
+    - 
     - 
     - 
     - 
@@ -34,7 +46,7 @@
     - 
     - 
     - 
-    -
+    - 
 - relay service [query = 3, time = 10] -> exec (count)
 END_COMMENT
 
@@ -80,7 +92,7 @@ if [ $unrelayed_packets -ne 2 ]; then
     exit 1
 fi
 
-sleep 7 # wait for relay-interval
+sleep 17 # wait for relay-interval
 echo "xxxxxxx relay service -> exec - time xxxxxx"
 
 # transfer a token x 3

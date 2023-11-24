@@ -85,19 +85,19 @@ func NewRelayService(
 			dstOptimizeInterval: dstOptimizeInterval,
 			dstOptimizeCount:    dstOptimizeCount,
 			srcRelayPacketStartTime: WatchStartTime{
-				AlreadySet: true,
+				AlreadySet: false,
 				StartTime:  time.Now(),
 			},
 			dstRelayPacketStartTime: WatchStartTime{
-				AlreadySet: true,
+				AlreadySet: false,
 				StartTime:  time.Now(),
 			},
 			srcRelayAckStartTime: WatchStartTime{
-				AlreadySet: true,
+				AlreadySet: false,
 				StartTime:  time.Now(),
 			},
 			dstRelayAckStartTime: WatchStartTime{
-				AlreadySet: true,
+				AlreadySet: false,
 				StartTime:  time.Now(),
 			},
 		},
@@ -157,35 +157,12 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 
 	msgs := NewRelayMsgs()
 
-	// update clients
-	if m, err := srv.st.UpdateClients(srv.src, srv.dst, pseqs, aseqs, srv.sh, true); err != nil {
-		logger.Error("failed to update clients", err)
-		return err
-	} else {
-		msgs.Merge(m)
-	}
-
 	// reset watch start time for packets
 	if len(pseqs.Src) > 0 {
 		resetWatchStartTime(&srv.optimizeRelay.srcRelayPacketStartTime)
 	}
 	if len(pseqs.Dst) > 0 {
 		resetWatchStartTime(&srv.optimizeRelay.dstRelayPacketStartTime)
-	}
-
-	// relay packets if unrelayed seqs exist
-	srcRelayPackets, dstRelayPackets := srv.shouldExecuteRelay(pseqs, srv.optimizeRelay.srcRelayPacketStartTime, srv.optimizeRelay.dstRelayPacketStartTime)
-	if m, err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh, srcRelayPackets, dstRelayPackets); err != nil {
-		logger.Error("failed to relay packets", err)
-		return err
-	} else {
-		if srcRelayPackets {
-			srv.optimizeRelay.srcRelayPacketStartTime.AlreadySet = false
-		}
-		if dstRelayPackets {
-			srv.optimizeRelay.dstRelayPacketStartTime.AlreadySet = false
-		}
-		msgs.Merge(m)
 	}
 
 	// reset watch start time for acks
@@ -196,19 +173,44 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		resetWatchStartTime(&srv.optimizeRelay.dstRelayAckStartTime)
 	}
 
+	doExecuteRelaySrc, doExecuteRelayDst := srv.shouldExecuteRelay(pseqs, srv.optimizeRelay.srcRelayPacketStartTime, srv.optimizeRelay.dstRelayPacketStartTime)
+	doExecuteAckSrc, doExecuteAckDst := srv.shouldExecuteRelay(aseqs, srv.optimizeRelay.srcRelayAckStartTime, srv.optimizeRelay.dstRelayAckStartTime)
+
+	// update clients
+	if m, err := srv.st.UpdateClients(srv.src, srv.dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, srv.sh, true); err != nil {
+		logger.Error("failed to update clients", err)
+		return err
+	} else {
+		msgs.Merge(m)
+	}
+
+	// relay packets if unrelayed seqs exist
+	if m, err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
+		logger.Error("failed to relay packets", err)
+		return err
+	} else {
+		msgs.Merge(m)
+	}
+
+	if doExecuteRelaySrc {
+		srv.optimizeRelay.srcRelayPacketStartTime.AlreadySet = false
+	}
+	if doExecuteRelayDst {
+		srv.optimizeRelay.dstRelayPacketStartTime.AlreadySet = false
+	}
+
 	// relay acks if unrelayed seqs exist
-	srcRelayAcks, dstRelayAcks := srv.shouldExecuteRelay(aseqs, srv.optimizeRelay.srcRelayAckStartTime, srv.optimizeRelay.dstRelayAckStartTime)
-	if m, err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh, srcRelayAcks, dstRelayAcks); err != nil {
+	if m, err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
 		logger.Error("failed to relay acknowledgements", err)
 		return err
 	} else {
-		if srcRelayAcks {
-			srv.optimizeRelay.srcRelayAckStartTime.AlreadySet = false
-		}
-		if dstRelayAcks {
-			srv.optimizeRelay.dstRelayAckStartTime.AlreadySet = false
-		}
 		msgs.Merge(m)
+	}
+	if doExecuteAckSrc {
+		srv.optimizeRelay.srcRelayAckStartTime.AlreadySet = false
+	}
+	if doExecuteAckDst {
+		srv.optimizeRelay.dstRelayAckStartTime.AlreadySet = false
 	}
 
 	// send all msgs to src/dst chains
