@@ -225,7 +225,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 		return nil, err
 	}
 
-	if doExecuteRelaySrc {
+	if doExecuteRelayDst {
 		msgs.Dst, err = collectPackets(srcCtx, src, rp.Src, dstAddress)
 		if err != nil {
 			logger.Error(
@@ -236,7 +236,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 		}
 	}
 
-	if doExecuteRelayDst {
+	if doExecuteRelaySrc {
 		msgs.Src, err = collectPackets(dstCtx, dst, rp.Dst, srcAddress)
 		if err != nil {
 			logger.Error(
@@ -420,7 +420,7 @@ func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 	)
 }
 
-func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
@@ -445,13 +445,13 @@ func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *Rela
 		return nil, err
 	}
 
-	if !st.dstNoAck && doExecuteRelaySrc {
+	if !st.dstNoAck && doExecuteAckDst {
 		msgs.Dst, err = collectAcks(srcCtx, src, rp.Src, dstAddress)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if !st.srcNoAck && doExecuteRelayDst {
+	if !st.srcNoAck && doExecuteAckSrc {
 		msgs.Src, err = collectAcks(dstCtx, dst, rp.Dst, srcAddress)
 		if err != nil {
 			return nil, err

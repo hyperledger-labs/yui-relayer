@@ -234,10 +234,10 @@ func (srv *RelayService) shouldExecuteRelay(seqs *RelayPackets, srcRelayStartTim
 	}
 
 	// time interval
-	if time.Since(srcRelayStartTime.StartTime) >= srv.optimizeRelay.srcOptimizeInterval {
+	if srcRelayStartTime.AlreadySet && time.Since(srcRelayStartTime.StartTime) >= srv.optimizeRelay.srcOptimizeInterval {
 		srcRelay = true
 	}
-	if time.Since(dstRelayStartTime.StartTime) >= srv.optimizeRelay.dstOptimizeInterval {
+	if dstRelayStartTime.AlreadySet && time.Since(dstRelayStartTime.StartTime) >= srv.optimizeRelay.dstOptimizeInterval {
 		dstRelay = true
 	}
 
