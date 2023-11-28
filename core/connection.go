@@ -43,7 +43,10 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 			continue
 		}
 
-		connSteps.Send(src, dst)
+		srcMsgIDs, dstMsgIDs := connSteps.Send(src, dst)
+		if err := SyncChainConfigFromEvents(srcMsgIDs, dstMsgIDs, src, dst, PathEndNameConnection); err != nil {
+			return err
+		}
 
 		switch {
 		// In the case of success and this being the last transaction
@@ -261,6 +264,9 @@ func mustGetAddress(chain interface {
 
 func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnection *conntypes.ConnectionEnd) (bool, error) {
 	logger := GetConnectionPairLogger(src, dst)
+	if src.Path().ConnectionID == "" && dst.Path().ConnectionID == "" {
+		return true, nil
+	}
 	sh, err := src.LatestHeight()
 	if err != nil {
 		return false, err

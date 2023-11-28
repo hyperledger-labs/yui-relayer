@@ -103,7 +103,7 @@ func pathsAddCmd(ctx *config.Context) *cobra.Command {
 				}
 			}
 
-			return overWriteConfig(ctx, cmd)
+			return ctx.Config.OverWriteConfig()
 		},
 	}
 	return fileFlag(cmd)
@@ -144,7 +144,7 @@ func pathsEditCmd(ctx *config.Context) *cobra.Command {
 			default:
 				return fmt.Errorf("invalid key: %s. Valid keys are: client-id, channel-id, connection-id, port-id", key)
 			}
-			return overWriteConfig(ctx, cmd)
+			return ctx.Config.OverWriteConfig()
 		},
 	}
 	return cmd

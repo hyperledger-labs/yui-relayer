@@ -9,16 +9,25 @@ import (
 
 // Vclient validates the client identifier in the path
 func (pe *PathEnd) Vclient() error {
+	if pe.ClientID == "" {
+		return nil
+	}
 	return host.ClientIdentifierValidator(pe.ClientID)
 }
 
 // Vconn validates the connection identifier in the path
 func (pe *PathEnd) Vconn() error {
+	if pe.ConnectionID == "" {
+		return nil
+	}
 	return host.ConnectionIdentifierValidator(pe.ConnectionID)
 }
 
 // Vchan validates the channel identifier in the path
 func (pe *PathEnd) Vchan() error {
+	if pe.ChannelID == "" {
+		return nil
+	}
 	return host.ChannelIdentifierValidator(pe.ChannelID)
 }
 

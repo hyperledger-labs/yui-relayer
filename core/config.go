@@ -5,11 +5,30 @@ import (
 	"errors"
 	"fmt"
 
+	retry "github.com/avast/retry-go"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/utils"
 )
+
+var config ConfigI
+
+type PathEndName string
+
+const (
+	PathEndNameClient     PathEndName = "client"
+	PathEndNameConnection PathEndName = "connection"
+	PathEndNameChannel    PathEndName = "channel"
+)
+
+type ConfigI interface {
+	UpdateConfigID(chainID string, key PathEndName, ID string) error
+}
+
+func CoreConfig(c ConfigI) {
+	config = c
+}
 
 // ChainProverConfig defines the top level configuration for a chain instance
 type ChainProverConfig struct {
@@ -110,4 +129,50 @@ func (cc ChainProverConfig) Build() (*ProvableChain, error) {
 		return nil, err
 	}
 	return NewProvableChain(chain, prover), nil
+}
+
+func SyncChainConfigFromEvents(msgIDsSrc, msgIDsDst []MsgID, src, dst *ProvableChain, key PathEndName) error {
+	if err := ProcessPathMsgIDs(msgIDsSrc, src, key); err != nil {
+		return err
+	}
+	if err := ProcessPathMsgIDs(msgIDsDst, dst, key); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ProcessPathMsgIDs(msgIDs []MsgID, chain *ProvableChain, key PathEndName) error {
+	for _, msgID := range msgIDs {
+		msgRes, err := chain.Chain.GetMsgResult(msgID)
+		if err != nil {
+			return retry.Unrecoverable(fmt.Errorf("failed to get message result: %v", err))
+		} else if ok, failureReason := msgRes.Status(); !ok {
+			return retry.Unrecoverable(fmt.Errorf("msg(id=%v) execution failed: %v", msgID, failureReason))
+		}
+
+		for _, event := range msgRes.Events() {
+			var id string
+			switch key {
+			case PathEndNameClient:
+				if clientIdentifier, ok := event.(*EventGenerateClientIdentifier); ok {
+					id = clientIdentifier.ID
+				}
+			case PathEndNameConnection:
+				if connectionIdentifier, ok := event.(*EventGenerateConnectionIdentifier); ok {
+					id = connectionIdentifier.ID
+				}
+			case PathEndNameChannel:
+				if channelIdentifier, ok := event.(*EventGenerateChannelIdentifier); ok {
+					id = channelIdentifier.ID
+				}
+			}
+			if id != "" {
+				if err := config.UpdateConfigID(chain.ChainID(), key, id); err != nil {
+					return err
+				}
+			}
+		}
+
+	}
+	return nil
 }

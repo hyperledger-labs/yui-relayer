@@ -34,7 +34,10 @@ func CreateChannel(src, dst *ProvableChain, to time.Duration) error {
 			continue
 		}
 
-		chanSteps.Send(src, dst)
+		srcMsgIDs, dstMsgIDs := chanSteps.Send(src, dst)
+		if err := SyncChainConfigFromEvents(srcMsgIDs, dstMsgIDs, src, dst, PathEndNameChannel); err != nil {
+			return err
+		}
 
 		switch {
 		// In the case of success and this being the last transaction
@@ -193,6 +196,9 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 
 func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chantypes.Channel) (bool, error) {
 	logger := GetChannelPairLogger(src, dst)
+	if src.Chain.Path().ChannelID == "" && dst.Chain.Path().ChannelID == "" {
+		return true, nil
+	}
 	sh, err := src.LatestHeight()
 	if err != nil {
 		return false, err

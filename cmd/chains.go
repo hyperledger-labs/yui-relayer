@@ -6,11 +6,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func chainsCmd(ctx *config.Context) *cobra.Command {
@@ -37,7 +35,7 @@ func chainsAddDirCmd(ctx *config.Context) *cobra.Command {
 			if err := filesAdd(ctx, args[0]); err != nil {
 				return err
 			}
-			return overWriteConfig(ctx, cmd)
+			return ctx.Config.OverWriteConfig()
 		},
 	}
 
@@ -77,36 +75,4 @@ func filesAdd(ctx *config.Context, dir string) error {
 		fmt.Printf("added %s...\n", chain.ChainID())
 	}
 	return nil
-}
-
-func overWriteConfig(ctx *config.Context, cmd *cobra.Command) error {
-	home, err := cmd.Flags().GetString(flags.FlagHome)
-	if err != nil {
-		return err
-	}
-
-	cfgPath := path.Join(home, "config", "config.yaml")
-	if _, err = os.Stat(cfgPath); err == nil {
-		viper.SetConfigFile(cfgPath)
-		if err = viper.ReadInConfig(); err == nil {
-			// ensure validateConfig runs properly
-			err = config.InitChains(ctx, homePath, debug)
-			if err != nil {
-				return err
-			}
-
-			// marshal the new config
-			out, err := config.MarshalJSON(*ctx.Config)
-			if err != nil {
-				return err
-			}
-
-			// overwrite the config file
-			err = os.WriteFile(viper.ConfigFileUsed(), out, 0600)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return err
 }

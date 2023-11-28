@@ -117,7 +117,7 @@ func configShowCmd(ctx *config.Context) *cobra.Command {
 }
 
 func defaultConfig() []byte {
-	bz, err := json.Marshal(config.DefaultConfig())
+	bz, err := json.Marshal(config.DefaultConfig(homePath))
 	if err != nil {
 		panic(err)
 	}
@@ -157,7 +157,7 @@ func initConfig(ctx *config.Context, cmd *cobra.Command) error {
 			}
 		}
 	} else {
-		defConfig := config.DefaultConfig()
+		defConfig := config.DefaultConfig(homePath)
 		ctx.Config = &defConfig
 	}
 	return nil

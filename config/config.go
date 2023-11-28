@@ -1,7 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -17,9 +20,9 @@ type Config struct {
 	chains Chains `yaml:"-" json:"-"`
 }
 
-func DefaultConfig() Config {
+func DefaultConfig(homePath string) Config {
 	return Config{
-		Global: newDefaultGlobalConfig(),
+		Global: newDefaultGlobalConfig(homePath),
 		Chains: []core.ChainProverConfig{},
 		Paths:  core.Paths{},
 	}
@@ -30,6 +33,7 @@ type GlobalConfig struct {
 	Timeout        string       `yaml:"timeout" json:"timeout"`
 	LightCacheSize int          `yaml:"light-cache-size" json:"light-cache-size"`
 	LoggerConfig   LoggerConfig `yaml:"logger" json:"logger"`
+	HomePath       string       `yaml:"home-path" json:"home-path"`
 }
 
 type LoggerConfig struct {
@@ -39,7 +43,7 @@ type LoggerConfig struct {
 }
 
 // newDefaultGlobalConfig returns a global config with defaults set
-func newDefaultGlobalConfig() GlobalConfig {
+func newDefaultGlobalConfig(homePath string) GlobalConfig {
 	return GlobalConfig{
 		Timeout:        "10s",
 		LightCacheSize: 20,
@@ -48,6 +52,7 @@ func newDefaultGlobalConfig() GlobalConfig {
 			Format: "json",
 			Output: "stderr",
 		},
+		HomePath: homePath,
 	}
 }
 
@@ -95,6 +100,8 @@ func (c *Config) DeleteChain(chain string) *Config {
 
 // ChainsFromPath takes the path name and returns the properly configured chains
 func (c *Config) ChainsFromPath(path string) (map[string]*core.ProvableChain, string, string, error) {
+	initCoreConfig(*c, path)
+
 	pth, err := c.Paths.Get(path)
 	if err != nil {
 		return nil, "", "", err
@@ -129,5 +136,17 @@ func InitChains(ctx *Context, homePath string, debug bool) error {
 		}
 	}
 
+	return nil
+}
+
+func (c *Config) OverWriteConfig() error {
+	configData, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	cfgPath := path.Join(c.Global.HomePath, "config", "config.yaml")
+	if err := os.WriteFile(cfgPath, configData, 0600); err != nil {
+		return err
+	}
 	return nil
 }

@@ -64,10 +64,14 @@ func CreateClients(src, dst *ProvableChain, srcHeight, dstHeight exported.Height
 	// Send msgs to both chains
 	if clients.Ready() {
 		// TODO: Add retry here for out of gas or other errors
-		if clients.Send(src, dst); clients.Success() {
+		srcMsgIDs, dstMsgIDs := clients.Send(src, dst)
+		if clients.Success() {
 			logger.Info(
 				"★ Clients created",
 			)
+		}
+		if err := SyncChainConfigFromEvents(srcMsgIDs, dstMsgIDs, src, dst, PathEndNameClient); err != nil {
+			return err
 		}
 	}
 	return nil
