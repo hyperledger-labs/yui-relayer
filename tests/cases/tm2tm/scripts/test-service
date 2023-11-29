@@ -67,7 +67,6 @@ RLY_PID=$!
 
 # transfer a token
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
-sleep 3 # finality_delay
 
 # query unrelayed-packets 1
 unrelayed_packets=$(${RLY} query unrelayed-packets ibc01 | jq '.src | length')
@@ -77,12 +76,11 @@ if [ $unrelayed_packets -ne 1 ]; then
     exit 1
 fi
 
-sleep 7 # wait for relay-interval
+sleep 10 # wait for relay-interval
 echo "xxxxxxx relay service -> skip xxxxxx"
 
 # transfer a token
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
-sleep 3 # finality_delay
 
 # query unrelayed-packets 2
 unrelayed_packets=$(${RLY} query unrelayed-packets ibc01 | jq '.src | length')
@@ -92,7 +90,7 @@ if [ $unrelayed_packets -ne 2 ]; then
     exit 1
 fi
 
-sleep 7 # wait for relay-interval
+sleep 10 # wait for relay-interval
 echo "xxxxxxx relay service -> skip xxxxxx"
 
 sleep 10 # wait for relay-interval
@@ -102,7 +100,6 @@ echo "xxxxxxx relay service -> exec - time xxxxxx"
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
-sleep 3 # finality_delay
 
 # query unrelayed-packets 3
 unrelayed_packets=$(${RLY} query unrelayed-packets ibc01 | jq '.src | length')
@@ -112,7 +109,7 @@ if [ $unrelayed_packets -ne 3 ]; then
     exit 1
 fi
 
-sleep 7 # wait for relay-interval
+sleep 10 # wait for relay-interval
 echo "xxxxxxx relay service -> exec - count xxxxxx"
 
 # wait for relay service to execute
