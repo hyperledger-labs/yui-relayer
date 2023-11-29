@@ -92,7 +92,10 @@ if [ $unrelayed_packets -ne 2 ]; then
     exit 1
 fi
 
-sleep 17 # wait for relay-interval
+sleep 7 # wait for relay-interval
+echo "xxxxxxx relay service -> skip xxxxxx"
+
+sleep 10 # wait for relay-interval
 echo "xxxxxxx relay service -> exec - time xxxxxx"
 
 # transfer a token x 3
@@ -109,7 +112,7 @@ if [ $unrelayed_packets -ne 3 ]; then
     exit 1
 fi
 
-sleep 20 # wait for relay-interval
+sleep 7 # wait for relay-interval
 echo "xxxxxxx relay service -> exec - count xxxxxx"
 
 # wait for relay service to execute

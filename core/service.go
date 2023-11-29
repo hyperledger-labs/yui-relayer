@@ -158,18 +158,18 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	msgs := NewRelayMsgs()
 
 	// reset watch start time for packets
-	if len(pseqs.Src) > 0 {
+	if len(pseqs.Dst) > 0 {
 		resetWatchStartTime(&srv.optimizeRelay.srcRelayPacketStartTime)
 	}
-	if len(pseqs.Dst) > 0 {
+	if len(pseqs.Src) > 0 {
 		resetWatchStartTime(&srv.optimizeRelay.dstRelayPacketStartTime)
 	}
 
 	// reset watch start time for acks
-	if len(aseqs.Src) > 0 {
+	if len(aseqs.Dst) > 0 {
 		resetWatchStartTime(&srv.optimizeRelay.srcRelayAckStartTime)
 	}
-	if len(aseqs.Dst) > 0 {
+	if len(aseqs.Src) > 0 {
 		resetWatchStartTime(&srv.optimizeRelay.dstRelayAckStartTime)
 	}
 
@@ -224,8 +224,8 @@ func (srv *RelayService) shouldExecuteRelay(seqs *RelayPackets, srcRelayStartTim
 	dstRelay := false
 
 	// packet count
-	srcRelayCount := len(seqs.Src)
-	dstRelayCount := len(seqs.Dst)
+	srcRelayCount := len(seqs.Dst)
+	dstRelayCount := len(seqs.Src)
 	if int64(srcRelayCount) >= srv.optimizeRelay.srcOptimizeCount {
 		srcRelay = true
 	}

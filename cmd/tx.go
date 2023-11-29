@@ -234,8 +234,8 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 
 			msgs := core.NewRelayMsgs()
 
-			doExecuteRelaySrc := len(sp.Src) > 0
-			doExecuteRelayDst := len(sp.Dst) > 0
+			doExecuteRelaySrc := len(sp.Dst) > 0
+			doExecuteRelayDst := len(sp.Src) > 0
 			doExecuteAckSrc := false
 			doExecuteAckDst := false
 
@@ -302,8 +302,8 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 
 			doExecuteRelaySrc := false
 			doExecuteRelayDst := false
-			doExecuteAckSrc := len(sp.Src) > 0
-			doExecuteAckDst := len(sp.Dst) > 0
+			doExecuteAckSrc := len(sp.Dst) > 0
+			doExecuteAckDst := len(sp.Src) > 0
 
 			if m, err := st.UpdateClients(c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
