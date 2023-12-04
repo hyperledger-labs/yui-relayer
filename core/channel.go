@@ -13,20 +13,14 @@ import (
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
-func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) error {
+func CreateChannel(src, dst *ProvableChain, to time.Duration) error {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateChannel")
-	var order chantypes.Order
-	if ordered {
-		order = chantypes.ORDERED
-	} else {
-		order = chantypes.UNORDERED
-	}
 
 	ticker := time.NewTicker(to)
 	failures := 0
 	for ; true; <-ticker.C {
-		chanSteps, err := createChannelStep(src, dst, order)
+		chanSteps, err := createChannelStep(src, dst)
 		if err != nil {
 			logger.Error(
 				"failed to create channel step",
@@ -75,7 +69,7 @@ func CreateChannel(src, dst *ProvableChain, ordered bool, to time.Duration) erro
 	return nil
 }
 
-func createChannelStep(src, dst *ProvableChain, ordering chantypes.Order) (*RelayMsgs, error) {
+func createChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err

@@ -186,8 +186,7 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 			if _, err = c[dst].GetAddress(); err != nil {
 				return err
 			}
-
-			return core.CreateChannel(c[src], c[dst], false, to)
+			return core.CreateChannel(c[src], c[dst], to)
 		},
 	}
 
