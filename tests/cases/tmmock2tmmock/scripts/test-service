@@ -56,6 +56,8 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd)
 RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
 RLY="${RLY_BINARY} --debug"
 
+source ${SCRIPT_DIR}/utils
+
 TM_ADDRESS0=$(${RLY} tendermint keys show ibc0 testkey)
 TM_ADDRESS1=$(${RLY} tendermint keys show ibc1 testkey)
 
@@ -69,13 +71,7 @@ RLY_PID=$!
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 sleep 3 # finality_delay
 
-# query unrelayed-packets 1
-unrelayed_packets=$(${RLY} query unrelayed-packets ibc01 | jq '.src | length')
-if [ $unrelayed_packets -ne 1 ]; then
-    echo "unrelayed_packets: $unrelayed_packets"
-    kill $RLY_PID
-    exit 1
-fi
+expectUnrelayedPackets 1
 
 sleep 7 # wait for relay-interval
 echo "xxxxxxx relay service -> skip xxxxxx"
@@ -84,13 +80,7 @@ echo "xxxxxxx relay service -> skip xxxxxx"
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 sleep 3 # finality_delay
 
-# query unrelayed-packets 2
-unrelayed_packets=$(${RLY} query unrelayed-packets ibc01 | jq '.src | length')
-if [ $unrelayed_packets -ne 2 ]; then
-    echo "unrelayed_packets: $unrelayed_packets"
-    kill $RLY_PID
-    exit 1
-fi
+expectUnrelayedPackets 2
 
 sleep 7 # wait for relay-interval
 echo "xxxxxxx relay service -> skip xxxxxx"
@@ -98,32 +88,19 @@ echo "xxxxxxx relay service -> skip xxxxxx"
 sleep 10 # wait for relay-interval
 echo "xxxxxxx relay service -> exec - time xxxxxx"
 
+expectUnrelayedPackets 0
+
 # transfer a token x 3
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 sleep 3 # finality_delay
 
-# query unrelayed-packets 3
-unrelayed_packets=$(${RLY} query unrelayed-packets ibc01 | jq '.src | length')
-if [ $unrelayed_packets -ne 3 ]; then
-    echo "unrelayed_packets: $unrelayed_packets"
-    kill $RLY_PID
-    exit 1
-fi
+expectUnrelayedPackets 3
 
-sleep 7 # wait for relay-interval
+sleep 10 # wait for relay-interval
 echo "xxxxxxx relay service -> exec - count xxxxxx"
 
-# wait for relay service to execute
-for i in `seq $RETRY_COUNT`
-do
-    echo "[try:$i] waiting for sendPacket finalization ..."
-    sleep $RETRY_INTERVAL
-    unrelayed=$(${RLY} query unrelayed-packets ibc01 | jq '.src | length')
-    if [ $unrelayed -eq 0 ]; then
-      break
-    fi
-done
+expectUnrelayedPackets 0
 
 kill $RLY_PID

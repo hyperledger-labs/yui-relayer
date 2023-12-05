@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+expectUnrelayedPackets() {
+    expect_count=$1
+    unrelayed_packets=$(${RLY} query unrelayed-packets ibc01 | jq '.src | length')
+    if [ $unrelayed_packets -ne ${expect_count} ]; then
+        echo "unrelayed_packets: $unrelayed_packets"
+        kill $RLY_PID
+        exit 1
+    fi
+}
