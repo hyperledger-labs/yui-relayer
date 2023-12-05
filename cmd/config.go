@@ -160,5 +160,6 @@ func initConfig(ctx *config.Context, cmd *cobra.Command) error {
 		defConfig := config.DefaultConfig(homePath)
 		ctx.Config = &defConfig
 	}
+	ctx.Config.InitCoreConfig()
 	return nil
 }

@@ -70,7 +70,7 @@ func CreateClients(src, dst *ProvableChain, srcHeight, dstHeight exported.Height
 				"★ Clients created",
 			)
 		}
-		if err := SyncChainConfigFromEvents(srcMsgIDs, dstMsgIDs, src, dst, PathEndNameClient); err != nil {
+		if err := SyncChainConfigsFromEvents(srcMsgIDs, dstMsgIDs, src, dst, ConfigIDClient); err != nil {
 			return err
 		}
 	}

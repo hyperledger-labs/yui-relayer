@@ -9,24 +9,16 @@ import (
 )
 
 // SendCheckMsgs is an utility function that executes `Chain::SendMsgs` and checks the execution results of all the messages.
-func SendCheckMsgs(chain Chain, msgs []types.Msg) bool {
+func SendCheckMsgs(chain Chain, msgs []types.Msg) ([]MsgID, bool) {
 	logger := GetChainLogger(chain)
 	now := time.Now()
-	if _, err := chain.SendMsgs(msgs); err != nil {
-		GetChainLogger(chain).Error("failed to send msgs", err, "msgs", msgs)
-		return false
-	}
-	logger.TimeTrack(now, "SendMsgs", "num_msgs", len(msgs))
-	return true
-}
-
-func SendMsgs(chain Chain, msgs []types.Msg) ([]MsgID, error) {
 	msgIDs, err := chain.SendMsgs(msgs)
 	if err != nil {
 		GetChainLogger(chain).Error("failed to send msgs", err, "msgs", msgs)
-		return nil, err
+		return nil, false
 	}
-	return msgIDs, nil
+	logger.TimeTrack(now, "SendMsgs", "num_msgs", len(msgs))
+	return msgIDs, true
 }
 
 // GetFinalizedMsgResult is an utility function that waits for the finalization of the message execution and then returns the result.

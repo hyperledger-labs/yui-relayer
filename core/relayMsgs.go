@@ -72,8 +72,8 @@ func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transactions to src chain and update its status
-			msgIDs, err := SendMsgs(src, msgs)
-			r.Succeeded = r.Succeeded && err == nil
+			msgIDs, ok := SendCheckMsgs(src, msgs)
+			r.Succeeded = r.Succeeded && ok
 			srcMsgIDs = append(srcMsgIDs, msgIDs...)
 
 			// clear the current batch and reset variables
@@ -85,10 +85,8 @@ func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
 
 	// submit leftover msgs
 	if len(msgs) > 0 {
-		msgIDs, err := SendMsgs(src, msgs)
-		if err != nil {
-			r.Succeeded = false
-		}
+		msgIDs, ok := SendCheckMsgs(src, msgs)
+		r.Succeeded = ok
 		srcMsgIDs = append(srcMsgIDs, msgIDs...)
 	}
 
@@ -108,8 +106,8 @@ func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transaction to dst chain and update its status
-			msgIDs, err := SendMsgs(dst, msgs)
-			r.Succeeded = r.Succeeded && err == nil
+			msgIDs, ok := SendCheckMsgs(dst, msgs)
+			r.Succeeded = r.Succeeded && ok
 			dstMsgIDs = append(dstMsgIDs, msgIDs...)
 
 			// clear the current batch and reset variables
@@ -121,10 +119,8 @@ func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
 
 	// submit leftover msgs
 	if len(msgs) > 0 {
-		msgIDs, err := SendMsgs(dst, msgs)
-		if err != nil {
-			r.Succeeded = false
-		}
+		msgIDs, ok := SendCheckMsgs(dst, msgs)
+		r.Succeeded = ok
 		dstMsgIDs = append(dstMsgIDs, msgIDs...)
 	}
 	return srcMsgIDs, dstMsgIDs

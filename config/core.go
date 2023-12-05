@@ -1,31 +1,26 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 type CoreConfig struct {
-	config   Config
-	pathName string
+	config *Config
 }
 
 var _ core.ConfigI = (*CoreConfig)(nil)
 
-func initCoreConfig(c Config, pathName string) {
+func initCoreConfig(c *Config) {
 	config := &CoreConfig{
-		config:   c,
-		pathName: pathName,
+		config: c,
 	}
-	core.CoreConfig(config)
+	core.SetCoreConfig(config)
 }
 
-func (c CoreConfig) UpdateConfigID(chainID string, key core.PathEndName, ID string) error {
-	configPath, err := c.config.Paths.Get(c.pathName)
+func (c CoreConfig) UpdateConfigID(chainID string, configID core.ConfigIDType, id string) error {
+	configPath, err := c.config.Paths.Get(c.config.Path)
 	if err != nil {
 		return err
 	}
@@ -39,20 +34,15 @@ func (c CoreConfig) UpdateConfigID(chainID string, key core.PathEndName, ID stri
 	if pathEnd == nil {
 		return fmt.Errorf("pathEnd is nil")
 	}
-	switch key {
-	case core.PathEndNameClient:
-		pathEnd.ClientID = ID
-	case core.PathEndNameConnection:
-		pathEnd.ConnectionID = ID
-	case core.PathEndNameChannel:
-		pathEnd.ChannelID = ID
+	switch configID {
+	case core.ConfigIDClient:
+		pathEnd.ClientID = id
+	case core.ConfigIDConnection:
+		pathEnd.ConnectionID = id
+	case core.ConfigIDChannel:
+		pathEnd.ChannelID = id
 	}
-	configData, err := json.Marshal(c.config)
-	if err != nil {
-		return err
-	}
-	cfgPath := path.Join(c.config.Global.HomePath, "config", "config.yaml")
-	if err := os.WriteFile(cfgPath, configData, 0600); err != nil {
+	if err := c.config.OverWriteConfig(); err != nil {
 		return err
 	}
 	return nil

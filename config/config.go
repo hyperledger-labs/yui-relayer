@@ -18,13 +18,17 @@ type Config struct {
 
 	// cache
 	chains Chains `yaml:"-" json:"-"`
+
+	HomePath string `yaml:"-" json:"-"`
+	Path     string `yaml:"-" json:"-"`
 }
 
 func DefaultConfig(homePath string) Config {
 	return Config{
-		Global: newDefaultGlobalConfig(homePath),
-		Chains: []core.ChainProverConfig{},
-		Paths:  core.Paths{},
+		Global:   newDefaultGlobalConfig(),
+		Chains:   []core.ChainProverConfig{},
+		Paths:    core.Paths{},
+		HomePath: homePath,
 	}
 }
 
@@ -33,7 +37,6 @@ type GlobalConfig struct {
 	Timeout        string       `yaml:"timeout" json:"timeout"`
 	LightCacheSize int          `yaml:"light-cache-size" json:"light-cache-size"`
 	LoggerConfig   LoggerConfig `yaml:"logger" json:"logger"`
-	HomePath       string       `yaml:"home-path" json:"home-path"`
 }
 
 type LoggerConfig struct {
@@ -43,7 +46,7 @@ type LoggerConfig struct {
 }
 
 // newDefaultGlobalConfig returns a global config with defaults set
-func newDefaultGlobalConfig(homePath string) GlobalConfig {
+func newDefaultGlobalConfig() GlobalConfig {
 	return GlobalConfig{
 		Timeout:        "10s",
 		LightCacheSize: 20,
@@ -52,8 +55,11 @@ func newDefaultGlobalConfig(homePath string) GlobalConfig {
 			Format: "json",
 			Output: "stderr",
 		},
-		HomePath: homePath,
 	}
+}
+
+func (c *Config) InitCoreConfig() {
+	initCoreConfig(c)
 }
 
 func (c *Config) GetChain(chainID string) (*core.ProvableChain, error) {
@@ -100,7 +106,7 @@ func (c *Config) DeleteChain(chain string) *Config {
 
 // ChainsFromPath takes the path name and returns the properly configured chains
 func (c *Config) ChainsFromPath(path string) (map[string]*core.ProvableChain, string, string, error) {
-	initCoreConfig(*c, path)
+	c.Path = path
 
 	pth, err := c.Paths.Get(path)
 	if err != nil {
@@ -144,7 +150,7 @@ func (c *Config) OverWriteConfig() error {
 	if err != nil {
 		return err
 	}
-	cfgPath := path.Join(c.Global.HomePath, "config", "config.yaml")
+	cfgPath := path.Join(c.HomePath, "config", "config.yaml")
 	if err := os.WriteFile(cfgPath, configData, 0600); err != nil {
 		return err
 	}

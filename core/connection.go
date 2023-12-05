@@ -44,7 +44,7 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		}
 
 		srcMsgIDs, dstMsgIDs := connSteps.Send(src, dst)
-		if err := SyncChainConfigFromEvents(srcMsgIDs, dstMsgIDs, src, dst, PathEndNameConnection); err != nil {
+		if err := SyncChainConfigsFromEvents(srcMsgIDs, dstMsgIDs, src, dst, ConfigIDConnection); err != nil {
 			return err
 		}
 

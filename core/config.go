@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	retry "github.com/avast/retry-go"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/hyperledger-labs/yui-relayer/log"
@@ -14,19 +13,19 @@ import (
 
 var config ConfigI
 
-type PathEndName string
+type ConfigIDType string
 
 const (
-	PathEndNameClient     PathEndName = "client"
-	PathEndNameConnection PathEndName = "connection"
-	PathEndNameChannel    PathEndName = "channel"
+	ConfigIDClient     ConfigIDType = "client"
+	ConfigIDConnection ConfigIDType = "connection"
+	ConfigIDChannel    ConfigIDType = "channel"
 )
 
 type ConfigI interface {
-	UpdateConfigID(chainID string, key PathEndName, ID string) error
+	UpdateConfigID(chainID string, configID ConfigIDType, id string) error
 }
 
-func CoreConfig(c ConfigI) {
+func SetCoreConfig(c ConfigI) {
 	config = c
 }
 
@@ -131,43 +130,43 @@ func (cc ChainProverConfig) Build() (*ProvableChain, error) {
 	return NewProvableChain(chain, prover), nil
 }
 
-func SyncChainConfigFromEvents(msgIDsSrc, msgIDsDst []MsgID, src, dst *ProvableChain, key PathEndName) error {
-	if err := ProcessPathMsgIDs(msgIDsSrc, src, key); err != nil {
+func SyncChainConfigsFromEvents(msgIDsSrc, msgIDsDst []MsgID, src, dst *ProvableChain, configID ConfigIDType) error {
+	if err := SyncChainConfigFromEvents(msgIDsSrc, src, configID); err != nil {
 		return err
 	}
-	if err := ProcessPathMsgIDs(msgIDsDst, dst, key); err != nil {
+	if err := SyncChainConfigFromEvents(msgIDsDst, dst, configID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func ProcessPathMsgIDs(msgIDs []MsgID, chain *ProvableChain, key PathEndName) error {
+func SyncChainConfigFromEvents(msgIDs []MsgID, chain *ProvableChain, configID ConfigIDType) error {
 	for _, msgID := range msgIDs {
 		msgRes, err := chain.Chain.GetMsgResult(msgID)
 		if err != nil {
-			return retry.Unrecoverable(fmt.Errorf("failed to get message result: %v", err))
+			return fmt.Errorf("failed to get message result: %v", err)
 		} else if ok, failureReason := msgRes.Status(); !ok {
-			return retry.Unrecoverable(fmt.Errorf("msg(id=%v) execution failed: %v", msgID, failureReason))
+			return fmt.Errorf("msg(id=%v) execution failed: %v", msgID, failureReason)
 		}
 
 		for _, event := range msgRes.Events() {
 			var id string
-			switch key {
-			case PathEndNameClient:
+			switch configID {
+			case ConfigIDClient:
 				if clientIdentifier, ok := event.(*EventGenerateClientIdentifier); ok {
 					id = clientIdentifier.ID
 				}
-			case PathEndNameConnection:
+			case ConfigIDConnection:
 				if connectionIdentifier, ok := event.(*EventGenerateConnectionIdentifier); ok {
 					id = connectionIdentifier.ID
 				}
-			case PathEndNameChannel:
+			case ConfigIDChannel:
 				if channelIdentifier, ok := event.(*EventGenerateChannelIdentifier); ok {
 					id = channelIdentifier.ID
 				}
 			}
 			if id != "" {
-				if err := config.UpdateConfigID(chain.ChainID(), key, id); err != nil {
+				if err := config.UpdateConfigID(chain.ChainID(), configID, id); err != nil {
 					return err
 				}
 			}
