@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
-expectUnrelayedPackets() {
-    expect_count=$1
-    unrelayed_packets=$(${RLY} query unrelayed-packets ibc01 | jq '.src | length')
-    if [ $unrelayed_packets -ne ${expect_count} ]; then
-        echo "unrelayed_packets: $unrelayed_packets"
+expectUnrelayedCount() {
+    query_type=$1
+    filter=".$2 | length"
+    expect_count=$3
+    unrelayed_count=$(${RLY} query ${query_type} ibc01 | jq "${filter}")
+    if [ $unrelayed_count -ne ${expect_count} ]; then
+        echo "$query_type: $unrelayed_count"
         kill $RLY_PID
         exit 1
     fi

@@ -14,9 +14,9 @@ func StartService(
 	src, dst *ProvableChain,
 	relayInterval,
 	srcRelayOptimizeInterval time.Duration,
-	srcRelayOptimizeCount int64,
+	srcRelayOptimizeCount uint64,
 	dstRelayOptimizaInterval time.Duration,
-	dstRelayOptimizeCount int64,
+	dstRelayOptimizeCount uint64,
 ) error {
 	sh, err := NewSyncHeaders(src, dst)
 	if err != nil {
@@ -47,9 +47,9 @@ type RelayService struct {
 
 type OptimizeRelay struct {
 	srcOptimizeInterval time.Duration
-	srcOptimizeCount    int64
+	srcOptimizeCount    uint64
 	dstOptimizeInterval time.Duration
-	dstOptimizeCount    int64
+	dstOptimizeCount    uint64
 
 	srcRelayPacketStartTime WatchStartTime
 	dstRelayPacketStartTime WatchStartTime
@@ -69,9 +69,9 @@ func NewRelayService(
 	sh SyncHeaders,
 	interval,
 	srcOptimizeInterval time.Duration,
-	srcOptimizeCount int64,
+	srcOptimizeCount uint64,
 	dstOptimizeInterval time.Duration,
-	dstOptimizeCount int64,
+	dstOptimizeCount uint64,
 ) *RelayService {
 	return &RelayService{
 		src:      src,
@@ -206,10 +206,10 @@ func (srv *RelayService) shouldExecuteRelay(seqs *RelayPackets, srcStartTime, ds
 	// packet count
 	srcRelayCount := len(seqs.Dst)
 	dstRelayCount := len(seqs.Src)
-	if int64(srcRelayCount) >= srv.optimizeRelay.srcOptimizeCount {
+	if uint64(srcRelayCount) >= srv.optimizeRelay.srcOptimizeCount {
 		srcRelay = true
 	}
-	if int64(dstRelayCount) >= srv.optimizeRelay.dstOptimizeCount {
+	if uint64(dstRelayCount) >= srv.optimizeRelay.dstOptimizeCount {
 		dstRelay = true
 	}
 

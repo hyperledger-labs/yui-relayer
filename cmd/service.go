@@ -73,9 +73,9 @@ func startCmd(ctx *config.Context) *cobra.Command {
 				c[dst],
 				viper.GetDuration(flagRelayInterval),
 				viper.GetDuration(flagSrcRelayOptimizeInterval),
-				viper.GetInt64(flagSrcRelayOptimizeCount),
+				viper.GetUint64(flagSrcRelayOptimizeCount),
 				viper.GetDuration(flagDstRelayOptimizeInterval),
-				viper.GetInt64(flagDstRelayOptimizeCount),
+				viper.GetUint64(flagDstRelayOptimizeCount),
 			)
 		},
 	}
