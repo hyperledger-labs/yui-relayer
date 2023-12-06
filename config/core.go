@@ -19,8 +19,8 @@ func initCoreConfig(c *Config) {
 	core.SetCoreConfig(config)
 }
 
-func (c CoreConfig) UpdateConfigID(chainID string, configID core.ConfigIDType, id string) error {
-	configPath, err := c.config.Paths.Get(c.config.Path)
+func (c CoreConfig) UpdateConfigID(pathName string, chainID string, configID core.ConfigIDType, id string) error {
+	configPath, err := c.config.Paths.Get(pathName)
 	if err != nil {
 		return err
 	}

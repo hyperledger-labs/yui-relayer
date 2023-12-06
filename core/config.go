@@ -22,10 +22,13 @@ const (
 )
 
 type ConfigI interface {
-	UpdateConfigID(chainID string, configID ConfigIDType, id string) error
+	UpdateConfigID(pathName string, chainID string, configID ConfigIDType, id string) error
 }
 
 func SetCoreConfig(c ConfigI) {
+	if config != nil {
+		panic("core config already set")
+	}
 	config = c
 }
 
@@ -130,17 +133,17 @@ func (cc ChainProverConfig) Build() (*ProvableChain, error) {
 	return NewProvableChain(chain, prover), nil
 }
 
-func SyncChainConfigsFromEvents(msgIDsSrc, msgIDsDst []MsgID, src, dst *ProvableChain, configID ConfigIDType) error {
-	if err := SyncChainConfigFromEvents(msgIDsSrc, src, configID); err != nil {
+func SyncChainConfigsFromEvents(pathName string, msgIDsSrc, msgIDsDst []MsgID, src, dst *ProvableChain, configID ConfigIDType) error {
+	if err := SyncChainConfigFromEvents(pathName, msgIDsSrc, src, configID); err != nil {
 		return err
 	}
-	if err := SyncChainConfigFromEvents(msgIDsDst, dst, configID); err != nil {
+	if err := SyncChainConfigFromEvents(pathName, msgIDsDst, dst, configID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func SyncChainConfigFromEvents(msgIDs []MsgID, chain *ProvableChain, configID ConfigIDType) error {
+func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableChain, configID ConfigIDType) error {
 	for _, msgID := range msgIDs {
 		msgRes, err := chain.Chain.GetMsgResult(msgID)
 		if err != nil {
@@ -166,7 +169,7 @@ func SyncChainConfigFromEvents(msgIDs []MsgID, chain *ProvableChain, configID Co
 				}
 			}
 			if id != "" {
-				if err := config.UpdateConfigID(chain.ChainID(), configID, id); err != nil {
+				if err := config.UpdateConfigID(pathName, chain.ChainID(), configID, id); err != nil {
 					return err
 				}
 			}

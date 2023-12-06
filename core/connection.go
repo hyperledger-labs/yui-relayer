@@ -22,7 +22,7 @@ var (
 	rtyErr    = retry.LastErrorOnly(true)
 )
 
-func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
+func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration) error {
 	logger := GetConnectionPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateConnection")
 	ticker := time.NewTicker(to)
@@ -44,7 +44,7 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		}
 
 		srcMsgIDs, dstMsgIDs := connSteps.Send(src, dst)
-		if err := SyncChainConfigsFromEvents(srcMsgIDs, dstMsgIDs, src, dst, ConfigIDConnection); err != nil {
+		if err := SyncChainConfigsFromEvents(pathName, srcMsgIDs, dstMsgIDs, src, dst, ConfigIDConnection); err != nil {
 			return err
 		}
 

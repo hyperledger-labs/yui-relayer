@@ -20,7 +20,6 @@ type Config struct {
 	chains Chains `yaml:"-" json:"-"`
 
 	HomePath string `yaml:"-" json:"-"`
-	Path     string `yaml:"-" json:"-"`
 }
 
 func DefaultConfig(homePath string) Config {
@@ -106,7 +105,6 @@ func (c *Config) DeleteChain(chain string) *Config {
 
 // ChainsFromPath takes the path name and returns the properly configured chains
 func (c *Config) ChainsFromPath(path string) (map[string]*core.ProvableChain, string, string, error) {
-	c.Path = path
 
 	pth, err := c.Paths.Get(path)
 	if err != nil {

@@ -13,7 +13,7 @@ import (
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
-func CreateChannel(src, dst *ProvableChain, to time.Duration) error {
+func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) error {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateChannel")
 
@@ -35,7 +35,7 @@ func CreateChannel(src, dst *ProvableChain, to time.Duration) error {
 		}
 
 		srcMsgIDs, dstMsgIDs := chanSteps.Send(src, dst)
-		if err := SyncChainConfigsFromEvents(srcMsgIDs, dstMsgIDs, src, dst, ConfigIDChannel); err != nil {
+		if err := SyncChainConfigsFromEvents(pathName, srcMsgIDs, dstMsgIDs, src, dst, ConfigIDChannel); err != nil {
 			return err
 		}
 

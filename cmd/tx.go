@@ -56,7 +56,8 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 			" path by querying headers from each chain and then sending the corresponding create-client messages",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
+			pathName := args[0]
+			c, src, dst, err := ctx.Config.ChainsFromPath(pathName)
 			if err != nil {
 				return err
 			}
@@ -93,7 +94,7 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 				dstHeight = clienttypes.NewHeight(latestHeight.GetRevisionNumber(), height)
 			}
 
-			return core.CreateClients(c[src], c[dst], srcHeight, dstHeight)
+			return core.CreateClients(pathName, c[src], c[dst], srcHeight, dstHeight)
 		},
 	}
 	cmd.Flags().Uint64(flagSrcHeight, defaultSrcHeight, "src header at this height is submitted to dst chain")
@@ -136,7 +137,8 @@ func createConnectionCmd(ctx *config.Context) *cobra.Command {
 		a connection between two chains with a configured path in the config file`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
+			pathName := args[0]
+			c, src, dst, err := ctx.Config.ChainsFromPath(pathName)
 			if err != nil {
 				return err
 			}
@@ -154,7 +156,7 @@ func createConnectionCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateConnection(c[src], c[dst], to)
+			return core.CreateConnection(pathName, c[src], c[dst], to)
 		},
 	}
 
@@ -169,7 +171,8 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 		create a channel between two chains with a configured path in the config file`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
+			pathName := args[0]
+			c, src, dst, err := ctx.Config.ChainsFromPath(pathName)
 			if err != nil {
 				return err
 			}
@@ -186,7 +189,8 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 			if _, err = c[dst].GetAddress(); err != nil {
 				return err
 			}
-			return core.CreateChannel(c[src], c[dst], to)
+
+			return core.CreateChannel(pathName, c[src], c[dst], to)
 		},
 	}
 
