@@ -101,7 +101,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			now := time.Now()
 			srcPackets, err = src.QueryUnfinalizedRelayPackets(srcCtx, dst)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to query unfinalized relay packets on src chain: %w", err)
 			}
 			logger.TimeTrack(now, "QueryUnfinalizedRelayPackets", "queried_chain", "src", "num_packets", len(srcPackets))
 			return nil
@@ -123,7 +123,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			now := time.Now()
 			dstPackets, err = dst.QueryUnfinalizedRelayPackets(dstCtx, src)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to query unfinalized relay packets on dst chain: %w", err)
 			}
 			logger.TimeTrack(now, "QueryUnfinalizedRelayPackets", "queried_chain", "dst", "num_packets", len(dstPackets))
 			return nil
@@ -168,7 +168,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			now := time.Now()
 			seqs, err := dst.QueryUnreceivedPackets(dstCtx, srcPackets.ExtractSequenceList())
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to query unreceived packets on dst chain: %w", err)
 			}
 			logger.TimeTrack(now, "QueryUnreceivedPackets", "queried_chain", "dst", "num_seqs", len(seqs))
 			srcPackets = srcPackets.Filter(seqs)
@@ -179,7 +179,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			now := time.Now()
 			seqs, err := src.QueryUnreceivedPackets(srcCtx, dstPackets.ExtractSequenceList())
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to query unreceived packets on src chain: %w", err)
 			}
 			logger.TimeTrack(now, "QueryUnreceivedPackets", "queried_chain", "src", "num_seqs", len(seqs))
 			dstPackets = dstPackets.Filter(seqs)
@@ -286,7 +286,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				now := time.Now()
 				srcAcks, err = src.QueryUnfinalizedRelayAcknowledgements(srcCtx, dst)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to query unfinalized relay acknowledgements on src chain: %w", err)
 				}
 				logger.TimeTrack(now, "QueryUnfinalizedRelayAcknowledgements", "queried_chain", "src", "num_packets", len(srcAcks))
 				return nil
@@ -311,7 +311,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				now := time.Now()
 				dstAcks, err = dst.QueryUnfinalizedRelayAcknowledgements(dstCtx, src)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to query unfinalized relay acknowledgements on dst chain: %w", err)
 				}
 				logger.TimeTrack(now, "QueryUnfinalizedRelayAcknowledgements", "queried_chain", "dst", "num_packets", len(dstAcks))
 				return nil
@@ -355,7 +355,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				now := time.Now()
 				seqs, err := dst.QueryUnreceivedAcknowledgements(dstCtx, srcAcks.ExtractSequenceList())
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to query unreceived acknowledgements on dst chain: %w", err)
 				}
 				logger.TimeTrack(now, "QueryUnreceivedAcknowledgements", "queried_chain", "dst", "num_seqs", len(seqs))
 				srcAcks = srcAcks.Filter(seqs)
@@ -368,7 +368,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				now := time.Now()
 				seqs, err := src.QueryUnreceivedAcknowledgements(srcCtx, dstAcks.ExtractSequenceList())
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to query unreceived acknowledgements on src chain: %w", err)
 				}
 				logger.TimeTrack(now, "QueryUnreceivedAcknowledgements", "queried_chain", "src", "num_seqs", len(seqs))
 				dstAcks = dstAcks.Filter(seqs)

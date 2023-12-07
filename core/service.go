@@ -144,7 +144,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	// get unrelayed packets
 	pseqs, err := srv.st.UnrelayedPackets(srv.src, srv.dst, srv.sh, false)
 	if err != nil {
-		logger.Error("failed to get unrelayed sequences", err)
+		logger.Error("failed to get unrelayed packets", err)
 		return err
 	}
 

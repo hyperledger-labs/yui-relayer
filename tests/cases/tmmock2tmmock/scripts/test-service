@@ -8,27 +8,27 @@
 * dst-relay-optimize-count = 3
 
 - relay service [query = 0, time = 0] -> skip
-    - transfer
+    - sleep 2
+    - 
+    - transfer x 1
     - 
     - 
     - finality
-    - query = 1
-    - 
-    - 
-    - 
+    - packets = 1, ack = 0
+    - sleep 3
     - 
 - relay service [query = 1, time = 0] -> skip
-    - transfer
+    - sleep 2
+    - 
+    - transfer x 1
     - 
     - 
     - finality
-    - query = 2
-    - 
-    - 
-    - 
+    - packets = 2, ack = 0
+    - sleep 5
     - 
 - relay service [query = 2, time = 10] -> skip
-    - 
+    - sleep 10
     - 
     - 
     - 
@@ -38,17 +38,30 @@
     - 
     - 
 - relay service [query = 2, time = 20] -> exec (time)
-    - query = 0
+    - sleep 2
+    - 
+    - packets = 0, ack = 2
     - transfer x 3
     - 
+    - 
     - finality
-    - query = 3
-    - 
-    - 
-    - 
-    - 
+    - packets = 3, ack = 2
+    - sleep 5
 - relay service [query = 3, time = 10] -> exec (count)
-    - query = 0
+    - sleep 2
+    - 
+    - packets = 0, ack = 5
+    - sleep 8
+    - 
+    - 
+    - 
+    - 
+    - 
+- relay service [packets = 0, time = 20] -> exec (ack) (time + count)
+    - sleep 2
+    - 
+    - packets = 0, ack = 0
+    - Finished
 END_COMMENT
 
 set -eux
@@ -64,29 +77,31 @@ TM_ADDRESS1=$(${RLY} tendermint keys show ibc1 testkey)
 
 ${RLY} service start ibc01 --relay-interval 10s --src-relay-optimize-interval 15s --src-relay-optimize-count 3 --dst-relay-optimize-interval 15s --dst-relay-optimize-count 3 &
 RLY_PID=$!
+echo "xxxxxxx relay service [query = 0, time = 0] -> skip xxxxxx"
+sleep 2
 
-# transfer a token
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 sleep 3 # finality_delay
 
 expectUnrelayedCount "unrelayed-packets" "src" 1
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
+sleep 3
 
-sleep 7 # wait for relay-interval
-echo "xxxxxxx relay service -> skip xxxxxx"
+echo "xxxxxxx relay service [query = 1, time = 0] -> skip xxxxxx"
+sleep 2
 
-# transfer a token
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 sleep 3 # finality_delay
 
 expectUnrelayedCount "unrelayed-packets" "src" 2
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
+sleep 5
 
-sleep 7 # wait for relay-interval
-echo "xxxxxxx relay service -> skip xxxxxx"
+echo "xxxxxxx relay service [query = 2, time = 10] -> skip xxxxxx"
+sleep 10
 
-sleep 10 # wait for relay-interval
-echo "xxxxxxx relay service -> exec - time xxxxxx"
+echo "xxxxxxx relay service [query = 2, time = 20] -> exec (time) xxxxxx"
+sleep 2
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2
@@ -99,17 +114,21 @@ sleep 3 # finality_delay
 
 expectUnrelayedCount "unrelayed-packets" "src" 3
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2
+sleep 5
 
-sleep 10 # wait for relay-interval
-echo "xxxxxxx relay service -> exec - count xxxxxx"
+echo "xxxxxxx relay service [query = 3, time = 10] -> exec (count) xxxxxx"
+sleep 2
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 5
+sleep 8
 
-sleep 10 # wait for relay-interval
 echo "xxxxxxx relay service -> exec (ack) - time + count xxxxxx"
+sleep 2
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
+
+echo "Finished"
 
 kill $RLY_PID
