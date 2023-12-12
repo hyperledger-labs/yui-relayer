@@ -8,21 +8,21 @@
 * dst-relay-optimize-count = 3
 
 - relay service [packets = 0, time = 0] -> skip
-    - sleep 2
+    - sleep 4
     - 
     - transfer x 1
     - packets = 1, ack = 0
-    - sleep 15
+    - sleep 16
     - 
     - 
     - 
     - 
 - relay service [packets = 1, time = 0] -> skip
-    - sleep 2
+    - sleep 4
     - 
     - transfer x 1
     - packets = 2, ack = 0
-    - sleep 18
+    - sleep 16
     - 
     - 
     - 
@@ -38,27 +38,27 @@
     - 
     - 
 - relay service [packets = 2, time = 20] -> exec (time)
-    - sleep 2
+    - sleep 4
     - 
     - packets = 0, ack = 2
     - transfer x 3
     - packets = 3, ack = 2
-    - sleep 15
+    - sleep 16
     - 
     - 
     - 
 - relay service [packets = 3, time = 20] -> exec (count)
-    - sleep 2
+    - sleep 4
     - 
     - packets = 0, ack = 5
-    - sleep 18
+    - sleep 16
     - 
     - 
     - 
     - 
     - 
 - relay service [packets = 0, time = 40] -> exec (ack) (time + count)
-    - sleep 2
+    - sleep 4
     - 
     - packets = 0, ack = 0
     - Finished
@@ -78,29 +78,29 @@ TM_ADDRESS1=$(${RLY} tendermint keys show ibc1 testkey)
 ${RLY} service start ibc01 --relay-interval 20s --src-relay-optimize-interval 25s --src-relay-optimize-count 3 --dst-relay-optimize-interval 25s --dst-relay-optimize-count 3 &
 RLY_PID=$!
 echo "xxxxxxx relay service [packets = 0, time = 0] -> skip xxxxxx"
-sleep 2
+sleep 4
 
 # transfer a token
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 
 expectUnrelayedCount "unrelayed-packets" "src" 1
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
-sleep 15
+sleep 16
 
 echo "xxxxxxx relay service [packets = 1, time = 0] -> skip xxxxxx"
-sleep 2
+sleep 4
 
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 
 expectUnrelayedCount "unrelayed-packets" "src" 2
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
-sleep 18
+sleep 16
 
 echo "xxxxxxx relay service [packets = 2, time = 10] -> skip xxxxxx"
 sleep 20
 
 echo "xxxxxxx  relay service [packets = 2, time = 20] -> exec (time) xxxxxx"
-sleep 2
+sleep 4
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2
@@ -111,17 +111,17 @@ ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 
 expectUnrelayedCount "unrelayed-packets" "src" 3
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2
-sleep 14
+sleep 16
 
 echo "xxxxxxx relay service [packets = 3, time = 10] -> exec (count) xxxxxx"
-sleep 2
+sleep 4
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 5
-sleep 18
+sleep 16
 
 echo "xxxxxxx relay service [packets = 0, time = 20] -> exec (ack) (time + count) xxxxxx"
-sleep 2
+sleep 4
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0

@@ -8,24 +8,24 @@
 * dst-relay-optimize-count = 3
 
 - relay service [query = 0, time = 0] -> skip
-    - sleep 2
+    - sleep 4
     - 
     - transfer x 1
     - 
     - 
     - finality
     - packets = 1, ack = 0
-    - sleep 12
+    - sleep 13
     - 
 - relay service [query = 1, time = 0] -> skip
-    - sleep 2
+    - sleep 4
     - 
     - transfer x 1
     - 
     - 
     - finality
     - packets = 2, ack = 0
-    - sleep 15
+    - sleep 13
     - 
 - relay service [query = 2, time = 20] -> skip
     - sleep 20
@@ -38,7 +38,7 @@
     - 
     - 
 - relay service [query = 2, time = 40] -> exec (time)
-    - sleep 2
+    - sleep 4
     - 
     - packets = 0, ack = 2
     - transfer x 3
@@ -46,19 +46,19 @@
     - 
     - finality
     - packets = 3, ack = 2
-    - sleep 12
+    - sleep 13
 - relay service [query = 3, time = 20] -> exec (count)
-    - sleep 2
+    - sleep 4
     - 
     - packets = 0, ack = 5
-    - sleep 18
+    - sleep 16
     - 
     - 
     - 
     - 
     - 
 - relay service [packets = 0, time = 40] -> exec (ack) (time + count)
-    - sleep 2
+    - sleep 4
     - 
     - packets = 0, ack = 0
     - Finished
@@ -79,30 +79,30 @@ SECONDS=0
 ${RLY} service start ibc01 --relay-interval 20s --src-relay-optimize-interval 25s --src-relay-optimize-count 3 --dst-relay-optimize-interval 25s --dst-relay-optimize-count 3 &
 RLY_PID=$!
 echo "xxxxxxx ${SECONDS} relay service [query = 0, time = 0] -> skip xxxxxx"
-sleep 2
+sleep 4
 
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 sleep 3 # finality_delay
 
 expectUnrelayedCount "unrelayed-packets" "src" 1
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
-sleep 12
+sleep 13
 
 echo "xxxxxxx ${SECONDS} relay service [query = 1, time = 0] -> skip xxxxxx"
-sleep 2
+sleep 4
 
 ${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
 sleep 3 # finality_delay
 
 expectUnrelayedCount "unrelayed-packets" "src" 2
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
-sleep 15
+sleep 13
 
 echo "xxxxxxx ${SECONDS} relay service [query = 2, time = 10] -> skip xxxxxx"
 sleep 20
 
 echo "xxxxxxx ${SECONDS} relay service [query = 2, time = 20] -> exec (time) xxxxxx"
-sleep 2
+sleep 4
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2
@@ -115,17 +115,17 @@ sleep 3 # finality_delay
 
 expectUnrelayedCount "unrelayed-packets" "src" 3
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2
-sleep 12
+sleep 13
 
 echo "xxxxxxx ${SECONDS} relay service [query = 3, time = 10] -> exec (count) xxxxxx"
-sleep 2
+sleep 4
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 5
-sleep 18
+sleep 16
 
 echo "xxxxxxx ${SECONDS} relay service -> exec (ack) - time + count xxxxxx"
-sleep 2
+sleep 4
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
