@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -19,15 +18,15 @@ type Config struct {
 	// cache
 	chains Chains `yaml:"-" json:"-"`
 
-	HomePath string `yaml:"-" json:"-"`
+	ConfigPath string `yaml:"-" json:"-"`
 }
 
-func DefaultConfig(homePath string) Config {
+func DefaultConfig(configPath string) Config {
 	return Config{
-		Global:   newDefaultGlobalConfig(),
-		Chains:   []core.ChainProverConfig{},
-		Paths:    core.Paths{},
-		HomePath: homePath,
+		Global:     newDefaultGlobalConfig(),
+		Chains:     []core.ChainProverConfig{},
+		Paths:      core.Paths{},
+		ConfigPath: configPath,
 	}
 }
 
@@ -148,8 +147,7 @@ func (c *Config) OverWriteConfig() error {
 	if err != nil {
 		return err
 	}
-	cfgPath := path.Join(c.HomePath, "config", "config.yaml")
-	if err := os.WriteFile(cfgPath, configData, 0600); err != nil {
+	if err := os.WriteFile(c.ConfigPath, configData, 0600); err != nil {
 		return err
 	}
 	return nil

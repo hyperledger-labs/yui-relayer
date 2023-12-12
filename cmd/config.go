@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func configCmd(ctx *config.Context) *cobra.Command {
@@ -22,44 +20,26 @@ func configCmd(ctx *config.Context) *cobra.Command {
 
 	cmd.AddCommand(
 		configShowCmd(ctx),
-		configInitCmd(),
+		configInitCmd(ctx),
 	)
 
 	return cmd
 }
 
 // Command for inititalizing an empty config at the --home location
-func configInitCmd() *cobra.Command {
+func configInitCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "init",
 		Aliases: []string{"i"},
 		Short:   "Creates a default home directory at path defined by --home",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
-				return err
-			}
-
-			cfgDir := path.Join(home, "config")
-			cfgPath := path.Join(cfgDir, "config.yaml")
-
+			cfgPath := ctx.Config.ConfigPath
 			// If the config doesn't exist...
 			if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-				// And the config folder doesn't exist...
-				if _, err := os.Stat(cfgDir); os.IsNotExist(err) {
-					// And the home folder doesn't exist
-					if _, err := os.Stat(home); os.IsNotExist(err) {
-						// Create the home folder
-						if err = os.Mkdir(home, os.ModePerm); err != nil {
-							return err
-						}
-					}
-					// Create the home config folder
-					if err = os.Mkdir(cfgDir, os.ModePerm); err != nil {
-						return err
-					}
+				dirPath := filepath.Dir(cfgPath)
+				if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+					return err
 				}
-
 				// Then create the file...
 				f, err := os.Create(cfgPath)
 				if err != nil {
@@ -90,16 +70,8 @@ func configShowCmd(ctx *config.Context) *cobra.Command {
 		Aliases: []string{"s", "list", "l"},
 		Short:   "Prints current configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			home, err := cmd.Flags().GetString(flags.FlagHome)
-			if err != nil {
-				return err
-			}
-
-			cfgPath := path.Join(home, "config", "config.yaml")
+			cfgPath := ctx.Config.ConfigPath
 			if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-				if _, err := os.Stat(home); os.IsNotExist(err) {
-					return fmt.Errorf("home path does not exist: %s", home)
-				}
 				return fmt.Errorf("config does not exist: %s", cfgPath)
 			}
 
@@ -117,7 +89,7 @@ func configShowCmd(ctx *config.Context) *cobra.Command {
 }
 
 func defaultConfig() []byte {
-	bz, err := json.Marshal(config.DefaultConfig(homePath))
+	bz, err := json.Marshal(config.DefaultConfig(fmt.Sprintf("%s/%s", homePath, configPath)))
 	if err != nil {
 		panic(err)
 	}
@@ -126,38 +98,27 @@ func defaultConfig() []byte {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig(ctx *config.Context, cmd *cobra.Command) error {
-	home, err := cmd.PersistentFlags().GetString(flags.FlagHome)
-	if err != nil {
-		return err
-	}
-
-	cfgPath := path.Join(home, "config", "config.yaml")
+	cfgPath := ctx.Config.ConfigPath
 	if _, err := os.Stat(cfgPath); err == nil {
-		viper.SetConfigFile(cfgPath)
-		if err := viper.ReadInConfig(); err == nil {
-			// read the config file bytes
-			file, err := os.ReadFile(viper.ConfigFileUsed())
-			if err != nil {
-				fmt.Println("Error reading file:", err)
-				os.Exit(1)
-			}
+		file, err := os.ReadFile(cfgPath)
+		if err != nil {
+			fmt.Println("Error reading file:", err)
+			os.Exit(1)
+		}
 
-			// unmarshall them into the struct
-			err = config.UnmarshalJSON(ctx.Codec, file, ctx.Config)
-			if err != nil {
-				fmt.Println("Error unmarshalling config:", err)
-				os.Exit(1)
-			}
+		// unmarshall them into the struct
+		if err = config.UnmarshalJSON(ctx.Codec, file, ctx.Config); err != nil {
+			fmt.Println("Error unmarshalling config:", err)
+			os.Exit(1)
+		}
 
-			// ensure config has []*relayer.Chain used for all chain operations
-			err = config.InitChains(ctx, homePath, debug)
-			if err != nil {
-				fmt.Println("Error parsing chain config:", err)
-				os.Exit(1)
-			}
+		// ensure config has []*relayer.Chain used for all chain operations
+		if err = config.InitChains(ctx, homePath, debug); err != nil {
+			fmt.Println("Error parsing chain config:", err)
+			os.Exit(1)
 		}
 	} else {
-		defConfig := config.DefaultConfig(homePath)
+		defConfig := config.DefaultConfig(fmt.Sprintf("%s/%s", homePath, configPath))
 		ctx.Config = &defConfig
 	}
 	ctx.Config.InitCoreConfig()
