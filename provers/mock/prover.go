@@ -3,6 +3,7 @@ package mock
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	fmt "fmt"
 	"time"
 
@@ -117,7 +118,8 @@ func (pr *Prover) CheckRefreshRequired(dst core.ChainInfoICS02Querier) (bool, er
 
 // ProveState returns the proof of an IBC state specified by `path` and `value`
 func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
-	return makeProof(value), ctx.Height().(clienttypes.Height), nil
+	height := ctx.Height().(clienttypes.Height)
+	return makeProof(height, path, value), height, nil
 }
 
 // ProveHostConsensusState returns the proof of the consensus state at `height`
@@ -125,7 +127,24 @@ func (pr *Prover) ProveHostConsensusState(ctx core.QueryContext, height exported
 	return clienttypes.MarshalConsensusState(pr.chain.Codec(), consensusState)
 }
 
-func makeProof(bz []byte) []byte {
-	h := sha256.Sum256(bz)
+func makeProof(height exported.Height, path string, bz []byte) []byte {
+	revisionNumber := height.GetRevisionNumber()
+	revisionHeight := height.GetRevisionHeight()
+
+	heightBuf := make([]byte, 16)
+	binary.BigEndian.PutUint64(heightBuf[:8], revisionNumber)
+	binary.BigEndian.PutUint64(heightBuf[8:], revisionHeight)
+
+	hashPrefix := sha256.Sum256(core.DefaultChainPrefix.Bytes())
+	hashPath := sha256.Sum256([]byte(path))
+	hashValue := sha256.Sum256([]byte(bz))
+
+	var combined []byte
+	combined = append(combined, heightBuf...)
+	combined = append(combined, hashPrefix[:]...)
+	combined = append(combined, hashPath[:]...)
+	combined = append(combined, hashValue[:]...)
+
+	h := sha256.Sum256(combined)
 	return h[:]
 }

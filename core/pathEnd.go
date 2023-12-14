@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	defaultChainPrefix = commitmenttypes.NewMerklePrefix([]byte("ibc"))
+	DefaultChainPrefix = commitmenttypes.NewMerklePrefix([]byte("ibc"))
 )
 
 const (
@@ -78,7 +78,7 @@ func (pe *PathEnd) ConnInit(dst *PathEnd, signer sdk.AccAddress) sdk.Msg {
 	return conntypes.NewMsgConnectionOpenInit(
 		pe.ClientID,
 		dst.ClientID,
-		defaultChainPrefix,
+		DefaultChainPrefix,
 		version,
 		DefaultDelayPeriod,
 		signer.String(),
@@ -104,7 +104,7 @@ func (pe *PathEnd) ConnTry(
 		dst.ConnectionID,
 		dst.ClientID,
 		cs,
-		defaultChainPrefix,
+		DefaultChainPrefix,
 		conntypes.ExportedVersionsToProto(conntypes.GetCompatibleVersions()),
 		DefaultDelayPeriod,
 		dstConnState.Proof,
