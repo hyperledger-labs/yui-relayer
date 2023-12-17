@@ -196,6 +196,8 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 	const (
 		flagDoRefresh = "do-refresh"
+		flagSrcSeqs   = "src-seqs"
+		flagDstSeqs   = "dst-seqs"
 	)
 	const (
 		defaultDoRefresh = false
@@ -205,6 +207,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 		Short: "relay any packets that remain to be relayed on a given path, in both directions",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+
 			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
 			if err != nil {
 				return err
@@ -230,6 +233,11 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			srcSeq := getInt64Slice(flagSrcSeqs)
+			dstSeq := getInt64Slice(flagDstSeqs)
+			if err = tryFilterRelayPackets(sp, srcSeq, dstSeq); err != nil {
+				return err
+			}
 
 			msgs := core.NewRelayMsgs()
 
@@ -251,6 +259,8 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 		},
 	}
 	cmd.Flags().Bool(flagDoRefresh, defaultDoRefresh, "execute light client refresh (updateClient) if required")
+	cmd.Flags().IntSlice(flagSrcSeqs, nil, "packet filter for src chain")
+	cmd.Flags().IntSlice(flagDstSeqs, nil, "packet filter for dst chain")
 	// TODO add option support for strategy
 	return cmd
 }
@@ -258,6 +268,8 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 func relayAcksCmd(ctx *config.Context) *cobra.Command {
 	const (
 		flagDoRefresh = "do-refresh"
+		flagSrcSeqs   = "src-seqs"
+		flagDstSeqs   = "dst-seqs"
 	)
 	const (
 		defaultDoRefresh = false
@@ -291,6 +303,11 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			srcSeq := getInt64Slice(flagSrcSeqs)
+			dstSeq := getInt64Slice(flagDstSeqs)
+			if err = tryFilterRelayPackets(sp, srcSeq, dstSeq); err != nil {
+				return err
+			}
 
 			msgs := core.NewRelayMsgs()
 
@@ -312,5 +329,38 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 		},
 	}
 	cmd.Flags().Bool(flagDoRefresh, defaultDoRefresh, "execute light client refresh (updateClient) if required")
+	cmd.Flags().IntSlice(flagSrcSeqs, nil, "packet filter for src chain")
+	cmd.Flags().IntSlice(flagDstSeqs, nil, "packet filter for dst chain")
 	return cmd
+}
+
+func tryFilterRelayPackets(sp *core.RelayPackets, srcSeq []uint64, dstSeq []uint64) error {
+	checkSequence := func(p core.PacketInfoList, selected []uint64) error {
+		if len(p) != len(selected) {
+			return fmt.Errorf("packet not found packetLength=%d selectedLength=%d", len(p), len(selected))
+		}
+		return nil
+	}
+	if len(srcSeq) > 0 {
+		sp.Src = sp.Src.Filter(srcSeq)
+		if err := checkSequence(sp.Src, srcSeq); err != nil {
+			return err
+		}
+	}
+	if len(dstSeq) > 0 {
+		sp.Dst = sp.Dst.Filter(dstSeq)
+		if err := checkSequence(sp.Dst, dstSeq); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getInt64Slice(key string) []uint64 {
+	org := viper.GetIntSlice(key)
+	ret := make([]uint64, len(org))
+	for i, e := range org {
+		ret[i] = uint64(e)
+	}
+	return ret
 }
