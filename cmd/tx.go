@@ -335,22 +335,16 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 }
 
 func tryFilterRelayPackets(sp *core.RelayPackets, srcSeq []uint64, dstSeq []uint64) error {
-	checkSequence := func(p core.PacketInfoList, selected []uint64) error {
-		if len(p) != len(selected) {
-			return fmt.Errorf("packet not found packetLength=%d selectedLength=%d", len(p), len(selected))
-		}
-		return nil
-	}
 	if len(srcSeq) > 0 {
 		sp.Src = sp.Src.Filter(srcSeq)
-		if err := checkSequence(sp.Src, srcSeq); err != nil {
-			return err
+		if len(sp.Src) != len(srcSeq) {
+			return fmt.Errorf("src packet not found packetLength=%d selectedLength=%d", len(sp.Src), len(srcSeq))
 		}
 	}
 	if len(dstSeq) > 0 {
 		sp.Dst = sp.Dst.Filter(dstSeq)
-		if err := checkSequence(sp.Dst, dstSeq); err != nil {
-			return err
+		if len(sp.Dst) != len(dstSeq) {
+			return fmt.Errorf("dst packet not found packetLength=%d selectedLength=%d", len(sp.Dst), len(dstSeq))
 		}
 	}
 	return nil
