@@ -5,21 +5,7 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
-	"github.com/cosmos/cosmos-sdk/types"
 )
-
-// SendCheckMsgs is an utility function that executes `Chain::SendMsgs` and checks the execution results of all the messages.
-func SendCheckMsgs(chain Chain, msgs []types.Msg) ([]MsgID, bool) {
-	logger := GetChainLogger(chain)
-	now := time.Now()
-	msgIDs, err := chain.SendMsgs(msgs)
-	if err != nil {
-		GetChainLogger(chain).Error("failed to send msgs", err, "msgs", msgs)
-		return nil, false
-	}
-	logger.TimeTrack(now, "SendMsgs", "num_msgs", len(msgs))
-	return msgIDs, true
-}
 
 // GetFinalizedMsgResult is an utility function that waits for the finalization of the message execution and then returns the result.
 func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID) (MsgResult, error) {

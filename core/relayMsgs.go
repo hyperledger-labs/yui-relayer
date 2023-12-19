@@ -16,6 +16,9 @@ type RelayMsgs struct {
 
 	Last      bool `json:"last"`
 	Succeeded bool `json:"success"`
+
+	SentSrcMsgIDs []MsgID `json:"sent_src_msg_ids"`
+	SentDstMsgIDs []MsgID `json:"sent_dst_msg_ids"`
 }
 
 // NewRelayMsgs returns an initialized version of relay messages
@@ -47,7 +50,7 @@ func (r *RelayMsgs) IsMaxTx(msgLen, txSize uint64) bool {
 
 // Send sends the messages with appropriate output
 // TODO: Parallelize? Maybe?
-func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
+func (r *RelayMsgs) Send(src, dst Chain) {
 	logger := GetChannelPairLogger(src, dst)
 	//nolint:prealloc // can not be pre allocated
 	var (
@@ -57,8 +60,8 @@ func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
 
 	r.Succeeded = true
 
-	srcMsgIDs := []MsgID{}
-	dstMsgIDs := []MsgID{}
+	srcMsgIDs := make([]MsgID, len(r.Src))
+	dstMsgIDs := make([]MsgID, len(r.Dst))
 	// submit batches of relay transactions
 	for _, msg := range r.Src {
 		bz, err := proto.Marshal(msg)
@@ -72,8 +75,11 @@ func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transactions to src chain and update its status
-			msgIDs, ok := SendCheckMsgs(src, msgs)
-			r.Succeeded = r.Succeeded && ok
+			msgIDs, err := src.SendMsgs(msgs)
+			if err != nil {
+				logger.Error("failed to send msgs", err, "msgs", msgs)
+			}
+			r.Succeeded = r.Succeeded && (err == nil)
 			srcMsgIDs = append(srcMsgIDs, msgIDs...)
 
 			// clear the current batch and reset variables
@@ -85,8 +91,11 @@ func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
 
 	// submit leftover msgs
 	if len(msgs) > 0 {
-		msgIDs, ok := SendCheckMsgs(src, msgs)
-		r.Succeeded = ok
+		msgIDs, err := src.SendMsgs(msgs)
+		if err != nil {
+			logger.Error("failed to send msgs", err, "msgs", msgs)
+		}
+		r.Succeeded = r.Succeeded && (err == nil)
 		srcMsgIDs = append(srcMsgIDs, msgIDs...)
 	}
 
@@ -106,8 +115,11 @@ func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
 
 		if r.IsMaxTx(msgLen, txSize) {
 			// Submit the transaction to dst chain and update its status
-			msgIDs, ok := SendCheckMsgs(dst, msgs)
-			r.Succeeded = r.Succeeded && ok
+			msgIDs, err := dst.SendMsgs(msgs)
+			if err != nil {
+				logger.Error("failed to send msgs", err, "msgs", msgs)
+			}
+			r.Succeeded = r.Succeeded && (err == nil)
 			dstMsgIDs = append(dstMsgIDs, msgIDs...)
 
 			// clear the current batch and reset variables
@@ -119,11 +131,15 @@ func (r *RelayMsgs) Send(src, dst Chain) ([]MsgID, []MsgID) {
 
 	// submit leftover msgs
 	if len(msgs) > 0 {
-		msgIDs, ok := SendCheckMsgs(dst, msgs)
-		r.Succeeded = ok
+		msgIDs, err := dst.SendMsgs(msgs)
+		if err != nil {
+			logger.Error("failed to send msgs", err, "msgs", msgs)
+		}
+		r.Succeeded = r.Succeeded && (err == nil)
 		dstMsgIDs = append(dstMsgIDs, msgIDs...)
 	}
-	return srcMsgIDs, dstMsgIDs
+	r.SentSrcMsgIDs = srcMsgIDs
+	r.SentDstMsgIDs = dstMsgIDs
 }
 
 // Merge merges the argument into the receiver

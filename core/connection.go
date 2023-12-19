@@ -43,9 +43,11 @@ func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration
 			continue
 		}
 
-		srcMsgIDs, dstMsgIDs := connSteps.Send(src, dst)
-		if err := SyncChainConfigsFromEvents(pathName, srcMsgIDs, dstMsgIDs, src, dst, ConfigIDConnection); err != nil {
-			return err
+		connSteps.Send(src, dst)
+		if connSteps.Success() {
+			if err := SyncChainConfigsFromEvents(pathName, connSteps.SentSrcMsgIDs, connSteps.SentDstMsgIDs, src, dst, ConfigIDConnection); err != nil {
+				return err
+			}
 		}
 
 		switch {
