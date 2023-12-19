@@ -233,8 +233,8 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			srcSeq := getInt64Slice(flagSrcSeqs)
-			dstSeq := getInt64Slice(flagDstSeqs)
+			srcSeq := getUint64Slice(flagSrcSeqs)
+			dstSeq := getUint64Slice(flagDstSeqs)
 			if err = tryFilterRelayPackets(sp, srcSeq, dstSeq); err != nil {
 				return err
 			}
@@ -303,8 +303,8 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			srcSeq := getInt64Slice(flagSrcSeqs)
-			dstSeq := getInt64Slice(flagDstSeqs)
+			srcSeq := getUint64Slice(flagSrcSeqs)
+			dstSeq := getUint64Slice(flagDstSeqs)
 			if err = tryFilterRelayPackets(sp, srcSeq, dstSeq); err != nil {
 				return err
 			}
@@ -356,7 +356,7 @@ func tryFilterRelayPackets(sp *core.RelayPackets, srcSeq []uint64, dstSeq []uint
 	return nil
 }
 
-func getInt64Slice(key string) []uint64 {
+func getUint64Slice(key string) []uint64 {
 	org := viper.GetIntSlice(key)
 	ret := make([]uint64, len(org))
 	for i, e := range org {
