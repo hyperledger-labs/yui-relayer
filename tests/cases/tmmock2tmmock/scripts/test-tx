@@ -33,7 +33,7 @@ do
 done
 
 # relay the packet (recvPacket)
-${RLY} tx relay --do-refresh ibc01
+${RLY} tx relay --do-refresh ibc01 --src-seqs 1
 
 # wait for the finalization of the recvPacket execution
 for i in `seq $RETRY_COUNT`
@@ -48,7 +48,7 @@ do
 done
 
 # relay the ack for the packet (acknowledgePacket)
-${RLY} tx acks --do-refresh ibc01
+${RLY} tx acks --do-refresh ibc01 --dst-seqs 1
 
 # wait for the finalization of the recvPacket execution
 for i in `seq $RETRY_COUNT`
