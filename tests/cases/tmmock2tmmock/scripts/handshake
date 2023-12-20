@@ -22,3 +22,35 @@ $RLY paths add $CHAINID_ONE $CHAINID_TWO $PATH_NAME --file=./configs/path.json
 retry 5 $RLY tx clients --dst-height 2 $PATH_NAME
 retry 5 $RLY tx connection $PATH_NAME
 retry 5 $RLY tx channel $PATH_NAME
+
+# check created config
+config=$(${RLY} config show)
+
+srcClientId=$(echo $config | jq --raw-output --arg path_name "$PATH_NAME" '.paths[$path_name].src."client-id"')
+srcConnectionId=$(echo $config | jq --raw-output --arg path_name "$PATH_NAME" '.paths[$path_name].src."connection-id"')
+srcChannelId=$(echo $config | jq --raw-output --arg path_name "$PATH_NAME" '.paths[$path_name].src."channel-id"')
+
+dstClientId=$(echo $config | jq --raw-output --arg path_name "$PATH_NAME" '.paths[$path_name].dst."client-id"')
+dstConnectionId=$(echo $config | jq --raw-output --arg path_name "$PATH_NAME" '.paths[$path_name].dst."connection-id"')
+dstChannelId=$(echo $config | jq --raw-output --arg path_name "$PATH_NAME" '.paths[$path_name].dst."channel-id"')
+
+if [[ "$srcClientId" == "$dstClientId" && "$srcClientId" == "mock-client-0" ]]; then
+  echo "Client IDs match and are 'mock-client-0'"
+else
+  echo "Client IDs do not match or are not 'mock-client-0'"
+  exit 1
+fi
+
+if [[ "$srcConnectionId" == "$dstConnectionId" && "$srcConnectionId" == "connection-0" ]]; then
+  echo "Connection IDs match and are 'connection-0'"
+else
+  echo "Connection IDs do not match or are not 'connection-0'"
+  exit 1
+fi
+
+if [[ "$srcChannelId" == "$dstChannelId" && "$srcChannelId" == "channel-0" ]]; then
+  echo "Channel IDs match and are 'channel-0'"
+else
+  echo "Channel IDs do not match or are not 'channel-0'"
+  exit 1
+fi

@@ -63,6 +63,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	srcMsgIDs := make([]MsgID, len(r.Src))
 	dstMsgIDs := make([]MsgID, len(r.Dst))
 	// submit batches of relay transactions
+	srcMaxTxCount := 0
 	for _, msg := range r.Src {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
@@ -80,9 +81,11 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 				logger.Error("failed to send msgs", err, "msgs", msgs)
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
-			srcMsgIDs = append(srcMsgIDs, msgIDs...)
-
+			for i := range msgs {
+				srcMsgIDs[i+srcMaxTxCount] = msgIDs[i]
+			}
 			// clear the current batch and reset variables
+			srcMaxTxCount += len(msgs)
 			msgLen, txSize = 1, uint64(len(bz))
 			msgs = []sdk.Msg{}
 		}
@@ -96,13 +99,16 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			logger.Error("failed to send msgs", err, "msgs", msgs)
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
-		srcMsgIDs = append(srcMsgIDs, msgIDs...)
+		for i := range msgs {
+			srcMsgIDs[i+srcMaxTxCount] = msgIDs[i]
+		}
 	}
 
 	// reset variables
 	msgLen, txSize = 0, 0
 	msgs = []sdk.Msg{}
 
+	dstMaxTxCount := 0
 	for _, msg := range r.Dst {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
@@ -120,9 +126,11 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 				logger.Error("failed to send msgs", err, "msgs", msgs)
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
-			dstMsgIDs = append(dstMsgIDs, msgIDs...)
-
+			for i := range msgs {
+				dstMsgIDs[i+dstMaxTxCount] = msgIDs[i]
+			}
 			// clear the current batch and reset variables
+			dstMaxTxCount += len(msgs)
 			msgLen, txSize = 1, uint64(len(bz))
 			msgs = []sdk.Msg{}
 		}
@@ -136,7 +144,9 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			logger.Error("failed to send msgs", err, "msgs", msgs)
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
-		dstMsgIDs = append(dstMsgIDs, msgIDs...)
+		for i := range msgs {
+			dstMsgIDs[i+dstMaxTxCount] = msgIDs[i]
+		}
 	}
 	r.SentSrcMsgIDs = srcMsgIDs
 	r.SentDstMsgIDs = dstMsgIDs

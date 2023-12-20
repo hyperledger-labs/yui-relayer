@@ -54,7 +54,7 @@ func Execute(modules ...config.ModuleI) error {
 	for _, module := range modules {
 		module.RegisterInterfaces(codec.InterfaceRegistry())
 	}
-	ctx := &config.Context{Modules: modules, Config: &config.Config{ConfigPath: fmt.Sprintf("%s/%s", homePath, configPath)}, Codec: codec}
+	ctx := &config.Context{Modules: modules, Config: &config.Config{}, Codec: codec}
 
 	// Register subcommands
 
@@ -79,7 +79,7 @@ func Execute(modules ...config.ModuleI) error {
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			return fmt.Errorf("failed to bind the flag set to the configuration: %v", err)
 		}
-		if err := initConfig(ctx, rootCmd); err != nil {
+		if err := ctx.Config.InitConfig(ctx, homePath, configPath, debug); err != nil {
 			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
 		if err := initLogger(ctx); err != nil {

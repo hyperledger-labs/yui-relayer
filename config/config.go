@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -142,6 +143,51 @@ func InitChains(ctx *Context, homePath string, debug bool) error {
 	return nil
 }
 
+func (c *Config) InitConfig(ctx *Context, homePath, configPath string, debug bool) error {
+	cfgPath := fmt.Sprintf("%s/%s", homePath, configPath)
+	c.ConfigPath = cfgPath
+	if _, err := os.Stat(cfgPath); err == nil {
+		file, err := os.ReadFile(cfgPath)
+		if err != nil {
+			return err
+		}
+		// unmarshall them into the struct
+		if err = UnmarshalJSON(ctx.Codec, file, c); err != nil {
+			return err
+		}
+		// ensure config has []*relayer.Chain used for all chain operations
+		if err = InitChains(ctx, homePath, debug); err != nil {
+			return err
+		}
+	} else {
+		defConfig := DefaultConfig(cfgPath)
+		c = &defConfig
+	}
+	c.InitCoreConfig()
+	ctx.Config = c
+	return nil
+}
+
+func (c *Config) CreateConfig() error {
+	cfgPath := c.ConfigPath
+	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+		dirPath := filepath.Dir(cfgPath)
+		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+			return err
+		}
+		f, err := os.Create(cfgPath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		if _, err = f.Write(defaultConfig(c.ConfigPath)); err != nil {
+			return err
+		}
+		return nil
+	}
+	return nil
+}
+
 func (c *Config) OverWriteConfig() error {
 	configData, err := json.Marshal(c)
 	if err != nil {
@@ -151,4 +197,12 @@ func (c *Config) OverWriteConfig() error {
 		return err
 	}
 	return nil
+}
+
+func defaultConfig(configPath string) []byte {
+	bz, err := json.Marshal(DefaultConfig(configPath))
+	if err != nil {
+		panic(err)
+	}
+	return bz
 }

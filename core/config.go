@@ -145,6 +145,9 @@ func SyncChainConfigsFromEvents(pathName string, msgIDsSrc, msgIDsDst []MsgID, s
 
 func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableChain, configID ConfigIDType) error {
 	for _, msgID := range msgIDs {
+		if msgID == nil {
+			continue
+		}
 		msgRes, err := chain.Chain.GetMsgResult(msgID)
 		if err != nil {
 			return fmt.Errorf("failed to get message result: %v", err)
@@ -174,7 +177,7 @@ func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableC
 				}
 			}
 		}
-
 	}
+
 	return nil
 }
