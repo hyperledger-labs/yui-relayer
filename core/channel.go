@@ -198,9 +198,6 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 
 func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chantypes.Channel) (bool, error) {
 	logger := GetChannelPairLogger(src, dst)
-	if src.Chain.Path().ChannelID == "" && dst.Chain.Path().ChannelID == "" {
-		return true, nil
-	}
 	sh, err := src.LatestHeight()
 	if err != nil {
 		return false, err

@@ -266,9 +266,6 @@ func mustGetAddress(chain interface {
 
 func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnection *conntypes.ConnectionEnd) (bool, error) {
 	logger := GetConnectionPairLogger(src, dst)
-	if src.Path().ConnectionID == "" && dst.Path().ConnectionID == "" {
-		return true, nil
-	}
 	sh, err := src.LatestHeight()
 	if err != nil {
 		return false, err
