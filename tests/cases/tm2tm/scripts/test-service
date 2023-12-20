@@ -9,57 +9,28 @@
 
 - relay service [packets = 0, time = 0] -> skip
     - sleep 4
-    - 
     - transfer x 1
     - packets = 1, ack = 0
     - sleep 16
-    - 
-    - 
-    - 
-    - 
 - relay service [packets = 1, time = 0] -> skip
     - sleep 4
-    - 
     - transfer x 1
     - packets = 2, ack = 0
     - sleep 16
-    - 
-    - 
-    - 
-    - 
 - relay service [packets = 2, time = 20] -> skip
     - sleep 20
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-    - 
-- relay service [packets = 2, time = 20] -> exec (time)
+- relay service [packets = 2, time = 40] -> exec (time)
     - sleep 4
-    - 
     - packets = 0, ack = 2
     - transfer x 3
     - packets = 3, ack = 2
     - sleep 16
-    - 
-    - 
-    - 
-- relay service [packets = 3, time = 20] -> exec (count)
+- relay service [packets = 3, time = 0] -> exec (count)
     - sleep 4
-    - 
     - packets = 0, ack = 5
     - sleep 16
-    - 
-    - 
-    - 
-    - 
-    - 
-- relay service [packets = 0, time = 40] -> exec (ack) (time + count)
+- relay service [acks = 5, time = 40] -> exec (time + count)
     - sleep 4
-    - 
     - packets = 0, ack = 0
     - Finished
 END_COMMENT
@@ -96,10 +67,10 @@ expectUnrelayedCount "unrelayed-packets" "src" 2
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
 sleep 16
 
-echo "xxxxxxx relay service [packets = 2, time = 10] -> skip xxxxxx"
+echo "xxxxxxx relay service [packets = 2, time = 20] -> skip xxxxxx"
 sleep 20
 
-echo "xxxxxxx  relay service [packets = 2, time = 20] -> exec (time) xxxxxx"
+echo "xxxxxxx  relay service [packets = 2, time = 40] -> exec (time) xxxxxx"
 sleep 4
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
@@ -113,14 +84,14 @@ expectUnrelayedCount "unrelayed-packets" "src" 3
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2
 sleep 16
 
-echo "xxxxxxx relay service [packets = 3, time = 10] -> exec (count) xxxxxx"
+echo "xxxxxxx relay service [packets = 3, time = 0] -> exec (count) xxxxxx"
 sleep 4
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 5
 sleep 16
 
-echo "xxxxxxx relay service [packets = 0, time = 20] -> exec (ack) (time + count) xxxxxx"
+echo "xxxxxxx relay service [acks = 5, time = 40] -> exec (time + count) xxxxxx"
 sleep 4
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
