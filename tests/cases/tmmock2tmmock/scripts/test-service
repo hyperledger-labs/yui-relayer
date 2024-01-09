@@ -90,7 +90,7 @@ sleep 4
 
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 5
-sleep 16
+sleep 20
 
 echo "xxxxxxx ${SECONDS} relay service [akcs = 3, time = 40] -> exec - time + count xxxxxx"
 sleep 4

@@ -164,7 +164,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 }
 
 func (srv *RelayService) shouldExecuteRelay(seqs *RelayPackets) (bool, bool) {
-
+	logger := GetChannelPairLogger(srv.src, srv.dst)
 	var err error
 
 	srcRelay := false
@@ -205,6 +205,8 @@ func (srv *RelayService) shouldExecuteRelay(seqs *RelayPackets) (bool, bool) {
 	if uint64(dstRelayCount) >= srv.optimizeRelay.dstOptimizeCount {
 		dstRelay = true
 	}
+
+	logger.Info("shouldExecuteRelay", "srcRelay", srcRelay, "dstRelay", dstRelay)
 
 	return srcRelay, dstRelay
 }
