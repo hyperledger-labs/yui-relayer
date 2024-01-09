@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+PATH_NAME=ibc01
+
 expectUnrelayedCount() {
     query_type=$1
     filter=".$2 | length"
     expect_count=$3
-    unrelayed_count=$(${RLY} query ${query_type} ibc01 | jq "${filter}")
+    unrelayed_count=$(${RLY} query ${query_type} ${PATH_NAME} | jq "${filter}")
     if [ $unrelayed_count -ne ${expect_count} ]; then
         echo "$query_type: $unrelayed_count"
         kill $RLY_PID
