@@ -10,39 +10,35 @@ import (
 
 // LogFailedTx takes the transaction and the messages to create it and logs the appropriate data
 func (c *Chain) LogFailedTx(res *sdk.TxResponse, err error, msgs []sdk.Msg) {
+	logger := GetChainLogger()
 	if c.debug {
-		c.Log(fmt.Sprintf("- [%s] -> sending transaction:", c.ChainID()))
+		logger.Info("sending-tx", "chain-id", c.ChainID())
 		for _, msg := range msgs {
 			c.Print(msg, false, false)
 		}
 	}
 
 	if err != nil {
-		c.logger.Error(fmt.Errorf("- [%s] -> err(%v)", c.ChainID(), err).Error())
+		logger.Error("failed-tx", err, "chain-id", c.ChainID())
 		if res == nil {
 			return
 		}
 	}
 
 	if res.Code != 0 && res.Codespace != "" {
-		c.logger.Info(fmt.Sprintf("✘ [%s]@{%d} - msg(%s) err(%s:%d:%s)",
-			c.ChainID(), res.Height, getMsgAction(msgs), res.Codespace, res.Code, res.RawLog))
+		logger.Info("res", "chain-id", c.ChainID(), "height", res.Height, "action", getMsgAction(msgs), "codespace", res.Codespace, "code", res.Code, "raw-log", res.RawLog)
 	}
 
 	if c.debug && !res.Empty() {
-		c.Log("- transaction response:")
+		logger.Info("tx-response", "chain-id", c.ChainID(), "res", res)
 		c.Print(res, false, false)
 	}
 }
 
 // LogSuccessTx take the transaction and the messages to create it and logs the appropriate data
 func (c *Chain) LogSuccessTx(res *sdk.TxResponse, msgs []sdk.Msg) {
-	c.logger.Info(fmt.Sprintf("✔ [%s]@{%d} - msg(%s) hash(%s)", c.ChainID(), res.Height, getMsgAction(msgs), res.TxHash))
-}
-
-// Log takes a string and logs the data
-func (c *Chain) Log(s string) {
-	c.logger.Info(s)
+	logger := GetChainLogger()
+	logger.Info("success-tx", "chain-id", c.ChainID(), "height", res.Height, "hash", res.TxHash)
 }
 
 // Print fmt.Printlns the json or yaml representation of whatever is passed in

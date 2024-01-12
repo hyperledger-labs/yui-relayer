@@ -12,7 +12,7 @@ import (
 
 	"cosmossdk.io/errors"
 	"github.com/avast/retry-go"
-	"github.com/cometbft/cometbft/libs/log"
+
 	rpcclient "github.com/cometbft/cometbft/rpc/client"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
@@ -33,6 +33,7 @@ import (
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 var (
@@ -55,7 +56,6 @@ type Chain struct {
 	codec            codec.ProtoCodecMarshaler `yaml:"-" json:"-"`
 	msgEventListener core.MsgEventListener
 
-	logger  log.Logger
 	timeout time.Duration
 	debug   bool
 
@@ -132,7 +132,6 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 	c.Client = client
 	c.HomePath = homePath
 	c.codec = codec
-	c.logger = defaultChainLogger()
 	c.timeout = timeout
 	c.debug = debug
 	c.faucetAddrs = make(map[string]time.Time)
@@ -174,6 +173,7 @@ func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
 }
 
 func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
+	logger := GetChainLogger()
 	// broadcast tx
 	res, _, err := c.rawSendMsgs(msgs)
 	if err != nil {
@@ -194,7 +194,7 @@ func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 	// call msgEventListener if needed
 	if c.msgEventListener != nil {
 		if err := c.msgEventListener.OnSentMsg(msgs); err != nil {
-			c.logger.Error("failed to OnSendMsg call", "msgs", msgs, "err", err)
+			logger.Error("failed to OnSendMsg call", err)
 			return res, nil
 		}
 	}
@@ -567,8 +567,9 @@ func newRPCClient(addr string, timeout time.Duration) (*rpchttp.HTTP, error) {
 	return rpcClient, nil
 }
 
-func defaultChainLogger() log.Logger {
-	return log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+func GetChainLogger() *log.RelayLogger {
+	return log.GetLogger().
+		WithModule("tendermint.chain")
 }
 
 // CreateMnemonic creates a new mnemonic
