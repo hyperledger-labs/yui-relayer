@@ -54,6 +54,12 @@ func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) (
 	}
 }
 
+// ProveHostConsensusState returns the existence proof of the consensus state at `height`
+// ibc-go doesn't use this proof, so it returns nil
+func (pr *Prover) ProveHostConsensusState(ctx core.QueryContext, height ibcexported.Height, consensusState ibcexported.ConsensusState) ([]byte, error) {
+	return nil, nil
+}
+
 /* LightClient implementation */
 
 // CreateInitialLightClientState creates a pair of ClientState and ConsensusState submitted to the counterparty chain as MsgCreateClient

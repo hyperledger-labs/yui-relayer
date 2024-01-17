@@ -26,7 +26,12 @@ type Prover interface {
 
 // StateProver provides a generic way to generate existence proof of IBC states (e.g. ClientState, Connection, PacketCommitment, etc.)
 type StateProver interface {
+	// ProveState returns a proof of an IBC state specified by `path` and `value`
 	ProveState(ctx QueryContext, path string, value []byte) (proof []byte, proofHeight clienttypes.Height, err error)
+
+	// ProveHostConsensusState returns an existence proof of the consensus state at `height`
+	// This proof would be ignored in ibc-go, but it is required to `getSelfConsensusState` of ibc-solidity.
+	ProveHostConsensusState(ctx QueryContext, height exported.Height, consensusState exported.ConsensusState) (proof []byte, err error)
 }
 
 // LightClient provides functions for creating and updating on-chain light clients on the counterparty chain

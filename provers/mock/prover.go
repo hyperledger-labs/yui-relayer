@@ -120,6 +120,11 @@ func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) (
 	return makeProof(value), ctx.Height().(clienttypes.Height), nil
 }
 
+// ProveHostConsensusState returns the proof of the consensus state at `height`
+func (pr *Prover) ProveHostConsensusState(ctx core.QueryContext, height exported.Height, consensusState exported.ConsensusState) ([]byte, error) {
+	return clienttypes.MarshalConsensusState(pr.chain.Codec(), consensusState)
+}
+
 func makeProof(bz []byte) []byte {
 	h := sha256.Sum256(bz)
 	return h[:]
