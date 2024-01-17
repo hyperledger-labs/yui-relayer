@@ -92,6 +92,7 @@ func (pe *PathEnd) ConnTry(
 	dstClientState *clienttypes.QueryClientStateResponse,
 	dstConnState *conntypes.QueryConnectionResponse,
 	dstConsState *clienttypes.QueryConsensusStateResponse,
+	hostConsensusStateProof []byte,
 	signer sdk.AccAddress,
 ) sdk.Msg {
 	cs, err := clienttypes.UnpackClientState(dstClientState.ClientState)
@@ -113,6 +114,7 @@ func (pe *PathEnd) ConnTry(
 		cs.GetLatestHeight().(clienttypes.Height),
 		signer.String(),
 	)
+	msg.HostConsensusStateProof = hostConsensusStateProof
 	if err = msg.ValidateBasic(); err != nil {
 		panic(err)
 	}

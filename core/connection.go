@@ -94,8 +94,10 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		srcUpdateHeaders, dstUpdateHeaders []Header
 		srcCsRes, dstCsRes                 *clienttypes.QueryClientStateResponse
 		srcCS, dstCS                       ibcexported.ClientState
-		srcCons, dstCons                   *clienttypes.QueryConsensusStateResponse
+		srcConsRes, dstConsRes             *clienttypes.QueryConsensusStateResponse
+		srcCons, dstCons                   ibcexported.ConsensusState
 		srcConsH, dstConsH                 ibcexported.Height
+		srcHostConsProof, dstHostConsProof []byte
 	)
 	err = retry.Do(func() error {
 		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(src, dst)
@@ -136,9 +138,23 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 
 		// Store the heights
 		srcConsH, dstConsH = srcCS.GetLatestHeight(), dstCS.GetLatestHeight()
-		srcCons, dstCons, err = QueryClientConsensusStatePair(
+		srcConsRes, dstConsRes, err = QueryClientConsensusStatePair(
 			sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()),
 			src, dst, srcConsH, dstConsH, true)
+		if err != nil {
+			return nil, err
+		}
+		if err := src.Codec().UnpackAny(srcConsRes.ConsensusState, &srcCons); err != nil {
+			return nil, err
+		}
+		if err := dst.Codec().UnpackAny(dstConsRes.ConsensusState, &dstCons); err != nil {
+			return nil, err
+		}
+		srcHostConsProof, err = src.ProveHostConsensusState(sh.GetQueryContext(src.ChainID()), dstCS.GetLatestHeight(), dstCons)
+		if err != nil {
+			return nil, err
+		}
+		dstHostConsProof, err = dst.ProveHostConsensusState(sh.GetQueryContext(dst.ChainID()), srcCS.GetLatestHeight(), srcCons)
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +176,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		if len(dstUpdateHeaders) > 0 {
 			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
 		}
-		out.Src = append(out.Src, src.Path().ConnTry(dst.Path(), dstCsRes, dstConn, dstCons, addr))
+		out.Src = append(out.Src, src.Path().ConnTry(dst.Path(), dstCsRes, dstConn, dstConsRes, srcHostConsProof, addr))
 	// Handshake has started on src (1 step done), relay `connOpenTry` and `updateClient` on dst
 	case srcConn.Connection.State == conntypes.INIT && dstConn.Connection.State == conntypes.UNINITIALIZED:
 		logConnectionStates(dst, src, dstConn, srcConn)
@@ -168,7 +184,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		if len(srcUpdateHeaders) > 0 {
 			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
 		}
-		out.Dst = append(out.Dst, dst.Path().ConnTry(src.Path(), srcCsRes, srcConn, srcCons, addr))
+		out.Dst = append(out.Dst, dst.Path().ConnTry(src.Path(), srcCsRes, srcConn, srcConsRes, dstHostConsProof, addr))
 
 	// Handshake has started on src end (2 steps done), relay `connOpenAck` and `updateClient` to dst end
 	case srcConn.Connection.State == conntypes.TRYOPEN && dstConn.Connection.State == conntypes.INIT:
@@ -177,7 +193,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		if len(srcUpdateHeaders) > 0 {
 			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
 		}
-		out.Dst = append(out.Dst, dst.Path().ConnAck(src.Path(), srcCsRes, srcConn, srcCons, addr))
+		out.Dst = append(out.Dst, dst.Path().ConnAck(src.Path(), srcCsRes, srcConn, srcConsRes, addr))
 
 	// Handshake has started on dst end (2 steps done), relay `connOpenAck` and `updateClient` to src end
 	case srcConn.Connection.State == conntypes.INIT && dstConn.Connection.State == conntypes.TRYOPEN:
@@ -186,7 +202,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		if len(dstUpdateHeaders) > 0 {
 			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
 		}
-		out.Src = append(out.Src, src.Path().ConnAck(dst.Path(), dstCsRes, dstConn, dstCons, addr))
+		out.Src = append(out.Src, src.Path().ConnAck(dst.Path(), dstCsRes, dstConn, dstConsRes, addr))
 
 	// Handshake has confirmed on dst (3 steps done), relay `connOpenConfirm` and `updateClient` to src end
 	case srcConn.Connection.State == conntypes.TRYOPEN && dstConn.Connection.State == conntypes.OPEN:
