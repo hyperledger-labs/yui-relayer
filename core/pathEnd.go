@@ -128,13 +128,14 @@ func (pe *PathEnd) ConnAck(
 	dstClientState *clienttypes.QueryClientStateResponse,
 	dstConnState *conntypes.QueryConnectionResponse,
 	dstConsState *clienttypes.QueryConsensusStateResponse,
+	hostConsensusStateProof []byte,
 	signer sdk.AccAddress,
 ) sdk.Msg {
 	cs, err := clienttypes.UnpackClientState(dstClientState.ClientState)
 	if err != nil {
 		panic(err)
 	}
-	return conntypes.NewMsgConnectionOpenAck(
+	msg := conntypes.NewMsgConnectionOpenAck(
 		pe.ConnectionID,
 		dst.ConnectionID,
 		cs,
@@ -146,6 +147,11 @@ func (pe *PathEnd) ConnAck(
 		conntypes.ExportedVersionsToProto(conntypes.GetCompatibleVersions())[0],
 		signer.String(),
 	)
+	msg.HostConsensusStateProof = hostConsensusStateProof
+	if err = msg.ValidateBasic(); err != nil {
+		panic(err)
+	}
+	return msg
 }
 
 // ConnConfirm creates a MsgConnectionOpenAck
