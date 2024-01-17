@@ -193,7 +193,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		if len(srcUpdateHeaders) > 0 {
 			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
 		}
-		out.Dst = append(out.Dst, dst.Path().ConnAck(src.Path(), srcCsRes, srcConn, srcConsRes, addr))
+		out.Dst = append(out.Dst, dst.Path().ConnAck(src.Path(), srcCsRes, srcConn, srcConsRes, dstHostConsProof, addr))
 
 	// Handshake has started on dst end (2 steps done), relay `connOpenAck` and `updateClient` to src end
 	case srcConn.Connection.State == conntypes.INIT && dstConn.Connection.State == conntypes.TRYOPEN:
@@ -202,7 +202,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		if len(dstUpdateHeaders) > 0 {
 			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
 		}
-		out.Src = append(out.Src, src.Path().ConnAck(dst.Path(), dstCsRes, dstConn, dstConsRes, addr))
+		out.Src = append(out.Src, src.Path().ConnAck(dst.Path(), dstCsRes, dstConn, dstConsRes, srcHostConsProof, addr))
 
 	// Handshake has confirmed on dst (3 steps done), relay `connOpenConfirm` and `updateClient` to src end
 	case srcConn.Connection.State == conntypes.TRYOPEN && dstConn.Connection.State == conntypes.OPEN:
