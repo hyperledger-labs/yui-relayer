@@ -165,34 +165,28 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 
 func (srv *RelayService) shouldExecuteRelay(seqs *RelayPackets) (bool, bool) {
 	logger := GetChannelPairLogger(srv.src, srv.dst)
-	var err error
 
 	srcRelay := false
 	dstRelay := false
 
-	tsSrc := time.Now()
-	tsDst := time.Now()
-
 	if len(seqs.Src) > 0 {
-		tsDst, err = srv.src.Timestamp(seqs.Src[0].EventHeight)
+		tsDst, err := srv.src.Timestamp(seqs.Src[0].EventHeight)
 		if err != nil {
 			return false, false
+		}
+		if time.Since(tsDst) >= srv.optimizeRelay.dstOptimizeInterval {
+			dstRelay = true
 		}
 	}
 
 	if len(seqs.Dst) > 0 {
-		tsSrc, err = srv.dst.Timestamp(seqs.Dst[0].EventHeight)
+		tsSrc, err := srv.dst.Timestamp(seqs.Dst[0].EventHeight)
 		if err != nil {
 			return false, false
 		}
-	}
-
-	// time interval
-	if time.Since(tsSrc) >= srv.optimizeRelay.srcOptimizeInterval {
-		srcRelay = true
-	}
-	if time.Since(tsDst) >= srv.optimizeRelay.dstOptimizeInterval {
-		dstRelay = true
+		if time.Since(tsSrc) >= srv.optimizeRelay.srcOptimizeInterval {
+			srcRelay = true
+		}
 	}
 
 	// packet count

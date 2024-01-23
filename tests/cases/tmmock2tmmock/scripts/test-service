@@ -12,24 +12,24 @@
     - transfer x 1
     - sleep 3 finality
     - packets = 1, ack = 0
-    - sleep 13
+    - sleep 10
 - relay service [packets = 1, time = 20] -> skip
     - sleep 4
     - transfer x 1
     - sleep 3 finality
     - packets = 2, ack = 0
-    - sleep 13
+    - sleep 10
 - relay service [packets = 2, time = 40] -> exec (time)
     - sleep 4
     - packets = 0, ack = 2
     - transfer x 3
     - sleep 3 finality
     - packets = 3, ack = 2
-    - sleep 13
+    - sleep 10
 - relay service [packets = 3, time = 20] -> exec (count)
     - sleep 4
     - packets = 0, ack = 5
-    - sleep 16
+    - sleep 20
 - relay service [acks = 5, time = 40] -> exec (time + count)
     - sleep 4
     - packets = 0, ack = 0
