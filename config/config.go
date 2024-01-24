@@ -22,7 +22,7 @@ type Config struct {
 	ConfigPath string `yaml:"-" json:"-"`
 }
 
-func DefaultConfig(configPath string) Config {
+func defaultConfig(configPath string) Config {
 	return Config{
 		Global:     newDefaultGlobalConfig(),
 		Chains:     []core.ChainProverConfig{},
@@ -160,7 +160,7 @@ func (c *Config) InitConfig(ctx *Context, homePath, configPath string, debug boo
 			return err
 		}
 	} else {
-		defConfig := DefaultConfig(cfgPath)
+		defConfig := defaultConfig(cfgPath)
 		c = &defConfig
 	}
 	c.InitCoreConfig()
@@ -180,7 +180,7 @@ func (c *Config) CreateConfig() error {
 			return err
 		}
 		defer f.Close()
-		if _, err = f.Write(defaultConfig(c.ConfigPath)); err != nil {
+		if _, err = f.Write(defaultConfigBytes(c.ConfigPath)); err != nil {
 			return err
 		}
 		return nil
@@ -199,8 +199,8 @@ func (c *Config) OverWriteConfig() error {
 	return nil
 }
 
-func defaultConfig(configPath string) []byte {
-	bz, err := json.Marshal(DefaultConfig(configPath))
+func defaultConfigBytes(configPath string) []byte {
+	bz, err := json.Marshal(defaultConfig(configPath))
 	if err != nil {
 		panic(err)
 	}

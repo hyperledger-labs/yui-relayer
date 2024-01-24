@@ -17,8 +17,8 @@ type RelayMsgs struct {
 	Last      bool `json:"last"`
 	Succeeded bool `json:"success"`
 
-	SentSrcMsgIDs []MsgID `json:"sent_src_msg_ids"`
-	SentDstMsgIDs []MsgID `json:"sent_dst_msg_ids"`
+	SrcMsgIDs []MsgID `json:"src_msg_ids"`
+	DstMsgIDs []MsgID `json:"dst_msg_ids"`
 }
 
 // NewRelayMsgs returns an initialized version of relay messages
@@ -63,7 +63,8 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	srcMsgIDs := make([]MsgID, len(r.Src))
 	dstMsgIDs := make([]MsgID, len(r.Dst))
 	// submit batches of relay transactions
-	srcMaxTxCount := 0
+	maxTxCount := 0
+
 	for _, msg := range r.Src {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
@@ -82,10 +83,10 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
 			for i := range msgs {
-				srcMsgIDs[i+srcMaxTxCount] = msgIDs[i]
+				srcMsgIDs[i+maxTxCount] = msgIDs[i]
 			}
 			// clear the current batch and reset variables
-			srcMaxTxCount += len(msgs)
+			maxTxCount += len(msgs)
 			msgLen, txSize = 1, uint64(len(bz))
 			msgs = []sdk.Msg{}
 		}
@@ -100,15 +101,15 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
 		for i := range msgs {
-			srcMsgIDs[i+srcMaxTxCount] = msgIDs[i]
+			srcMsgIDs[i+maxTxCount] = msgIDs[i]
 		}
 	}
 
 	// reset variables
 	msgLen, txSize = 0, 0
 	msgs = []sdk.Msg{}
+	maxTxCount = 0
 
-	dstMaxTxCount := 0
 	for _, msg := range r.Dst {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
@@ -127,10 +128,10 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
 			for i := range msgs {
-				dstMsgIDs[i+dstMaxTxCount] = msgIDs[i]
+				dstMsgIDs[i+maxTxCount] = msgIDs[i]
 			}
 			// clear the current batch and reset variables
-			dstMaxTxCount += len(msgs)
+			maxTxCount += len(msgs)
 			msgLen, txSize = 1, uint64(len(bz))
 			msgs = []sdk.Msg{}
 		}
@@ -145,11 +146,11 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
 		for i := range msgs {
-			dstMsgIDs[i+dstMaxTxCount] = msgIDs[i]
+			dstMsgIDs[i+maxTxCount] = msgIDs[i]
 		}
 	}
-	r.SentSrcMsgIDs = srcMsgIDs
-	r.SentDstMsgIDs = dstMsgIDs
+	r.SrcMsgIDs = srcMsgIDs
+	r.DstMsgIDs = dstMsgIDs
 }
 
 // Merge merges the argument into the receiver

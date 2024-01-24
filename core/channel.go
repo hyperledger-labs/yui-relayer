@@ -36,7 +36,7 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 
 		chanSteps.Send(src, dst)
 		if chanSteps.Success() {
-			if err := SyncChainConfigsFromEvents(pathName, chanSteps.SentSrcMsgIDs, chanSteps.SentDstMsgIDs, src, dst, ConfigIDChannel); err != nil {
+			if err := SyncChainConfigsFromEvents(pathName, chanSteps.SrcMsgIDs, chanSteps.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
 		}

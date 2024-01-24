@@ -133,17 +133,17 @@ func (cc ChainProverConfig) Build() (*ProvableChain, error) {
 	return NewProvableChain(chain, prover), nil
 }
 
-func SyncChainConfigsFromEvents(pathName string, msgIDsSrc, msgIDsDst []MsgID, src, dst *ProvableChain, configID ConfigIDType) error {
-	if err := SyncChainConfigFromEvents(pathName, msgIDsSrc, src, configID); err != nil {
+func SyncChainConfigsFromEvents(pathName string, msgIDsSrc, msgIDsDst []MsgID, src, dst *ProvableChain) error {
+	if err := SyncChainConfigFromEvents(pathName, msgIDsSrc, src); err != nil {
 		return err
 	}
-	if err := SyncChainConfigFromEvents(pathName, msgIDsDst, dst, configID); err != nil {
+	if err := SyncChainConfigFromEvents(pathName, msgIDsDst, dst); err != nil {
 		return err
 	}
 	return nil
 }
 
-func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableChain, configID ConfigIDType) error {
+func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableChain) error {
 	for _, msgID := range msgIDs {
 		if msgID == nil {
 			continue
@@ -157,19 +157,17 @@ func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableC
 
 		for _, event := range msgRes.Events() {
 			var id string
-			switch configID {
-			case ConfigIDClient:
-				if clientIdentifier, ok := event.(*EventGenerateClientIdentifier); ok {
-					id = clientIdentifier.ID
-				}
-			case ConfigIDConnection:
-				if connectionIdentifier, ok := event.(*EventGenerateConnectionIdentifier); ok {
-					id = connectionIdentifier.ID
-				}
-			case ConfigIDChannel:
-				if channelIdentifier, ok := event.(*EventGenerateChannelIdentifier); ok {
-					id = channelIdentifier.ID
-				}
+			var configID ConfigIDType
+			switch event := event.(type) {
+			case *EventGenerateClientIdentifier:
+				configID = ConfigIDClient
+				id = event.ID
+			case *EventGenerateConnectionIdentifier:
+				configID = ConfigIDConnection
+				id = event.ID
+			case *EventGenerateChannelIdentifier:
+				configID = ConfigIDChannel
+				id = event.ID
 			}
 			if id != "" {
 				if err := config.UpdateConfigID(pathName, chain.ChainID(), configID, id); err != nil {

@@ -69,7 +69,7 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 			logger.Info(
 				"★ Clients created",
 			)
-			if err := SyncChainConfigsFromEvents(pathName, clients.SentSrcMsgIDs, clients.SentDstMsgIDs, src, dst, ConfigIDClient); err != nil {
+			if err := SyncChainConfigsFromEvents(pathName, clients.SrcMsgIDs, clients.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
 		}

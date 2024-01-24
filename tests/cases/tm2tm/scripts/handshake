@@ -42,23 +42,32 @@ dstClientId=$(echo $config | jq --raw-output --arg path_name "$PATH_NAME" '.path
 dstConnectionId=$(echo $config | jq --raw-output --arg path_name "$PATH_NAME" '.paths[$path_name].dst."connection-id"')
 dstChannelId=$(echo $config | jq --raw-output --arg path_name "$PATH_NAME" '.paths[$path_name].dst."channel-id"')
 
-if [[ "$srcClientId" == "$dstClientId" && "$srcClientId" == "07-tendermint-0" ]]; then
+if [[ "$srcClientId" != "07-tendermint-0" ]]; then
+  echo "Source client ID is not '07-tendermint-0'"
+  exit 1
+elif [[ "$dstClientId" != "07-tendermint-0" ]]; then
+  echo "Destination client ID is not '07-tendermint-0'"
+  exit 1
+else
   echo "Client IDs match and are '07-tendermint-0'"
-else
-  echo "Client IDs do not match or are not '07-tendermint-0'"
-  exit 1
 fi
 
-if [[ "$srcConnectionId" == "$dstConnectionId" && "$srcConnectionId" == "connection-0" ]]; then
+if [[ "$srcConnectionId" != "connection-0" ]]; then
+  echo "Source connection ID is not 'connection-0'"
+  exit 1
+elif [[ "$dstConnectionId" != "connection-0" ]]; then
+  echo "Destination connection ID is not 'connection-0'"
+  exit 1
+else
   echo "Connection IDs match and are 'connection-0'"
-else
-  echo "Connection IDs do not match or are not 'connection-0'"
-  exit 1
 fi
 
-if [[ "$srcChannelId" == "$dstChannelId" && "$srcChannelId" == "channel-0" ]]; then
-  echo "Channel IDs match and are 'channel-0'"
-else
-  echo "Channel IDs do not match or are not 'channel-0'"
+if [[ "$srcChannelId" != "channel-0" ]]; then
+  echo "Source channel ID is not 'channel-0'"
   exit 1
+elif [[ "$dstChannelId" != "channel-0" ]]; then
+  echo "Destination channel ID is not 'channel-0'"
+  exit 1
+else
+  echo "Channel IDs match and are 'channel-0'"
 fi
