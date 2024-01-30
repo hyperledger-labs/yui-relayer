@@ -82,8 +82,10 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 				logger.Error("failed to send msgs", err, "msgs", msgs)
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
-			for i := range msgs {
-				srcMsgIDs[i+maxTxCount] = msgIDs[i]
+			if err == nil {
+				for i := range msgs {
+					srcMsgIDs[i+maxTxCount] = msgIDs[i]
+				}
 			}
 			// clear the current batch and reset variables
 			maxTxCount += len(msgs)
@@ -100,8 +102,10 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			logger.Error("failed to send msgs", err, "msgs", msgs)
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
-		for i := range msgs {
-			srcMsgIDs[i+maxTxCount] = msgIDs[i]
+		if err == nil {
+			for i := range msgs {
+				srcMsgIDs[i+maxTxCount] = msgIDs[i]
+			}
 		}
 	}
 
@@ -127,8 +131,10 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 				logger.Error("failed to send msgs", err, "msgs", msgs)
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
-			for i := range msgs {
-				dstMsgIDs[i+maxTxCount] = msgIDs[i]
+			if err == nil {
+				for i := range msgs {
+					dstMsgIDs[i+maxTxCount] = msgIDs[i]
+				}
 			}
 			// clear the current batch and reset variables
 			maxTxCount += len(msgs)
@@ -145,8 +151,10 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			logger.Error("failed to send msgs", err, "msgs", msgs)
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
-		for i := range msgs {
-			dstMsgIDs[i+maxTxCount] = msgIDs[i]
+		if err == nil {
+			for i := range msgs {
+				dstMsgIDs[i+maxTxCount] = msgIDs[i]
+			}
 		}
 	}
 	r.SrcMsgIDs = srcMsgIDs
