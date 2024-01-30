@@ -118,6 +118,14 @@ func QueryConnectionPair(
 ) (srcConn, dstConn *conntypes.QueryConnectionResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
+		if src.Path().ConnectionID == "" {
+			srcConn = &conntypes.QueryConnectionResponse{
+				Connection: &conntypes.ConnectionEnd{
+					State: conntypes.UNINITIALIZED,
+				},
+			}
+			return nil
+		}
 		var err error
 		srcConn, err = src.QueryConnection(srcCtx)
 		if err != nil {
@@ -137,6 +145,14 @@ func QueryConnectionPair(
 		return err
 	})
 	eg.Go(func() error {
+		if dst.Path().ConnectionID == "" {
+			dstConn = &conntypes.QueryConnectionResponse{
+				Connection: &conntypes.ConnectionEnd{
+					State: conntypes.UNINITIALIZED,
+				},
+			}
+			return nil
+		}
 		var err error
 		dstConn, err = dst.QueryConnection(dstCtx)
 		if err != nil {
@@ -166,6 +182,14 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 }, prove bool) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
+		if src.Path().ChannelID == "" {
+			srcChan = &chantypes.QueryChannelResponse{
+				Channel: &chantypes.Channel{
+					State: chantypes.UNINITIALIZED,
+				},
+			}
+			return nil
+		}
 		var err error
 		srcChan, err = src.QueryChannel(srcCtx)
 		if err != nil {
@@ -185,6 +209,14 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 		return err
 	})
 	eg.Go(func() error {
+		if dst.Path().ChannelID == "" {
+			dstChan = &chantypes.QueryChannelResponse{
+				Channel: &chantypes.Channel{
+					State: chantypes.UNINITIALIZED,
+				},
+			}
+			return nil
+		}
 		var err error
 		dstChan, err = dst.QueryChannel(dstCtx)
 		if err != nil {

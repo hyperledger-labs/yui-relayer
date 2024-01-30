@@ -11,6 +11,27 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/utils"
 )
 
+var config ConfigI
+
+type ConfigIDType string
+
+const (
+	ConfigIDClient     ConfigIDType = "client"
+	ConfigIDConnection ConfigIDType = "connection"
+	ConfigIDChannel    ConfigIDType = "channel"
+)
+
+type ConfigI interface {
+	UpdateConfigID(pathName string, chainID string, configID ConfigIDType, id string) error
+}
+
+func SetCoreConfig(c ConfigI) {
+	if config != nil {
+		panic("core config already set")
+	}
+	config = c
+}
+
 // ChainProverConfig defines the top level configuration for a chain instance
 type ChainProverConfig struct {
 	Chain  json.RawMessage `json:"chain" yaml:"chain"` // NOTE: it's any type as json format
@@ -110,4 +131,51 @@ func (cc ChainProverConfig) Build() (*ProvableChain, error) {
 		return nil, err
 	}
 	return NewProvableChain(chain, prover), nil
+}
+
+func SyncChainConfigsFromEvents(pathName string, msgIDsSrc, msgIDsDst []MsgID, src, dst *ProvableChain) error {
+	if err := SyncChainConfigFromEvents(pathName, msgIDsSrc, src); err != nil {
+		return err
+	}
+	if err := SyncChainConfigFromEvents(pathName, msgIDsDst, dst); err != nil {
+		return err
+	}
+	return nil
+}
+
+func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableChain) error {
+	for _, msgID := range msgIDs {
+		if msgID == nil {
+			continue
+		}
+		msgRes, err := chain.Chain.GetMsgResult(msgID)
+		if err != nil {
+			return fmt.Errorf("failed to get message result: %v", err)
+		} else if ok, failureReason := msgRes.Status(); !ok {
+			return fmt.Errorf("msg(id=%v) execution failed: %v", msgID, failureReason)
+		}
+
+		for _, event := range msgRes.Events() {
+			var id string
+			var configID ConfigIDType
+			switch event := event.(type) {
+			case *EventGenerateClientIdentifier:
+				configID = ConfigIDClient
+				id = event.ID
+			case *EventGenerateConnectionIdentifier:
+				configID = ConfigIDConnection
+				id = event.ID
+			case *EventGenerateChannelIdentifier:
+				configID = ConfigIDChannel
+				id = event.ID
+			}
+			if id != "" {
+				if err := config.UpdateConfigID(pathName, chain.ChainID(), configID, id); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }

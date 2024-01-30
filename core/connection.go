@@ -22,7 +22,7 @@ var (
 	rtyErr    = retry.LastErrorOnly(true)
 )
 
-func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
+func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration) error {
 	logger := GetConnectionPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateConnection")
 	ticker := time.NewTicker(to)
@@ -44,6 +44,11 @@ func CreateConnection(src, dst *ProvableChain, to time.Duration) error {
 		}
 
 		connSteps.Send(src, dst)
+		if connSteps.Success() {
+			if err := SyncChainConfigsFromEvents(pathName, connSteps.SrcMsgIDs, connSteps.DstMsgIDs, src, dst); err != nil {
+				return err
+			}
+		}
 
 		switch {
 		// In the case of success and this being the last transaction

@@ -1,7 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -15,13 +18,16 @@ type Config struct {
 
 	// cache
 	chains Chains `yaml:"-" json:"-"`
+
+	ConfigPath string `yaml:"-" json:"-"`
 }
 
-func DefaultConfig() Config {
+func defaultConfig(configPath string) Config {
 	return Config{
-		Global: newDefaultGlobalConfig(),
-		Chains: []core.ChainProverConfig{},
-		Paths:  core.Paths{},
+		Global:     newDefaultGlobalConfig(),
+		Chains:     []core.ChainProverConfig{},
+		Paths:      core.Paths{},
+		ConfigPath: configPath,
 	}
 }
 
@@ -49,6 +55,10 @@ func newDefaultGlobalConfig() GlobalConfig {
 			Output: "stderr",
 		},
 	}
+}
+
+func (c *Config) InitCoreConfig() {
+	initCoreConfig(c)
 }
 
 func (c *Config) GetChain(chainID string) (*core.ProvableChain, error) {
@@ -95,6 +105,7 @@ func (c *Config) DeleteChain(chain string) *Config {
 
 // ChainsFromPath takes the path name and returns the properly configured chains
 func (c *Config) ChainsFromPath(path string) (map[string]*core.ProvableChain, string, string, error) {
+
 	pth, err := c.Paths.Get(path)
 	if err != nil {
 		return nil, "", "", err
@@ -130,4 +141,68 @@ func InitChains(ctx *Context, homePath string, debug bool) error {
 	}
 
 	return nil
+}
+
+func (c *Config) InitConfig(ctx *Context, homePath, configPath string, debug bool) error {
+	cfgPath := fmt.Sprintf("%s/%s", homePath, configPath)
+	c.ConfigPath = cfgPath
+	if _, err := os.Stat(cfgPath); err == nil {
+		file, err := os.ReadFile(cfgPath)
+		if err != nil {
+			return err
+		}
+		// unmarshall them into the struct
+		if err = UnmarshalJSON(ctx.Codec, file, c); err != nil {
+			return err
+		}
+		// ensure config has []*relayer.Chain used for all chain operations
+		if err = InitChains(ctx, homePath, debug); err != nil {
+			return err
+		}
+	} else {
+		defConfig := defaultConfig(cfgPath)
+		c = &defConfig
+	}
+	c.InitCoreConfig()
+	ctx.Config = c
+	return nil
+}
+
+func (c *Config) CreateConfig() error {
+	cfgPath := c.ConfigPath
+	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+		dirPath := filepath.Dir(cfgPath)
+		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+			return err
+		}
+		f, err := os.Create(cfgPath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		if _, err = f.Write(defaultConfigBytes(c.ConfigPath)); err != nil {
+			return err
+		}
+		return nil
+	}
+	return nil
+}
+
+func (c *Config) OverWriteConfig() error {
+	configData, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(c.ConfigPath, configData, 0600); err != nil {
+		return err
+	}
+	return nil
+}
+
+func defaultConfigBytes(configPath string) []byte {
+	bz, err := json.Marshal(defaultConfig(configPath))
+	if err != nil {
+		panic(err)
+	}
+	return bz
 }

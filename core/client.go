@@ -10,7 +10,7 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
-func CreateClients(src, dst *ProvableChain, srcHeight, dstHeight exported.Height) error {
+func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeight exported.Height) error {
 	logger := GetChainPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateClients")
 	var (
@@ -64,10 +64,14 @@ func CreateClients(src, dst *ProvableChain, srcHeight, dstHeight exported.Height
 	// Send msgs to both chains
 	if clients.Ready() {
 		// TODO: Add retry here for out of gas or other errors
-		if clients.Send(src, dst); clients.Success() {
+		clients.Send(src, dst)
+		if clients.Success() {
 			logger.Info(
 				"★ Clients created",
 			)
+			if err := SyncChainConfigsFromEvents(pathName, clients.SrcMsgIDs, clients.DstMsgIDs, src, dst); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

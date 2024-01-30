@@ -21,6 +21,7 @@ var (
 	homePath    string
 	debug       bool
 	defaultHome = os.ExpandEnv("$HOME/.yui-relayer")
+	configPath  = "config/config.json"
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -74,11 +75,11 @@ func Execute(modules ...config.ModuleI) error {
 	}
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
-		// reads `homeDir/config/config.yaml` into `var config *Config` before each command
+		// reads `homeDir/config/config.json` into `var config *Config` before each command
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			return fmt.Errorf("failed to bind the flag set to the configuration: %v", err)
 		}
-		if err := initConfig(ctx, rootCmd); err != nil {
+		if err := ctx.Config.InitConfig(ctx, homePath, configPath, debug); err != nil {
 			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
 		if err := initLogger(ctx); err != nil {
