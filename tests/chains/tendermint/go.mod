@@ -9,7 +9,7 @@ require (
 	github.com/cometbft/cometbft-db v0.8.0
 	github.com/cosmos/cosmos-sdk v0.47.3
 	github.com/cosmos/ibc-go/v7 v7.2.0
-	github.com/datachainlab/ibc-mock-client v0.3.2
+	github.com/datachainlab/ibc-mock-client v0.3.3
 	github.com/gorilla/mux v1.8.0
 	github.com/rakyll/statik v0.1.7
 	github.com/spf13/cast v1.5.1

@@ -351,8 +351,8 @@ github.com/cucumber/common/gherkin/go/v22 v22.0.0 h1:4K8NqptbvdOrjL9DEea6HFjSpbd
 github.com/cucumber/common/messages/go/v17 v17.1.1 h1:RNqopvIFyLWnKv0LfATh34SWBhXeoFTJnSrgm9cT/Ts=
 github.com/danieljoos/wincred v1.1.2 h1:QLdCxFs1/Yl4zduvBdcHB8goaYk9RARS2SgLLRuAyr0=
 github.com/danieljoos/wincred v1.1.2/go.mod h1:GijpziifJoIBfYh+S7BbkdUTU4LfM+QnGqR5Vl2tAx0=
-github.com/datachainlab/ibc-mock-client v0.3.2 h1:SxBkaiuHWQ+1L085m2L35Fku3am7I6YL6B7dwurtDOM=
-github.com/datachainlab/ibc-mock-client v0.3.2/go.mod h1:FfqyF+VJKp8jlIG21lTNJJIp8RCaxSrx6vjhNkfwgBM=
+github.com/datachainlab/ibc-mock-client v0.3.3 h1:jZQvvd88g/6Jq8LULaqeYviOSQYqWhgsUMYMtUzosiA=
+github.com/datachainlab/ibc-mock-client v0.3.3/go.mod h1:FfqyF+VJKp8jlIG21lTNJJIp8RCaxSrx6vjhNkfwgBM=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
