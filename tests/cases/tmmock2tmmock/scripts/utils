@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+PATH_NAME=ibc01
+RETRY_COUNT=5
+RETRY_INTERVAL=1
+
+waitRelay() {
+  query_type=$1
+  filter=".$2 | length"
+  for i in `seq $RETRY_COUNT`
+  do
+      echo "[try:$i] waiting for ${query_type} finalization ..."
+      sleep $RETRY_INTERVAL
+      unrelayed=$(${RLY} query ${query_type} ${PATH_NAME} | jq "${filter}")
+      if [ $unrelayed -gt 0 ]; then
+        break
+      fi
+  done
+}
+
+expectUnrelayedCount() {
+    query_type=$1
+    filter=".$2 | length"
+    expect_count=$3
+    unrelayed_count=$(${RLY} query ${query_type} ${PATH_NAME} | jq "${filter}")
+    if [ $unrelayed_count -ne ${expect_count} ]; then
+        echo "$query_type: $unrelayed_count"
+        kill $RLY_PID
+        exit 1
+    fi
+}

@@ -1,0 +1,103 @@
+#!/bin/bash
+
+: <<'END_COMMENT'
+* relay-interval = 20s
+* src-relay-optimize-interval = 30s
+* src-relay-optimize-count = 3
+* dst-relay-optimize-interval = 30s
+* dst-relay-optimize-count = 3
+
+- relay service [packets = 0, time = 0] -> skip
+    - sleep 4
+    - transfer x 1
+    - sleep 3 finality
+    - packets = 1, ack = 0
+    - sleep 10
+- relay service [packets = 1, time = 20] -> skip
+    - sleep 4
+    - transfer x 1
+    - sleep 3 finality
+    - packets = 2, ack = 0
+    - sleep 10
+- relay service [packets = 2, time = 40] -> exec (time)
+    - sleep 4
+    - packets = 0, ack = 2
+    - transfer x 3
+    - sleep 3 finality
+    - packets = 3, ack = 2
+    - sleep 10
+- relay service [packets = 3, time = 20] -> exec (count)
+    - sleep 4
+    - packets = 0, ack = 5
+    - sleep 20
+- relay service [acks = 5, time = 40] -> exec (time + count)
+    - sleep 4
+    - packets = 0, ack = 0
+    - Finished
+END_COMMENT
+
+set -eux
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
+RLY="${RLY_BINARY} --debug"
+
+source ${SCRIPT_DIR}/utils
+
+TM_ADDRESS0=$(${RLY} tendermint keys show ibc0 testkey)
+TM_ADDRESS1=$(${RLY} tendermint keys show ibc1 testkey)
+
+SECONDS=0
+${RLY} service start ibc01 --relay-interval 20s --src-relay-optimize-interval 30s --src-relay-optimize-count 3 --dst-relay-optimize-interval 30s --dst-relay-optimize-count 3 &
+RLY_PID=$!
+echo "xxxxxxx ${SECONDS} relay service [packets = 0, time = 0] -> skip xxxxxx"
+sleep 4
+
+${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
+sleep 3 # finality_delay
+
+expectUnrelayedCount "unrelayed-packets" "src" 1
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
+sleep 10
+
+echo "xxxxxxx ${SECONDS} relay service [packets = 1, time = 20] -> skip xxxxxx"
+sleep 4
+
+${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
+sleep 3 # finality_delay
+
+expectUnrelayedCount "unrelayed-packets" "src" 2
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
+sleep 10
+
+echo "xxxxxxx ${SECONDS} relay service [packets = 2, time = 40] -> exec (time) xxxxxx"
+sleep 4
+
+expectUnrelayedCount "unrelayed-packets" "src" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2
+
+${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
+${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
+${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
+sleep 3 # finality_delay
+
+expectUnrelayedCount "unrelayed-packets" "src" 3
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2
+sleep 10
+
+echo "xxxxxxx ${SECONDS} relay service [packets = 3, time = 20] -> exec (count) xxxxxx"
+sleep 4
+
+expectUnrelayedCount "unrelayed-packets" "src" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 5
+sleep 20
+
+echo "xxxxxxx ${SECONDS} relay service [akcs = 3, time = 40] -> exec - time + count xxxxxx"
+sleep 4
+
+expectUnrelayedCount "unrelayed-packets" "src" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
+
+echo "Finished"
+
+kill $RLY_PID

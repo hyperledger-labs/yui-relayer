@@ -184,7 +184,7 @@ func (c *Chain) QueryUnreceivedPackets(ctx core.QueryContext, seqs []uint64) ([]
 		PacketCommitmentSequences: seqs,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query unreceived packets: error=%w height=%v", err, ctx.Height())
 	}
 	return res.Sequences, nil
 }
@@ -192,14 +192,14 @@ func (c *Chain) QueryUnreceivedPackets(ctx core.QueryContext, seqs []uint64) ([]
 func (c *Chain) QueryUnfinalizedRelayPackets(ctx core.QueryContext, counterparty core.LightClientICS04Querier) (core.PacketInfoList, error) {
 	res, err := c.queryPacketCommitments(ctx, 0, 1000)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query packet commitments: error=%w height=%v", err, ctx.Height())
 	}
 
 	var packets core.PacketInfoList
 	for _, ps := range res.Commitments {
 		packet, height, err := c.querySentPacket(ctx, ps.Sequence)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to query sent packet: error=%w height=%v", err, ctx.Height())
 		}
 		packets = append(packets, &core.PacketInfo{
 			Packet:          *packet,
@@ -210,14 +210,14 @@ func (c *Chain) QueryUnfinalizedRelayPackets(ctx core.QueryContext, counterparty
 
 	var counterpartyCtx core.QueryContext
 	if counterpartyH, err := counterparty.GetLatestFinalizedHeader(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get latest finalized header: error=%w height=%v", err, ctx.Height())
 	} else {
 		counterpartyCtx = core.NewQueryContext(context.TODO(), counterpartyH.GetHeight())
 	}
 
 	seqs, err := counterparty.QueryUnreceivedPackets(counterpartyCtx, packets.ExtractSequenceList())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query counterparty for unreceived packets: error=%w, height=%v", err, counterpartyCtx.Height())
 	}
 	packets = packets.Filter(seqs)
 
@@ -233,7 +233,7 @@ func (c *Chain) QueryUnreceivedAcknowledgements(ctx core.QueryContext, seqs []ui
 		PacketAckSequences: seqs,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query unreceived acks: : error=%w height=%v", err, ctx.Height())
 	}
 	return res.Sequences, nil
 }
@@ -241,18 +241,18 @@ func (c *Chain) QueryUnreceivedAcknowledgements(ctx core.QueryContext, seqs []ui
 func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, counterparty core.LightClientICS04Querier) (core.PacketInfoList, error) {
 	res, err := c.queryPacketAcknowledgementCommitments(ctx, 0, 1000)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query packet acknowledgement commitments: error=%w height=%v", err, ctx.Height())
 	}
 
 	var packets core.PacketInfoList
 	for _, ps := range res.Acknowledgements {
 		packet, rpHeight, err := c.queryReceivedPacket(ctx, ps.Sequence)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to query received packet: error=%w height=%v", err, ctx.Height())
 		}
 		ack, _, err := c.queryWrittenAcknowledgement(ctx, ps.Sequence)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to query written acknowledgement: error=%w height=%v", err, ctx.Height())
 		}
 		packets = append(packets, &core.PacketInfo{
 			Packet:          *packet,
@@ -263,14 +263,14 @@ func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, cou
 
 	var counterpartyCtx core.QueryContext
 	if counterpartyH, err := counterparty.GetLatestFinalizedHeader(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get latest finalized header: error=%w height=%v", err, ctx.Height())
 	} else {
 		counterpartyCtx = core.NewQueryContext(context.TODO(), counterpartyH.GetHeight())
 	}
 
 	seqs, err := counterparty.QueryUnreceivedAcknowledgements(counterpartyCtx, packets.ExtractSequenceList())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query counterparty for unreceived acknowledgements: error=%w height=%v", err, counterpartyCtx.Height())
 	}
 	packets = packets.Filter(seqs)
 
