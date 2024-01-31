@@ -9,7 +9,7 @@ require (
 	github.com/cometbft/cometbft-db v0.8.0
 	github.com/cosmos/cosmos-sdk v0.47.3
 	github.com/cosmos/ibc-go/v7 v7.2.0
-	github.com/datachainlab/ibc-mock-client v0.3.2
+	github.com/datachainlab/ibc-mock-client v0.3.3
 	github.com/gorilla/mux v1.8.0
 	github.com/rakyll/statik v0.1.7
 	github.com/spf13/cast v1.5.1
@@ -168,6 +168,5 @@ require (
 replace (
 	// https://github.com/cosmos/cosmos-sdk/blob/v0.47.3/go.mod#L171-L182
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
-	github.com/datachainlab/ibc-mock-client => github.com/dongrie/ibc-mock-client v0.3.3-0.20231221102347-9000a7df65b4
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 )
