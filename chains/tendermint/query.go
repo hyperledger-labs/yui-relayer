@@ -270,7 +270,7 @@ func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, cou
 
 	seqs, err := counterparty.QueryUnreceivedAcknowledgements(counterpartyCtx, packets.ExtractSequenceList())
 	if err != nil {
-		return nil, fmt.Errorf("failed to query counterparty for unreceived: error=%w height=%v", err, counterpartyCtx.Height())
+		return nil, fmt.Errorf("failed to query counterparty for unreceived acknowledgements: error=%w height=%v", err, counterpartyCtx.Height())
 	}
 	packets = packets.Filter(seqs)
 
