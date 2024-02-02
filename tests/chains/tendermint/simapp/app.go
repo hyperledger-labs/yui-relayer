@@ -126,10 +126,13 @@ import (
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 	ibctypes "github.com/cosmos/ibc-go/v8/modules/core/types"
+	solomachine "github.com/cosmos/ibc-go/v8/modules/light-clients/06-solomachine"
+	ibctm "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
 	ibcmock "github.com/cosmos/ibc-go/v8/testing/mock"
 	"github.com/cosmos/ibc-go/v8/testing/simapp/upgrades"
 	ibctestingtypes "github.com/cosmos/ibc-go/v8/testing/types"
 
+	mockclient "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock"
 	mockclienttypes "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock/types"
 )
 
@@ -564,6 +567,9 @@ func NewSimApp(
 		transfer.NewAppModule(app.TransferKeeper),
 		ibcfee.NewAppModule(app.IBCFeeKeeper),
 		ica.NewAppModule(&app.ICAControllerKeeper, &app.ICAHostKeeper),
+		ibctm.NewAppModule(),
+		solomachine.NewAppModule(),
+		mockclient.NewAppModule(),
 		mockModule,
 	)
 
