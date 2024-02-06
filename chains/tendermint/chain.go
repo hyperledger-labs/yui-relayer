@@ -447,14 +447,8 @@ func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
 		}, nil
 	}
 
-	// parse the log into ABCI logs
-	abciLogs, err := sdk.ParseABCILogs(resTx.TxResult.Log)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ABCI logs: %v", err)
-	}
-
-	// parse the ABCI logs into core.MsgEventLog's
-	events, err := parseMsgEventLogs(abciLogs, msgID.MsgIndex)
+	// parse the abci.types.Events into core.MsgEventLog's
+	events, err := parseMsgEventLogs(resTx.TxResult.Events, msgID.MsgIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse msg event log: %v", err)
 	}

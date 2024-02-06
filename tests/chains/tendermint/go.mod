@@ -195,6 +195,6 @@ replace (
 	// https://github.com/cosmos/cosmos-sdk/blob/v0.47.3/go.mod#L171-L182
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
 
-	github.com/datachainlab/ibc-mock-client => github.com/dongrie/ibc-mock-client v0.3.3-0.20240202034046-2286f47fe7a8
+	github.com/datachainlab/ibc-mock-client => github.com/dongrie/ibc-mock-client v0.3.3-0.20240202040041-f4bae04fc249
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 )

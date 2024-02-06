@@ -405,8 +405,8 @@ github.com/docker/go-connections v0.4.0 h1:El9xVISelRB7BuFusrZozjnkIM5YnzCViNKoh
 github.com/docker/go-connections v0.4.0/go.mod h1:Gbd7IOopHjR8Iph03tsViu4nIes5XhDvyHbTtUxmeec=
 github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
-github.com/dongrie/ibc-mock-client v0.3.3-0.20240202034046-2286f47fe7a8 h1:RLXUuvh/PJi0/THnVn/sTHH//jn2KYTAi8hCRCvodSw=
-github.com/dongrie/ibc-mock-client v0.3.3-0.20240202034046-2286f47fe7a8/go.mod h1:+WXl7RLwjigJvsqxabHCqSp+qxBjTwkNV9KPHJndGhA=
+github.com/dongrie/ibc-mock-client v0.3.3-0.20240202040041-f4bae04fc249 h1:qg7RzypiD3lDXlGXzjEzh8RSTmeYDAmLoquzoP/CRdI=
+github.com/dongrie/ibc-mock-client v0.3.3-0.20240202040041-f4bae04fc249/go.mod h1:+WXl7RLwjigJvsqxabHCqSp+qxBjTwkNV9KPHJndGhA=
 github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
