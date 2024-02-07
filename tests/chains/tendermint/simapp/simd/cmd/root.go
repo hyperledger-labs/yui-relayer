@@ -29,7 +29,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	txmodule "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
 
@@ -92,7 +91,7 @@ func NewRootCmd() *cobra.Command {
 
 			if !initClientCtx.Offline {
 				txConfigOpts := authtx.ConfigOptions{
-					EnabledSignModes:           append(authtx.DefaultSignModes, signing.SignMode_SIGN_MODE_TEXTUAL),
+					// EnabledSignModes:           append(authtx.DefaultSignModes, signing.SignMode_SIGN_MODE_TEXTUAL),
 					TextualCoinMetadataQueryFn: txmodule.NewGRPCCoinMetadataQueryFn(initClientCtx),
 				}
 				txConfigWithTextual, err := authtx.NewTxConfigWithOptions(
