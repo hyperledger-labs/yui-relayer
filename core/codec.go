@@ -37,8 +37,6 @@ var moduleBasics = module.NewBasicManager(
 	gov.NewAppModuleBasic(
 		[]govclient.ProposalHandler{
 			paramsclient.ProposalHandler,
-			//upgradeclient.LegacyProposalHandler,
-			// upgradeclient.LegacyCancelProposalHandler,
 		},
 	),
 	params.AppModuleBasic{},

@@ -57,13 +57,11 @@ func NewRootCmd() *cobra.Command {
 	tempApp := simapp.NewSimApp(log.NewNopLogger(), dbm.NewMemDB(), nil, true, map[int64]bool{}, homePath, uint(1), appOpts)
 	interfaceRegistry := tempApp.InterfaceRegistry()
 	appCodec := codec.NewProtoCodec(interfaceRegistry)
-	txConfig := authtx.NewTxConfig(appCodec, authtx.DefaultSignModes)
+	txConfig := tempApp.GetTxConfig()
 	amino := codec.NewLegacyAmino()
 	initClientCtx := client.Context{}.
-		// WithCodec(encodingConfig.Marshaler).
 		WithCodec(appCodec).
 		WithInterfaceRegistry(interfaceRegistry).
-		// WithTxConfig(txConfig).
 		WithLegacyAmino(amino).
 		WithInput(os.Stdin).
 		WithAccountRetriever(types.AccountRetriever{}).
@@ -91,7 +89,6 @@ func NewRootCmd() *cobra.Command {
 
 			if !initClientCtx.Offline {
 				txConfigOpts := authtx.ConfigOptions{
-					// EnabledSignModes:           append(authtx.DefaultSignModes, signing.SignMode_SIGN_MODE_TEXTUAL),
 					TextualCoinMetadataQueryFn: txmodule.NewGRPCCoinMetadataQueryFn(initClientCtx),
 				}
 				txConfigWithTextual, err := authtx.NewTxConfigWithOptions(
@@ -117,10 +114,6 @@ func NewRootCmd() *cobra.Command {
 
 	initRootCmd(rootCmd, txConfig, tempApp.BasicModuleManager)
 
-	// if err := tempApp.AutoCliOpts().EnhanceRootCommand(rootCmd); err != nil {
-	// 	panic(err)
-	// }
-
 	return rootCmd
 }
 
@@ -128,10 +121,6 @@ func NewRootCmd() *cobra.Command {
 // return tmcfg.DefaultConfig if no custom configuration is required for the application.
 func initTendermintConfig() *tmcfg.Config {
 	cfg := tmcfg.DefaultConfig()
-
-	// these values put a higher strain on node memory
-	// cfg.P2P.MaxNumInboundPeers = 100
-	// cfg.P2P.MaxNumOutboundPeers = 40
 
 	return cfg
 }
@@ -195,26 +184,12 @@ lru_size = 0`
 func initRootCmd(rootCmd *cobra.Command, txConfig client.TxConfig, moduleBasics module.BasicManager) {
 	cfg := sdk.GetConfig()
 	cfg.Seal()
-	// gentxModule := simapp.ModuleBasics[genutiltypes.ModuleName].(genutil.AppModuleBasic)
-
-	// codec := address.Bech32Codec{
-	// 	Bech32Prefix: sdk.GetConfig().GetBech32ValidatorAddrPrefix(),
-	// }
-
-	// validatorAddressCodec := authcodec.NewBech32Codec(sdk.GetConfig().GetBech32ValidatorAddrPrefix())
-	// validatorAddressCodec := authcodec.NewBech32Codec(sdk.Bech32PrefixValAddr)
 
 	a := appCreator{}
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(moduleBasics, simapp.DefaultNodeHome),
-		// genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, simapp.DefaultNodeHome, gentxModule.GenTxValidator, validatorAddressCodec),
-		// genutilcli.MigrateGenesisCmd(genutiltypes.MigrationMap{}),
-		// genutilcli.GenTxCmd(simapp.ModuleBasics, txConfig, banktypes.GenesisBalancesIterator{}, simapp.DefaultNodeHome, validatorAddressCodec),
-		// genutilcli.ValidateGenesisCmd(simapp.ModuleBasics),
 		AddGenesisAccountCmd(simapp.DefaultNodeHome),
-		// tmcli.NewCompletionCmd(rootCmd, true),
 		debug.Cmd(),
-		// config.Cmd(),
 		confixcmd.ConfigCommand(),
 		pruning.Cmd(a.newApp, simapp.DefaultNodeHome),
 		snapshot.Cmd(a.newApp),
@@ -232,8 +207,6 @@ func initRootCmd(rootCmd *cobra.Command, txConfig client.TxConfig, moduleBasics 
 		keys.Commands(),
 	)
 
-	// add rosetta
-	// rootCmd.AddCommand(rosettaCmd.RosettaCommand(encodingConfig.InterfaceRegistry, encodingConfig.Codec))
 }
 
 func addModuleInitFlags(startCmd *cobra.Command) {
@@ -251,7 +224,6 @@ func queryCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		// authcmd.GetAccountCmd(),
 		rpc.ValidatorCommand(),
 		server.QueryBlockCmd(),
 		authcmd.QueryTxsByEventsCmd(),
@@ -260,7 +232,6 @@ func queryCommand() *cobra.Command {
 		authcmd.GetSimulateCmd(),
 	)
 
-	// simapp.ModuleBasics.AddQueryCommands(cmd)
 	cmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
 
 	return cmd
@@ -301,7 +272,6 @@ func txCommand() *cobra.Command {
 }
 
 type appCreator struct {
-	// encCfg params.EncodingConfig
 }
 
 // newApp is an appCreator
@@ -390,13 +360,13 @@ func (a appCreator) appExport(
 	}
 
 	if height != -1 {
-		simApp = simapp.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, homePath, uint(1) /* a.encCfg, */, appOpts)
+		simApp = simapp.NewSimApp(logger, db, traceStore, false, map[int64]bool{}, homePath, uint(1), appOpts)
 
 		if err := simApp.LoadHeight(height); err != nil {
 			return servertypes.ExportedApp{}, err
 		}
 	} else {
-		simApp = simapp.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, homePath, uint(1) /* a.encCfg, */, appOpts)
+		simApp = simapp.NewSimApp(logger, db, traceStore, true, map[int64]bool{}, homePath, uint(1), appOpts)
 	}
 
 	return simApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs)
