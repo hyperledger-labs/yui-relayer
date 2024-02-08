@@ -30,7 +30,6 @@ import (
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
-	txmodule "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
 
 	"github.com/cosmos/cosmos-sdk/server"
 	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
@@ -88,9 +87,7 @@ func NewRootCmd() *cobra.Command {
 			}
 
 			if !initClientCtx.Offline {
-				txConfigOpts := authtx.ConfigOptions{
-					TextualCoinMetadataQueryFn: txmodule.NewGRPCCoinMetadataQueryFn(initClientCtx),
-				}
+				txConfigOpts := authtx.ConfigOptions{}
 				txConfigWithTextual, err := authtx.NewTxConfigWithOptions(
 					codec.NewProtoCodec(interfaceRegistry),
 					txConfigOpts,
