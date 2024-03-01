@@ -16,7 +16,7 @@ require (
 	github.com/cosmos/gogoproto v1.4.11
 	github.com/cosmos/ibc-go/modules/capability v1.0.0
 	github.com/cosmos/ibc-go/v8 v8.0.0
-	github.com/datachainlab/ibc-mock-client v0.0.0-00010101000000-000000000000
+	github.com/datachainlab/ibc-mock-client v0.3.4
 	github.com/prometheus/client_golang v1.17.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
@@ -196,7 +196,5 @@ require (
 replace (
 	// https://github.com/cosmos/cosmos-sdk/blob/v0.47.3/go.mod#L171-L182
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
-
-	github.com/datachainlab/ibc-mock-client => github.com/dongrie/ibc-mock-client v0.3.3-0.20240202040041-f4bae04fc249
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 )
