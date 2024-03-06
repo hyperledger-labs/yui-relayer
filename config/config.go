@@ -12,7 +12,6 @@ import (
 )
 
 type Config struct {
-	Global GlobalConfig             `yaml:"global" json:"global"`
 	Chains []core.ChainProverConfig `yaml:"chains" json:"chains"`
 	Paths  core.Paths               `yaml:"paths" json:"paths"`
 
@@ -24,36 +23,9 @@ type Config struct {
 
 func defaultConfig(configPath string) Config {
 	return Config{
-		Global:     newDefaultGlobalConfig(),
 		Chains:     []core.ChainProverConfig{},
 		Paths:      core.Paths{},
 		ConfigPath: configPath,
-	}
-}
-
-// GlobalConfig describes any global relayer settings
-type GlobalConfig struct {
-	Timeout        string       `yaml:"timeout" json:"timeout"`
-	LightCacheSize int          `yaml:"light-cache-size" json:"light-cache-size"`
-	LoggerConfig   LoggerConfig `yaml:"logger" json:"logger"`
-}
-
-type LoggerConfig struct {
-	Level  string `yaml:"level" json:"level"`
-	Format string `yaml:"format" json:"format"`
-	Output string `yaml:"output" json:"output"`
-}
-
-// newDefaultGlobalConfig returns a global config with defaults set
-func newDefaultGlobalConfig() GlobalConfig {
-	return GlobalConfig{
-		Timeout:        "10s",
-		LightCacheSize: 20,
-		LoggerConfig: LoggerConfig{
-			Level:  "DEBUG",
-			Format: "json",
-			Output: "stderr",
-		},
 	}
 }
 
@@ -128,14 +100,9 @@ func (c *Config) ChainsFromPath(path string) (map[string]*core.ProvableChain, st
 }
 
 // Called to initialize the relayer.Chain types on Config
-func InitChains(ctx *Context, homePath string, debug bool) error {
-	to, err := time.ParseDuration(ctx.Config.Global.Timeout)
-	if err != nil {
-		return fmt.Errorf("did you remember to run 'rly config init' error:%w", err)
-	}
-
+func InitChains(ctx *Context, homePath string, debug bool, timeout time.Duration) error {
 	for _, chain := range ctx.Config.chains {
-		if err := chain.Init(homePath, to, ctx.Codec, debug); err != nil {
+		if err := chain.Init(homePath, timeout, ctx.Codec, debug); err != nil {
 			return fmt.Errorf("did you remember to run 'rly config init' error:%w", err)
 		}
 	}
@@ -143,7 +110,7 @@ func InitChains(ctx *Context, homePath string, debug bool) error {
 	return nil
 }
 
-func (c *Config) InitConfig(ctx *Context, homePath, configPath string, debug bool) error {
+func (c *Config) InitConfig(ctx *Context, homePath, configPath string, debug bool, timeout time.Duration) error {
 	cfgPath := fmt.Sprintf("%s/%s", homePath, configPath)
 	c.ConfigPath = cfgPath
 	if _, err := os.Stat(cfgPath); err == nil {
@@ -156,7 +123,7 @@ func (c *Config) InitConfig(ctx *Context, homePath, configPath string, debug boo
 			return err
 		}
 		// ensure config has []*relayer.Chain used for all chain operations
-		if err = InitChains(ctx, homePath, debug); err != nil {
+		if err = InitChains(ctx, homePath, debug, timeout); err != nil {
 			return err
 		}
 	} else {
