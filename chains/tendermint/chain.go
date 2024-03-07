@@ -508,11 +508,14 @@ func (c *Chain) UseSDKContext() func() {
 
 // CLIContext returns an instance of client.Context derived from Chain
 func (c *Chain) CLIContext(height int64) sdkCtx.Context {
+	unlock := c.UseSDKContext()
+	txConfig := authtx.NewTxConfig(c.codec, authtx.DefaultSignModes)
+	unlock()
 	return sdkCtx.Context{}.
 		WithChainID(c.config.ChainId).
 		WithCodec(c.codec).
 		WithInterfaceRegistry(c.codec.InterfaceRegistry()).
-		WithTxConfig(authtx.NewTxConfig(c.codec, authtx.DefaultSignModes)).
+		WithTxConfig(txConfig).
 		WithInput(os.Stdin).
 		WithNodeURI(c.config.RpcAddr).
 		WithClient(c.Client).
