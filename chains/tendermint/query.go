@@ -121,7 +121,7 @@ func (c *Chain) QueryBalance(ctx core.QueryContext, addr sdk.AccAddress) (sdk.Co
 		Offset:     0,
 		Limit:      1000,
 		CountTotal: true,
-	}, false)
+	}, true)
 
 	queryClient := bankTypes.NewQueryClient(c.CLIContext(0))
 

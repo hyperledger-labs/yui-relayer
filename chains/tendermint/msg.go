@@ -51,17 +51,24 @@ func (r *MsgResult) Events() []core.MsgEventLog {
 func parseMsgEventLogs(events []abcitypes.Event, msgIndex uint32) ([]core.MsgEventLog, error) {
 	var msgEventLogs []core.MsgEventLog
 	for _, ev := range events {
-		for _, attr := range ev.Attributes {
-			if attr.Key == MsgIndexAttributeKey && attr.Value == strconv.FormatUint(uint64(msgIndex), 10) {
-				event, err := parseMsgEventLog(ev)
-				if err != nil {
-					return nil, fmt.Errorf("failed to parse msg event log: %v", err)
-				}
-				msgEventLogs = append(msgEventLogs, event)
+		if msgIndexOf(ev) == strconv.FormatUint(uint64(msgIndex), 10) {
+			event, err := parseMsgEventLog(ev)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse msg event log: %v", err)
 			}
+			msgEventLogs = append(msgEventLogs, event)
 		}
 	}
 	return msgEventLogs, nil
+}
+
+func msgIndexOf(event abcitypes.Event) string {
+	for _, attr := range event.Attributes {
+		if attr.Key == MsgIndexAttributeKey {
+			return attr.Value
+		}
+	}
+	return ""
 }
 
 func parseMsgEventLog(ev abcitypes.Event) (core.MsgEventLog, error) {
