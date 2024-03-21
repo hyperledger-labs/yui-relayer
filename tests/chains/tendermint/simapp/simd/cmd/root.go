@@ -41,7 +41,6 @@ import (
 	cmtcfg "github.com/cometbft/cometbft/config"
 
 	"github.com/cosmos/ibc-go/v8/testing/simapp/params"
-
 	"github.com/hyperledger-labs/yui-relayer/tests/chains/tendermint/simapp"
 )
 
@@ -110,9 +109,9 @@ func NewRootCmd() *cobra.Command {
 			}
 
 			customAppTemplate, customAppConfig := initAppConfig()
-			customTMConfig := initCometBFTConfig()
+			customCMTConfig := initCometBFTConfig()
 
-			return server.InterceptConfigsPreRunHandler(cmd, customAppTemplate, customAppConfig, customTMConfig)
+			return server.InterceptConfigsPreRunHandler(cmd, customAppTemplate, customAppConfig, customCMTConfig)
 		},
 	}
 
@@ -198,6 +197,7 @@ func initAppConfig() (string, interface{}) {
 	//
 	// In simapp, we set the min gas prices to 0.
 	srvCfg.MinGasPrices = "0stake"
+	// srvCfg.BaseConfig.IAVLDisableFastNode = true // disable fastnode by default
 
 	customAppConfig := CustomAppConfig{
 		Config: *srvCfg,
@@ -218,12 +218,12 @@ lru_size = 0`
 	return customAppTemplate, customAppConfig
 }
 
-func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig, moduleBasics module.BasicManager) {
+func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig, basicManager module.BasicManager) {
 	cfg := sdk.GetConfig()
 	cfg.Seal()
 
 	rootCmd.AddCommand(
-		genutilcli.InitCmd(moduleBasics, simapp.DefaultNodeHome),
+		genutilcli.InitCmd(basicManager, simapp.DefaultNodeHome),
 		AddGenesisAccountCmd(simapp.DefaultNodeHome),
 		debug.Cmd(),
 		confixcmd.ConfigCommand(),
@@ -234,15 +234,14 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig, m
 
 	server.AddCommands(rootCmd, simapp.DefaultNodeHome, newApp, appExport, addModuleInitFlags)
 
-	// add keybase, auxiliary RPC, query, and tx child commands
+	// add keybase, auxiliary RPC, query, genesis, and tx child commands
 	rootCmd.AddCommand(
 		server.StatusCommand(),
-		genesisCommand(encodingConfig, moduleBasics),
+		genesisCommand(encodingConfig, basicManager),
 		txCommand(),
 		queryCommand(),
 		keys.Commands(),
 	)
-
 }
 
 func addModuleInitFlags(startCmd *cobra.Command) {
