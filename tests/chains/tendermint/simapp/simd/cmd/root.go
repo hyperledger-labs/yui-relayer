@@ -48,14 +48,9 @@ import (
 // NewRootCmd creates a new root command for simd. It is called once in the
 // main function.
 func NewRootCmd() *cobra.Command {
-	appOpts := simtestutil.NewAppOptionsWithFlagHome(tempDir())
-	homePath, ok := appOpts.Get(flags.FlagHome).(string)
-	if !ok || homePath == "" {
-		panic("application home not set")
-	}
 	// we "pre"-instantiate the application for getting the injected/configured encoding configuration
 	// note, this is not necessary when using app wiring, as depinject can be directly used (see root_v2.go)
-	tempApp := simapp.NewSimApp(log.NewNopLogger(), dbm.NewMemDB(), nil, true, homePath, appOpts)
+	tempApp := simapp.NewSimApp(log.NewNopLogger(), dbm.NewMemDB(), nil, true, simtestutil.NewAppOptionsWithFlagHome(tempDir()))
 	encodingConfig := params.EncodingConfig{
 		InterfaceRegistry: tempApp.InterfaceRegistry(),
 		Codec:             tempApp.AppCodec(),
@@ -319,14 +314,8 @@ func newApp(
 ) servertypes.Application {
 	baseappOptions := server.DefaultBaseappOptions(appOpts)
 
-	homePath, ok := appOpts.Get(flags.FlagHome).(string)
-	if !ok || homePath == "" {
-		panic("application home not set")
-	}
-
 	return simapp.NewSimApp(
 		logger, db, traceStore, true,
-		homePath,
 		appOpts,
 		baseappOptions...,
 	)
@@ -362,13 +351,13 @@ func appExport(
 	appOpts = viperAppOpts
 
 	if height != -1 {
-		simApp = simapp.NewSimApp(logger, db, traceStore, false, homePath, appOpts)
+		simApp = simapp.NewSimApp(logger, db, traceStore, false, appOpts)
 
 		if err := simApp.LoadHeight(height); err != nil {
 			return servertypes.ExportedApp{}, err
 		}
 	} else {
-		simApp = simapp.NewSimApp(logger, db, traceStore, true, homePath, appOpts)
+		simApp = simapp.NewSimApp(logger, db, traceStore, true, appOpts)
 	}
 
 	return simApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs, modulesToExport)
