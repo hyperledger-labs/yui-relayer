@@ -73,8 +73,9 @@ func NewRootCmd() *cobra.Command {
 		WithViper("") // In simapp, we don't use any prefix for env variables.
 
 	rootCmd := &cobra.Command{
-		Use:   "simd",
-		Short: "simulation app",
+		Use:           "simd",
+		Short:         "simulation app",
+		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			// set the default command outputs
 			cmd.SetOut(cmd.OutOrStdout())
@@ -226,7 +227,6 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig, m
 	cfg := sdk.GetConfig()
 	cfg.Seal()
 
-	// a := appCreator{}
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(moduleBasics, simapp.DefaultNodeHome),
 		AddGenesisAccountCmd(simapp.DefaultNodeHome),
@@ -242,9 +242,9 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig, m
 	// add keybase, auxiliary RPC, query, and tx child commands
 	rootCmd.AddCommand(
 		server.StatusCommand(),
-		queryCommand(),
 		genesisCommand(encodingConfig, moduleBasics),
 		txCommand(),
+		queryCommand(),
 		keys.Commands(),
 	)
 
@@ -259,7 +259,7 @@ func queryCommand() *cobra.Command {
 		Use:                        "query",
 		Aliases:                    []string{"q"},
 		Short:                      "Querying subcommands",
-		DisableFlagParsing:         true,
+		DisableFlagParsing:         false,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
@@ -280,7 +280,7 @@ func txCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                        "tx",
 		Short:                      "Transactions subcommands",
-		DisableFlagParsing:         true,
+		DisableFlagParsing:         false,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
@@ -294,6 +294,7 @@ func txCommand() *cobra.Command {
 		authcmd.GetBroadcastCommand(),
 		authcmd.GetEncodeCommand(),
 		authcmd.GetDecodeCommand(),
+		authcmd.GetSimulateCmd(),
 	)
 
 	return cmd
