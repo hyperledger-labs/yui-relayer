@@ -224,7 +224,6 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig, b
 
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(basicManager, simapp.DefaultNodeHome),
-		AddGenesisAccountCmd(simapp.DefaultNodeHome),
 		debug.Cmd(),
 		confixcmd.ConfigCommand(),
 		pruning.Cmd(newApp, simapp.DefaultNodeHome),
