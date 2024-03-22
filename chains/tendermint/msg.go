@@ -7,16 +7,20 @@ import (
 	"strconv"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	abcitypes "github.com/cometbft/cometbft/abci/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 var (
 	_ core.MsgID     = (*MsgID)(nil)
 	_ core.MsgResult = (*MsgResult)(nil)
+)
+
+const (
+	MsgIndexAttributeKey = "msg_index"
 )
 
 func (*MsgID) Is_MsgID() {}
@@ -44,23 +48,35 @@ func (r *MsgResult) Events() []core.MsgEventLog {
 	return r.events
 }
 
-func parseMsgEventLogs(logs sdk.ABCIMessageLogs, msgIndex uint32) ([]core.MsgEventLog, error) {
+func parseMsgEventLogs(events []abcitypes.Event, msgIndex uint32) ([]core.MsgEventLog, error) {
 	var msgEventLogs []core.MsgEventLog
-	for _, log := range logs {
-		if msgIndex == log.MsgIndex {
-			for _, ev := range log.Events {
-				event, err := parseMsgEventLog(ev)
-				if err != nil {
-					return nil, fmt.Errorf("failed to parse msg event log: %v", err)
-				}
-				msgEventLogs = append(msgEventLogs, event)
+	for _, ev := range events {
+		index, err := msgIndexOf(ev)
+		if err == nil && index == msgIndex {
+			event, err := parseMsgEventLog(ev)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse msg event log: %v", err)
 			}
+			msgEventLogs = append(msgEventLogs, event)
 		}
 	}
 	return msgEventLogs, nil
 }
 
-func parseMsgEventLog(ev sdk.StringEvent) (core.MsgEventLog, error) {
+func msgIndexOf(event abcitypes.Event) (uint32, error) {
+	for _, attr := range event.Attributes {
+		if attr.Key == MsgIndexAttributeKey {
+			intValue, err := strconv.ParseUint(attr.Value, 10, 32)
+			if err != nil {
+				return 0, fmt.Errorf("failed to parse value: %v", err)
+			}
+			return uint32(intValue), nil
+		}
+	}
+	return 0, fmt.Errorf("failed to find attribute of key %q", MsgIndexAttributeKey)
+}
+
+func parseMsgEventLog(ev abcitypes.Event) (core.MsgEventLog, error) {
 	switch ev.Type {
 	case clienttypes.EventTypeCreateClient:
 		clientID, err := getAttributeString(ev, clienttypes.AttributeKeyClientID)
@@ -134,7 +150,7 @@ func parseMsgEventLog(ev sdk.StringEvent) (core.MsgEventLog, error) {
 	}
 }
 
-func getAttributeString(ev sdk.StringEvent, key string) (string, error) {
+func getAttributeString(ev abcitypes.Event, key string) (string, error) {
 	for _, attr := range ev.Attributes {
 		if attr.Key == key {
 			return attr.Value, nil
@@ -143,7 +159,7 @@ func getAttributeString(ev sdk.StringEvent, key string) (string, error) {
 	return "", fmt.Errorf("failed to find attribute of key %q", key)
 }
 
-func getAttributeBytes(ev sdk.StringEvent, key string) ([]byte, error) {
+func getAttributeBytes(ev abcitypes.Event, key string) ([]byte, error) {
 	v, err := getAttributeString(ev, key)
 	if err != nil {
 		return nil, err
@@ -155,7 +171,7 @@ func getAttributeBytes(ev sdk.StringEvent, key string) ([]byte, error) {
 	return bz, nil
 }
 
-func getAttributeHeight(ev sdk.StringEvent, key string) (clienttypes.Height, error) {
+func getAttributeHeight(ev abcitypes.Event, key string) (clienttypes.Height, error) {
 	v, err := getAttributeString(ev, key)
 	if err != nil {
 		return clienttypes.Height{}, err
@@ -167,7 +183,7 @@ func getAttributeHeight(ev sdk.StringEvent, key string) (clienttypes.Height, err
 	return height, nil
 }
 
-func getAttributeUint64(ev sdk.StringEvent, key string) (uint64, error) {
+func getAttributeUint64(ev abcitypes.Event, key string) (uint64, error) {
 	v, err := getAttributeString(ev, key)
 	if err != nil {
 		return 0, err
@@ -179,7 +195,7 @@ func getAttributeUint64(ev sdk.StringEvent, key string) (uint64, error) {
 	return d, nil
 }
 
-func getAttributeTimestamp(ev sdk.StringEvent, key string) (time.Time, error) {
+func getAttributeTimestamp(ev abcitypes.Event, key string) (time.Time, error) {
 	d, err := getAttributeUint64(ev, key)
 	if err != nil {
 		return time.Time{}, err

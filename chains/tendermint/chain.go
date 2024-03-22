@@ -29,8 +29,8 @@ import (
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/go-bip39"
-	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/log"
@@ -230,7 +230,7 @@ func (c *Chain) rawSendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
 	}
 
 	// Attach the signature to the transaction
-	err = tx.Sign(txf, c.config.Key, txb, false)
+	err = tx.Sign(context.TODO(), txf, c.config.Key, txb, false)
 	if err != nil {
 		return nil, false, err
 	}
@@ -447,14 +447,8 @@ func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
 		}, nil
 	}
 
-	// parse the log into ABCI logs
-	abciLogs, err := sdk.ParseABCILogs(resTx.TxResult.Log)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse ABCI logs: %v", err)
-	}
-
-	// parse the ABCI logs into core.MsgEventLog's
-	events, err := parseMsgEventLogs(abciLogs, msgID.MsgIndex)
+	// parse the abci.types.Events into core.MsgEventLog's
+	events, err := parseMsgEventLogs(resTx.TxResult.Events, msgID.MsgIndex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse msg event log: %v", err)
 	}
@@ -514,11 +508,14 @@ func (c *Chain) UseSDKContext() func() {
 
 // CLIContext returns an instance of client.Context derived from Chain
 func (c *Chain) CLIContext(height int64) sdkCtx.Context {
+	unlock := c.UseSDKContext()
+	txConfig := authtx.NewTxConfig(c.codec, authtx.DefaultSignModes)
+	unlock()
 	return sdkCtx.Context{}.
 		WithChainID(c.config.ChainId).
 		WithCodec(c.codec).
 		WithInterfaceRegistry(c.codec.InterfaceRegistry()).
-		WithTxConfig(authtx.NewTxConfig(c.codec, authtx.DefaultSignModes)).
+		WithTxConfig(txConfig).
 		WithInput(os.Stdin).
 		WithNodeURI(c.config.RpcAddr).
 		WithClient(c.Client).

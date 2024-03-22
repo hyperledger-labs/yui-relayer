@@ -18,7 +18,7 @@ import (
 	lighthttp "github.com/cometbft/cometbft/light/provider/http"
 	dbs "github.com/cometbft/cometbft/light/store/db"
 	tmtypes "github.com/cometbft/cometbft/types"
-	tmclient "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
+	tmclient "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
 )
 
 // NOTE: currently we are discarding the very noisy light client logs

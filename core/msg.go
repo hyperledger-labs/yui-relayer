@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/cosmos/gogoproto/proto"
-	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 )
 
 // MsgID represents an identifier of `sdk.Msg` that has been sent to a chain by `Chain::SendMsgs`.

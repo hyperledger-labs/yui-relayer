@@ -4,11 +4,11 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
-	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v7/modules/core/23-commitment/types"
+	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	conntypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	commitmenttypes "github.com/cosmos/ibc-go/v8/modules/core/23-commitment/types"
 )
 
 var (
@@ -105,7 +105,7 @@ func (pe *PathEnd) ConnTry(
 		dst.ClientID,
 		cs,
 		DefaultChainPrefix,
-		conntypes.ExportedVersionsToProto(conntypes.GetCompatibleVersions()),
+		conntypes.GetCompatibleVersions(),
 		DefaultDelayPeriod,
 		dstConnState.Proof,
 		dstClientState.Proof,
@@ -144,7 +144,7 @@ func (pe *PathEnd) ConnAck(
 		dstConsState.Proof,
 		dstConsState.ProofHeight,
 		cs.GetLatestHeight().(clienttypes.Height),
-		conntypes.ExportedVersionsToProto(conntypes.GetCompatibleVersions())[0],
+		conntypes.GetCompatibleVersions()[0],
 		signer.String(),
 	)
 	msg.HostConsensusStateProof = hostConsensusStateProof
