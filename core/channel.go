@@ -3,12 +3,12 @@ package core
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	retry "github.com/avast/retry-go"
-	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
-	"golang.org/x/exp/slog"
 )
 
 // CreateChannel runs the channel creation messages on timeout until they pass

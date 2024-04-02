@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/cometbft/cometbft/light"
-	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v7/modules/core/23-commitment/types"
-	tmclient "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	commitmenttypes "github.com/cosmos/ibc-go/v8/modules/core/23-commitment/types"
+	tmclient "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
 )
 
 func createClient(

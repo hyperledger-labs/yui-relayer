@@ -69,13 +69,13 @@ $BINARY --home $CHAINDIR/$CHAINID keys add validator --keyring-backend="test" --
 sleep 1
 $BINARY --home $CHAINDIR/$CHAINID keys add user --keyring-backend="test" --output json > $CHAINDIR/$CHAINID/key_seed.json 2> /dev/null
 sleep 1
-$BINARY --home $CHAINDIR/$CHAINID add-genesis-account $($BINARY --home $CHAINDIR/$CHAINID keys --keyring-backend="test" show user -a) $coins &> /dev/null
+$BINARY --home $CHAINDIR/$CHAINID genesis add-genesis-account $($BINARY --home $CHAINDIR/$CHAINID keys --keyring-backend="test" show user -a) $coins &> /dev/null
 sleep 1
-$BINARY --home $CHAINDIR/$CHAINID add-genesis-account $($BINARY --home $CHAINDIR/$CHAINID keys --keyring-backend="test" show validator -a) $coins  &> /dev/null
+$BINARY --home $CHAINDIR/$CHAINID genesis add-genesis-account $($BINARY --home $CHAINDIR/$CHAINID keys --keyring-backend="test" show validator -a) $coins  &> /dev/null
 sleep 1
-$BINARY --home $CHAINDIR/$CHAINID gentx validator $delegate --keyring-backend="test" --chain-id $CHAINID &> /dev/null
+$BINARY --home $CHAINDIR/$CHAINID genesis gentx validator $delegate --keyring-backend="test" --chain-id $CHAINID &> /dev/null
 sleep 1
-$BINARY --home $CHAINDIR/$CHAINID collect-gentxs &> /dev/null
+$BINARY --home $CHAINDIR/$CHAINID genesis collect-gentxs &> /dev/null
 sleep 1
 
 # Check platform

@@ -17,15 +17,15 @@ import (
 	querytypes "github.com/cosmos/cosmos-sdk/types/query"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
-	clientutils "github.com/cosmos/ibc-go/v7/modules/core/02-client/client/utils"
-	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	connutils "github.com/cosmos/ibc-go/v7/modules/core/03-connection/client/utils"
-	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
-	chanutils "github.com/cosmos/ibc-go/v7/modules/core/04-channel/client/utils"
-	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
-	committypes "github.com/cosmos/ibc-go/v7/modules/core/23-commitment/types"
-	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
+	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	clientutils "github.com/cosmos/ibc-go/v8/modules/core/02-client/client/utils"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	connutils "github.com/cosmos/ibc-go/v8/modules/core/03-connection/client/utils"
+	conntypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
+	chanutils "github.com/cosmos/ibc-go/v8/modules/core/04-channel/client/utils"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	committypes "github.com/cosmos/ibc-go/v8/modules/core/23-commitment/types"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
@@ -121,7 +121,7 @@ func (c *Chain) QueryBalance(ctx core.QueryContext, addr sdk.AccAddress) (sdk.Co
 		Offset:     0,
 		Limit:      1000,
 		CountTotal: true,
-	})
+	}, true)
 
 	queryClient := bankTypes.NewQueryClient(c.CLIContext(0))
 
@@ -414,7 +414,7 @@ func (c *Chain) QueryValsetAtHeight(height clienttypes.Height) (*tmproto.Validat
 	return protoValSet, err
 }
 
-func (c *Chain) toTmValidators(vals stakingtypes.Validators) ([]*tmtypes.Validator, error) {
+func (c *Chain) toTmValidators(vals []stakingtypes.Validator) ([]*tmtypes.Validator, error) {
 	validators := make([]*tmtypes.Validator, len(vals))
 	var err error
 	for i, val := range vals {

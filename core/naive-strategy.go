@@ -3,16 +3,16 @@ package core
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	chantypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	"github.com/hyperledger-labs/yui-relayer/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	api "go.opentelemetry.io/otel/metric"
-	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 )
 

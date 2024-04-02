@@ -3,8 +3,9 @@ package helpers
 import (
 	"context"
 
+	cosmossdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
@@ -31,7 +32,7 @@ func QueryBalance(chain *core.ProvableChain, height ibcexported.Height, address 
 
 	var out sdk.Coins
 	for _, c := range coins {
-		if c.Amount.Equal(sdk.NewInt(0)) {
+		if c.Amount.Equal(cosmossdkmath.NewInt(0)) {
 			continue
 		}
 
