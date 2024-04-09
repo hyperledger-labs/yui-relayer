@@ -37,9 +37,11 @@ services:
       - *network-common
   tendermint-chain0-mock:
     <<: *tendermint-chain0
+    container_name: tendermint-chain0-mock
     environment:
       USE_MOCK_CLIENT: 1
   tendermint-chain1-mock:
     <<: *tendermint-chain1
+    container_name: tendermint-chain1-mock
     environment:
       USE_MOCK_CLIENT: 1
