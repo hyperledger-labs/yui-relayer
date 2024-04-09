@@ -7,6 +7,7 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
 )
@@ -14,6 +15,12 @@ import (
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
 func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) error {
+	if cont, err := checkChannelCreateReady(src, dst); err != nil {
+		return err
+	} else if !cont {
+		return nil
+	}
+
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateChannel")
 
@@ -72,6 +79,55 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 	}
 
 	return nil
+}
+
+func checkChannelCreateReady(src, dst *ProvableChain) (bool, error) {
+	srcID := src.Chain.Path().ChannelID
+	dstID := dst.Chain.Path().ChannelID
+
+	if srcID == "" && dstID == "" {
+		return true, nil
+	}
+
+	getState := func(pc *ProvableChain) (chantypes.State, error) {
+		if pc.Chain.Path().ChannelID == "" {
+			return chantypes.UNINITIALIZED, nil
+		}
+
+		latestHeight, err := pc.LatestHeight()
+		if err != nil {
+			return chantypes.UNINITIALIZED, err
+		}
+		queryHeight := clienttypes.NewHeight(latestHeight.GetRevisionNumber(), 0)
+		res, err2 := pc.QueryChannel(NewQueryContext(context.TODO(), queryHeight))
+		if err2 != nil {
+			return chantypes.UNINITIALIZED, err2
+		}
+		return res.Channel.State, nil
+	}
+
+	srcState, srcErr := getState(src)
+	if srcErr != nil {
+		return false, srcErr
+	}
+
+	dstState, dstErr := getState(src)
+	if dstErr != nil {
+		return false, dstErr
+	}
+
+	if srcID != "" && srcState == chantypes.UNINITIALIZED {
+		return false, fmt.Errorf("src channel id is given but that channel is not exists: %s", srcID);
+	}
+	if dstID != "" && dstState == chantypes.UNINITIALIZED {
+		return false, fmt.Errorf("dst channel id is given but that channel is not exists: %s", dstID);
+	}
+
+	if srcState == chantypes.OPEN && dstState == chantypes.OPEN {
+		fmt.Printf("channels are already created: src=%s, dst=%s\n", srcID, dstID)
+		return false, nil
+	}
+	return true, nil
 }
 
 func createChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
