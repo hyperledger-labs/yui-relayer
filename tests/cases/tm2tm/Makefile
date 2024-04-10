@@ -19,4 +19,4 @@ test:
 network-down:
 	TAG=${DOCKER_TAG} $(DOCKER_COMPOSE) \
 		-f ../docker-compose-test.yaml \
-		down --volume --remove-orphans
+		down --volumes --remove-orphans

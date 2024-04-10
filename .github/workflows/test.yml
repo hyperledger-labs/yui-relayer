@@ -12,14 +12,14 @@ jobs:
     name: relayer-build
     runs-on: ubuntu-22.04
     steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
       - name: Set up Go 1.21
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: 1.21
         id: go
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -32,7 +32,7 @@ jobs:
       - name: Build
         run: make build
       - name: Save relayer binary cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_BIN_RELAYER_PATH }}
           key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
@@ -41,8 +41,8 @@ jobs:
     name: tendermint-build
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         id: cache-docker-tendermint
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
@@ -65,14 +65,14 @@ jobs:
       - relayer-build
       - tendermint-build
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Restore relayer binary cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_BIN_RELAYER_PATH }}
           key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
       - name: Restore Tendermint docker image cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
           key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
@@ -94,14 +94,14 @@ jobs:
       - relayer-build
       - tendermint-build
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Restore relayer binary cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_BIN_RELAYER_PATH }}
           key: ${{ runner.os }}-${{ env.CACHE_BIN_RELAYER_KEY }}-${{ github.sha }}
       - name: Restore Tendermint docker image cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_DOCKER_TENDERMINT_DIR }}
           key: ${{ runner.os }}-${{ env.CACHE_DOCKER_TENDERMINT_KEY }}-${{ hashFiles('tests/chains/tendermint/**', '!**/.git/**') }}
