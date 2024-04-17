@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -eux
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
+RLY="${RLY_BINARY} --debug"
+CONFIG=$HOME/.yui-relayer/config/config.json
+
+cp $CONFIG $CONFIG.tmp
+
+cat $CONFIG.tmp \
+    | jq '.paths.ibc01.dst["client-id"] |= ""' \
+    > $CONFIG
+$RLY tx clients --src-height 2 ibc01
+
+cat $CONFIG.tmp \
+    | jq '.paths.ibc01.src["client-id"] |= ""' \
+    > $CONFIG
+$RLY tx clients --src-height 2 ibc01
+
+cp $CONFIG.tmp $CONFIG

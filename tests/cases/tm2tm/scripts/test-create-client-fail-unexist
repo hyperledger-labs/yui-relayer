@@ -1,12 +1,19 @@
 #!/bin/bash
-source ./setup.source.sh
 
-cat $CONFIG \
+set -eux
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
+RLY="${RLY_BINARY} --debug"
+CONFIG=$HOME/.yui-relayer/config/config.json
+
+cp $CONFIG $CONFIG.tmp
+cat $CONFIG.tmp \
     | jq '.paths.ibc01.src["client-id"] |= "07-tendermint-999"' \
     | jq '.paths.ibc01.dst["client-id"] |= "07-tendermint-999"' \
-    > $CONFIG.tmp
-mv $CONFIG.tmp $CONFIG
+    > $CONFIG
 
+set +e
 expect <<EOF
 set timeout 5
 set expect_result 0
@@ -28,6 +35,7 @@ r=$?
 
 if [ $r -eq 101 ]; then
     echo "success"
+    cp $CONFIG.tmp $CONFIG
     exit 0
 else
     echo "fail: $r"

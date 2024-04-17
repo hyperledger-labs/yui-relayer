@@ -23,15 +23,15 @@ var (
 )
 
 func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration) error {
-	if cont, err := checkConnectionCreateReady(src, dst); err != nil {
+	logger := GetConnectionPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "CreateConnection")
+	ticker := time.NewTicker(to)
+
+	if cont, err := checkConnectionCreateReady(src, dst, logger); err != nil {
 		return err
 	} else if !cont {
 		return nil
 	}
-
-	logger := GetConnectionPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "CreateConnection")
-	ticker := time.NewTicker(to)
 
 	failed := 0
 	for ; true; <-ticker.C {
@@ -90,7 +90,7 @@ func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration
 	return nil
 }
 
-func checkConnectionCreateReady(src, dst *ProvableChain) (bool, error) {
+func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
 	srcID := src.Chain.Path().ConnectionID
 	dstID := dst.Chain.Path().ConnectionID
 
@@ -107,8 +107,7 @@ func checkConnectionCreateReady(src, dst *ProvableChain) (bool, error) {
 		if err != nil {
 			return conntypes.UNINITIALIZED, err
 		}
-		queryHeight := clienttypes.NewHeight(latestHeight.GetRevisionNumber(), 0)
-		res, err2 := pc.QueryConnection(NewQueryContext(context.TODO(), queryHeight))
+		res, err2 := pc.QueryConnection(NewQueryContext(context.TODO(), latestHeight))
 		if err2 != nil {
 			return conntypes.UNINITIALIZED, err2
 		}
@@ -126,14 +125,14 @@ func checkConnectionCreateReady(src, dst *ProvableChain) (bool, error) {
 	}
 
 	if srcID != "" && srcState == conntypes.UNINITIALIZED {
-		return false, fmt.Errorf("src connection id is given but that connection is not exists: %s", srcID);
+		return false, fmt.Errorf("src connection id is given but that connection does not exist: %s", srcID);
 	}
 	if dstID != "" && dstState == conntypes.UNINITIALIZED {
-		return false, fmt.Errorf("dst connection id is given but that connection is not exists: %s", dstID);
+		return false, fmt.Errorf("dst connection id is given but that connection does not exist: %s", dstID);
 	}
 
 	if srcState == conntypes.OPEN && dstState == conntypes.OPEN {
-		fmt.Printf("connections are already created: src=%s, dst=%s\n", srcID, dstID)
+		logger.Warn(fmt.Sprintf("connections are already created: src=%s, dst=%s", srcID, dstID))
 		return false, nil
 	}
 	return true, nil

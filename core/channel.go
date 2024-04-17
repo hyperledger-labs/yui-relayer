@@ -7,7 +7,6 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
-	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
 )
@@ -15,14 +14,14 @@ import (
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
 func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) error {
-	if cont, err := checkChannelCreateReady(src, dst); err != nil {
+	logger := GetChannelPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "CreateChannel")
+
+	if cont, err := checkChannelCreateReady(src, dst, logger); err != nil {
 		return err
 	} else if !cont {
 		return nil
 	}
-
-	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "CreateChannel")
 
 	ticker := time.NewTicker(to)
 	failures := 0
@@ -81,7 +80,7 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 	return nil
 }
 
-func checkChannelCreateReady(src, dst *ProvableChain) (bool, error) {
+func checkChannelCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
 	srcID := src.Chain.Path().ChannelID
 	dstID := dst.Chain.Path().ChannelID
 
@@ -98,8 +97,7 @@ func checkChannelCreateReady(src, dst *ProvableChain) (bool, error) {
 		if err != nil {
 			return chantypes.UNINITIALIZED, err
 		}
-		queryHeight := clienttypes.NewHeight(latestHeight.GetRevisionNumber(), 0)
-		res, err2 := pc.QueryChannel(NewQueryContext(context.TODO(), queryHeight))
+		res, err2 := pc.QueryChannel(NewQueryContext(context.TODO(), latestHeight))
 		if err2 != nil {
 			return chantypes.UNINITIALIZED, err2
 		}
@@ -117,14 +115,14 @@ func checkChannelCreateReady(src, dst *ProvableChain) (bool, error) {
 	}
 
 	if srcID != "" && srcState == chantypes.UNINITIALIZED {
-		return false, fmt.Errorf("src channel id is given but that channel is not exists: %s", srcID);
+		return false, fmt.Errorf("src channel id is given but that channel does not exist: %s", srcID);
 	}
 	if dstID != "" && dstState == chantypes.UNINITIALIZED {
-		return false, fmt.Errorf("dst channel id is given but that channel is not exists: %s", dstID);
+		return false, fmt.Errorf("dst channel id is given but that channel does not exist: %s", dstID);
 	}
 
 	if srcState == chantypes.OPEN && dstState == chantypes.OPEN {
-		fmt.Printf("channels are already created: src=%s, dst=%s\n", srcID, dstID)
+		logger.Warn(fmt.Sprintf("channels are already created: src=%s, dst=%s", srcID, dstID))
 		return false, nil
 	}
 	return true, nil

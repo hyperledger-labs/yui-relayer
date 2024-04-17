@@ -11,16 +11,12 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
-func checkCreateClientsReady(src, dst *ProvableChain) (bool, error) {
+func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
 	srcID := src.Chain.Path().ClientID;
 	dstID := dst.Chain.Path().ClientID;
 
 	if srcID == "" && dstID == "" {
 		return true, nil
-	} else if srcID == "" && dstID != "" {
-		return false, fmt.Errorf("dst client id is given but src's is not: %s", dstID)
-	} else if srcID != "" && dstID == "" {
-		return false, fmt.Errorf("src client id is given but dst's is not: %s", srcID)
 	}
 
 	getState := func(pc *ProvableChain) (*clienttypes.QueryClientStateResponse, error) {
@@ -28,62 +24,67 @@ func checkCreateClientsReady(src, dst *ProvableChain) (bool, error) {
 		if err != nil {
 			return nil, err
 		}
-		height := clienttypes.NewHeight(latestHeight.GetRevisionNumber(), 0);
 
-		ctx := NewQueryContext(context.TODO(), height)
+		ctx := NewQueryContext(context.TODO(), latestHeight)
 		return pc.QueryClientState(ctx)
 	}
-	srcState, srcErr := getState(src)
-	if srcErr != nil {
-		return false, srcErr
-	}
-	if srcState == nil {
-		return false, fmt.Errorf("src client id is given but that client is not exists: %s", srcID)
+
+	srcState := (*clienttypes.QueryClientStateResponse)(nil)
+	if srcID != "" {
+		s, err := getState(src)
+		if err != nil {
+			return false, err
+		}
+		if s == nil {
+			return false, fmt.Errorf("src client id is given but that client does not exist: %s", srcID)
+		}
+		srcState = s
 	}
 
-	dstState, dstErr := getState(dst)
-	if dstErr != nil {
-		return false, dstErr
-	}
-	if dstState == nil {
-		return false, fmt.Errorf("dst client id is given but that client is not exists: %s", dstID)
+	dstState := (*clienttypes.QueryClientStateResponse)(nil)
+	if dstID != "" {
+		s, err := getState(dst)
+		if err != nil {
+			return false, err
+		}
+		if s == nil {
+			return false, fmt.Errorf("dst client id is given but that client does not exist: %s", dstID)
+		}
+		dstState = s
 	}
 
-	fmt.Printf("clients are already created: src=%s, dst=%s\n", srcID, dstID)
-	return false, nil
+	if srcState != nil && dstState != nil {
+		logger.Warn(fmt.Sprintf("clients are already created: src=%s, dst=%s", srcID, dstID))
+		return false, nil
+	} else {
+		return true, nil
+	}
 }
 
 func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeight exported.Height) error {
-	if cont, err := checkCreateClientsReady(src, dst); err != nil {
+	logger := GetChainPairLogger(src, dst)
+	defer logger.TimeTrack(time.Now(), "CreateClients")
+
+	if cont, err := checkCreateClientsReady(src, dst, logger); err != nil {
 		return err
 	} else if !cont {
 		return nil
 	}
 
-	logger := GetChainPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "CreateClients")
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 
-	srcAddr, err := src.GetAddress()
-	if err != nil {
-		logger.Error(
-			"failed to get address for create client",
-			err,
-		)
-		return err
-	}
-	dstAddr, err := dst.GetAddress()
-	if err != nil {
-		logger.Error(
-			"failed to get address for create client",
-			err,
-		)
-		return err
-	}
+	if src.Chain.Path().ClientID == "" {
+		srcAddr, err := src.GetAddress()
+		if err != nil {
+			logger.Error(
+				"failed to get address for create client",
+				err,
+			)
+			return err
+		}
 
-	{
 		cs, cons, err := dst.CreateInitialLightClientState(dstHeight)
 		if err != nil {
 			logger.Error("failed to create initial light client state", err)
@@ -96,7 +97,16 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 		clients.Src = append(clients.Src, msg)
 	}
 
-	{
+	if dst.Chain.Path().ClientID == "" {
+		dstAddr, err := dst.GetAddress()
+		if err != nil {
+			logger.Error(
+				"failed to get address for create client",
+				err,
+			)
+			return err
+		}
+
 		cs, cons, err := src.CreateInitialLightClientState(srcHeight)
 		if err != nil {
 			logger.Error("failed to create initial light client state", err)

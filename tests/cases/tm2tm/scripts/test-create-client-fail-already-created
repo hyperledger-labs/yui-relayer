@@ -1,15 +1,12 @@
 #!/bin/bash
 
-source ./setup.source.sh
+set -eux
 
-$RLY tx clients --src-height 2 ibc01
-r=$?
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
+RLY="${RLY_BINARY} --debug"
 
-if [ $r -ne 0 ]; then
-    echo "fail to create client"
-    exit 1
-fi
-
+set +e
 expect <<EOF
 set timeout 5
 set expect_result 0
@@ -30,9 +27,9 @@ EOF
 r=$?
 
 if [ $r -eq 1 ]; then
-    echo "success"
+    echo "$(basename $0): success"
     exit 0
 else
-    echo "fail: $r"
+    echo "$(basename $0): fail: $r"
     exit 1
 fi
