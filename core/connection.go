@@ -132,7 +132,7 @@ func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger
 	}
 
 	if srcState == conntypes.OPEN && dstState == conntypes.OPEN {
-		logger.Warn(fmt.Sprintf("connections are already created: src=%s, dst=%s", srcID, dstID))
+		logger.Warn("connections are already created", "src_connection_id", srcID, "dst_connection_id", dstID)
 		return false, nil
 	}
 	return true, nil

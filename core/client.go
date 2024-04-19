@@ -54,7 +54,7 @@ func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 	}
 
 	if srcState != nil && dstState != nil {
-		logger.Warn(fmt.Sprintf("clients are already created: src=%s, dst=%s", srcID, dstID))
+		logger.Warn("clients are already created", "src_client_id", srcID, "dst_client_id", dstID)
 		return false, nil
 	} else {
 		return true, nil

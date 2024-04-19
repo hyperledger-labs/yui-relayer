@@ -122,7 +122,7 @@ func checkChannelCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 	}
 
 	if srcState == chantypes.OPEN && dstState == chantypes.OPEN {
-		logger.Warn(fmt.Sprintf("channels are already created: src=%s, dst=%s", srcID, dstID))
+		logger.Warn("channels are already created", "src_channel_id", srcID, "dst_channel_id", dstID)
 		return false, nil
 	}
 	return true, nil
