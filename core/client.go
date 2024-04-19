@@ -29,7 +29,7 @@ func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 		return pc.QueryClientState(ctx)
 	}
 
-	srcState := (*clienttypes.QueryClientStateResponse)(nil)
+	var srcState *clienttypes.QueryClientStateResponse
 	if srcID != "" {
 		s, err := getState(src)
 		if err != nil {
@@ -41,7 +41,7 @@ func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 		srcState = s
 	}
 
-	dstState := (*clienttypes.QueryClientStateResponse)(nil)
+	var dstState *clienttypes.QueryClientStateResponse
 	if dstID != "" {
 		s, err := getState(dst)
 		if err != nil {
