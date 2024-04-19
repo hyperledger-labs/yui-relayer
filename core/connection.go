@@ -131,7 +131,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
 		// Query client state from each chain's client
 		srcCsRes, dstCsRes, err = QueryClientStatePair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst, true)
-		if err != nil && (srcCsRes == nil || dstCsRes == nil) {
+		if err != nil {
 			return nil, err
 		}
 		if err := src.Codec().UnpackAny(srcCsRes.ClientState, &srcCS); err != nil {
