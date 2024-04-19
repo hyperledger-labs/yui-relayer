@@ -119,7 +119,7 @@ func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger
 		return false, srcErr
 	}
 
-	dstState, dstErr := getState(src)
+	dstState, dstErr := getState(dst)
 	if dstErr != nil {
 		return false, dstErr
 	}
