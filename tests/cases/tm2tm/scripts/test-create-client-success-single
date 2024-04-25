@@ -17,13 +17,19 @@ cat $CONFIG.tmp \
     | jq '.paths.ibc01.dst["client-id"] |= ""' \
     > $CONFIG
 $RLY tx clients --src-height 2 ibc01
-cat $CONFIG | jq
-if [[ $(cat $CONFIG | jq -r '.paths.ibc01.src["client-id"]') != $OLD_SRC_CLIENT_ID ]]; then
+NEW_SRC_CLIENT_ID=$(cat $CONFIG | jq -r '.paths.ibc01.src["client-id"]')
+NEW_DST_CLIENT_ID=$(cat $CONFIG | jq -r '.paths.ibc01.dst["client-id"]')
+
+if [ "$NEW_SRC_CLIENT_ID" != "$OLD_SRC_CLIENT_ID" ]; then
   echo "src client id is changed."
   exit 1
 fi
-if [[ $(cat $CONFIG | jq -r '.paths.ibc01.dst["client-id"]') == $OLD_DST_CLIENT_ID ]]; then
+if [ "$NEW_DST_CLIENT_ID" = "$OLD_DST_CLIENT_ID" ]; then
   echo "dst client id is not renewed."
+  exit 1
+fi
+if [ "$NEW_DST_CLIENT_ID" = "" ]; then
+  echo "new dst client id is empty."
   exit 1
 fi
 
@@ -31,11 +37,18 @@ cat $CONFIG.tmp \
     | jq '.paths.ibc01.src["client-id"] |= ""' \
     > $CONFIG
 $RLY tx clients --src-height 2 ibc01
-if [[ $(cat $CONFIG | jq -r '.paths.ibc01.src["client-id"]') ==  $OLD_SRC_CLIENT_ID ]]; then
+NEW_SRC_CLIENT_ID=$(cat $CONFIG | jq -r '.paths.ibc01.src["client-id"]')
+NEW_DST_CLIENT_ID=$(cat $CONFIG | jq -r '.paths.ibc01.dst["client-id"]')
+
+if [ "$NEW_SRC_CLIENT_ID" = "$OLD_SRC_CLIENT_ID" ]; then
   echo "src client id is not renewed."
   exit 1
 fi
-if [[ $(cat $CONFIG | jq -r '.paths.ibc01.dst["client-id"]') != $OLD_DST_CLIENT_ID ]]; then
+if [ "$NEW_SRC_CLIENT_ID" = "" ]; then
+  echo "new src client id is empty."
+  exit 1
+fi
+if [ "$NEW_DST_CLIENT_ID" != "$OLD_DST_CLIENT_ID" ]; then
   echo "dst client id is changed."
   exit 1
 fi
