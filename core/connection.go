@@ -27,6 +27,12 @@ func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration
 	defer logger.TimeTrack(time.Now(), "CreateConnection")
 	ticker := time.NewTicker(to)
 
+	if cont, err := checkConnectionCreateReady(src, dst, logger); err != nil {
+		return err
+	} else if !cont {
+		return nil
+	}
+
 	failed := 0
 	for ; true; <-ticker.C {
 		connSteps, err := createConnectionStep(src, dst)
@@ -82,6 +88,54 @@ func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration
 	}
 
 	return nil
+}
+
+func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
+	srcID := src.Chain.Path().ConnectionID
+	dstID := dst.Chain.Path().ConnectionID
+
+	if srcID == "" && dstID == "" {
+		return true, nil
+	}
+
+	getState := func(pc *ProvableChain) (conntypes.State, error) {
+		if pc.Chain.Path().ConnectionID == "" {
+			return conntypes.UNINITIALIZED, nil
+		}
+
+		latestHeight, err := pc.LatestHeight()
+		if err != nil {
+			return conntypes.UNINITIALIZED, err
+		}
+		res, err2 := pc.QueryConnection(NewQueryContext(context.TODO(), latestHeight))
+		if err2 != nil {
+			return conntypes.UNINITIALIZED, err2
+		}
+		return res.Connection.State, nil
+	}
+
+	srcState, srcErr := getState(src)
+	if srcErr != nil {
+		return false, srcErr
+	}
+
+	dstState, dstErr := getState(dst)
+	if dstErr != nil {
+		return false, dstErr
+	}
+
+	if srcID != "" && srcState == conntypes.UNINITIALIZED {
+		return false, fmt.Errorf("src connection id is given but that connection does not exist: %s", srcID);
+	}
+	if dstID != "" && dstState == conntypes.UNINITIALIZED {
+		return false, fmt.Errorf("dst connection id is given but that connection does not exist: %s", dstID);
+	}
+
+	if srcState == conntypes.OPEN && dstState == conntypes.OPEN {
+		logger.Warn("connections are already created", "src_connection_id", srcID, "dst_connection_id", dstID)
+		return false, nil
+	}
+	return true, nil
 }
 
 func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {

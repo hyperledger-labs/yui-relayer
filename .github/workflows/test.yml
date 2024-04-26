@@ -80,6 +80,8 @@ jobs:
         working-directory: ./tests/scripts
         run: |
           ./load_docker_images $CACHE_DOCKER_TENDERMINT_DIR tendermint-chain0:latest tendermint-chain1:latest
+      - name: Install softwares used by test
+        run: sudo apt-get install -y expect jq
       - name: Run Test
         working-directory: ./tests/cases/tm2tm
         run: |

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -10,31 +11,80 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
+func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
+	srcID := src.Chain.Path().ClientID;
+	dstID := dst.Chain.Path().ClientID;
+
+	if srcID == "" && dstID == "" {
+		return true, nil
+	}
+
+	getState := func(pc *ProvableChain) (*clienttypes.QueryClientStateResponse, error) {
+		latestHeight, err := pc.LatestHeight()
+		if err != nil {
+			return nil, err
+		}
+
+		ctx := NewQueryContext(context.TODO(), latestHeight)
+		return pc.QueryClientState(ctx)
+	}
+
+	var srcState *clienttypes.QueryClientStateResponse
+	if srcID != "" {
+		s, err := getState(src)
+		if err != nil {
+			return false, err
+		}
+		if s == nil {
+			return false, fmt.Errorf("src client id is given but that client does not exist: %s", srcID)
+		}
+		srcState = s
+	}
+
+	var dstState *clienttypes.QueryClientStateResponse
+	if dstID != "" {
+		s, err := getState(dst)
+		if err != nil {
+			return false, err
+		}
+		if s == nil {
+			return false, fmt.Errorf("dst client id is given but that client does not exist: %s", dstID)
+		}
+		dstState = s
+	}
+
+	if srcState != nil && dstState != nil {
+		logger.Warn("clients are already created", "src_client_id", srcID, "dst_client_id", dstID)
+		return false, nil
+	} else {
+		return true, nil
+	}
+}
+
 func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeight exported.Height) error {
 	logger := GetChainPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateClients")
+
+	if cont, err := checkCreateClientsReady(src, dst, logger); err != nil {
+		return err
+	} else if !cont {
+		return nil
+	}
+
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 
-	srcAddr, err := src.GetAddress()
-	if err != nil {
-		logger.Error(
-			"failed to get address for create client",
-			err,
-		)
-		return err
-	}
-	dstAddr, err := dst.GetAddress()
-	if err != nil {
-		logger.Error(
-			"failed to get address for create client",
-			err,
-		)
-		return err
-	}
+	if src.Chain.Path().ClientID == "" {
+		srcAddr, err := src.GetAddress()
+		if err != nil {
+			logger.Error(
+				"failed to get address for create client",
+				err,
+			)
+			return err
+		}
 
-	{
 		cs, cons, err := dst.CreateInitialLightClientState(dstHeight)
 		if err != nil {
 			logger.Error("failed to create initial light client state", err)
@@ -47,7 +97,16 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 		clients.Src = append(clients.Src, msg)
 	}
 
-	{
+	if dst.Chain.Path().ClientID == "" {
+		dstAddr, err := dst.GetAddress()
+		if err != nil {
+			logger.Error(
+				"failed to get address for create client",
+				err,
+			)
+			return err
+		}
+
 		cs, cons, err := src.CreateInitialLightClientState(srcHeight)
 		if err != nil {
 			logger.Error("failed to create initial light client state", err)

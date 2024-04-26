@@ -17,6 +17,12 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateChannel")
 
+	if cont, err := checkChannelCreateReady(src, dst, logger); err != nil {
+		return err
+	} else if !cont {
+		return nil
+	}
+
 	ticker := time.NewTicker(to)
 	failures := 0
 	for ; true; <-ticker.C {
@@ -72,6 +78,54 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 	}
 
 	return nil
+}
+
+func checkChannelCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
+	srcID := src.Chain.Path().ChannelID
+	dstID := dst.Chain.Path().ChannelID
+
+	if srcID == "" && dstID == "" {
+		return true, nil
+	}
+
+	getState := func(pc *ProvableChain) (chantypes.State, error) {
+		if pc.Chain.Path().ChannelID == "" {
+			return chantypes.UNINITIALIZED, nil
+		}
+
+		latestHeight, err := pc.LatestHeight()
+		if err != nil {
+			return chantypes.UNINITIALIZED, err
+		}
+		res, err2 := pc.QueryChannel(NewQueryContext(context.TODO(), latestHeight))
+		if err2 != nil {
+			return chantypes.UNINITIALIZED, err2
+		}
+		return res.Channel.State, nil
+	}
+
+	srcState, srcErr := getState(src)
+	if srcErr != nil {
+		return false, srcErr
+	}
+
+	dstState, dstErr := getState(dst)
+	if dstErr != nil {
+		return false, dstErr
+	}
+
+	if srcID != "" && srcState == chantypes.UNINITIALIZED {
+		return false, fmt.Errorf("src channel id is given but that channel does not exist: %s", srcID);
+	}
+	if dstID != "" && dstState == chantypes.UNINITIALIZED {
+		return false, fmt.Errorf("dst channel id is given but that channel does not exist: %s", dstID);
+	}
+
+	if srcState == chantypes.OPEN && dstState == chantypes.OPEN {
+		logger.Warn("channels are already created", "src_channel_id", srcID, "dst_channel_id", dstID)
+		return false, nil
+	}
+	return true, nil
 }
 
 func createChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {

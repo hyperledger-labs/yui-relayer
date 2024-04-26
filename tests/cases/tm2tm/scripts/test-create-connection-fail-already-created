@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -eux
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
+RLY="${RLY_BINARY} --debug"
+
+set +e
+expect <<EOF
+set timeout 5
+set expect_result 0
+spawn $RLY tx connection ibc01
+expect {
+  "connections are already created" {
+     set expect_result 1
+     exp_continue
+  }
+  eof
+}
+catch wait spawn_result
+set ryly_result [lindex \$spawn_result 3]
+set r [expr \$ryly_result * 100 + \$expect_result ]
+exit \$r
+EOF
+
+r=$?
+
+if [ $r -eq 1 ]; then
+    echo "$(basename $0): success"
+    exit 0
+else
+    echo "$(basename $0): fail: $r"
+    exit 1
+fi

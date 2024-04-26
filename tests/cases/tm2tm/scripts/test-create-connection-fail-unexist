@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -eux
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
+RLY="${RLY_BINARY} --debug"
+CONFIG=$HOME/.yui-relayer/config/config.json
+
+cp $CONFIG $CONFIG.tmp
+cat $CONFIG.tmp \
+    | jq '.paths.ibc01.src["connection-id"] |= "connection-999"' \
+    | jq '.paths.ibc01.dst["connection-id"] |= "connection-999"' \
+    > $CONFIG
+
+set +e
+expect <<EOF
+set timeout 5
+set expect_result 0
+spawn $RLY tx connection ibc01
+expect {
+  "src connection id is given but that connection does not exist" {
+     set expect_result 1
+     exp_continue
+  }
+  eof
+}
+catch wait spawn_result
+set ryly_result [lindex \$spawn_result 3]
+set r [expr \$ryly_result * 100 + \$expect_result ]
+exit \$r
+EOF
+
+r=$?
+
+if [ $r -eq 101 ]; then
+    echo "success"
+    exit 0
+else
+    echo "fail: $r"
+    exit 1
+fi
+
