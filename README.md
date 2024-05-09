@@ -21,11 +21,12 @@ The Relayer uses "vX.Y.Z" as its version format. "v0.Y.Z" will be used until the
 
 In addition, "Y" corresponds to the specific major version of ibc-go (i.e., "X"). The following table shows the Relayer version and its corresponding ibc-go version.
 
-| Relayer                                                                       | ibc-go       |
-|-------------------------------------------------------------------------------|--------------|
-| v0.4.0(current branch)                                                        | v7.0.0       |
-| [v0.3.0](https://github.com/hyperledger-labs/yui-relayer/releases/tag/v0.3.0) | v4.0.0       |
-| [v0.2.0](https://github.com/hyperledger-labs/yui-relayer/releases/tag/v0.2.0) | v1.0.0-beta1 |
+| Relayer                                                                     | ibc-go |
+|-----------------------------------------------------------------------------|--------|
+| v0.5(current branch)                                                        | v8     |
+| [v0.4](https://github.com/hyperledger-labs/yui-relayer/releases/tag/v0.4.0) | v7     |
+| [v0.3](https://github.com/hyperledger-labs/yui-relayer/releases/tag/v0.3.0) | v4     |
+| [v0.2](https://github.com/hyperledger-labs/yui-relayer/releases/tag/v0.2.0) | v1     |
 
 ## Glossary
 
