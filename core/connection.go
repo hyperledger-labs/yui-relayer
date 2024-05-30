@@ -50,39 +50,32 @@ func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration
 		}
 
 		connSteps.Send(src, dst)
+
 		if connSteps.Success() {
+			// In the case of success, synchronize the config file from generated connection identifiers.
 			if err := SyncChainConfigsFromEvents(pathName, connSteps.SrcMsgIDs, connSteps.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
-		}
 
-		switch {
-		// In the case of success and this being the last transaction
-		// debug logging, log created connection and break
-		case connSteps.Success() && connSteps.Last:
-			logger.Info(
-				"★ Connection created",
-			)
-			return nil
-		// In the case of success, reset the failures counter
-		case connSteps.Success():
-			failed = 0
-			continue
-		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
-		case !connSteps.Success():
-			failed++
-			logger.Info("retrying transaction...")
-			time.Sleep(5 * time.Second)
-			if failed > 2 {
-				logger.Error(
-					"! Connection failed",
-					errors.New("failed 3 times"),
-				)
-				return fmt.Errorf("! Connection failed: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
-					src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
-					dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID,
-				)
+			// In the case of success and this being the last transaction
+			// debug logging, log created connection and break
+			if connSteps.Last {
+				logger.Info("★ Connection created")
+				return nil
 			}
+
+			// In the case of success, reset the failures counter
+			failed = 0
+		} else {
+			// In the case of failure, increment the failures counter and exit if this is the 3rd failure
+			if failed++; failed > 2 {
+				err := errors.New("Connection handshake failed")
+				logger.Error(err.Error(), err)
+				return err
+			}
+
+			logger.Warn("Retrying transaction...")
+			time.Sleep(5 * time.Second)
 		}
 
 	}
@@ -125,10 +118,10 @@ func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger
 	}
 
 	if srcID != "" && srcState == conntypes.UNINITIALIZED {
-		return false, fmt.Errorf("src connection id is given but that connection does not exist: %s", srcID);
+		return false, fmt.Errorf("src connection id is given but that connection does not exist: %s", srcID)
 	}
 	if dstID != "" && dstState == conntypes.UNINITIALIZED {
-		return false, fmt.Errorf("dst connection id is given but that connection does not exist: %s", dstID);
+		return false, fmt.Errorf("dst connection id is given but that connection does not exist: %s", dstID)
 	}
 
 	if srcState == conntypes.OPEN && dstState == conntypes.OPEN {
