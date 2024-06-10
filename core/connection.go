@@ -100,7 +100,7 @@ func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger
 		if err != nil {
 			return conntypes.UNINITIALIZED, err
 		}
-		res, err2 := pc.QueryConnection(NewQueryContext(context.TODO(), latestHeight))
+		res, err2 := pc.QueryConnection(NewQueryContext(context.TODO(), latestHeight), pc.Path().ConnectionID)
 		if err2 != nil {
 			return conntypes.UNINITIALIZED, err2
 		}
