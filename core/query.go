@@ -127,7 +127,7 @@ func QueryConnectionPair(
 			return nil
 		}
 		var err error
-		srcConn, err = src.QueryConnection(srcCtx)
+		srcConn, err = src.QueryConnection(srcCtx, src.Path().ConnectionID)
 		if err != nil {
 			return err
 		} else if srcConn.Connection.State == conntypes.UNINITIALIZED {
@@ -154,7 +154,7 @@ func QueryConnectionPair(
 			return nil
 		}
 		var err error
-		dstConn, err = dst.QueryConnection(dstCtx)
+		dstConn, err = dst.QueryConnection(dstCtx, dst.Path().ConnectionID)
 		if err != nil {
 			return err
 		} else if dstConn.Connection.State == conntypes.UNINITIALIZED {

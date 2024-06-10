@@ -55,12 +55,12 @@ var emptyConnRes = conntypes.NewQueryConnectionResponse(
 )
 
 // QueryConnection returns the remote end of a given connection
-func (c *Chain) QueryConnection(ctx core.QueryContext) (*conntypes.QueryConnectionResponse, error) {
-	return c.queryConnection(int64(ctx.Height().GetRevisionHeight()), false)
+func (c *Chain) QueryConnection(ctx core.QueryContext, connectionID string) (*conntypes.QueryConnectionResponse, error) {
+	return c.queryConnection(int64(ctx.Height().GetRevisionHeight()), connectionID, false)
 }
 
-func (c *Chain) queryConnection(height int64, prove bool) (*conntypes.QueryConnectionResponse, error) {
-	res, err := connutils.QueryConnection(c.CLIContext(height), c.PathEnd.ConnectionID, prove)
+func (c *Chain) queryConnection(height int64, connectionID string, prove bool) (*conntypes.QueryConnectionResponse, error) {
+	res, err := connutils.QueryConnection(c.CLIContext(height), connectionID, prove)
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		return emptyConnRes, nil
 	} else if err != nil {

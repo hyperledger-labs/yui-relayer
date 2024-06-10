@@ -136,7 +136,7 @@ type ICS02Querier interface {
 // ICS03Querier is an interface to the state of ICS-03
 type ICS03Querier interface {
 	// QueryConnection returns the remote end of a given connection
-	QueryConnection(ctx QueryContext) (*conntypes.QueryConnectionResponse, error)
+	QueryConnection(ctx QueryContext, connectionID string) (*conntypes.QueryConnectionResponse, error)
 }
 
 // ICS04Querier is an interface to the state of ICS-04
