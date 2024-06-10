@@ -1,4 +1,4 @@
-package core
+package signer
 
 import (
 	"github.com/cosmos/gogoproto/proto"
