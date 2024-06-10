@@ -155,6 +155,12 @@ type ICS04Querier interface {
 
 	// QueryUnfinalizedRelayedAcknowledgements returns acks and heights that are sent but not received at the latest finalized block on the counterpartychain
 	QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error)
+
+	// QueryChannelUpgrade returns the channel upgrade associated with a channelID
+	QueryChannelUpgrade(ctx QueryContext) (*chantypes.QueryUpgradeResponse, error)
+
+	// QueryChannelUpgradeError returns the channel upgrade error receipt associated with a channelID
+	QueryChannelUpgradeError(ctx QueryContext) (*chantypes.QueryUpgradeErrorResponse, error)
 }
 
 // ICS20Querier is an interface to the state of ICS-20
