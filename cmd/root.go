@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
@@ -18,10 +19,18 @@ import (
 )
 
 var (
-	homePath    string
-	debug       bool
-	defaultHome = os.ExpandEnv("$HOME/.yui-relayer")
-	configPath  = "config/config.json"
+	homePath         string
+	debug            bool
+	timeout          time.Duration
+	logLevel         string
+	logFormat        string
+	logOutput        string
+	defaultHome      = os.ExpandEnv("$HOME/.yui-relayer")
+	defaultTimeout   = 10 * time.Second
+	defaultLogLevel  = "DEBUG"
+	defaultLogFormat = "json"
+	defaultLogOutput = "stderr"
+	configPath       = "config/config.json"
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -41,6 +50,10 @@ func Execute(modules ...config.ModuleI) error {
 	// Register top level flags --home and --debug
 	rootCmd.PersistentFlags().StringVar(&homePath, flags.FlagHome, defaultHome, "set home directory")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "debug output")
+	rootCmd.PersistentFlags().DurationVar(&timeout, "timeout", defaultTimeout, "rpc timeout duration")
+	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", defaultLogLevel, "set the log level")
+	rootCmd.PersistentFlags().StringVar(&logFormat, "log-format", defaultLogFormat, "set the log format")
+	rootCmd.PersistentFlags().StringVar(&logOutput, "log-output", defaultLogOutput, "set the log output")
 	if err := viper.BindPFlag(flags.FlagHome, rootCmd.PersistentFlags().Lookup(flags.FlagHome)); err != nil {
 		return err
 	}
@@ -79,10 +92,10 @@ func Execute(modules ...config.ModuleI) error {
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			return fmt.Errorf("failed to bind the flag set to the configuration: %v", err)
 		}
-		if err := ctx.Config.InitConfig(ctx, homePath, configPath, debug); err != nil {
+		if err := ctx.Config.InitConfig(ctx, homePath, configPath, debug, timeout); err != nil {
 			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
-		if err := initLogger(ctx); err != nil {
+		if err := log.InitLogger(logLevel, logFormat, logOutput); err != nil {
 			return err
 		}
 		if err := metrics.InitializeMetrics(metrics.ExporterNull{}); err != nil {
@@ -104,11 +117,6 @@ func Execute(modules ...config.ModuleI) error {
 func readStdin() (string, error) {
 	str, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	return strings.TrimSpace(str), err
-}
-
-func initLogger(ctx *config.Context) error {
-	c := ctx.Config.Global.LoggerConfig
-	return log.InitLogger(c.Level, c.Format, c.Output)
 }
 
 func noCommand(cmd *cobra.Command, args []string) error {
