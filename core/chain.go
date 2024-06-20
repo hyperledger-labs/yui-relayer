@@ -161,6 +161,11 @@ type ICS04Querier interface {
 
 	// QueryChannelUpgradeError returns the channel upgrade error receipt associated with a channelID
 	QueryChannelUpgradeError(ctx QueryContext) (*chantypes.QueryUpgradeErrorResponse, error)
+
+	// QueryCanTransitionToFlushComplete returns the channel can transition to FLUSHCOMPLETE state.
+	// Basically it requires that there remains no inflight packets.
+	// Maybe additional condition for transition is required by the IBC/APP module.
+	QueryCanTransitionToFlushComplete(ctx QueryContext) (bool, error)
 }
 
 // ICS20Querier is an interface to the state of ICS-20
