@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
@@ -35,6 +37,7 @@ func transactionCmd(ctx *config.Context) *cobra.Command {
 		updateClientsCmd(ctx),
 		createConnectionCmd(ctx),
 		createChannelCmd(ctx),
+		channelUpgradeCmd(ctx),
 	)
 
 	return cmd
@@ -195,6 +198,127 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 	}
 
 	return timeoutFlag(cmd)
+}
+
+func channelUpgradeCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "channel-upgrade",
+		Short: "execute operations related to IBC channel upgrade",
+		Long:  "This command is meant to be used to upgrade a channel between two chains with a configured path in the config file",
+		RunE:  noCommand,
+	}
+
+	cmd.AddCommand(
+		channelUpgradeInitCmd(ctx),
+		channelUpgradeExecuteCmd(ctx),
+		//channelUpgradeCancel(ctx),
+	)
+
+	return cmd
+}
+
+func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
+	const (
+		flagOrdering       = "ordering"
+		flagConnectionHops = "connection-hops"
+		flagVersion        = "version"
+	)
+
+	cmd := cobra.Command{
+		Use:   "init [path-name] [chain-id]",
+		Short: "execute chanOpenInit",
+		Long:  "This command is meant to be used to initialize an IBC channel upgrade on a configured chain",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pathName := args[0]
+			chainID := args[1]
+			if _, _, _, err := ctx.Config.ChainsFromPath(pathName); err != nil {
+				return nil
+			}
+			chain, err := ctx.Config.GetChain(chainID)
+			if err != nil {
+				return err
+			}
+
+			// get ordering from flags
+			var ordering chantypes.Order
+			if s, err := cmd.Flags().GetString(flagOrdering); err != nil {
+				return err
+			} else if n, ok := chantypes.Order_value[s]; !ok || n == int32(chantypes.NONE) {
+				return fmt.Errorf("invalid ordering flag: %s", s)
+			} else {
+				ordering = chantypes.Order(n)
+			}
+
+			// get connection hops from flags
+			connHops, err := cmd.Flags().GetStringSlice(flagConnectionHops)
+			if err != nil {
+				return err
+			}
+
+			// get version from flags
+			version, err := cmd.Flags().GetString(flagVersion)
+			if err != nil {
+				return err
+			}
+
+			return core.InitChannelUpgrade(chain, chantypes.UpgradeFields{
+				Ordering:       ordering,
+				ConnectionHops: connHops,
+				Version:        version,
+			})
+		},
+	}
+
+	cmd.Flags().String(flagOrdering, "", "channel ordering applied for the new channel")
+	cmd.Flags().StringSlice(flagConnectionHops, nil, "connection hops applied for the new channel")
+	cmd.Flags().String(flagVersion, "", "channel version applied for the new channel")
+
+	return &cmd
+}
+
+func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
+	const (
+		flagInterval = "interval"
+	)
+
+	const (
+		defaultInterval = time.Second
+	)
+
+	cmd := cobra.Command{
+		Use:   "execute [path-name]",
+		Short: "execute channel upgrade handshake",
+		Long:  "This command is meant to be used to execute an IBC channel upgrade handshake between two chains with a configured path in the config file",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pathName := args[0]
+			chains, srcChainID, dstChainID, err := ctx.Config.ChainsFromPath(pathName)
+			if err != nil {
+				return err
+			}
+
+			src, ok := chains[srcChainID]
+			if !ok {
+				panic("src chain not found")
+			}
+			dst, ok := chains[dstChainID]
+			if !ok {
+				panic("dst chain not found")
+			}
+
+			interval, err := cmd.Flags().GetDuration(flagInterval)
+			if err != nil {
+				return err
+			}
+
+			return core.ExecuteChannelUpgrade(src, dst, interval)
+		},
+	}
+
+	cmd.Flags().Duration(flagInterval, defaultInterval, "interval between attempts to proceed channel upgrade steps")
+
+	return &cmd
 }
 
 func relayMsgsCmd(ctx *config.Context) *cobra.Command {
