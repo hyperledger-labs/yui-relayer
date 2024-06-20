@@ -418,6 +418,23 @@ func (c *Chain) queryChannelUpgradeError(height int64, prove bool) (chanRes *cha
 	}
 }
 
+func (c *Chain) QueryCanTransitionToFlushComplete(ctx core.QueryContext) (bool, error) {
+	return c.queryCanTransitionToFlushComplete(int64(ctx.Height().GetRevisionHeight()))
+}
+
+func (c *Chain) queryCanTransitionToFlushComplete(height int64) (bool, error) {
+	queryClient := chantypes.NewQueryClient(c.CLIContext(height))
+	req := chantypes.QueryPacketCommitmentsRequest{
+		PortId:    c.PathEnd.PortID,
+		ChannelId: c.PathEnd.ChannelID,
+	}
+	if res, err := queryClient.PacketCommitments(context.TODO(), &req); err != nil {
+		return false, err
+	} else {
+		return len(res.Commitments) == 0, nil
+	}
+}
+
 /////////////////////////////////////
 //    STAKING -> HistoricalInfo     //
 /////////////////////////////////////
