@@ -81,22 +81,28 @@ func GetLogger() *RelayLogger {
 	return relayLogger
 }
 
+func (rl *RelayLogger) With(args ...any) *RelayLogger {
+	return &RelayLogger{
+		Logger: rl.Logger.With(args...),
+	}
+}
+
 func (rl *RelayLogger) WithChain(
 	chainID string,
 ) *RelayLogger {
-	return &RelayLogger{
-		rl.Logger.With(
+	return rl.With(
+		slog.Group("chain",
 			"chain_id", chainID,
 		),
-	}
+	)
 }
 
 func (rl *RelayLogger) WithChainPair(
 	srcChainID string,
 	dstChainID string,
 ) *RelayLogger {
-	return &RelayLogger{
-		rl.Logger.With(
+	return rl.With(
+		slog.Group("chain_pair",
 			slog.Group("src",
 				"chain_id", srcChainID,
 			),
@@ -104,15 +110,15 @@ func (rl *RelayLogger) WithChainPair(
 				"chain_id", dstChainID,
 			),
 		),
-	}
+	)
 }
 
 func (rl *RelayLogger) WithClientPair(
 	srcChainID, srcClientID string,
 	dstChainID, dstClientID string,
 ) *RelayLogger {
-	return &RelayLogger{
-		rl.Logger.With(
+	return rl.With(
+		slog.Group("client_pair",
 			slog.Group("src",
 				"chain_id", srcChainID,
 				"client_id", srcClientID,
@@ -122,27 +128,27 @@ func (rl *RelayLogger) WithClientPair(
 				"client_id", dstClientID,
 			),
 		),
-	}
+	)
 }
 
 func (rl *RelayLogger) WithChannel(
 	chainID, portID, channelID string,
 ) *RelayLogger {
-	return &RelayLogger{
-		rl.Logger.With(
+	return rl.With(
+		slog.Group("channel",
 			"chain_id", chainID,
 			"port_id", portID,
 			"channel_id", channelID,
 		),
-	}
+	)
 }
 
 func (rl *RelayLogger) WithChannelPair(
 	srcChainID, srcPortID, srcChannelID string,
 	dstChainID, dstPortID, dstChannelID string,
 ) *RelayLogger {
-	return &RelayLogger{
-		rl.Logger.With(
+	return rl.With(
+		slog.Group("channel_pair",
 			slog.Group("src",
 				"chain_id", srcChainID,
 				"port_id", srcPortID,
@@ -154,15 +160,15 @@ func (rl *RelayLogger) WithChannelPair(
 				"channel_id", dstChannelID,
 			),
 		),
-	}
+	)
 }
 
 func (rl *RelayLogger) WithConnectionPair(
 	srcChainID, srcClientID, srcConnectionID string,
 	dstChainID, dstClientID, dstConnectionID string,
 ) *RelayLogger {
-	return &RelayLogger{
-		rl.Logger.With(
+	return rl.With(
+		slog.Group("connection_pair",
 			slog.Group("src",
 				"chain_id", srcChainID,
 				"client_id", srcClientID,
@@ -174,17 +180,13 @@ func (rl *RelayLogger) WithConnectionPair(
 				"connection_id", dstConnectionID,
 			),
 		),
-	}
+	)
 }
 
 func (rl *RelayLogger) WithModule(
 	moduleName string,
 ) *RelayLogger {
-	return &RelayLogger{
-		rl.Logger.With(
-			"module", moduleName,
-		),
-	}
+	return rl.With("module", moduleName)
 }
 
 func (rl *RelayLogger) TimeTrack(start time.Time, name string, otherArgs ...any) {
