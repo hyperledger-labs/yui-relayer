@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -eux
+
+source $(cd $(dirname "$0"); pwd)/../../../scripts/util
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RELAYER_CONF="$HOME/.yui-relayer"
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
+RLY="${RLY_BINARY} --debug"
+
+CHAINID_ONE=ibc0
+CHAINID_TWO=ibc1
+RLYKEY=testkey
+PATH_NAME=ibc01
+
+# back up the original connection identifiers
+srcOrigConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
+dstOrigConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+
+# back up the original config.json and make connection identifiers empty
+origconfig=`mktemp`
+cp "$RELAYER_CONF/config/config.json" $origconfig
+$RLY paths edit $PATH_NAME src connection-id ''
+$RLY paths edit $PATH_NAME dst connection-id ''
+
+# create a new connection and save the new connection identifiers
+retry 5 $RLY tx connection $PATH_NAME
+srcConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
+dstConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+
+# resume the original config.json
+mv $origconfig "$RELAYER_CONF/config/config.json"
+
+# test channel upgrade (crossing-hello)
+$RLY tx channel-upgrade init ibc01 ibc0 --ordering ORDER_UNORDERED --connection-hops $srcConnectionId --version ics20-1
+$RLY tx channel-upgrade init ibc01 ibc1 --ordering ORDER_UNORDERED --connection-hops $dstConnectionId --version ics20-1
+$RLY tx channel-upgrade execute ibc01
+
+# test channel upgrade (non-crossing-hello)
+$RLY tx channel-upgrade init ibc01 ibc0 --ordering ORDER_UNORDERED --connection-hops $srcOrigConnectionId --version ics20-1
+$RLY tx channel-upgrade init ibc01 ibc0 --ordering ORDER_UNORDERED --connection-hops $srcOrigConnectionId --version ics20-1
+$RLY tx channel-upgrade init ibc01 ibc1 --ordering ORDER_UNORDERED --connection-hops $dstOrigConnectionId --version ics20-1
+$RLY tx channel-upgrade execute ibc01
