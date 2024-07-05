@@ -255,7 +255,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		return nil, errors.New("channel upgrade is not initialized")
 	case srcState == UPGRADEINIT && dstState == UPGRADEUNINIT:
 		if dstChan.Channel.UpgradeSequence >= srcChan.Channel.UpgradeSequence {
-			if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, dstChan.Channel.UpgradeSequence); err != nil {
+			if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, 0); err != nil {
 				return nil, err
 			}
 			out.Last = true
@@ -266,7 +266,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		}
 	case srcState == UPGRADEUNINIT && dstState == UPGRADEINIT:
 		if srcChan.Channel.UpgradeSequence >= dstChan.Channel.UpgradeSequence {
-			if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, srcChan.Channel.UpgradeSequence); err != nil {
+			if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, 0); err != nil {
 				return nil, err
 			}
 			out.Last = true
@@ -276,12 +276,12 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 			}
 		}
 	case srcState == UPGRADEUNINIT && dstState == FLUSHING:
-		if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, srcChan.Channel.UpgradeSequence); err != nil {
+		if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, 0); err != nil {
 			return nil, err
 		}
 		out.Last = true
 	case srcState == FLUSHING && dstState == UPGRADEUNINIT:
-		if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, dstChan.Channel.UpgradeSequence); err != nil {
+		if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, 0); err != nil {
 			return nil, err
 		}
 		out.Last = true
@@ -295,7 +295,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		} else if timedout {
 			out.Dst = doTimeout(dst, srcUpdateHeaders, srcChan)
 		} else {
-			if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, srcChan.Channel.UpgradeSequence); err != nil {
+			if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, dstChan.Channel.UpgradeSequence); err != nil {
 				return nil, err
 			}
 		}
@@ -310,7 +310,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		} else if timedout {
 			out.Src = doTimeout(src, dstUpdateHeaders, dstChan)
 		} else {
-			if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, dstChan.Channel.UpgradeSequence); err != nil {
+			if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, srcChan.Channel.UpgradeSequence); err != nil {
 				return nil, err
 			}
 		}
@@ -330,7 +330,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		}
 	case srcState == UPGRADEINIT && dstState == FLUSHING:
 		if srcChan.Channel.UpgradeSequence != dstChan.Channel.UpgradeSequence {
-			if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, srcChan.Channel.UpgradeSequence-1); err != nil {
+			if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, 0); err != nil {
 				return nil, err
 			}
 		} else {
@@ -341,7 +341,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		}
 	case srcState == FLUSHING && dstState == UPGRADEINIT:
 		if srcChan.Channel.UpgradeSequence != dstChan.Channel.UpgradeSequence {
-			if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, dstChan.Channel.UpgradeSequence-1); err != nil {
+			if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, 0); err != nil {
 				return nil, err
 			}
 		} else {
@@ -360,7 +360,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		} else if timedout {
 			out.Dst = doTimeout(dst, srcUpdateHeaders, srcChan)
 		} else {
-			if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, srcChan.Channel.UpgradeSequence-1); err != nil {
+			if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, dstChan.Channel.UpgradeSequence); err != nil {
 				return nil, err
 			}
 		}
@@ -374,7 +374,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		} else if timedout {
 			out.Src = doTimeout(src, dstUpdateHeaders, dstChan)
 		} else {
-			if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, dstChan.Channel.UpgradeSequence-1); err != nil {
+			if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, srcChan.Channel.UpgradeSequence); err != nil {
 				return nil, err
 			}
 		}

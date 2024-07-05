@@ -159,7 +159,8 @@ type ICS04Querier interface {
 	// QueryChannelUpgrade returns the channel upgrade associated with a channelID
 	QueryChannelUpgrade(ctx QueryContext) (*chantypes.QueryUpgradeResponse, error)
 
-	// QueryChannelUpgradeError iterates through chain events in reverse chronological order and returns the error receipt that matches `upgradeSequence`.
+	// QueryChannelUpgradeError iterates through chain events in reverse chronological order from the height of `ctx` and returns the error receipt that matches `upgradeSequence`.
+	// If zero is specified as `upgradeSequence`, this function simply returns the error receipt stored at the height of `ctx`.
 	QueryChannelUpgradeError(ctx QueryContext, upgradeSequence uint64) (*chantypes.QueryUpgradeErrorResponse, error)
 
 	// QueryCanTransitionToFlushComplete returns the channel can transition to FLUSHCOMPLETE state.
