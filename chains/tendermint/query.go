@@ -356,10 +356,12 @@ func (c *Chain) queryWrittenAcknowledgement(ctx core.QueryContext, seq uint64) (
 }
 
 // QueryTxs returns an array of transactions given a tag
-func (c *Chain) QueryTxs(height int64, page, limit int, events []string) ([]*ctypes.ResultTx, error) {
+func (c *Chain) QueryTxs(maxHeight int64, page, limit int, events []string) ([]*ctypes.ResultTx, error) {
 	if len(events) == 0 {
 		return nil, errors.New("must declare at least one event to search")
 	}
+
+	events = append(events, fmt.Sprintf("tx.height<=%d", maxHeight))
 
 	if page <= 0 {
 		return nil, errors.New("page must greater than 0")
@@ -397,13 +399,23 @@ func (c *Chain) queryChannelUpgrade(height int64, prove bool) (chanRes *chantype
 	}
 }
 
-func (c *Chain) QueryChannelUpgradeError(ctx core.QueryContext) (*chantypes.QueryUpgradeErrorResponse, error) {
-	return c.queryChannelUpgradeError(int64(ctx.Height().GetRevisionHeight()), false)
+func (c *Chain) QueryChannelUpgradeError(ctx core.QueryContext, upgradeSequence uint64) (*chantypes.QueryUpgradeErrorResponse, error) {
+	return c.queryChannelUpgradeError(int64(ctx.Height().GetRevisionHeight()), upgradeSequence, false)
 }
 
-func (c *Chain) queryChannelUpgradeError(height int64, prove bool) (chanRes *chantypes.QueryUpgradeErrorResponse, err error) {
+func (c *Chain) queryChannelUpgradeError(maxHeight int64, upgradeSequence uint64, prove bool) (chanRes *chantypes.QueryUpgradeErrorResponse, err error) {
+	txs, err := c.QueryTxs(maxHeight, 1, 2, channelUpgradeErrorQuery(c.Path().ChannelID, upgradeSequence))
+	switch {
+	case err != nil:
+		return nil, err
+	case len(txs) == 0:
+		return nil, fmt.Errorf("no transactions returned with query")
+	case len(txs) > 1:
+		return nil, fmt.Errorf("more than one transaction returned with query")
+	}
+
 	if res, err := chanutils.QueryUpgradeError(
-		c.CLIContext(height),
+		c.CLIContext(txs[0].Height),
 		c.PathEnd.PortID,
 		c.PathEnd.ChannelID,
 		prove,
@@ -530,4 +542,19 @@ func recvPacketQuery(channelID string, seq int) []string {
 
 func writeAckQuery(channelID string, seq int) []string {
 	return []string{fmt.Sprintf("%s.packet_dst_channel='%s'", waTag, channelID), fmt.Sprintf("%s.packet_sequence='%d'", waTag, seq)}
+}
+
+func channelUpgradeErrorQuery(channelID string, upgradeSequence uint64) []string {
+	return []string{
+		fmt.Sprintf("%s.%s='%s'",
+			chantypes.EventTypeChannelUpgradeError,
+			chantypes.AttributeKeyChannelID,
+			channelID,
+		),
+		fmt.Sprintf("%s.%s='%d'",
+			chantypes.EventTypeChannelUpgradeError,
+			chantypes.AttributeKeyUpgradeSequence,
+			upgradeSequence,
+		),
+	}
 }
