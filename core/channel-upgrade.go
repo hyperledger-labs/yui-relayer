@@ -258,6 +258,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 			if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, dstChan.Channel.UpgradeSequence); err != nil {
 				return nil, err
 			}
+			out.Last = true
 		} else {
 			if out.Dst, err = doTry(dst, srcCtxFinalized, src, srcUpdateHeaders, srcChan, srcChanUpg); err != nil {
 				return nil, err
@@ -268,6 +269,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 			if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, srcChan.Channel.UpgradeSequence); err != nil {
 				return nil, err
 			}
+			out.Last = true
 		} else {
 			if out.Src, err = doTry(src, dstCtxFinalized, dst, dstUpdateHeaders, dstChan, dstChanUpg); err != nil {
 				return nil, err
@@ -277,10 +279,12 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, srcChan.Channel.UpgradeSequence); err != nil {
 			return nil, err
 		}
+		out.Last = true
 	case srcState == FLUSHING && dstState == UPGRADEUNINIT:
 		if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, dstChan.Channel.UpgradeSequence); err != nil {
 			return nil, err
 		}
+		out.Last = true
 	case srcState == UPGRADEUNINIT && dstState == FLUSHCOMPLETE:
 		if complete, err := upgradeAlreadyComplete(srcChan, dstCtxFinalized, dst, dstChanUpg); err != nil {
 			return nil, err
@@ -295,6 +299,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 				return nil, err
 			}
 		}
+		out.Last = true
 	case srcState == FLUSHCOMPLETE && dstState == UPGRADEUNINIT:
 		if complete, err := upgradeAlreadyComplete(dstChan, srcCtxFinalized, src, srcChanUpg); err != nil {
 			return nil, err
@@ -309,6 +314,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 				return nil, err
 			}
 		}
+		out.Last = true
 	case srcState == UPGRADEINIT && dstState == UPGRADEINIT: // crossing hellos
 		// it is intentional to execute chanUpgradeTry on both sides if upgrade sequences
 		// are identical to each other. this is for testing purpose.
@@ -425,6 +431,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	case srcState == FLUSHCOMPLETE && dstState == FLUSHCOMPLETE:
 		out.Src = doOpen(src, dstUpdateHeaders, dstChan)
 		out.Dst = doOpen(dst, srcUpdateHeaders, srcChan)
+		out.Last = true
 	default:
 		return nil, errors.New("unexpected state")
 	}
