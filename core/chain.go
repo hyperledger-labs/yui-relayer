@@ -159,8 +159,8 @@ type ICS04Querier interface {
 	// QueryChannelUpgrade returns the channel upgrade associated with a channelID
 	QueryChannelUpgrade(ctx QueryContext) (*chantypes.QueryUpgradeResponse, error)
 
-	// QueryChannelUpgradeError returns the channel upgrade error receipt associated with a channelID
-	QueryChannelUpgradeError(ctx QueryContext) (*chantypes.QueryUpgradeErrorResponse, error)
+	// QueryChannelUpgradeError iterates through chain events in reverse chronological order and returns the error receipt that matches `upgradeSequence`.
+	QueryChannelUpgradeError(ctx QueryContext, upgradeSequence uint64) (*chantypes.QueryUpgradeErrorResponse, error)
 
 	// QueryCanTransitionToFlushComplete returns the channel can transition to FLUSHCOMPLETE state.
 	// Basically it requires that there remains no inflight packets.
