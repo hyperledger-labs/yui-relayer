@@ -32,7 +32,7 @@ func InitChannelUpgrade(chain *ProvableChain, upgradeFields chantypes.UpgradeFie
 	} else if len(msgIDs) != 1 {
 		panic(fmt.Sprintf("len(msgIDs) == %d", len(msgIDs)))
 	} else if result, err := GetFinalizedMsgResult(*chain, msgIDs[0]); err != nil {
-		logger.Error("failed to the finalized result of MsgChannelUpgradeInit", err)
+		logger.Error("failed to get the finalized result of MsgChannelUpgradeInit", err)
 		return err
 	} else if ok, desc := result.Status(); !ok {
 		err := fmt.Errorf("failed to initialize channel upgrade: %s", desc)
@@ -86,6 +86,69 @@ func ExecuteChannelUpgrade(src, dst *ProvableChain, interval time.Duration) erro
 			time.Sleep(5 * time.Second)
 		}
 	}
+}
+
+// CancelChannelUpgrade executes chanUpgradeCancel on `chain`.
+func CancelChannelUpgrade(chain, cp *ProvableChain) error {
+	logger := GetChannelPairLogger(chain, cp)
+	defer logger.TimeTrack(time.Now(), "CancelChannelUpgrade")
+
+	addr, err := chain.GetAddress()
+	if err != nil {
+		logger.Error("failed to get address", err)
+		return err
+	}
+
+	var ctx, cpCtx QueryContext
+	if sh, err := NewSyncHeaders(chain, cp); err != nil {
+		logger.Error("failed to create a SyncHeaders", err)
+		return err
+	} else {
+		ctx = sh.GetQueryContext(chain.ChainID())
+		cpCtx = sh.GetQueryContext(cp.ChainID())
+	}
+
+	chann, err := chain.QueryChannel(ctx)
+	if err != nil {
+		logger.Error("failed to get the channel state", err)
+		return err
+	}
+
+	var errReceiptSequence uint64 = 0
+	if chann.Channel.State == chantypes.FLUSHCOMPLETE {
+		errReceiptSequence = chann.Channel.UpgradeSequence
+	}
+
+	var msg sdk.Msg
+	if upgErr, err := cp.QueryChannelUpgradeError(cpCtx, errReceiptSequence); err != nil {
+		logger.Error("failed to query the channel upgrade error receipt", err)
+		return err
+	} else if upgErr == nil {
+		// NOTE: Even if an error receipt is not found, anyway try to execute ChanUpgradeCancel.
+		// If the sender is authority and the channel state is anything other than FLUSHCOMPLETE,
+		// the cancellation will be successful.
+		msg = chain.Path().ChanUpgradeCancel(&chantypes.QueryUpgradeErrorResponse{}, addr)
+	} else {
+		msg = chain.Path().ChanUpgradeCancel(upgErr, addr)
+	}
+
+	msgIDs, err := chain.SendMsgs([]sdk.Msg{msg})
+	if err != nil {
+		logger.Error("failed to send MsgChannelUpgradeCancel", err)
+		return err
+	} else if len(msgIDs) != 1 {
+		panic(fmt.Sprintf("len(msgIDs) == %d", len(msgIDs)))
+	} else if result, err := GetFinalizedMsgResult(*chain, msgIDs[0]); err != nil {
+		logger.Error("failed to get the finalized result of MsgChannelUpgradeCancel", err)
+		return err
+	} else if ok, desc := result.Status(); !ok {
+		err := fmt.Errorf("failed to cancel the channel upgrade: %s", desc)
+		logger.Error(err.Error(), err)
+	} else {
+		logger.Info("successfully cancelled the channel upgrade")
+	}
+
+	return nil
 }
 
 func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {

@@ -211,7 +211,7 @@ func channelUpgradeCmd(ctx *config.Context) *cobra.Command {
 	cmd.AddCommand(
 		channelUpgradeInitCmd(ctx),
 		channelUpgradeExecuteCmd(ctx),
-		//channelUpgradeCancel(ctx),
+		channelUpgradeCancelCmd(ctx),
 	)
 
 	return cmd
@@ -226,7 +226,7 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 
 	cmd := cobra.Command{
 		Use:   "init [path-name] [chain-id]",
-		Short: "execute chanOpenInit",
+		Short: "execute chanUpgradeInit",
 		Long:  "This command is meant to be used to initialize an IBC channel upgrade on a configured chain",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -319,6 +319,45 @@ func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
 	cmd.Flags().Duration(flagInterval, defaultInterval, "interval between attempts to proceed channel upgrade steps")
 
 	return &cmd
+}
+
+func channelUpgradeCancelCmd(ctx *config.Context) *cobra.Command {
+	return &cobra.Command{
+		Use:   "cancel [path-name] [chain-id]",
+		Short: "execute chanUpgradeCancel",
+		Long:  "This command is meant to be used to cancel an IBC channel upgrade on a configured chain",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pathName := args[0]
+			chainID := args[1]
+
+			_, srcChainID, dstChainID, err := ctx.Config.ChainsFromPath(pathName)
+			if err != nil {
+				return err
+			}
+
+			var cpChainID string
+			switch {
+			case chainID == srcChainID:
+				cpChainID = dstChainID
+			case chainID == dstChainID:
+				cpChainID = srcChainID
+			default:
+				return fmt.Errorf("invalid chain ID: %s or %s was expected, but %s was given", srcChainID, dstChainID, chainID)
+			}
+
+			chain, err := ctx.Config.GetChain(chainID)
+			if err != nil {
+				return err
+			}
+			cp, err := ctx.Config.GetChain(cpChainID)
+			if err != nil {
+				return err
+			}
+
+			return core.CancelChannelUpgrade(chain, cp)
+		},
+	}
 }
 
 func relayMsgsCmd(ctx *config.Context) *cobra.Command {
