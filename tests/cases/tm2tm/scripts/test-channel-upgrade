@@ -42,3 +42,9 @@ $RLY tx channel-upgrade init ibc01 ibc0 --ordering ORDER_UNORDERED --connection-
 $RLY tx channel-upgrade init ibc01 ibc0 --ordering ORDER_UNORDERED --connection-hops $srcOrigConnectionId --version ics20-1
 $RLY tx channel-upgrade init ibc01 ibc1 --ordering ORDER_UNORDERED --connection-hops $dstOrigConnectionId --version ics20-1
 $RLY tx channel-upgrade execute ibc01
+
+# test channel upgrade cancel
+$RLY tx channel-upgrade init ibc01 ibc0 --ordering ORDER_UNORDERED --connection-hops $srcConnectionId --version ics20-1
+$RLY tx channel-upgrade init ibc01 ibc1 --ordering ORDER_UNORDERED --connection-hops $dstConnectionId --version ics20-1
+$RLY tx channel-upgrade cancel ibc01 ibc0  # create situation where ibc0.error_receipt.sequence >= ibc1.channel.upgrade_sequence
+$RLY tx channel-upgrade execute ibc01      # the channel upgrade of ibc1 should be cancelled
