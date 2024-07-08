@@ -226,7 +226,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	}
 
 	doCancel := func(chain *ProvableChain, cpCtx QueryContext, cp *ProvableChain, cpHeaders []Header, upgradeSequence uint64) ([]sdk.Msg, error) {
-		cpChanUpgErr, err := cp.QueryChannelUpgradeError(cpCtx, upgradeSequence)
+		cpChanUpgErr, err := QueryChannelUpgradeError(cpCtx, cp, upgradeSequence, true)
 		if err != nil {
 			return nil, err
 		}
