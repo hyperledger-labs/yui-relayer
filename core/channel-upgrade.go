@@ -318,6 +318,10 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		return nil, errors.New("channel upgrade is not initialized")
 	case srcState == UPGRADEINIT && dstState == UPGRADEUNINIT:
 		if dstChan.Channel.UpgradeSequence >= srcChan.Channel.UpgradeSequence {
+			logger.Warn("the initialized channel upgrade is outdated",
+				"src_seq", srcChan.Channel.UpgradeSequence,
+				"dst_seq", dstChan.Channel.UpgradeSequence,
+			)
 			if out.Src, err = doCancel(src, dstCtxFinalized, dst, dstUpdateHeaders, 0); err != nil {
 				return nil, err
 			}
@@ -329,6 +333,10 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		}
 	case srcState == UPGRADEUNINIT && dstState == UPGRADEINIT:
 		if srcChan.Channel.UpgradeSequence >= dstChan.Channel.UpgradeSequence {
+			logger.Warn("the initialized channel upgrade is outdated",
+				"src_seq", srcChan.Channel.UpgradeSequence,
+				"dst_seq", dstChan.Channel.UpgradeSequence,
+			)
 			if out.Dst, err = doCancel(dst, srcCtxFinalized, src, srcUpdateHeaders, 0); err != nil {
 				return nil, err
 			}
