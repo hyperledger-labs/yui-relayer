@@ -300,6 +300,8 @@ func QueryChannelUpgradeError(ctx QueryContext, chain interface {
 }, upgradeSequence uint64, prove bool) (*chantypes.QueryUpgradeErrorResponse, error) {
 	if chanUpgErr, err := chain.QueryChannelUpgradeError(ctx, upgradeSequence); err != nil {
 		return nil, err
+	} else if chanUpgErr == nil {
+		return nil, nil
 	} else if !prove {
 		return chanUpgErr, nil
 	} else if value, err := chain.Codec().Marshal(&chanUpgErr.ErrorReceipt); err != nil {
