@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"os"
 	"time"
+	"runtime"
+	"context"
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/errors/withstack"
@@ -63,17 +65,43 @@ func InitLogger(logLevel, format, output string) error {
 	return nil
 }
 
+func (rl *RelayLogger) log(logLevel slog.Level, skipCallDepth int, msg string, args ...any) {
+	var pcs [1]uintptr
+	runtime.Callers(2 + skipCallDepth, pcs[:]) // skip [Callers, this func, ...]
+
+	record := slog.NewRecord(time.Now(), logLevel, msg, pcs[0])
+	record.Add(args...)
+
+	_ = rl.Logger.Handler().Handle(context.Background(), record)
+}
+
+func (rl *RelayLogger) error(skipCallDepth int, msg string, err error, otherArgs ...any) {
+	err = withstack.WithStackDepth(err, 1 + skipCallDepth)
+	var args []any
+	args = append(args, "error", err)
+	args = append(args, "stack", fmt.Sprintf("%+v", err))
+	args = append(args, otherArgs...)
+
+	rl.log(slog.LevelError, 1 + skipCallDepth, msg, args...)
+	//rl.Logger.Error(msg, args...)
+}
+
 func (rl *RelayLogger) Error(msg string, err error, otherArgs ...any) {
+	rl.error(1, msg, err, otherArgs...)
+/*
 	err = withstack.WithStackDepth(err, 1)
 	var args []any
 	args = append(args, "error", err)
 	args = append(args, "stack", fmt.Sprintf("%+v", err))
 	args = append(args, otherArgs...)
+
 	rl.Logger.Error(msg, args...)
+*/
 }
 
 func (rl *RelayLogger) Fatal(msg string, err error, otherArgs ...any) {
-	rl.Error(msg, err, otherArgs...)
+	rl.error(1, msg, err, otherArgs...)
+	//rl.Error(msg, err, otherArgs...)
 	panic(msg)
 }
 
@@ -190,5 +218,16 @@ func (rl *RelayLogger) WithModule(
 func (rl *RelayLogger) TimeTrack(start time.Time, name string, otherArgs ...any) {
 	elapsed := time.Since(start)
 	allArgs := append([]any{"name", name, "elapsed", elapsed.Nanoseconds()}, otherArgs...)
-	rl.Logger.Info("time track", allArgs...)
+	rl.log(slog.LevelInfo, 1, "time track", allArgs...)
+/*
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:]) // skip [Callers, this func]
+	record := slog.NewRecord(time.Now(), slog.LevelInfo, "time track", pcs[0])
+
+	allArgs := append([]any{"name", name, "elapsed", elapsed.Nanoseconds()}, otherArgs...)
+	record.Add(allArgs...)
+
+	_ = rl.Logger.Handler().Handle(context.Background(), record)
+	//rl.Logger.Info("time track", allArgs...)
+*/
 }
