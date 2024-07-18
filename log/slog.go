@@ -20,6 +20,18 @@ type RelayLogger struct {
 var relayLogger *RelayLogger
 
 func InitLogger(logLevel, format, output string) error {
+	// output
+	switch output {
+	case "stdout":
+		return InitLoggerWithWriter(logLevel, format, os.Stdout)
+	case "stderr":
+		return InitLoggerWithWriter(logLevel, format, os.Stderr)
+	default:
+		return errors.New("invalid log output")
+	}
+}
+
+func InitLoggerWithWriter(logLevel, format string, writer io.Writer) error {
 	// level
 	var slogLevel slog.Level
 	if err := slogLevel.UnmarshalText([]byte(logLevel)); err != nil {
@@ -28,17 +40,6 @@ func InitLogger(logLevel, format, output string) error {
 	handlerOpts := &slog.HandlerOptions{
 		Level:     slogLevel,
 		AddSource: true,
-	}
-
-	// output
-	var writer io.Writer
-	switch output {
-	case "stdout":
-		writer = os.Stdout
-	case "stderr":
-		writer = os.Stderr
-	default:
-		return errors.New("invalid log output")
 	}
 
 	var slogLogger *slog.Logger
@@ -66,13 +67,19 @@ func InitLogger(logLevel, format, output string) error {
 }
 
 func (rl *RelayLogger) log(logLevel slog.Level, skipCallDepth int, msg string, args ...any) {
+	ctx := context.Background();
+	if !rl.Logger.Enabled(ctx, logLevel) {
+		return
+	}
+
 	var pcs [1]uintptr
 	runtime.Callers(2 + skipCallDepth, pcs[:]) // skip [Callers, this func, ...]
 
 	record := slog.NewRecord(time.Now(), logLevel, msg, pcs[0])
 	record.Add(args...)
 
-	_ = rl.Logger.Handler().Handle(context.Background(), record)
+	// note that official log function also ignores Handle() error
+	_ = rl.Logger.Handler().Handle(ctx, record)
 }
 
 func (rl *RelayLogger) error(skipCallDepth int, msg string, err error, otherArgs ...any) {
@@ -83,25 +90,14 @@ func (rl *RelayLogger) error(skipCallDepth int, msg string, err error, otherArgs
 	args = append(args, otherArgs...)
 
 	rl.log(slog.LevelError, 1 + skipCallDepth, msg, args...)
-	//rl.Logger.Error(msg, args...)
 }
 
 func (rl *RelayLogger) Error(msg string, err error, otherArgs ...any) {
 	rl.error(1, msg, err, otherArgs...)
-/*
-	err = withstack.WithStackDepth(err, 1)
-	var args []any
-	args = append(args, "error", err)
-	args = append(args, "stack", fmt.Sprintf("%+v", err))
-	args = append(args, otherArgs...)
-
-	rl.Logger.Error(msg, args...)
-*/
 }
 
 func (rl *RelayLogger) Fatal(msg string, err error, otherArgs ...any) {
 	rl.error(1, msg, err, otherArgs...)
-	//rl.Error(msg, err, otherArgs...)
 	panic(msg)
 }
 
@@ -219,15 +215,4 @@ func (rl *RelayLogger) TimeTrack(start time.Time, name string, otherArgs ...any)
 	elapsed := time.Since(start)
 	allArgs := append([]any{"name", name, "elapsed", elapsed.Nanoseconds()}, otherArgs...)
 	rl.log(slog.LevelInfo, 1, "time track", allArgs...)
-/*
-	var pcs [1]uintptr
-	runtime.Callers(2, pcs[:]) // skip [Callers, this func]
-	record := slog.NewRecord(time.Now(), slog.LevelInfo, "time track", pcs[0])
-
-	allArgs := append([]any{"name", name, "elapsed", elapsed.Nanoseconds()}, otherArgs...)
-	record.Add(allArgs...)
-
-	_ = rl.Logger.Handler().Handle(context.Background(), record)
-	//rl.Logger.Info("time track", allArgs...)
-*/
 }
