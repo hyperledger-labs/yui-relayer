@@ -1,6 +1,8 @@
 package core
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
 )
@@ -69,10 +71,14 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 		txSize += uint64(len(bz))
 
 		if r.IsMaxTx(msgLen, txSize) {
+			logger := logger.With("msgs", msgsToLoggable(msgs))
+
 			// Submit the transactions to src chain and update its status
 			msgIDs, err := src.SendMsgs(msgs)
 			if err != nil {
-				logger.Error("failed to send msgs", err, "msgs", msgs)
+				logger.Error("failed to send msgs", err)
+			} else {
+				logger.Info("successfully sent msgs", "side", "src")
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
 			if err == nil {
@@ -90,9 +96,13 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 
 	// submit leftover msgs
 	if len(msgs) > 0 {
+		logger := logger.With("msgs", msgsToLoggable(msgs))
+
 		msgIDs, err := src.SendMsgs(msgs)
 		if err != nil {
-			logger.Error("failed to send msgs", err, "msgs", msgs)
+			logger.Error("failed to send msgs", err)
+		} else {
+			logger.Info("successfully sent msgs", "side", "src")
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
 		if err == nil {
@@ -118,10 +128,14 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 		txSize += uint64(len(bz))
 
 		if r.IsMaxTx(msgLen, txSize) {
+			logger := logger.With("msgs", msgsToLoggable(msgs))
+
 			// Submit the transaction to dst chain and update its status
 			msgIDs, err := dst.SendMsgs(msgs)
 			if err != nil {
-				logger.Error("failed to send msgs", err, "msgs", msgs)
+				logger.Error("failed to send msgs", err)
+			} else {
+				logger.Info("successfully sent msgs", "side", "dst")
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
 			if err == nil {
@@ -139,9 +153,13 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 
 	// submit leftover msgs
 	if len(msgs) > 0 {
+		logger := logger.With("msgs", msgsToLoggable(msgs))
+
 		msgIDs, err := dst.SendMsgs(msgs)
 		if err != nil {
-			logger.Error("failed to send msgs", err, "msgs", msgs)
+			logger.Error("failed to send msgs", err)
+		} else {
+			logger.Info("successfully sent msgs", "side", "dst")
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
 		if err == nil {
@@ -152,6 +170,14 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 	}
 	r.SrcMsgIDs = srcMsgIDs
 	r.DstMsgIDs = dstMsgIDs
+}
+
+func msgsToLoggable(msgs []sdk.Msg) []string {
+	var ret []string
+	for _, msg := range msgs {
+		ret = append(ret, fmt.Sprintf("%T", msg))
+	}
+	return ret
 }
 
 // Merge merges the argument into the receiver
