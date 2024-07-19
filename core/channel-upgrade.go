@@ -46,7 +46,7 @@ func InitChannelUpgrade(chain *ProvableChain, upgradeFields chantypes.UpgradeFie
 
 // ExecuteChannelUpgrade carries out channel upgrade handshake until both chains transition to the OPEN state.
 // This function repeatedly checks the states of both chains and decides the next action.
-func ExecuteChannelUpgrade(src, dst *ProvableChain, interval time.Duration) error {
+func ExecuteChannelUpgrade(src, dst *ProvableChain, interval time.Duration, untilFlushing bool) error {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "ExecuteChannelUpgrade")
 
@@ -55,7 +55,7 @@ func ExecuteChannelUpgrade(src, dst *ProvableChain, interval time.Duration) erro
 	for {
 		<-tick
 
-		steps, err := upgradeChannelStep(src, dst)
+		steps, err := upgradeChannelStep(src, dst, untilFlushing)
 		if err != nil {
 			logger.Error("failed to create channel upgrade step", err)
 			return err
@@ -151,7 +151,7 @@ func CancelChannelUpgrade(chain, cp *ProvableChain) error {
 	return nil
 }
 
-func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
+func upgradeChannelStep(src, dst *ProvableChain, untilFlushing bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 
 	out := NewRelayMsgs()
@@ -387,17 +387,24 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		}
 		out.Last = true
 	case srcState == UPGRADEINIT && dstState == UPGRADEINIT: // crossing hellos
-		// it is intentional to execute chanUpgradeTry on both sides if upgrade sequences
-		// are identical to each other. this is for testing purpose.
-		if srcChan.Channel.UpgradeSequence >= dstChan.Channel.UpgradeSequence {
+		if srcChan.Channel.UpgradeSequence > dstChan.Channel.UpgradeSequence {
 			if out.Dst, err = doTry(dst, srcCtxFinalized, src, srcUpdateHeaders, srcChan, srcChanUpg); err != nil {
 				return nil, err
 			}
-		}
-		if srcChan.Channel.UpgradeSequence <= dstChan.Channel.UpgradeSequence {
+		} else if srcChan.Channel.UpgradeSequence < dstChan.Channel.UpgradeSequence {
 			if out.Src, err = doTry(src, dstCtxFinalized, dst, dstUpdateHeaders, dstChan, dstChanUpg); err != nil {
 				return nil, err
 			}
+		} else {
+			// it is intentional to execute chanUpgradeTry on both sides if upgrade sequences
+			// are identical to each other. this is for testing purpose.
+			if out.Dst, err = doTry(dst, srcCtxFinalized, src, srcUpdateHeaders, srcChan, srcChanUpg); err != nil {
+				return nil, err
+			}
+			if out.Src, err = doTry(src, dstCtxFinalized, dst, dstUpdateHeaders, dstChan, dstChanUpg); err != nil {
+				return nil, err
+			}
+			out.Last = untilFlushing
 		}
 	case srcState == UPGRADEINIT && dstState == FLUSHING:
 		if srcChan.Channel.UpgradeSequence != dstChan.Channel.UpgradeSequence {
@@ -409,6 +416,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 			// if it has, chanUpgradeAck aborts the upgrade handshake.
 			// Therefore the relayer need not check timeout by itself.
 			out.Src = doAck(src, dstUpdateHeaders, dstChan, dstChanUpg)
+			out.Last = untilFlushing
 		}
 	case srcState == FLUSHING && dstState == UPGRADEINIT:
 		if srcChan.Channel.UpgradeSequence != dstChan.Channel.UpgradeSequence {
@@ -420,6 +428,7 @@ func upgradeChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 			// if it has, chanUpgradeAck aborts the upgrade handshake.
 			// Therefore the relayer need not check timeout by itself.
 			out.Dst = doAck(dst, srcUpdateHeaders, srcChan, srcChanUpg)
+			out.Last = true
 		}
 	case srcState == UPGRADEINIT && dstState == FLUSHCOMPLETE:
 		if complete, err := upgradeAlreadyComplete(srcChan, dstCtxFinalized, dst, dstChanUpg); err != nil {

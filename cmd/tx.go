@@ -279,7 +279,8 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 
 func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
 	const (
-		flagInterval = "interval"
+		flagInterval      = "interval"
+		flagUntilFlushing = "until-flushing"
 	)
 
 	const (
@@ -312,11 +313,17 @@ func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.ExecuteChannelUpgrade(src, dst, interval)
+			untilFlushing, err := cmd.Flags().GetBool(flagUntilFlushing)
+			if err != nil {
+				return err
+			}
+
+			return core.ExecuteChannelUpgrade(src, dst, interval, untilFlushing)
 		},
 	}
 
 	cmd.Flags().Duration(flagInterval, defaultInterval, "interval between attempts to proceed channel upgrade steps")
+	cmd.Flags().Bool(flagUntilFlushing, false, "the process exits when both chains have started flushing")
 
 	return &cmd
 }
