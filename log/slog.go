@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"os"
 	"time"
+	"runtime"
+	"context"
 
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/errors/withstack"
@@ -18,6 +20,18 @@ type RelayLogger struct {
 var relayLogger *RelayLogger
 
 func InitLogger(logLevel, format, output string) error {
+	// output
+	switch output {
+	case "stdout":
+		return InitLoggerWithWriter(logLevel, format, os.Stdout)
+	case "stderr":
+		return InitLoggerWithWriter(logLevel, format, os.Stderr)
+	default:
+		return errors.New("invalid log output")
+	}
+}
+
+func InitLoggerWithWriter(logLevel, format string, writer io.Writer) error {
 	// level
 	var slogLevel slog.Level
 	if err := slogLevel.UnmarshalText([]byte(logLevel)); err != nil {
@@ -26,17 +40,6 @@ func InitLogger(logLevel, format, output string) error {
 	handlerOpts := &slog.HandlerOptions{
 		Level:     slogLevel,
 		AddSource: true,
-	}
-
-	// output
-	var writer io.Writer
-	switch output {
-	case "stdout":
-		writer = os.Stdout
-	case "stderr":
-		writer = os.Stderr
-	default:
-		return errors.New("invalid log output")
 	}
 
 	var slogLogger *slog.Logger
@@ -63,17 +66,38 @@ func InitLogger(logLevel, format, output string) error {
 	return nil
 }
 
-func (rl *RelayLogger) Error(msg string, err error, otherArgs ...any) {
-	err = withstack.WithStackDepth(err, 1)
+func (rl *RelayLogger) log(logLevel slog.Level, skipCallDepth int, msg string, args ...any) {
+	ctx := context.Background();
+	if !rl.Logger.Enabled(ctx, logLevel) {
+		return
+	}
+
+	var pcs [1]uintptr
+	runtime.Callers(2 + skipCallDepth, pcs[:]) // skip [Callers, this func, ...]
+
+	record := slog.NewRecord(time.Now(), logLevel, msg, pcs[0])
+	record.Add(args...)
+
+	// note that official log function also ignores Handle() error
+	_ = rl.Logger.Handler().Handle(ctx, record)
+}
+
+func (rl *RelayLogger) error(skipCallDepth int, msg string, err error, otherArgs ...any) {
+	err = withstack.WithStackDepth(err, 1 + skipCallDepth)
 	var args []any
 	args = append(args, "error", err)
 	args = append(args, "stack", fmt.Sprintf("%+v", err))
 	args = append(args, otherArgs...)
-	rl.Logger.Error(msg, args...)
+
+	rl.log(slog.LevelError, 1 + skipCallDepth, msg, args...)
+}
+
+func (rl *RelayLogger) Error(msg string, err error, otherArgs ...any) {
+	rl.error(1, msg, err, otherArgs...)
 }
 
 func (rl *RelayLogger) Fatal(msg string, err error, otherArgs ...any) {
-	rl.Error(msg, err, otherArgs...)
+	rl.error(1, msg, err, otherArgs...)
 	panic(msg)
 }
 
@@ -190,5 +214,5 @@ func (rl *RelayLogger) WithModule(
 func (rl *RelayLogger) TimeTrack(start time.Time, name string, otherArgs ...any) {
 	elapsed := time.Since(start)
 	allArgs := append([]any{"name", name, "elapsed", elapsed.Nanoseconds()}, otherArgs...)
-	rl.Logger.Info("time track", allArgs...)
+	rl.log(slog.LevelInfo, 1, "time track", allArgs...)
 }
