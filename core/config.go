@@ -13,16 +13,18 @@ import (
 
 var config ConfigI
 
-type ConfigIDType string
+type PathConfigKey string
 
 const (
-	ConfigIDClient     ConfigIDType = "client"
-	ConfigIDConnection ConfigIDType = "connection"
-	ConfigIDChannel    ConfigIDType = "channel"
+	PathConfigClientID     PathConfigKey = "client-id"
+	PathConfigConnectionID PathConfigKey = "connection-id"
+	PathConfigChannelID    PathConfigKey = "channel-id"
+	PathConfigOrder        PathConfigKey = "order"
+	PathConfigVersion      PathConfigKey = "version"
 )
 
 type ConfigI interface {
-	UpdateConfigID(pathName string, chainID string, configID ConfigIDType, id string) error
+	UpdatePathConfig(pathName string, chainID string, kv map[PathConfigKey]string) error
 }
 
 func SetCoreConfig(c ConfigI) {
@@ -156,23 +158,21 @@ func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableC
 		}
 
 		for _, event := range msgRes.Events() {
-			var id string
-			var configID ConfigIDType
+			kv := make(map[PathConfigKey]string)
+
 			switch event := event.(type) {
 			case *EventGenerateClientIdentifier:
-				configID = ConfigIDClient
-				id = event.ID
+				kv[PathConfigClientID] = event.ID
 			case *EventGenerateConnectionIdentifier:
-				configID = ConfigIDConnection
-				id = event.ID
+				kv[PathConfigConnectionID] = event.ID
 			case *EventGenerateChannelIdentifier:
-				configID = ConfigIDChannel
-				id = event.ID
+				kv[PathConfigChannelID] = event.ID
+			default:
+				continue
 			}
-			if id != "" {
-				if err := config.UpdateConfigID(pathName, chain.ChainID(), configID, id); err != nil {
-					return err
-				}
+
+			if err := config.UpdatePathConfig(pathName, chain.ChainID(), kv); err != nil {
+				return err
 			}
 		}
 	}
