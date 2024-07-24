@@ -31,6 +31,7 @@ import (
 	"github.com/cosmos/go-bip39"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+	ethhd "github.com/vsc-blockchain/core/crypto/hd"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/log"
@@ -113,7 +114,15 @@ func (c *Chain) Path() *core.PathEnd {
 }
 
 func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
-	keybase, err := keys.New(c.config.ChainId, "test", keysDir(homePath, c.config.ChainId), nil, codec)
+	keybase, err := keys.New(
+		c.config.ChainId,
+		"test",
+		keysDir(homePath, c.config.ChainId),
+		nil,
+		codec,
+		ethhd.EthSecp256k1Option(),
+	)
+
 	if err != nil {
 		return err
 	}
