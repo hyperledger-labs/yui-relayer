@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	cosmoshd "github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/spf13/cobra"
+	ethhd "github.com/vsc-blockchain/core/crypto/hd"
 )
 
 // keysCmd represents the keys command
@@ -58,7 +59,7 @@ func keysAddCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			info, err := chain.Keybase.NewAccount(keyName, mnemonic, "", hd.CreateHDPath(118, 0, 0).String(), hd.Secp256k1)
+			info, err := chain.Keybase.NewAccount(keyName, mnemonic, "", cosmoshd.CreateHDPath(118, 0, 0).String(), ethhd.EthSecp256k1)
 			if err != nil {
 				return err
 			}
@@ -106,7 +107,7 @@ func keysRestoreCmd(ctx *config.Context) *cobra.Command {
 				return errKeyExists(keyName)
 			}
 
-			info, err := chain.Keybase.NewAccount(keyName, args[2], "", hd.CreateHDPath(118, 0, 0).String(), hd.Secp256k1)
+			info, err := chain.Keybase.NewAccount(keyName, args[2], "", cosmoshd.CreateHDPath(118, 0, 0).String(), ethhd.EthSecp256k1)
 			if err != nil {
 				return err
 			}
