@@ -46,7 +46,7 @@ func InitChannelUpgrade(chain *ProvableChain, upgradeFields chantypes.UpgradeFie
 
 // ExecuteChannelUpgrade carries out channel upgrade handshake until both chains transition to the OPEN state.
 // This function repeatedly checks the states of both chains and decides the next action.
-func ExecuteChannelUpgrade(src, dst *ProvableChain, interval time.Duration, untilFlushing bool) error {
+func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval time.Duration, untilFlushing bool) error {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "ExecuteChannelUpgrade")
 
@@ -69,6 +69,10 @@ func ExecuteChannelUpgrade(src, dst *ProvableChain, interval time.Duration, unti
 		steps.Send(src, dst)
 
 		if steps.Success() {
+			if err := SyncChainConfigsFromEvents(pathName, steps.SrcMsgIDs, steps.DstMsgIDs, src, dst); err != nil {
+				return err
+			}
+
 			if steps.Last {
 				logger.Info("Channel upgrade completed")
 				return nil

@@ -1,12 +1,14 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/gogoproto/proto"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/utils"
 )
@@ -167,6 +169,36 @@ func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableC
 				kv[PathConfigConnectionID] = event.ID
 			case *EventGenerateChannelIdentifier:
 				kv[PathConfigChannelID] = event.ID
+			case *EventUpgradeChannel:
+				chann, err := chain.QueryChannel(NewQueryContext(context.TODO(), msgRes.BlockHeight()))
+				if err != nil {
+					return fmt.Errorf("failed to query a channel corresponding to the EventUpgradeChannel event: %v", err)
+				}
+
+				if chann.Channel.UpgradeSequence != event.UpgradeSequence {
+					return fmt.Errorf("unexpected mismatch of upgrade sequence: channel.upgradeSequence=%d, event.upgradeSequence=%d",
+						chann.Channel.UpgradeSequence,
+						event.UpgradeSequence,
+					)
+				}
+
+				if len(chann.Channel.ConnectionHops) != 1 {
+					return fmt.Errorf("unexpected length of connectionHops: %d", len(chann.Channel.ConnectionHops))
+				}
+
+				var order string
+				switch chann.Channel.Ordering {
+				case chantypes.ORDERED:
+					order = "ordered"
+				case chantypes.UNORDERED:
+					order = "unordered"
+				default:
+					return fmt.Errorf("unexpected channel ordering: %d", chann.Channel.Ordering)
+				}
+
+				kv[PathConfigConnectionID] = chann.Channel.ConnectionHops[0]
+				kv[PathConfigOrder] = order
+				kv[PathConfigVersion] = chann.Channel.Version
 			default:
 				continue
 			}
