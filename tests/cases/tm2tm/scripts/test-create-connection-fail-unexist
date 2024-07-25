@@ -34,10 +34,11 @@ EOF
 r=$?
 
 if [ $r -eq 101 ]; then
-    echo "success"
+    echo "$(basename $0): success"
+    mv $CONFIG.tmp $CONFIG
     exit 0
 else
-    echo "fail: $r"
+    echo "$(basename $0): fail: $r"
     exit 1
 fi
 

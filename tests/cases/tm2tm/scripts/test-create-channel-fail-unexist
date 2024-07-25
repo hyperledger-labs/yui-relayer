@@ -35,7 +35,7 @@ r=$?
 
 if [ $r -eq 101 ]; then
     echo "$(basename $0): success"
-    cp $CONFIG.tmp $CONFIG
+    mv $CONFIG.tmp $CONFIG
     exit 0
 else
     echo "$(basename $0): fail: $r"
