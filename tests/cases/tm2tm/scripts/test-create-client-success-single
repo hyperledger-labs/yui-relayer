@@ -53,4 +53,4 @@ if [ "$NEW_DST_CLIENT_ID" != "$OLD_DST_CLIENT_ID" ]; then
   exit 1
 fi
 
-cp $CONFIG.tmp $CONFIG
+mv $CONFIG.tmp $CONFIG
