@@ -22,7 +22,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	keys "github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
@@ -31,7 +30,10 @@ import (
 	"github.com/cosmos/go-bip39"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+	ethcodec "github.com/vsc-blockchain/core/crypto/codec"
+	"github.com/vsc-blockchain/core/crypto/ethsecp256k1"
 	ethhd "github.com/vsc-blockchain/core/crypto/hd"
+	vsccodec "github.com/vsc-blockchain/core/encoding/codec"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/log"
@@ -122,6 +124,9 @@ func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCo
 		codec,
 		ethhd.EthSecp256k1Option(),
 	)
+
+	ethcodec.RegisterInterfaces(codec.InterfaceRegistry())
+	vsccodec.RegisterInterfaces(codec.InterfaceRegistry())
 
 	if err != nil {
 		return err
@@ -370,7 +375,7 @@ func BuildSimTx(txf tx.Factory, msgs ...sdk.Msg) ([]byte, error) {
 	// Create an empty signature literal as the ante handler will populate with a
 	// sentinel pubkey.
 	sig := signing.SignatureV2{
-		PubKey: &secp256k1.PubKey{},
+		PubKey: &ethsecp256k1.PubKey{},
 		Data: &signing.SingleSignatureData{
 			SignMode: txf.SignMode(),
 		},
