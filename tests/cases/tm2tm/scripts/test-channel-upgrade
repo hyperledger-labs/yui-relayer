@@ -36,15 +36,27 @@ mv $origconfig "$RELAYER_CONF/config/config.json"
 $RLY tx channel-upgrade init ibc01 ibc0 --ordering ORDER_UNORDERED --connection-hops $srcConnectionId --version ics20-1
 $RLY tx channel-upgrade init ibc01 ibc1 --ordering ORDER_UNORDERED --connection-hops $dstConnectionId --version ics20-1
 $RLY tx channel-upgrade execute ibc01
+pathSrcConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
+pathDstConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+[ "$pathSrcConnectionId" = "$srcConnectionId" ] || { echo 'src path config update failed'; exit 1; }
+[ "$pathDstConnectionId" = "$dstConnectionId" ] || { echo 'dst path config update failed'; exit 1; }
 
 # test channel upgrade (non-crossing-hello)
 $RLY tx channel-upgrade init ibc01 ibc0 --ordering ORDER_UNORDERED --connection-hops $srcOrigConnectionId --version ics20-1
 $RLY tx channel-upgrade init ibc01 ibc0 --ordering ORDER_UNORDERED --connection-hops $srcOrigConnectionId --version ics20-1
 $RLY tx channel-upgrade init ibc01 ibc1 --ordering ORDER_UNORDERED --connection-hops $dstOrigConnectionId --version ics20-1
 $RLY tx channel-upgrade execute ibc01
+pathSrcConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
+pathDstConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+[ "$pathSrcConnectionId" = "$srcOrigConnectionId" ] || { echo 'src path config update failed'; exit 1; }
+[ "$pathDstConnectionId" = "$dstOrigConnectionId" ] || { echo 'dst path config update failed'; exit 1; }
 
 # test channel upgrade cancel
 $RLY tx channel-upgrade init ibc01 ibc0 --ordering ORDER_UNORDERED --connection-hops $srcConnectionId --version ics20-1
 $RLY tx channel-upgrade init ibc01 ibc1 --ordering ORDER_UNORDERED --connection-hops $dstConnectionId --version ics20-1
 $RLY tx channel-upgrade cancel ibc01 ibc0  # create situation where ibc0.error_receipt.sequence >= ibc1.channel.upgrade_sequence
 $RLY tx channel-upgrade execute ibc01      # the channel upgrade of ibc1 should be cancelled
+pathSrcConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
+pathDstConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+[ "$pathSrcConnectionId" = "$srcOrigConnectionId" ] || { echo 'src path config update failed'; exit 1; }
+[ "$pathDstConnectionId" = "$dstOrigConnectionId" ] || { echo 'dst path config update failed'; exit 1; }
