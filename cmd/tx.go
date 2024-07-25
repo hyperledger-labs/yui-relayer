@@ -318,7 +318,7 @@ func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.ExecuteChannelUpgrade(src, dst, interval, untilFlushing)
+			return core.ExecuteChannelUpgrade(pathName, src, dst, interval, untilFlushing)
 		},
 	}
 

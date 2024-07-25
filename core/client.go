@@ -12,8 +12,8 @@ import (
 )
 
 func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
-	srcID := src.Chain.Path().ClientID;
-	dstID := dst.Chain.Path().ClientID;
+	srcID := src.Chain.Path().ClientID
+	dstID := dst.Chain.Path().ClientID
 
 	if srcID == "" && dstID == "" {
 		return true, nil
