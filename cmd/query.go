@@ -95,7 +95,7 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 				return err
 			}
 			queryHeight := clienttypes.NewHeight(latestHeight.GetRevisionNumber(), uint64(height))
-			res, err := c.QueryConnection(core.NewQueryContext(context.TODO(), queryHeight))
+			res, err := c.QueryConnection(core.NewQueryContext(context.TODO(), queryHeight), c.Path().ConnectionID)
 			if err != nil {
 				return err
 			}

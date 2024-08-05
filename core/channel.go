@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -41,39 +42,32 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 		}
 
 		chanSteps.Send(src, dst)
+
 		if chanSteps.Success() {
+			// In the case of success, synchronize the config file from generated channel identifiers
 			if err := SyncChainConfigsFromEvents(pathName, chanSteps.SrcMsgIDs, chanSteps.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
-		}
 
-		switch {
-		// In the case of success and this being the last transaction
-		// debug logging, log created connection and break
-		case chanSteps.Success() && chanSteps.Last:
-			logger.Info(
-				"★ Channel created",
-			)
-			return nil
-		// In the case of success, reset the failures counter
-		case chanSteps.Success():
-			failures = 0
-			continue
-		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
-		case !chanSteps.Success():
-			failures++
-			logger.Info("retrying transaction...")
-			time.Sleep(5 * time.Second)
-			if failures > 2 {
-				logger.Error(
-					"! Channel failed",
-					err,
-				)
-				return fmt.Errorf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-					src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-					dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
-				)
+			// In the case of success and this being the last transaction
+			// debug logging, log created connection and break
+			if chanSteps.Last {
+				logger.Info("★ Channel created")
+				return nil
 			}
+
+			// In the case of success, reset the failures counter
+			failures = 0
+		} else {
+			// In the case of failure, increment the failures counter and exit if this is the 3rd failure
+			if failures++; failures > 2 {
+				err := errors.New("Channel handshake failed")
+				logger.Error(err.Error(), err)
+				return err
+			}
+
+			logger.Warn("Retrying transaction...")
+			time.Sleep(5 * time.Second)
 		}
 	}
 
@@ -115,10 +109,10 @@ func checkChannelCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 	}
 
 	if srcID != "" && srcState == chantypes.UNINITIALIZED {
-		return false, fmt.Errorf("src channel id is given but that channel does not exist: %s", srcID);
+		return false, fmt.Errorf("src channel id is given but that channel does not exist: %s", srcID)
 	}
 	if dstID != "" && dstState == chantypes.UNINITIALIZED {
-		return false, fmt.Errorf("dst channel id is given but that channel does not exist: %s", dstID);
+		return false, fmt.Errorf("dst channel id is given but that channel does not exist: %s", dstID)
 	}
 
 	if srcState == chantypes.OPEN && dstState == chantypes.OPEN {

@@ -237,6 +237,117 @@ func (pe *PathEnd) ChanCloseConfirm(dstChanState *chantypes.QueryChannelResponse
 	)
 }
 
+// ChanUpgradeInit creates a MsgChannelUpgradeInit
+func (pe *PathEnd) ChanUpgradeInit(upgradeFields chantypes.UpgradeFields, signer sdk.AccAddress) sdk.Msg {
+	return chantypes.NewMsgChannelUpgradeInit(
+		pe.PortID,
+		pe.ChannelID,
+		upgradeFields,
+		signer.String(),
+	)
+}
+
+// ChanUpgradeTry creates a MsgChannelUpgradeTry
+func (pe *PathEnd) ChanUpgradeTry(
+	newConnectionID string,
+	counterpartyChan *chantypes.QueryChannelResponse,
+	counterpartyUpg *chantypes.QueryUpgradeResponse,
+	signer sdk.AccAddress,
+) sdk.Msg {
+	return chantypes.NewMsgChannelUpgradeTry(
+		pe.PortID,
+		pe.ChannelID,
+		[]string{newConnectionID},
+		counterpartyUpg.Upgrade.Fields,
+		counterpartyChan.Channel.UpgradeSequence,
+		counterpartyChan.Proof,
+		counterpartyUpg.Proof,
+		counterpartyChan.ProofHeight,
+		signer.String(),
+	)
+}
+
+// ChanUpgradeAck creates a MsgChannelUpgradeAck
+func (pe *PathEnd) ChanUpgradeAck(
+	counterpartyChan *chantypes.QueryChannelResponse,
+	counterpartyUpg *chantypes.QueryUpgradeResponse,
+	signer sdk.AccAddress,
+) sdk.Msg {
+	return chantypes.NewMsgChannelUpgradeAck(
+		pe.PortID,
+		pe.ChannelID,
+		counterpartyUpg.Upgrade,
+		counterpartyChan.Proof,
+		counterpartyUpg.Proof,
+		counterpartyChan.ProofHeight,
+		signer.String(),
+	)
+}
+
+// ChanUpgradeConfirm creates a MsgChannelUpgradeConfirm
+func (pe *PathEnd) ChanUpgradeConfirm(
+	counterpartyChan *chantypes.QueryChannelResponse,
+	counterpartyUpg *chantypes.QueryUpgradeResponse,
+	signer sdk.AccAddress,
+) sdk.Msg {
+	return chantypes.NewMsgChannelUpgradeConfirm(
+		pe.PortID,
+		pe.ChannelID,
+		counterpartyChan.Channel.State,
+		counterpartyUpg.Upgrade,
+		counterpartyChan.Proof,
+		counterpartyUpg.Proof,
+		counterpartyChan.ProofHeight,
+		signer.String(),
+	)
+}
+
+// ChanUpgradeOpen creates a MsgChannelUpgradeOpen
+func (pe *PathEnd) ChanUpgradeOpen(
+	counterpartyChan *chantypes.QueryChannelResponse,
+	signer sdk.AccAddress,
+) sdk.Msg {
+	return chantypes.NewMsgChannelUpgradeOpen(
+		pe.PortID,
+		pe.ChannelID,
+		counterpartyChan.Channel.State,
+		counterpartyChan.Channel.UpgradeSequence,
+		counterpartyChan.Proof,
+		counterpartyChan.ProofHeight,
+		signer.String(),
+	)
+}
+
+// ChanUpgradeCancel creates a MsgChannelUpgradeCancel
+func (pe *PathEnd) ChanUpgradeCancel(
+	counterpartyChanUpgErr *chantypes.QueryUpgradeErrorResponse,
+	signer sdk.AccAddress,
+) sdk.Msg {
+	return chantypes.NewMsgChannelUpgradeCancel(
+		pe.PortID,
+		pe.ChannelID,
+		counterpartyChanUpgErr.ErrorReceipt,
+		counterpartyChanUpgErr.Proof,
+		counterpartyChanUpgErr.ProofHeight,
+		signer.String(),
+	)
+}
+
+// ChanUpgradeTimeout creates a MsgChannelUpgradeTimeout
+func (pe *PathEnd) ChanUpgradeTimeout(
+	counterpartyChan *chantypes.QueryChannelResponse,
+	signer sdk.AccAddress,
+) sdk.Msg {
+	return chantypes.NewMsgChannelUpgradeTimeout(
+		pe.PortID,
+		pe.ChannelID,
+		*counterpartyChan.Channel,
+		counterpartyChan.Proof,
+		counterpartyChan.ProofHeight,
+		signer.String(),
+	)
+}
+
 // MsgTransfer creates a new transfer message
 func (pe *PathEnd) MsgTransfer(dst *PathEnd, amount sdk.Coin, dstAddr string,
 	signer sdk.AccAddress, timeoutHeight, timeoutTimestamp uint64, memo string) sdk.Msg {

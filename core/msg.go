@@ -46,6 +46,7 @@ var (
 	_ MsgEventLog = (*EventRecvPacket)(nil)
 	_ MsgEventLog = (*EventWriteAcknowledgement)(nil)
 	_ MsgEventLog = (*EventAcknowledgePacket)(nil)
+	_ MsgEventLog = (*EventUpgradeChannel)(nil)
 	_ MsgEventLog = (*EventUnknown)(nil)
 )
 
@@ -113,6 +114,15 @@ type EventAcknowledgePacket struct {
 	SrcChannel       string
 	TimeoutHeight    clienttypes.Height
 	TimeoutTimestamp time.Time
+}
+
+// EventUpgradeChannel is an implementation of `MsgEventLog` that notifies the completion of a channel upgrade
+type EventUpgradeChannel struct {
+	isMsgEventLog
+
+	PortID          string
+	ChannelID       string
+	UpgradeSequence uint64
 }
 
 // EventUnknown is an implementation of `MsgEventLog` that represents another event.
