@@ -13,6 +13,7 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/helpers"
 	"github.com/spf13/cobra"
+	"github.com/cosmos/gogoproto/jsonpb"
 )
 
 // queryCmd represents the chain command
@@ -66,7 +67,12 @@ func queryClientCmd(ctx *config.Context) *cobra.Command {
 			if err := c.Codec().UnpackAny(res.ClientState, &cs); err != nil {
 				return err
 			}
-			fmt.Println(cs)
+			marshaler := jsonpb.Marshaler{}
+			if json, err := marshaler.MarshalToString(cs); err != nil {
+				fmt.Println(cs.String())
+			} else {
+				fmt.Println(json)
+			}
 			return nil
 		},
 	}
@@ -99,7 +105,12 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println(res.Connection.String())
+			marshaler := jsonpb.Marshaler{}
+			if json, err := marshaler.MarshalToString(res.Connection); err != nil {
+				fmt.Println(res.Connection.String())
+			} else {
+				fmt.Println(json)
+			}
 			return nil
 		},
 	}
@@ -132,7 +143,12 @@ func queryChannel(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println(res.Channel.String())
+			marshaler := jsonpb.Marshaler{}
+			if json, err := marshaler.MarshalToString(res.Channel); err != nil {
+				fmt.Println(res.Channel.String())
+			} else {
+				fmt.Println(json)
+			}
 			return nil
 		},
 	}
