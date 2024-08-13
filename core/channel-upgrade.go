@@ -298,6 +298,10 @@ func upgradeChannelStep(src, dst *ProvableChain, untilFlushing bool) (*RelayMsgs
 			return nil, err
 		}
 
+		if cpChanUpgErr == nil {
+			logger.Warn("error receipt not found", "seq", upgradeSequence, "chain_id", cp.ChainID())
+		}
+
 		var msgs []sdk.Msg
 		addr := mustGetAddress(chain)
 		if len(cpHeaders) > 0 {
