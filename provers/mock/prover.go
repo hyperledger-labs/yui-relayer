@@ -13,6 +13,7 @@ import (
 
 	mocktypes "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 type Prover struct {
@@ -27,6 +28,8 @@ func NewProver(chain core.Chain, config ProverConfig) *Prover {
 }
 
 func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
+	logger := log.GetLogger()
+	logger.Info("mock prover is initialized.")
 	return nil
 }
 

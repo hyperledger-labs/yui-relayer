@@ -27,7 +27,7 @@ func InitLogger(logLevel, format, output string) error {
 	case "stderr":
 		return InitLoggerWithWriter(logLevel, format, os.Stderr)
 	default:
-		return errors.New("invalid log output")
+		return errors.New(fmt.Sprintf("invalid log output: '%s'", output))
 	}
 }
 
