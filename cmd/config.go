@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"encoding/json"
 
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/spf13/cobra"
@@ -51,7 +52,7 @@ func configShowCmd(ctx *config.Context) *cobra.Command {
 			if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
 				return fmt.Errorf("config does not exist: %s", cfgPath)
 			}
-			out, err := config.MarshalJSON(*ctx.Config)
+			out, err := json.Marshal(*ctx.Config)
 			if err != nil {
 				return err
 			}

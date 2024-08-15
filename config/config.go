@@ -128,7 +128,7 @@ func (c *Config) ChainsFromPath(path string) (map[string]*core.ProvableChain, st
 }
 
 // Called to initialize the relayer.Chain types on Config
-func InitChains(ctx *Context, homePath string, debug bool) error {
+func initChains(ctx *Context, homePath string, debug bool) error {
 	to, err := time.ParseDuration(ctx.Config.Global.Timeout)
 	if err != nil {
 		return fmt.Errorf("did you remember to run 'rly config init' error:%w", err)
@@ -143,28 +143,42 @@ func InitChains(ctx *Context, homePath string, debug bool) error {
 	return nil
 }
 
-func (c *Config) InitConfig(ctx *Context, homePath, configPath string, debug bool) error {
+func (c *Config) UnmarshalConfig(homePath, configPath string) error {
 	cfgPath := fmt.Sprintf("%s/%s", homePath, configPath)
-	c.ConfigPath = cfgPath
 	if _, err := os.Stat(cfgPath); err == nil {
 		file, err := os.ReadFile(cfgPath)
 		if err != nil {
 			return err
 		}
 		// unmarshall them into the struct
-		if err = UnmarshalJSON(ctx.Codec, file, c); err != nil {
-			return err
-		}
-		// ensure config has []*relayer.Chain used for all chain operations
-		if err = InitChains(ctx, homePath, debug); err != nil {
+		if err = json.Unmarshal(file, c); err != nil {
 			return err
 		}
 	} else {
 		defConfig := defaultConfig(cfgPath)
-		c = &defConfig
+		*c = defConfig
 	}
-	c.InitCoreConfig()
-	ctx.Config = c
+	c.ConfigPath = cfgPath
+	return nil
+}
+
+func (ctx *Context) InitConfig(homePath string, debug bool) error {
+	for _, c := range ctx.Config.Chains {
+		if err := c.Init(ctx.Codec); err != nil {
+			return err
+		}
+		chain, err := c.Build()
+		if err != nil {
+			return err
+		}
+		ctx.Config.chains = append(ctx.Config.chains, chain)
+	}
+
+	// ensure config has []*relayer.Chain used for all chain operations
+	if err := initChains(ctx, homePath, debug); err != nil {
+		return err
+	}
+	ctx.Config.InitCoreConfig()
 	return nil
 }
 

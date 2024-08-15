@@ -79,11 +79,14 @@ func Execute(modules ...config.ModuleI) error {
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			return fmt.Errorf("failed to bind the flag set to the configuration: %v", err)
 		}
-		if err := ctx.Config.InitConfig(ctx, homePath, configPath, debug); err != nil {
+		if err := ctx.Config.UnmarshalConfig(homePath, configPath); err != nil {
 			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
 		if err := initLogger(ctx); err != nil {
 			return err
+		}
+		if err := ctx.InitConfig(homePath, debug); err != nil {
+			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
 		if err := metrics.InitializeMetrics(metrics.ExporterNull{}); err != nil {
 			return fmt.Errorf("failed to initialize the metrics: %v", err)
