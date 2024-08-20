@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/gogoproto/proto"
@@ -896,8 +897,15 @@ func (app *SimApp) InitChainer(ctx sdk.Context, req *abci.RequestInitChain) (*ab
 			ibcGenesisState.ClientGenesis.Params.AllowedClients = append(
 				ibcGenesisState.ClientGenesis.Params.AllowedClients,
 				mockclienttypes.Mock)
-			genesisState[ibcexported.ModuleName] = app.appCodec.MustMarshalJSON(&ibcGenesisState)
 		}
+		if upgTimeout := os.Getenv("IBC_CHANNEL_UPGRADE_TIMEOUT"); len(upgTimeout) > 0 {
+			upgTimeoutTimestampNsec, err := strconv.ParseInt(upgTimeout, 10, 64)
+			if err != nil {
+				panic(err)
+			}
+			ibcGenesisState.ChannelGenesis.Params.UpgradeTimeout.Timestamp = uint64(upgTimeoutTimestampNsec)
+		}
+		genesisState[ibcexported.ModuleName] = app.appCodec.MustMarshalJSON(&ibcGenesisState)
 	}
 
 	if err := app.UpgradeKeeper.SetModuleVersionMap(ctx, app.ModuleManager.GetVersionMap()); err != nil {
