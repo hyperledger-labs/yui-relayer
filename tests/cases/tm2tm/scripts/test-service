@@ -50,8 +50,9 @@ RLY_PID=$!
 echo "xxxxxxx ${SECONDS} relay service [packets = 0, time = 0] -> skip xxxxxx"
 sleep 4
 
-# transfer a token
-${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
+# send a message via mockapp and wait for tx to be included
+docker exec tendermint-chain0 sh -c "simd --home /root/data/ibc0 tx --keyring-backend=test --from ${TM_ADDRESS0} --chain-id ibc0 mockapp send mockapp channel-0 'mock packet data' --yes"
+sleep 3
 
 expectUnrelayedCount "unrelayed-packets" "src" 1
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
@@ -60,7 +61,8 @@ sleep 13
 echo "xxxxxxx ${SECONDS} relay service [packets = 1, time = 20] -> skip xxxxxx"
 sleep 4
 
-${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
+docker exec tendermint-chain0 sh -c "simd --home /root/data/ibc0 tx --keyring-backend=test --from ${TM_ADDRESS0} --chain-id ibc0 mockapp send mockapp channel-0 'mock packet data' --yes"
+sleep 3
 
 expectUnrelayedCount "unrelayed-packets" "src" 2
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
@@ -72,9 +74,12 @@ sleep 4
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2
 
-${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
-${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
-${RLY} tx transfer ibc01 ibc0 ibc1 100samoleans ${TM_ADDRESS1}
+docker exec tendermint-chain0 sh -c "simd --home /root/data/ibc0 tx --keyring-backend=test --from ${TM_ADDRESS0} --chain-id ibc0 mockapp send mockapp channel-0 'mock packet data' --yes"
+sleep 3
+docker exec tendermint-chain0 sh -c "simd --home /root/data/ibc0 tx --keyring-backend=test --from ${TM_ADDRESS0} --chain-id ibc0 mockapp send mockapp channel-0 'mock packet data' --yes"
+sleep 3
+docker exec tendermint-chain0 sh -c "simd --home /root/data/ibc0 tx --keyring-backend=test --from ${TM_ADDRESS0} --chain-id ibc0 mockapp send mockapp channel-0 'mock packet data' --yes"
+sleep 3
 
 expectUnrelayedCount "unrelayed-packets" "src" 3
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 2

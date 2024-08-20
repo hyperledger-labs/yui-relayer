@@ -17,6 +17,10 @@ PATH_NAME=ibc01
 # back up the original connection identifiers
 srcOrigConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
 dstOrigConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+srcOrigVersion=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."version"')
+dstOrigVersion=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."version"')
+srcOrigOrder=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."order"')
+dstOrigOrder=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."order"')
 
 # back up the original config.json and make connection identifiers empty
 origconfig=`mktemp`
@@ -28,43 +32,65 @@ $RLY paths edit $PATH_NAME dst connection-id ''
 retry 5 $RLY tx connection $PATH_NAME
 srcAltConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
 dstAltConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+srcAltVersion=mockapp-999
+dstAltVersion=mockapp-999
+srcAltOrder=ordered
+dstAltOrder=ordered
 
 # resume the original config.json
 mv $origconfig "$RELAYER_CONF/config/config.json"
 
 checkResult() {
-    expectedSrcConnectionId=$1
-    expectedDstConnectionId=$2
-    pathSrcConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
-    pathDstConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
-    if [ "$pathSrcConnectionId" != "$expectedSrcConnectionId" ]
+    expectedSide=$1
+
+    srcConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
+    dstConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+    srcVersion=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."version"')
+    dstVersion=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."version"')
+    srcOrder=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."order"')
+    dstOrder=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."order"')
+
+    if [ "$expectedSide" = orig ]
     then
-	echo 'src path config update failed'
-	exit 1
-    elif [ "$pathDstConnectionId" != "$expectedDstConnectionId" ]
+	if [ "$srcConnectionId" != "$srcOrigConnectionId" -o "$dstConnectionId" != "$dstOrigConnectionId" -o "$srcVersion" != "$srcOrigVersion" -o "$dstVersion" != "$dstOrigVersion" -o "$srcOrder" != "$srcOrigOrder" -o "$dstOrder" != "$dstOrigOrder" ]
+	then
+	    echo "path config is not equal to the original one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
+	    exit 1
+	fi
+    elif [ "$expectedSide" = alt ]
     then
-	echo 'dst path config update failed'
+	if [ "$srcConnectionId" != "$srcAltConnectionId" -o "$dstConnectionId" != "$dstAltConnectionId" -o "$srcVersion" != "$srcAltVersion" -o "$dstVersion" != "$dstAltVersion" -o "$srcOrder" != "$srcAltOrder" -o "$dstOrder" != "$dstAltOrder" ]
+	then
+	    echo "path config is not equal to the alternative one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
+	    exit 1
+	fi
+    else
+	echo "expectedSide is invalid value: $expectedSide"
 	exit 1
     fi
 }
 
+origSrcOpts="--ordering $srcOrigOrder --connection-hops $srcOrigConnectionId --version $srcOrigVersion"
+origDstOpts="--ordering $dstOrigOrder --connection-hops $dstOrigConnectionId --version $dstOrigVersion"
+altSrcOpts="--ordering $srcAltOrder --connection-hops $srcAltConnectionId --version $srcAltVersion"
+altDstOpts="--ordering $dstAltOrder --connection-hops $dstAltConnectionId --version $dstAltVersion"
+
 # test channel upgrade (crossing-hello)
-$RLY tx channel-upgrade init ibc01 ibc0 --ordering unordered --connection-hops $srcAltConnectionId --version ics20-1
-$RLY tx channel-upgrade init ibc01 ibc1 --ordering UnOrdered --connection-hops $dstAltConnectionId --version ics20-1
+$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
+$RLY tx channel-upgrade init ibc01 ibc1 $altDstOpts
 $RLY tx channel-upgrade execute ibc01
-checkResult "$srcAltConnectionId" "$dstAltConnectionId"
+checkResult alt
 
 # test channel upgrade (non-crossing-hello)
-$RLY tx channel-upgrade init ibc01 ibc0 --ordering UNORDERED --connection-hops $srcOrigConnectionId --version ics20-1
-$RLY tx channel-upgrade init ibc01 ibc0 --ordering UNORDERED --connection-hops $srcOrigConnectionId --version ics20-1
-$RLY tx channel-upgrade init ibc01 ibc1 --ordering UNORDERED --connection-hops $dstOrigConnectionId --version ics20-1
+$RLY tx channel-upgrade init ibc01 ibc0 $origSrcOpts
+$RLY tx channel-upgrade init ibc01 ibc0 $origSrcOpts
+$RLY tx channel-upgrade init ibc01 ibc1 $origDstOpts
 $RLY tx channel-upgrade execute ibc01
-checkResult "$srcOrigConnectionId" "$dstOrigConnectionId"
+checkResult orig
 
 # test channel upgrade cancel
-$RLY tx channel-upgrade init ibc01 ibc0 --ordering UNORDERED --connection-hops $srcAltConnectionId --version ics20-1
-$RLY tx channel-upgrade init ibc01 ibc1 --ordering UNORDERED --connection-hops $dstAltConnectionId --version ics20-1
+$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
+$RLY tx channel-upgrade init ibc01 ibc1 $altDstOpts
 $RLY tx channel-upgrade cancel ibc01 ibc0  # create situation where ibc0.error_receipt.sequence >= ibc1.channel.upgrade_sequence
 $RLY tx channel-upgrade execute ibc01      # the channel upgrade of ibc1 should be cancelled
-checkResult "$srcOrigConnectionId" "$dstOrigConnectionId"
-
+checkResult orig
