@@ -297,8 +297,8 @@ func QueryChannelUpgradePair(srcCtx, dstCtx QueryContext, src, dst interface {
 func QueryChannelUpgradeError(ctx QueryContext, chain interface {
 	Chain
 	StateProver
-}, upgradeSequence uint64, prove bool) (*chantypes.QueryUpgradeErrorResponse, error) {
-	if chanUpgErr, err := chain.QueryChannelUpgradeError(ctx, upgradeSequence); err != nil {
+}, prove bool) (*chantypes.QueryUpgradeErrorResponse, error) {
+	if chanUpgErr, err := chain.QueryChannelUpgradeError(ctx); err != nil {
 		return nil, err
 	} else if chanUpgErr == nil {
 		return nil, nil
@@ -307,9 +307,8 @@ func QueryChannelUpgradeError(ctx QueryContext, chain interface {
 	} else if value, err := chain.Codec().Marshal(&chanUpgErr.ErrorReceipt); err != nil {
 		return nil, err
 	} else {
-		proveCtx := NewQueryContext(ctx.Context(), chanUpgErr.ProofHeight)
 		path := host.ChannelUpgradeErrorPath(chain.Path().PortID, chain.Path().ChannelID)
-		chanUpgErr.Proof, chanUpgErr.ProofHeight, err = chain.ProveState(proveCtx, path, value)
+		chanUpgErr.Proof, chanUpgErr.ProofHeight, err = chain.ProveState(ctx, path, value)
 		return chanUpgErr, err
 	}
 }

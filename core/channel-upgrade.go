@@ -180,26 +180,31 @@ func CancelChannelUpgrade(chain, cp *ProvableChain) error {
 		return err
 	}
 
-	var errReceiptSequence uint64 = 0
-	if chann.Channel.State == chantypes.FLUSHCOMPLETE {
-		errReceiptSequence = chann.Channel.UpgradeSequence
-	}
-
-	var msg sdk.Msg
-	if upgErr, err := cp.QueryChannelUpgradeError(cpCtx, errReceiptSequence); err != nil {
+	upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true)
+	if err != nil {
 		logger.Error("failed to query the channel upgrade error receipt", err)
+		return err
+	} else if chann.Channel.State == chantypes.FLUSHCOMPLETE &&
+		(upgErr == nil || upgErr.ErrorReceipt.Sequence != chann.Channel.UpgradeSequence) {
+		var err error
+		if upgErr == nil {
+			err = fmt.Errorf("upgrade error receipt not found")
+		} else {
+			err = fmt.Errorf("upgrade sequences don't match: channel.upgrade_sequence=%d, error_receipt.sequence=%d",
+				chann.Channel.UpgradeSequence, upgErr.ErrorReceipt.Sequence)
+		}
+		logger.Error("cannot cancel the upgrade in FLUSHCOMPLETE state", err)
 		return err
 	} else if upgErr == nil {
 		// NOTE: Even if an error receipt is not found, anyway try to execute ChanUpgradeCancel.
 		// If the sender is authority and the channel state is anything other than FLUSHCOMPLETE,
 		// the cancellation will be successful.
-		msg = chain.Path().ChanUpgradeCancel(&chantypes.QueryUpgradeErrorResponse{}, addr)
-	} else {
-		msg = chain.Path().ChanUpgradeCancel(upgErr, addr)
+		upgErr = &chantypes.QueryUpgradeErrorResponse{}
 	}
 
-	msgIDs, err := chain.SendMsgs([]sdk.Msg{msg})
-	if err != nil {
+	msg := chain.Path().ChanUpgradeCancel(upgErr, addr)
+
+	if msgIDs, err := chain.SendMsgs([]sdk.Msg{msg}); err != nil {
 		logger.Error("failed to send MsgChannelUpgradeCancel", err)
 		return err
 	} else if len(msgIDs) != 1 {
@@ -667,15 +672,26 @@ func buildActionMsg(
 	case UPGRADE_ACTION_OPEN:
 		return pathEnd.ChanUpgradeOpen(cpChan, addr), nil
 	case UPGRADE_ACTION_CANCEL:
-		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, 0, true)
+		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true)
 		if err != nil {
 			return nil, err
+		} else if upgErr == nil {
+			// NOTE: Even if an error receipt is not found, anyway try to execute ChanUpgradeCancel.
+			// If the sender is authority and the channel state is anything other than FLUSHCOMPLETE,
+			// the cancellation will be successful.
+			upgErr = &chantypes.QueryUpgradeErrorResponse{}
 		}
 		return pathEnd.ChanUpgradeCancel(upgErr, addr), nil
 	case UPGRADE_ACTION_CANCEL_FLUSHCOMPLETE:
-		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, selfChan.Channel.UpgradeSequence, true)
+		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true)
 		if err != nil {
 			return nil, err
+		} else if upgErr == nil {
+			return nil, fmt.Errorf("upgrade error receipt not found")
+		} else if upgErr.ErrorReceipt.Sequence != selfChan.Channel.UpgradeSequence {
+			return nil, fmt.Errorf(
+				"upgrade sequences don't match: channel.upgrade_sequence=%d, error_receipt.sequence=%d",
+				selfChan.Channel.UpgradeSequence, upgErr.ErrorReceipt.Sequence)
 		}
 		return pathEnd.ChanUpgradeCancel(upgErr, addr), nil
 	case UPGRADE_ACTION_TIMEOUT:

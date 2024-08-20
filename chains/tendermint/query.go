@@ -399,29 +399,13 @@ func (c *Chain) queryChannelUpgrade(height int64, prove bool) (chanRes *chantype
 	}
 }
 
-func (c *Chain) QueryChannelUpgradeError(ctx core.QueryContext, upgradeSequence uint64) (*chantypes.QueryUpgradeErrorResponse, error) {
-	return c.queryChannelUpgradeError(int64(ctx.Height().GetRevisionHeight()), upgradeSequence, false)
+func (c *Chain) QueryChannelUpgradeError(ctx core.QueryContext) (*chantypes.QueryUpgradeErrorResponse, error) {
+	return c.queryChannelUpgradeError(int64(ctx.Height().GetRevisionHeight()), false)
 }
 
-func (c *Chain) queryChannelUpgradeError(height int64, upgradeSequence uint64, prove bool) (chanRes *chantypes.QueryUpgradeErrorResponse, err error) {
-	var errReceiptHeight int64
-	if upgradeSequence == 0 {
-		errReceiptHeight = height
-	} else {
-		txs, err := c.QueryTxs(height, 1, 2, channelUpgradeErrorQuery(c.Path().ChannelID, upgradeSequence))
-		switch {
-		case err != nil:
-			return nil, err
-		case len(txs) == 0:
-			return nil, fmt.Errorf("no transactions returned with query")
-		case len(txs) > 1:
-			return nil, fmt.Errorf("more than one transaction returned with query")
-		}
-		errReceiptHeight = txs[0].Height
-	}
-
+func (c *Chain) queryChannelUpgradeError(height int64, prove bool) (chanRes *chantypes.QueryUpgradeErrorResponse, err error) {
 	if res, err := chanutils.QueryUpgradeError(
-		c.CLIContext(errReceiptHeight),
+		c.CLIContext(height),
 		c.PathEnd.PortID,
 		c.PathEnd.ChannelID,
 		prove,
