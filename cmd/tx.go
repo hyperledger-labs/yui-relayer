@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -241,13 +243,11 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			// get ordering from flags
-			var ordering chantypes.Order
-			if s, err := cmd.Flags().GetString(flagOrdering); err != nil {
+			ordering, err := getOrderFromFlags(cmd.Flags(), flagOrdering)
+			if err != nil {
 				return err
-			} else if n, ok := chantypes.Order_value[s]; !ok || n == int32(chantypes.NONE) {
-				return fmt.Errorf("invalid ordering flag: %s", s)
-			} else {
-				ordering = chantypes.Order(n)
+			} else if ordering == chantypes.NONE {
+				return errors.New("NONE is unacceptable channel ordering")
 			}
 
 			// get connection hops from flags
@@ -279,12 +279,14 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 
 func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
 	const (
-		flagInterval      = "interval"
-		flagUntilFlushing = "until-flushing"
+		flagInterval       = "interval"
+		flagTargetSrcState = "target-src-state"
+		flagTargetDstState = "target-dst-state"
 	)
 
 	const (
-		defaultInterval = time.Second
+		defaultInterval    = time.Second
+		defaultTargetState = "UNINIT"
 	)
 
 	cmd := cobra.Command{
@@ -313,17 +315,23 @@ func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			untilFlushing, err := cmd.Flags().GetBool(flagUntilFlushing)
+			targetSrcState, err := getUpgradeStateFromFlags(cmd.Flags(), flagTargetSrcState)
 			if err != nil {
 				return err
 			}
 
-			return core.ExecuteChannelUpgrade(pathName, src, dst, interval, untilFlushing)
+			targetDstState, err := getUpgradeStateFromFlags(cmd.Flags(), flagTargetDstState)
+			if err != nil {
+				return err
+			}
+
+			return core.ExecuteChannelUpgrade(pathName, src, dst, interval, targetSrcState, targetDstState)
 		},
 	}
 
-	cmd.Flags().Duration(flagInterval, defaultInterval, "interval between attempts to proceed channel upgrade steps")
-	cmd.Flags().Bool(flagUntilFlushing, false, "the process exits when both chains have started flushing")
+	cmd.Flags().Duration(flagInterval, defaultInterval, "the interval between attempts to proceed the upgrade handshake")
+	cmd.Flags().String(flagTargetSrcState, defaultTargetState, "the source channel's upgrade state to be reached")
+	cmd.Flags().String(flagTargetDstState, defaultTargetState, "the destination channel's upgrade state to be reached")
 
 	return &cmd
 }
@@ -541,4 +549,39 @@ func getUint64Slice(key string) []uint64 {
 		ret[i] = uint64(e)
 	}
 	return ret
+}
+
+func getUpgradeStateFromFlags(flags *pflag.FlagSet, flagName string) (core.UpgradeState, error) {
+	s, err := flags.GetString(flagName)
+	if err != nil {
+		return 0, err
+	}
+
+	switch strings.ToUpper(s) {
+	case "UNINIT":
+		return core.UPGRADE_STATE_UNINIT, nil
+	case "INIT":
+		return core.UPGRADE_STATE_INIT, nil
+	case "FLUSHING":
+		return core.UPGRADE_STATE_FLUSHING, nil
+	case "FLUSHCOMPLETE":
+		return core.UPGRADE_STATE_FLUSHCOMPLETE, nil
+	default:
+		return 0, fmt.Errorf("invalid upgrade state specified: %s", s)
+	}
+}
+
+func getOrderFromFlags(flags *pflag.FlagSet, flagName string) (chantypes.Order, error) {
+	s, err := flags.GetString(flagName)
+	if err != nil {
+		return 0, err
+	}
+
+	s = "ORDER_" + strings.ToUpper(s)
+	value, ok := chantypes.Order_value[s]
+	if !ok {
+		return 0, fmt.Errorf("invalid channel order specified: %s", s)
+	}
+
+	return chantypes.Order(value), nil
 }
