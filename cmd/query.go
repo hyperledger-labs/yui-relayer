@@ -7,13 +7,13 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/gogoproto/jsonpb"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/helpers"
 	"github.com/spf13/cobra"
-	"github.com/cosmos/gogoproto/jsonpb"
 )
 
 // queryCmd represents the chain command
@@ -33,6 +33,7 @@ func queryCmd(ctx *config.Context) *cobra.Command {
 		queryClientCmd(ctx),
 		queryConnection(ctx),
 		queryChannel(ctx),
+		queryChannelUpgrade(ctx),
 	)
 
 	return cmd
@@ -121,7 +122,7 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 func queryChannel(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "channel [path-name] [chain-id]",
-		Short: "Query the connection state for the given connection id",
+		Short: "Query the channel state for the given connection id",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			chains, _, _, err := ctx.Config.ChainsFromPath(args[0])
@@ -143,9 +144,51 @@ func queryChannel(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
+
 			marshaler := jsonpb.Marshaler{}
 			if json, err := marshaler.MarshalToString(res.Channel); err != nil {
 				fmt.Println(res.Channel.String())
+			} else {
+				fmt.Println(json)
+			}
+			return nil
+		},
+	}
+
+	return heightFlag(cmd)
+}
+
+func queryChannelUpgrade(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "channel-upgrade [path-name] [chain-id]",
+		Short: "Query the channel upgrade state for the given channel id",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			chains, _, _, err := ctx.Config.ChainsFromPath(args[0])
+			if err != nil {
+				return err
+			}
+			c := chains[args[1]]
+
+			height, err := cmd.Flags().GetUint64(flags.FlagHeight)
+			if err != nil {
+				return err
+			}
+			latestHeight, err := c.LatestHeight()
+			if err != nil {
+				return err
+			}
+			queryHeight := clienttypes.NewHeight(latestHeight.GetRevisionNumber(), uint64(height))
+			res, err := c.QueryChannelUpgrade(core.NewQueryContext(context.TODO(), queryHeight))
+			if err != nil {
+				return err
+			} else if res == nil {
+				return fmt.Errorf("failed to query for channel upgrade")
+			}
+
+			marshaler := jsonpb.Marshaler{}
+			if json, err := marshaler.MarshalToString(&res.Upgrade); err != nil {
+				fmt.Println(res.Upgrade.String())
 			} else {
 				fmt.Println(json)
 			}
