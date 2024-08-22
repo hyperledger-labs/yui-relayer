@@ -3,7 +3,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	retry "github.com/avast/retry-go"
@@ -331,18 +330,6 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		out.Last = true
 		return out, nil
 	}
-
-	// add info to logger
-	logger = logger.With(
-		slog.Group("src",
-			"state", srcState,
-			"seq", srcChan.Channel.UpgradeSequence,
-		),
-		slog.Group("dst",
-			"state", dstState,
-			"seq", dstChan.Channel.UpgradeSequence,
-		),
-	)
 
 	// determine next actions for src/dst chains
 	srcAction := UPGRADE_ACTION_NONE
