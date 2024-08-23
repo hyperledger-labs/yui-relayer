@@ -3,12 +3,14 @@ package core
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 type UpgradeState int
@@ -96,6 +98,7 @@ func InitChannelUpgrade(chain *ProvableChain, upgradeFields chantypes.UpgradeFie
 	} else if ok, desc := result.Status(); !ok {
 		err := fmt.Errorf("failed to initialize channel upgrade: %s", desc)
 		logger.Error(err.Error(), err)
+		return err
 	} else {
 		logger.Info("successfully initialized channel upgrade")
 	}
@@ -135,6 +138,7 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 
 		if steps.Success() {
 			if err := SyncChainConfigsFromEvents(pathName, steps.SrcMsgIDs, steps.DstMsgIDs, src, dst); err != nil {
+				logger.Error("failed to synchronize the updated path config to the config file", err)
 				return err
 			}
 
@@ -142,7 +146,7 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 			failures = 0
 		} else {
 			if failures++; failures > 2 {
-				err := errors.New("Channel upgrade failed")
+				err := errors.New("channel upgrade failed")
 				logger.Error(err.Error(), err)
 				return err
 			}
@@ -214,6 +218,7 @@ func CancelChannelUpgrade(chain, cp *ProvableChain) error {
 	} else if ok, desc := result.Status(); !ok {
 		err := fmt.Errorf("failed to cancel the channel upgrade: %s", desc)
 		logger.Error(err.Error(), err)
+		return err
 	} else {
 		logger.Info("successfully cancelled the channel upgrade")
 	}
@@ -271,15 +276,19 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 	// prepare query contexts
 	var srcCtxFinalized, dstCtxFinalized, srcCtxLatest, dstCtxLatest QueryContext
 	if srcCtxFinalized, err = getQueryContext(src, sh, true); err != nil {
+		logger.Error("failed to get query the context based on the src chain's latest finalized height", err)
 		return nil, err
 	}
 	if dstCtxFinalized, err = getQueryContext(dst, sh, true); err != nil {
+		logger.Error("failed to get query the context based on the dst chain's latest finalized height", err)
 		return nil, err
 	}
 	if srcCtxLatest, err = getQueryContext(src, sh, false); err != nil {
+		logger.Error("failed to get query the context based on the src chain's latest height", err)
 		return nil, err
 	}
 	if dstCtxLatest, err = getQueryContext(dst, sh, false); err != nil {
+		logger.Error("failed to get query the context based on the dst chain's latest height", err)
 		return nil, err
 	}
 
@@ -292,8 +301,10 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		true,
 	)
 	if err != nil {
+		logger.Error("failed to query the channel pair with proofs", err)
 		return nil, err
 	} else if finalized, err := checkChannelFinality(src, dst, srcChan.Channel, dstChan.Channel); err != nil {
+		logger.Error("failed to check if the queried channels have been finalized", err)
 		return nil, err
 	} else if !finalized {
 		return out, nil
@@ -309,6 +320,7 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		dst,
 	)
 	if err != nil {
+		logger.Error("failed to query the finalized channel upgrade pair with proofs", err)
 		return nil, err
 	} else if !finalized {
 		return out, nil
@@ -317,16 +329,26 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 	// determine upgrade states
 	srcState, err := NewUpgradeState(srcChan.Channel.State, srcChanUpg != nil)
 	if err != nil {
+		logger.Error("failed to create UpgradeState of the src chain", err)
 		return nil, err
 	}
 	dstState, err := NewUpgradeState(dstChan.Channel.State, dstChanUpg != nil)
 	if err != nil {
+		logger.Error("failed to create UpgradeState of the dst chain", err)
 		return nil, err
 	}
+
+	logger = &log.RelayLogger{Logger: logger.With(
+		slog.Group("current_channel_upgrade_states",
+			"src", srcState.String(),
+			"dst", dstState.String(),
+		),
+	)}
 
 	// check if both chains have reached the target states or UNINIT states
 	if !firstCall && srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT ||
 		srcState != UPGRADE_STATE_UNINIT && dstState != UPGRADE_STATE_UNINIT && srcState == targetSrcState && dstState == targetDstState {
+		logger.Info("both chains have reached the target states")
 		out.Last = true
 		return out, nil
 	}
@@ -355,10 +377,12 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		srcAction = UPGRADE_ACTION_CANCEL
 	case srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_FLUSHCOMPLETE:
 		if complete, err := upgradeAlreadyComplete(srcChan, dstCtxFinalized, dst, dstChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the src side has already completed", err)
 			return nil, err
 		} else if complete {
 			dstAction = UPGRADE_ACTION_OPEN
 		} else if timedout, err := upgradeAlreadyTimedOut(srcCtxFinalized, src, dstChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the src side has already timed out", err)
 			return nil, err
 		} else if timedout {
 			dstAction = UPGRADE_ACTION_TIMEOUT
@@ -367,10 +391,12 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		}
 	case srcState == UPGRADE_STATE_FLUSHCOMPLETE && dstState == UPGRADE_STATE_UNINIT:
 		if complete, err := upgradeAlreadyComplete(dstChan, srcCtxFinalized, src, srcChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the dst side has already completed", err)
 			return nil, err
 		} else if complete {
 			srcAction = UPGRADE_ACTION_OPEN
 		} else if timedout, err := upgradeAlreadyTimedOut(dstCtxFinalized, dst, srcChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the dst side has already timed out", err)
 			return nil, err
 		} else if timedout {
 			srcAction = UPGRADE_ACTION_TIMEOUT
@@ -406,10 +432,12 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		}
 	case srcState == UPGRADE_STATE_INIT && dstState == UPGRADE_STATE_FLUSHCOMPLETE:
 		if complete, err := upgradeAlreadyComplete(srcChan, dstCtxFinalized, dst, dstChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the src side has already completed", err)
 			return nil, err
 		} else if complete {
 			dstAction = UPGRADE_ACTION_OPEN
 		} else if timedout, err := upgradeAlreadyTimedOut(srcCtxFinalized, src, dstChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the src side has already timed out", err)
 			return nil, err
 		} else if timedout {
 			dstAction = UPGRADE_ACTION_TIMEOUT
@@ -418,10 +446,12 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		}
 	case srcState == UPGRADE_STATE_FLUSHCOMPLETE && dstState == UPGRADE_STATE_INIT:
 		if complete, err := upgradeAlreadyComplete(dstChan, srcCtxFinalized, src, srcChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the dst side has already completed", err)
 			return nil, err
 		} else if complete {
 			srcAction = UPGRADE_ACTION_OPEN
 		} else if timedout, err := upgradeAlreadyTimedOut(dstCtxFinalized, dst, srcChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the dst side has already timed out", err)
 			return nil, err
 		} else if timedout {
 			srcAction = UPGRADE_ACTION_TIMEOUT
@@ -430,11 +460,13 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		}
 	case srcState == UPGRADE_STATE_FLUSHING && dstState == UPGRADE_STATE_FLUSHING:
 		if timedout, err := upgradeAlreadyTimedOut(srcCtxFinalized, src, dstChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the src side has already timed out", err)
 			return nil, err
 		} else if timedout {
 			dstAction = UPGRADE_ACTION_TIMEOUT
 		}
 		if timedout, err := upgradeAlreadyTimedOut(dstCtxFinalized, dst, srcChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the dst side has already timed out", err)
 			return nil, err
 		} else if timedout {
 			srcAction = UPGRADE_ACTION_TIMEOUT
@@ -446,31 +478,37 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		}
 
 		if completable, err := src.QueryCanTransitionToFlushComplete(srcCtxFinalized); err != nil {
+			logger.Error("failed to check if the src channel can transition to FLUSHCOMPLETE", err)
 			return nil, err
 		} else if completable {
 			srcAction = UPGRADE_ACTION_CONFIRM
 		}
 		if completable, err := dst.QueryCanTransitionToFlushComplete(dstCtxFinalized); err != nil {
+			logger.Error("failed to check if the dst channel can transition to FLUSHCOMPLETE", err)
 			return nil, err
 		} else if completable {
 			dstAction = UPGRADE_ACTION_CONFIRM
 		}
 	case srcState == UPGRADE_STATE_FLUSHING && dstState == UPGRADE_STATE_FLUSHCOMPLETE:
 		if timedout, err := upgradeAlreadyTimedOut(srcCtxFinalized, src, dstChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the src side has already timed out", err)
 			return nil, err
 		} else if timedout {
 			dstAction = UPGRADE_ACTION_TIMEOUT
 		} else if completable, err := src.QueryCanTransitionToFlushComplete(srcCtxFinalized); err != nil {
+			logger.Error("failed to check if the src channel can transition to FLUSHCOMPLETE", err)
 			return nil, err
 		} else if completable {
 			srcAction = UPGRADE_ACTION_CONFIRM
 		}
 	case srcState == UPGRADE_STATE_FLUSHCOMPLETE && dstState == UPGRADE_STATE_FLUSHING:
 		if timedout, err := upgradeAlreadyTimedOut(dstCtxFinalized, dst, srcChanUpg); err != nil {
+			logger.Error("failed to check if the upgrade on the dst side has already timed out", err)
 			return nil, err
 		} else if timedout {
 			srcAction = UPGRADE_ACTION_TIMEOUT
 		} else if completable, err := dst.QueryCanTransitionToFlushComplete(dstCtxFinalized); err != nil {
+			logger.Error("failed to check if the dst channel can transition to FLUSHCOMPLETE", err)
 			return nil, err
 		} else if completable {
 			dstAction = UPGRADE_ACTION_CONFIRM
@@ -481,6 +519,13 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 	default:
 		return nil, errors.New("unexpected state")
 	}
+
+	logger = &log.RelayLogger{Logger: logger.With(
+		slog.Group("next_channel_upgrade_actions",
+			"src", srcAction.String(),
+			"dst", dstAction.String(),
+		),
+	)}
 
 	if srcAction != UPGRADE_ACTION_NONE {
 		addr := mustGetAddress(src)
@@ -500,6 +545,7 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 			dstChanUpg,
 		)
 		if err != nil {
+			logger.Error("failed to build Msg for the src chain", err)
 			return nil, err
 		}
 
@@ -524,12 +570,14 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 			srcChanUpg,
 		)
 		if err != nil {
+			logger.Error("failed to build Msg for the dst chain", err)
 			return nil, err
 		}
 
 		out.Dst = append(out.Dst, msg)
 	}
 
+	logger.Info("successfully generates the next step of the channel upgrade")
 	return out, nil
 }
 
