@@ -86,18 +86,8 @@ func InitChannelUpgrade(chain *ProvableChain, upgradeFields chantypes.UpgradeFie
 
 	msg := chain.Path().ChanUpgradeInit(upgradeFields, addr)
 
-	msgIDs, err := chain.SendMsgs([]sdk.Msg{msg})
-	if err != nil {
+	if _, err := chain.SendMsgs([]sdk.Msg{msg}); err != nil {
 		logger.Error("failed to send MsgChannelUpgradeInit", err)
-		return err
-	} else if len(msgIDs) != 1 {
-		panic(fmt.Sprintf("len(msgIDs) == %d", len(msgIDs)))
-	} else if result, err := GetFinalizedMsgResult(*chain, msgIDs[0]); err != nil {
-		logger.Error("failed to get the finalized result of MsgChannelUpgradeInit", err)
-		return err
-	} else if ok, desc := result.Status(); !ok {
-		err := fmt.Errorf("failed to initialize channel upgrade: %s", desc)
-		logger.Error(err.Error(), err)
 		return err
 	} else {
 		logger.Info("successfully initialized channel upgrade")
@@ -207,17 +197,8 @@ func CancelChannelUpgrade(chain, cp *ProvableChain) error {
 
 	msg := chain.Path().ChanUpgradeCancel(upgErr, addr)
 
-	if msgIDs, err := chain.SendMsgs([]sdk.Msg{msg}); err != nil {
+	if _, err := chain.SendMsgs([]sdk.Msg{msg}); err != nil {
 		logger.Error("failed to send MsgChannelUpgradeCancel", err)
-		return err
-	} else if len(msgIDs) != 1 {
-		panic(fmt.Sprintf("len(msgIDs) == %d", len(msgIDs)))
-	} else if result, err := GetFinalizedMsgResult(*chain, msgIDs[0]); err != nil {
-		logger.Error("failed to get the finalized result of MsgChannelUpgradeCancel", err)
-		return err
-	} else if ok, desc := result.Status(); !ok {
-		err := fmt.Errorf("failed to cancel the channel upgrade: %s", desc)
-		logger.Error(err.Error(), err)
 		return err
 	} else {
 		logger.Info("successfully cancelled the channel upgrade")
