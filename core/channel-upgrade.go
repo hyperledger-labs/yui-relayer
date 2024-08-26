@@ -121,6 +121,7 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 
 		if !steps.Ready() {
 			logger.Debug("Waiting for next channel upgrade step ...")
+			firstCall = false
 			continue
 		}
 
