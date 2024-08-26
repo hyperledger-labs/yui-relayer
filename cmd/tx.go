@@ -238,7 +238,7 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 
 			chains, srcID, dstID, err := ctx.Config.ChainsFromPath(pathName)
 			if err != nil {
-				return nil
+				return err
 			}
 
 			var chain, cp *core.ProvableChain
