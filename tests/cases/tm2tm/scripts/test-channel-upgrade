@@ -105,9 +105,9 @@ checkResult orig
 echo '##### case 5 #####'
 $RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
 $RLY tx channel-upgrade execute ibc01 --target-src-state INIT --target-dst-state FLUSHING
-$RLY tx channel-upgrade cancel ibc01 ibc0           # ibc0 returns to UNINIT. ibc1 is FLUSHING.
-$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts # ibc0 re-initiates new upgrade.
-$RLY tx channel-upgrade execute ibc01               # The upgrade initiated by ibc0 should be completed after ibc1's one is cancelled.
+$RLY tx channel-upgrade cancel ibc01 ibc0                    # ibc0 returns to UNINIT. ibc1 is FLUSHING.
+$RLY tx channel-upgrade init ibc01 ibc0 --unsafe $altSrcOpts # ibc0 re-initiates new upgrade.
+$RLY tx channel-upgrade execute ibc01                        # The upgrade initiated by ibc0 should be completed after ibc1's one is cancelled.
 checkResult alt
 
 echo '##### case 6 #####'
@@ -120,9 +120,9 @@ checkResult alt
 echo '##### case 7 #####'
 $RLY tx channel-upgrade init ibc01 ibc0 $origSrcOpts
 $RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHCOMPLETE --target-dst-state FLUSHING
-$RLY tx channel-upgrade cancel ibc01 ibc1            # ibc1 returns to UNINIT. ibc0 is FLUSHCOMPLETE.
-$RLY tx channel-upgrade init ibc01 ibc1 $origDstOpts # ibc1 re-initiates new upgrade.
-$RLY tx channel-upgrade execute ibc01                # The upgrade initiated by ibc1 should be completed after ibc0's one is cancelled.
+$RLY tx channel-upgrade cancel ibc01 ibc1                     # ibc1 returns to UNINIT. ibc0 is FLUSHCOMPLETE.
+$RLY tx channel-upgrade init ibc01 ibc1 --unsafe $origDstOpts # ibc1 re-initiates new upgrade.
+$RLY tx channel-upgrade execute ibc01                         # The upgrade initiated by ibc1 should be completed after ibc0's one is cancelled.
 checkResult orig
 
 echo '##### case 8 #####'

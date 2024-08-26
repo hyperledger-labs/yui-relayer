@@ -224,6 +224,7 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 		flagOrdering       = "ordering"
 		flagConnectionHops = "connection-hops"
 		flagVersion        = "version"
+		flagUnsafe         = "unsafe"
 	)
 
 	cmd := cobra.Command{
@@ -234,12 +235,34 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pathName := args[0]
 			chainID := args[1]
-			if _, _, _, err := ctx.Config.ChainsFromPath(pathName); err != nil {
+
+			chains, srcID, dstID, err := ctx.Config.ChainsFromPath(pathName)
+			if err != nil {
 				return nil
 			}
-			chain, err := ctx.Config.GetChain(chainID)
-			if err != nil {
+
+			var chain, cp *core.ProvableChain
+			if chainID == srcID {
+				chain = chains[srcID]
+				cp = chains[dstID]
+			} else if chainID == dstID {
+				chain = chains[dstID]
+				cp = chains[srcID]
+			} else {
+				return fmt.Errorf("unknown chain ID: %s", chainID)
+			}
+
+			// check cp state
+			if unsafe, err := cmd.Flags().GetBool(flagUnsafe); err != nil {
 				return err
+			} else if !unsafe {
+				if height, err := cp.LatestHeight(); err != nil {
+					return err
+				} else if chann, err := cp.QueryChannel(core.NewQueryContext(cmd.Context(), height)); err != nil {
+					return err
+				} else if state := chann.Channel.State; state >= chantypes.FLUSHING && state <= chantypes.FLUSHCOMPLETE {
+					return fmt.Errorf("stop channel upgrade initialization because the counterparty is in %v state", state)
+				}
 			}
 
 			// get ordering from flags
@@ -273,6 +296,7 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 	cmd.Flags().String(flagOrdering, "", "channel ordering applied for the new channel")
 	cmd.Flags().StringSlice(flagConnectionHops, nil, "connection hops applied for the new channel")
 	cmd.Flags().String(flagVersion, "", "channel version applied for the new channel")
+	cmd.Flags().Bool(flagUnsafe, false, "set true if you want to allow for initializing a new channel upgrade even though the counterparty chain is still flushing packets.")
 
 	return &cmd
 }
