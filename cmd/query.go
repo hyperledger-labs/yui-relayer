@@ -70,7 +70,7 @@ func queryClientCmd(ctx *config.Context) *cobra.Command {
 			}
 			marshaler := jsonpb.Marshaler{}
 			if json, err := marshaler.MarshalToString(cs); err != nil {
-				fmt.Println(cs.String())
+				return err
 			} else {
 				fmt.Println(json)
 			}
@@ -108,7 +108,7 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 			}
 			marshaler := jsonpb.Marshaler{}
 			if json, err := marshaler.MarshalToString(res.Connection); err != nil {
-				fmt.Println(res.Connection.String())
+				return err
 			} else {
 				fmt.Println(json)
 			}
@@ -147,7 +147,7 @@ func queryChannel(ctx *config.Context) *cobra.Command {
 
 			marshaler := jsonpb.Marshaler{}
 			if json, err := marshaler.MarshalToString(res.Channel); err != nil {
-				fmt.Println(res.Channel.String())
+				return err
 			} else {
 				fmt.Println(json)
 			}
@@ -188,7 +188,7 @@ func queryChannelUpgrade(ctx *config.Context) *cobra.Command {
 
 			marshaler := jsonpb.Marshaler{}
 			if json, err := marshaler.MarshalToString(&res.Upgrade); err != nil {
-				fmt.Println(res.Upgrade.String())
+				return err
 			} else {
 				fmt.Println(json)
 			}
