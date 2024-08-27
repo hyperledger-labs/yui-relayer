@@ -9,6 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/jsonpb"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
@@ -183,7 +184,7 @@ func queryChannelUpgrade(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			} else if res == nil {
-				return fmt.Errorf("failed to query for channel upgrade")
+				res = &chantypes.QueryUpgradeResponse{}
 			}
 
 			marshaler := jsonpb.Marshaler{}
