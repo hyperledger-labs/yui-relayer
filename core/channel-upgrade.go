@@ -103,11 +103,13 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "ExecuteChannelUpgrade")
 
-	tick := time.Tick(interval)
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
 	failures := 0
 	firstCall := true
 	for {
-		<-tick
+		<-ticker.C
 
 		steps, err := upgradeChannelStep(src, dst, targetSrcState, targetDstState, firstCall)
 		if err != nil {
@@ -150,63 +152,89 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 }
 
 // CancelChannelUpgrade executes chanUpgradeCancel on `chain`.
-func CancelChannelUpgrade(chain, cp *ProvableChain) error {
+func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Duration) error {
 	logger := GetChannelPairLogger(chain, cp)
 	defer logger.TimeTrack(time.Now(), "CancelChannelUpgrade")
 
-	addr, err := chain.GetAddress()
-	if err != nil {
-		logger.Error("failed to get address", err)
-		return err
-	}
+	// wait for settlement
+	ticker := time.NewTicker(settlementInterval)
+	defer ticker.Stop()
 
-	var ctx, cpCtx QueryContext
-	if sh, err := NewSyncHeaders(chain, cp); err != nil {
-		logger.Error("failed to create a SyncHeaders", err)
-		return err
-	} else {
-		ctx = sh.GetQueryContext(chain.ChainID())
-		cpCtx = sh.GetQueryContext(cp.ChainID())
-	}
+	for {
+		<-ticker.C
 
-	chann, err := chain.QueryChannel(ctx)
-	if err != nil {
-		logger.Error("failed to get the channel state", err)
-		return err
-	}
-
-	upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true)
-	if err != nil {
-		logger.Error("failed to query the channel upgrade error receipt", err)
-		return err
-	} else if chann.Channel.State == chantypes.FLUSHCOMPLETE &&
-		(upgErr == nil || upgErr.ErrorReceipt.Sequence != chann.Channel.UpgradeSequence) {
-		var err error
-		if upgErr == nil {
-			err = fmt.Errorf("upgrade error receipt not found")
-		} else {
-			err = fmt.Errorf("upgrade sequences don't match: channel.upgrade_sequence=%d, error_receipt.sequence=%d",
-				chann.Channel.UpgradeSequence, upgErr.ErrorReceipt.Sequence)
+		sh, err := NewSyncHeaders(chain, cp)
+		if err != nil {
+			logger.Error("failed to create a SyncHeaders", err)
+			return err
 		}
-		logger.Error("cannot cancel the upgrade in FLUSHCOMPLETE state", err)
-		return err
-	} else if upgErr == nil {
-		// NOTE: Even if an error receipt is not found, anyway try to execute ChanUpgradeCancel.
-		// If the sender is authority and the channel state is anything other than FLUSHCOMPLETE,
-		// the cancellation will be successful.
-		upgErr = &chantypes.QueryUpgradeErrorResponse{}
+		ctx := sh.GetQueryContext(chain.ChainID())
+		cpCtx := sh.GetQueryContext(cp.ChainID())
+
+		chann, _, settled, err := querySettledChannelPair(ctx, cpCtx, chain, cp, false)
+		if err != nil {
+			logger.Error("failed to query for settled channel pair", err)
+			return err
+		} else if !settled {
+			logger.Info("waiting for settlement of channel pair ...")
+			continue
+		}
+
+		if _, _, settled, err := querySettledChannelUpgradePair(ctx, cpCtx, chain, cp, false); err != nil {
+			logger.Error("failed to query for settled channel upgrade pair", err)
+			return err
+		} else if !settled {
+			logger.Info("waiting for settlement of channel upgrade pair")
+			continue
+		}
+
+		cpHeaders, err := cp.SetupHeadersForUpdate(chain, sh.GetLatestFinalizedHeader(cp.ChainID()))
+		if err != nil {
+			logger.Error("failed to set up headers for LC update", err)
+			return err
+		}
+
+		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true)
+		if err != nil {
+			logger.Error("failed to query the channel upgrade error receipt", err)
+			return err
+		} else if chann.Channel.State == chantypes.FLUSHCOMPLETE &&
+			(upgErr == nil || upgErr.ErrorReceipt.Sequence != chann.Channel.UpgradeSequence) {
+			var err error
+			if upgErr == nil {
+				err = fmt.Errorf("upgrade error receipt not found")
+			} else {
+				err = fmt.Errorf("upgrade sequences don't match: channel.upgrade_sequence=%d, error_receipt.sequence=%d",
+					chann.Channel.UpgradeSequence, upgErr.ErrorReceipt.Sequence)
+			}
+			logger.Error("cannot cancel the upgrade in FLUSHCOMPLETE state", err)
+			return err
+		} else if upgErr == nil {
+			// NOTE: Even if an error receipt is not found, anyway try to execute ChanUpgradeCancel.
+			// If the sender is authority and the channel state is anything other than FLUSHCOMPLETE,
+			// the cancellation will be successful.
+			upgErr = &chantypes.QueryUpgradeErrorResponse{}
+		}
+
+		addr, err := chain.GetAddress()
+		if err != nil {
+			logger.Error("failed to get address", err)
+			return err
+		}
+
+		var msgs []sdk.Msg
+		msgs = append(msgs, chain.Path().UpdateClients(cpHeaders, addr)...)
+		msgs = append(msgs, chain.Path().ChanUpgradeCancel(upgErr, addr))
+
+		if _, err := chain.SendMsgs(msgs); err != nil {
+			logger.Error("failed to send msgs to cancel the channel upgrade", err)
+			return err
+		} else {
+			logger.Info("successfully cancelled the channel upgrade")
+		}
+
+		return nil
 	}
-
-	msg := chain.Path().ChanUpgradeCancel(upgErr, addr)
-
-	if _, err := chain.SendMsgs([]sdk.Msg{msg}); err != nil {
-		logger.Error("failed to send MsgChannelUpgradeCancel", err)
-		return err
-	} else {
-		logger.Info("successfully cancelled the channel upgrade")
-	}
-
-	return nil
 }
 
 func NewUpgradeState(chanState chantypes.State, upgradeExists bool) (UpgradeState, error) {

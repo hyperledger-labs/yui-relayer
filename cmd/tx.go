@@ -361,7 +361,11 @@ func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
 }
 
 func channelUpgradeCancelCmd(ctx *config.Context) *cobra.Command {
-	return &cobra.Command{
+	const (
+		flagSettlementInterval = "settlement-interval"
+	)
+
+	cmd := cobra.Command{
 		Use:   "cancel [path-name] [chain-id]",
 		Short: "execute chanUpgradeCancel",
 		Long:  "This command is meant to be used to cancel an IBC channel upgrade on a configured chain",
@@ -369,6 +373,11 @@ func channelUpgradeCancelCmd(ctx *config.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pathName := args[0]
 			chainID := args[1]
+
+			settlementInterval, err := cmd.Flags().GetDuration(flagSettlementInterval)
+			if err != nil {
+				return err
+			}
 
 			_, srcChainID, dstChainID, err := ctx.Config.ChainsFromPath(pathName)
 			if err != nil {
@@ -394,9 +403,13 @@ func channelUpgradeCancelCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CancelChannelUpgrade(chain, cp)
+			return core.CancelChannelUpgrade(chain, cp, settlementInterval)
 		},
 	}
+
+	cmd.Flags().Duration(flagSettlementInterval, 10*time.Second, "time interval between attemts to query for settled channel/upgrade states")
+
+	return &cmd
 }
 
 func relayMsgsCmd(ctx *config.Context) *cobra.Command {
