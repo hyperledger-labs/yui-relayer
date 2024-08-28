@@ -242,13 +242,14 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			var chain, cp *core.ProvableChain
-			if chainID == srcID {
+			switch chainID {
+			case srcID:
 				chain = chains[srcID]
 				cp = chains[dstID]
-			} else if chainID == dstID {
+			case dstID:
 				chain = chains[dstID]
 				cp = chains[srcID]
-			} else {
+			default:
 				return fmt.Errorf("unknown chain ID: %s", chainID)
 			}
 
@@ -385,10 +386,10 @@ func channelUpgradeCancelCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			var cpChainID string
-			switch {
-			case chainID == srcChainID:
+			switch chainID {
+			case srcChainID:
 				cpChainID = dstChainID
-			case chainID == dstChainID:
+			case dstChainID:
 				cpChainID = srcChainID
 			default:
 				return fmt.Errorf("invalid chain ID: %s or %s was expected, but %s was given", srcChainID, dstChainID, chainID)
