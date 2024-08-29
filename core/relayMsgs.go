@@ -5,6 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 // RelayMsgs contains the msgs that need to be sent to both a src and dst chain
@@ -71,14 +72,17 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 		txSize += uint64(len(bz))
 
 		if r.IsMaxTx(msgLen, txSize) {
-			logger := logger.With("msgs", msgsToLoggable(msgs))
+			logger := &log.RelayLogger{Logger: logger.With(
+				"msgs", msgsToLoggable(msgs),
+				"side", "src",
+			)}
 
 			// Submit the transactions to src chain and update its status
 			msgIDs, err := src.SendMsgs(msgs)
 			if err != nil {
 				logger.Error("failed to send msgs", err)
 			} else {
-				logger.Info("successfully sent msgs", "side", "src")
+				logger.Info("successfully sent msgs")
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
 			if err == nil {
@@ -96,13 +100,16 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 
 	// submit leftover msgs
 	if len(msgs) > 0 {
-		logger := logger.With("msgs", msgsToLoggable(msgs))
+		logger := &log.RelayLogger{Logger: logger.With(
+			"msgs", msgsToLoggable(msgs),
+			"side", "src",
+		)}
 
 		msgIDs, err := src.SendMsgs(msgs)
 		if err != nil {
 			logger.Error("failed to send msgs", err)
 		} else {
-			logger.Info("successfully sent msgs", "side", "src")
+			logger.Info("successfully sent msgs")
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
 		if err == nil {
@@ -128,14 +135,17 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 		txSize += uint64(len(bz))
 
 		if r.IsMaxTx(msgLen, txSize) {
-			logger := logger.With("msgs", msgsToLoggable(msgs))
+			logger := &log.RelayLogger{Logger: logger.With(
+				"msgs", msgsToLoggable(msgs),
+				"side", "dst",
+			)}
 
 			// Submit the transaction to dst chain and update its status
 			msgIDs, err := dst.SendMsgs(msgs)
 			if err != nil {
 				logger.Error("failed to send msgs", err)
 			} else {
-				logger.Info("successfully sent msgs", "side", "dst")
+				logger.Info("successfully sent msgs")
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
 			if err == nil {
@@ -153,13 +163,16 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 
 	// submit leftover msgs
 	if len(msgs) > 0 {
-		logger := logger.With("msgs", msgsToLoggable(msgs))
+		logger := &log.RelayLogger{Logger: logger.With(
+			"msgs", msgsToLoggable(msgs),
+			"side", "dst",
+		)}
 
 		msgIDs, err := dst.SendMsgs(msgs)
 		if err != nil {
 			logger.Error("failed to send msgs", err)
 		} else {
-			logger.Info("successfully sent msgs", "side", "dst")
+			logger.Info("successfully sent msgs")
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
 		if err == nil {
@@ -175,7 +188,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 func msgsToLoggable(msgs []sdk.Msg) []string {
 	var ret []string
 	for _, msg := range msgs {
-		ret = append(ret, fmt.Sprintf("%T", msg))
+		ret = append(ret, fmt.Sprintf("%T{%v}", msg, msg))
 	}
 	return ret
 }
