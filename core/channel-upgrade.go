@@ -161,8 +161,6 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 	defer ticker.Stop()
 
 	for {
-		<-ticker.C
-
 		sh, err := NewSyncHeaders(chain, cp)
 		if err != nil {
 			logger.Error("failed to create a SyncHeaders", err)
@@ -177,6 +175,7 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 			return err
 		} else if !settled {
 			logger.Info("waiting for settlement of channel pair ...")
+			<-ticker.C
 			continue
 		}
 
@@ -185,6 +184,7 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 			return err
 		} else if !settled {
 			logger.Info("waiting for settlement of channel upgrade pair")
+			<-ticker.C
 			continue
 		}
 
