@@ -259,12 +259,14 @@ func NewUpgradeState(chanState chantypes.State, upgradeExists bool) (UpgradeStat
 
 func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState UpgradeState, firstCall bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
+	logger = &log.RelayLogger{Logger: logger.With("first_call", firstCall)}
 
-	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		logger.Error("failed to validate paths", err)
 		return nil, err
 	}
+
+	out := NewRelayMsgs()
 
 	// First, update the light clients to the latest header and return the header
 	sh, err := NewSyncHeaders(src, dst)
