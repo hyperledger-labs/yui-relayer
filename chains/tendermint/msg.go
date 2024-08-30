@@ -146,6 +146,13 @@ func parseMsgEventLog(ev abcitypes.Event) (core.MsgEventLog, error) {
 			return nil, err
 		}
 		return &event, nil
+	case chantypes.EventTypeChannelUpgradeOpen:
+		var event core.EventUpgradeChannel
+		var err0, err1, err2 error
+		event.PortID, err0 = getAttributeString(ev, chantypes.AttributeKeyPortID)
+		event.ChannelID, err1 = getAttributeString(ev, chantypes.AttributeKeyChannelID)
+		event.UpgradeSequence, err2 = getAttributeUint64(ev, chantypes.AttributeKeyUpgradeSequence)
+		return &event, errors.Join(err0, err1, err2)
 	default:
 		return &core.EventUnknown{Value: ev}, nil
 	}

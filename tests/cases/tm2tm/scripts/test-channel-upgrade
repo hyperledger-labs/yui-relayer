@@ -1,0 +1,141 @@
+#!/bin/bash
+
+set -eux
+
+source $(cd $(dirname "$0"); pwd)/../../../scripts/util
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RELAYER_CONF="$HOME/.yui-relayer"
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
+RLY="${RLY_BINARY} --debug"
+
+CHAINID_ONE=ibc0
+CHAINID_TWO=ibc1
+RLYKEY=testkey
+PATH_NAME=ibc01
+
+# back up the original connection identifiers
+srcOrigConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
+dstOrigConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+srcOrigVersion=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."version"')
+dstOrigVersion=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."version"')
+srcOrigOrder=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."order"')
+dstOrigOrder=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."order"')
+
+# back up the original config.json and make connection identifiers empty
+origconfig=`mktemp`
+cp "$RELAYER_CONF/config/config.json" $origconfig
+$RLY paths edit $PATH_NAME src connection-id ''
+$RLY paths edit $PATH_NAME dst connection-id ''
+
+# create a new connection and save the new connection identifiers
+retry 5 $RLY tx connection $PATH_NAME
+srcAltConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
+dstAltConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+srcAltVersion=mockapp-999
+dstAltVersion=mockapp-999
+srcAltOrder=ordered
+dstAltOrder=ordered
+
+# resume the original config.json
+mv $origconfig "$RELAYER_CONF/config/config.json"
+
+checkResult() {
+    expectedSide=$1
+
+    srcConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."connection-id"')
+    dstConnectionId=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."connection-id"')
+    srcVersion=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."version"')
+    dstVersion=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."version"')
+    srcOrder=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].src."order"')
+    dstOrder=$($RLY paths list --json | jq --raw-output --arg path_name "$PATH_NAME" '.[$path_name].dst."order"')
+
+    if [ "$expectedSide" = orig ]
+    then
+	if [ "$srcConnectionId" != "$srcOrigConnectionId" -o "$dstConnectionId" != "$dstOrigConnectionId" -o "$srcVersion" != "$srcOrigVersion" -o "$dstVersion" != "$dstOrigVersion" -o "$srcOrder" != "$srcOrigOrder" -o "$dstOrder" != "$dstOrigOrder" ]
+	then
+	    echo "path config is not equal to the original one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
+	    exit 1
+	fi
+    elif [ "$expectedSide" = alt ]
+    then
+	if [ "$srcConnectionId" != "$srcAltConnectionId" -o "$dstConnectionId" != "$dstAltConnectionId" -o "$srcVersion" != "$srcAltVersion" -o "$dstVersion" != "$dstAltVersion" -o "$srcOrder" != "$srcAltOrder" -o "$dstOrder" != "$dstAltOrder" ]
+	then
+	    echo "path config is not equal to the alternative one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
+	    exit 1
+	fi
+    else
+	echo "expectedSide is invalid value: $expectedSide"
+	exit 1
+    fi
+}
+
+origSrcOpts="--ordering $srcOrigOrder --connection-hops $srcOrigConnectionId --version $srcOrigVersion"
+origDstOpts="--ordering $dstOrigOrder --connection-hops $dstOrigConnectionId --version $dstOrigVersion"
+altSrcOpts="--ordering $srcAltOrder --connection-hops $srcAltConnectionId --version $srcAltVersion"
+altDstOpts="--ordering $dstAltOrder --connection-hops $dstAltConnectionId --version $dstAltVersion"
+
+echo '##### case 1 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
+$RLY tx channel-upgrade init ibc01 ibc1 $altDstOpts
+$RLY tx channel-upgrade execute ibc01
+checkResult alt
+
+echo '##### case 2 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $origSrcOpts
+$RLY tx channel-upgrade init ibc01 ibc0 $origSrcOpts
+$RLY tx channel-upgrade init ibc01 ibc1 $origDstOpts
+$RLY tx channel-upgrade execute ibc01
+checkResult orig
+
+echo '##### case 3 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
+$RLY tx channel-upgrade init ibc01 ibc1 $altDstOpts
+$RLY tx channel-upgrade cancel ibc01 ibc0  # ibc0 returns to UNINIT. ibc0.error_receipt.sequence >= ibc1.channel.upgrade_sequence
+$RLY tx channel-upgrade execute ibc01      # ibc1's upgrade should be cancelled
+checkResult orig
+
+echo '##### case 4 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
+$RLY tx channel-upgrade execute ibc01 --target-src-state INIT --target-dst-state FLUSHING
+$RLY tx channel-upgrade cancel ibc01 ibc0  # ibc0 returns to UNINIT. ibc1 is FLUSHING.
+$RLY tx channel-upgrade execute ibc01      # ibc1's upgrade should be cancelled
+checkResult orig
+
+echo '##### case 5 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
+$RLY tx channel-upgrade execute ibc01 --target-src-state INIT --target-dst-state FLUSHING
+$RLY tx channel-upgrade cancel ibc01 ibc0                    # ibc0 returns to UNINIT. ibc1 is FLUSHING.
+$RLY tx channel-upgrade init ibc01 ibc0 --unsafe $altSrcOpts # ibc0 re-initiates new upgrade.
+$RLY tx channel-upgrade execute ibc01                        # The upgrade initiated by ibc0 should be completed after ibc1's one is cancelled.
+checkResult alt
+
+echo '##### case 6 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $origSrcOpts
+$RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHCOMPLETE --target-dst-state FLUSHING
+$RLY tx channel-upgrade cancel ibc01 ibc1  # ibc1 returns to UNINIT. ibc0 is FLUSHCOMPLETE.
+$RLY tx channel-upgrade execute ibc01      # ibc0's upgrade (in FLUSHCOMPLETE) should be cancelled.
+checkResult alt
+
+echo '##### case 7 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $origSrcOpts
+$RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHCOMPLETE --target-dst-state FLUSHING
+$RLY tx channel-upgrade cancel ibc01 ibc1                     # ibc1 returns to UNINIT. ibc0 is FLUSHCOMPLETE.
+$RLY tx channel-upgrade init ibc01 ibc1 --unsafe $origDstOpts # ibc1 re-initiates new upgrade.
+$RLY tx channel-upgrade execute ibc01                         # The upgrade initiated by ibc1 should be completed after ibc0's one is cancelled.
+checkResult orig
+
+echo '##### case 8 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
+$RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHCOMPLETE --target-dst-state FLUSHING
+sleep 20                              # ibc1 exceeds upgrade.timeout.timestamp
+$RLY tx channel-upgrade execute ibc01 # ibc0 <= chanUpgradeTimeout, ibc1 <= chanUpgradeCancel
+checkResult orig
+
+echo '##### case 9 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
+$RLY tx channel-upgrade init ibc01 ibc1 $altDstOpts
+$RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHING --target-dst-state FLUSHING
+sleep 20                              # Both chains exceed upgrade.timeout.timestamp
+$RLY tx channel-upgrade execute ibc01 # ibc0,ibc1 <= chanUpgradeTimeout
+checkResult orig

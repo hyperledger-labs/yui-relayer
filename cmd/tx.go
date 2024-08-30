@@ -2,15 +2,19 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -35,6 +39,7 @@ func transactionCmd(ctx *config.Context) *cobra.Command {
 		updateClientsCmd(ctx),
 		createConnectionCmd(ctx),
 		createChannelCmd(ctx),
+		channelUpgradeCmd(ctx),
 	)
 
 	return cmd
@@ -195,6 +200,217 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 	}
 
 	return timeoutFlag(cmd)
+}
+
+func channelUpgradeCmd(ctx *config.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "channel-upgrade",
+		Short: "execute operations related to IBC channel upgrade",
+		Long:  "This command is meant to be used to upgrade a channel between two chains with a configured path in the config file",
+		RunE:  noCommand,
+	}
+
+	cmd.AddCommand(
+		channelUpgradeInitCmd(ctx),
+		channelUpgradeExecuteCmd(ctx),
+		channelUpgradeCancelCmd(ctx),
+	)
+
+	return cmd
+}
+
+func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
+	const (
+		flagOrdering       = "ordering"
+		flagConnectionHops = "connection-hops"
+		flagVersion        = "version"
+		flagUnsafe         = "unsafe"
+	)
+
+	cmd := cobra.Command{
+		Use:   "init [path-name] [chain-id]",
+		Short: "execute chanUpgradeInit",
+		Long:  "This command is meant to be used to initialize an IBC channel upgrade on a configured chain",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pathName := args[0]
+			chainID := args[1]
+
+			chains, srcID, dstID, err := ctx.Config.ChainsFromPath(pathName)
+			if err != nil {
+				return err
+			}
+
+			var chain, cp *core.ProvableChain
+			switch chainID {
+			case srcID:
+				chain = chains[srcID]
+				cp = chains[dstID]
+			case dstID:
+				chain = chains[dstID]
+				cp = chains[srcID]
+			default:
+				return fmt.Errorf("unknown chain ID: %s", chainID)
+			}
+
+			// check cp state
+			if unsafe, err := cmd.Flags().GetBool(flagUnsafe); err != nil {
+				return err
+			} else if !unsafe {
+				if height, err := cp.LatestHeight(); err != nil {
+					return err
+				} else if chann, err := cp.QueryChannel(core.NewQueryContext(cmd.Context(), height)); err != nil {
+					return err
+				} else if state := chann.Channel.State; state >= chantypes.FLUSHING && state <= chantypes.FLUSHCOMPLETE {
+					return fmt.Errorf("stop channel upgrade initialization because the counterparty is in %v state", state)
+				}
+			}
+
+			// get ordering from flags
+			ordering, err := getOrderFromFlags(cmd.Flags(), flagOrdering)
+			if err != nil {
+				return err
+			} else if ordering == chantypes.NONE {
+				return errors.New("NONE is unacceptable channel ordering")
+			}
+
+			// get connection hops from flags
+			connHops, err := cmd.Flags().GetStringSlice(flagConnectionHops)
+			if err != nil {
+				return err
+			}
+
+			// get version from flags
+			version, err := cmd.Flags().GetString(flagVersion)
+			if err != nil {
+				return err
+			}
+
+			return core.InitChannelUpgrade(chain, chantypes.UpgradeFields{
+				Ordering:       ordering,
+				ConnectionHops: connHops,
+				Version:        version,
+			})
+		},
+	}
+
+	cmd.Flags().String(flagOrdering, "", "channel ordering applied for the new channel")
+	cmd.Flags().StringSlice(flagConnectionHops, nil, "connection hops applied for the new channel")
+	cmd.Flags().String(flagVersion, "", "channel version applied for the new channel")
+	cmd.Flags().Bool(flagUnsafe, false, "set true if you want to allow for initializing a new channel upgrade even though the counterparty chain is still flushing packets.")
+
+	return &cmd
+}
+
+func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
+	const (
+		flagInterval       = "interval"
+		flagTargetSrcState = "target-src-state"
+		flagTargetDstState = "target-dst-state"
+	)
+
+	const (
+		defaultInterval    = time.Second
+		defaultTargetState = "UNINIT"
+	)
+
+	cmd := cobra.Command{
+		Use:   "execute [path-name]",
+		Short: "execute channel upgrade handshake",
+		Long:  "This command is meant to be used to execute an IBC channel upgrade handshake between two chains with a configured path in the config file",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pathName := args[0]
+			chains, srcChainID, dstChainID, err := ctx.Config.ChainsFromPath(pathName)
+			if err != nil {
+				return err
+			}
+
+			src, ok := chains[srcChainID]
+			if !ok {
+				panic("src chain not found")
+			}
+			dst, ok := chains[dstChainID]
+			if !ok {
+				panic("dst chain not found")
+			}
+
+			interval, err := cmd.Flags().GetDuration(flagInterval)
+			if err != nil {
+				return err
+			}
+
+			targetSrcState, err := getUpgradeStateFromFlags(cmd.Flags(), flagTargetSrcState)
+			if err != nil {
+				return err
+			}
+
+			targetDstState, err := getUpgradeStateFromFlags(cmd.Flags(), flagTargetDstState)
+			if err != nil {
+				return err
+			}
+
+			return core.ExecuteChannelUpgrade(pathName, src, dst, interval, targetSrcState, targetDstState)
+		},
+	}
+
+	cmd.Flags().Duration(flagInterval, defaultInterval, "the interval between attempts to proceed the upgrade handshake")
+	cmd.Flags().String(flagTargetSrcState, defaultTargetState, "the source channel's upgrade state to be reached")
+	cmd.Flags().String(flagTargetDstState, defaultTargetState, "the destination channel's upgrade state to be reached")
+
+	return &cmd
+}
+
+func channelUpgradeCancelCmd(ctx *config.Context) *cobra.Command {
+	const (
+		flagSettlementInterval = "settlement-interval"
+	)
+
+	cmd := cobra.Command{
+		Use:   "cancel [path-name] [chain-id]",
+		Short: "execute chanUpgradeCancel",
+		Long:  "This command is meant to be used to cancel an IBC channel upgrade on a configured chain",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			pathName := args[0]
+			chainID := args[1]
+
+			settlementInterval, err := cmd.Flags().GetDuration(flagSettlementInterval)
+			if err != nil {
+				return err
+			}
+
+			_, srcChainID, dstChainID, err := ctx.Config.ChainsFromPath(pathName)
+			if err != nil {
+				return err
+			}
+
+			var cpChainID string
+			switch chainID {
+			case srcChainID:
+				cpChainID = dstChainID
+			case dstChainID:
+				cpChainID = srcChainID
+			default:
+				return fmt.Errorf("invalid chain ID: %s or %s was expected, but %s was given", srcChainID, dstChainID, chainID)
+			}
+
+			chain, err := ctx.Config.GetChain(chainID)
+			if err != nil {
+				return err
+			}
+			cp, err := ctx.Config.GetChain(cpChainID)
+			if err != nil {
+				return err
+			}
+
+			return core.CancelChannelUpgrade(chain, cp, settlementInterval)
+		},
+	}
+
+	cmd.Flags().Duration(flagSettlementInterval, 10*time.Second, "time interval between attemts to query for settled channel/upgrade states")
+
+	return &cmd
 }
 
 func relayMsgsCmd(ctx *config.Context) *cobra.Command {
@@ -371,4 +587,39 @@ func getUint64Slice(key string) []uint64 {
 		ret[i] = uint64(e)
 	}
 	return ret
+}
+
+func getUpgradeStateFromFlags(flags *pflag.FlagSet, flagName string) (core.UpgradeState, error) {
+	s, err := flags.GetString(flagName)
+	if err != nil {
+		return 0, err
+	}
+
+	switch strings.ToUpper(s) {
+	case "UNINIT":
+		return core.UPGRADE_STATE_UNINIT, nil
+	case "INIT":
+		return core.UPGRADE_STATE_INIT, nil
+	case "FLUSHING":
+		return core.UPGRADE_STATE_FLUSHING, nil
+	case "FLUSHCOMPLETE":
+		return core.UPGRADE_STATE_FLUSHCOMPLETE, nil
+	default:
+		return 0, fmt.Errorf("invalid upgrade state specified: %s", s)
+	}
+}
+
+func getOrderFromFlags(flags *pflag.FlagSet, flagName string) (chantypes.Order, error) {
+	s, err := flags.GetString(flagName)
+	if err != nil {
+		return 0, err
+	}
+
+	s = "ORDER_" + strings.ToUpper(s)
+	value, ok := chantypes.Order_value[s]
+	if !ok {
+		return 0, fmt.Errorf("invalid channel order specified: %s", s)
+	}
+
+	return chantypes.Order(value), nil
 }

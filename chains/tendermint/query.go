@@ -27,6 +27,8 @@ import (
 	committypes "github.com/cosmos/ibc-go/v8/modules/core/23-commitment/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // QueryClientState retrevies the latest consensus state for a client in state at a given height
@@ -55,12 +57,12 @@ var emptyConnRes = conntypes.NewQueryConnectionResponse(
 )
 
 // QueryConnection returns the remote end of a given connection
-func (c *Chain) QueryConnection(ctx core.QueryContext) (*conntypes.QueryConnectionResponse, error) {
-	return c.queryConnection(int64(ctx.Height().GetRevisionHeight()), false)
+func (c *Chain) QueryConnection(ctx core.QueryContext, connectionID string) (*conntypes.QueryConnectionResponse, error) {
+	return c.queryConnection(int64(ctx.Height().GetRevisionHeight()), connectionID, false)
 }
 
-func (c *Chain) queryConnection(height int64, prove bool) (*conntypes.QueryConnectionResponse, error) {
-	res, err := connutils.QueryConnection(c.CLIContext(height), c.PathEnd.ConnectionID, prove)
+func (c *Chain) queryConnection(height int64, connectionID string, prove bool) (*conntypes.QueryConnectionResponse, error) {
+	res, err := connutils.QueryConnection(c.CLIContext(height), connectionID, prove)
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		return emptyConnRes, nil
 	} else if err != nil {
@@ -354,10 +356,12 @@ func (c *Chain) queryWrittenAcknowledgement(ctx core.QueryContext, seq uint64) (
 }
 
 // QueryTxs returns an array of transactions given a tag
-func (c *Chain) QueryTxs(height int64, page, limit int, events []string) ([]*ctypes.ResultTx, error) {
+func (c *Chain) QueryTxs(maxHeight int64, page, limit int, events []string) ([]*ctypes.ResultTx, error) {
 	if len(events) == 0 {
 		return nil, errors.New("must declare at least one event to search")
 	}
+
+	events = append(events, fmt.Sprintf("tx.height<=%d", maxHeight))
 
 	if page <= 0 {
 		return nil, errors.New("page must greater than 0")
@@ -372,6 +376,65 @@ func (c *Chain) QueryTxs(height int64, page, limit int, events []string) ([]*cty
 		return nil, err
 	}
 	return res.Txs, nil
+}
+
+func (c *Chain) QueryChannelUpgrade(ctx core.QueryContext) (*chantypes.QueryUpgradeResponse, error) {
+	return c.queryChannelUpgrade(int64(ctx.Height().GetRevisionHeight()), false)
+}
+
+func (c *Chain) queryChannelUpgrade(height int64, prove bool) (chanRes *chantypes.QueryUpgradeResponse, err error) {
+	if res, err := chanutils.QueryUpgrade(
+		c.CLIContext(height),
+		c.PathEnd.PortID,
+		c.PathEnd.ChannelID,
+		prove,
+	); err != nil {
+		if st, ok := status.FromError(err); ok && st.Code() == codes.NotFound {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	} else {
+		return res, nil
+	}
+}
+
+func (c *Chain) QueryChannelUpgradeError(ctx core.QueryContext) (*chantypes.QueryUpgradeErrorResponse, error) {
+	return c.queryChannelUpgradeError(int64(ctx.Height().GetRevisionHeight()), false)
+}
+
+func (c *Chain) queryChannelUpgradeError(height int64, prove bool) (chanRes *chantypes.QueryUpgradeErrorResponse, err error) {
+	if res, err := chanutils.QueryUpgradeError(
+		c.CLIContext(height),
+		c.PathEnd.PortID,
+		c.PathEnd.ChannelID,
+		prove,
+	); err != nil {
+		if st, ok := status.FromError(err); ok && st.Code() == codes.NotFound {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	} else {
+		return res, nil
+	}
+}
+
+func (c *Chain) QueryCanTransitionToFlushComplete(ctx core.QueryContext) (bool, error) {
+	return c.queryCanTransitionToFlushComplete(int64(ctx.Height().GetRevisionHeight()))
+}
+
+func (c *Chain) queryCanTransitionToFlushComplete(height int64) (bool, error) {
+	queryClient := chantypes.NewQueryClient(c.CLIContext(height))
+	req := chantypes.QueryPacketCommitmentsRequest{
+		PortId:    c.PathEnd.PortID,
+		ChannelId: c.PathEnd.ChannelID,
+	}
+	if res, err := queryClient.PacketCommitments(context.TODO(), &req); err != nil {
+		return false, err
+	} else {
+		return len(res.Commitments) == 0, nil
+	}
 }
 
 /////////////////////////////////////
@@ -469,4 +532,19 @@ func recvPacketQuery(channelID string, seq int) []string {
 
 func writeAckQuery(channelID string, seq int) []string {
 	return []string{fmt.Sprintf("%s.packet_dst_channel='%s'", waTag, channelID), fmt.Sprintf("%s.packet_sequence='%d'", waTag, seq)}
+}
+
+func channelUpgradeErrorQuery(channelID string, upgradeSequence uint64) []string {
+	return []string{
+		fmt.Sprintf("%s.%s='%s'",
+			chantypes.EventTypeChannelUpgradeError,
+			chantypes.AttributeKeyChannelID,
+			channelID,
+		),
+		fmt.Sprintf("%s.%s='%d'",
+			chantypes.EventTypeChannelUpgradeError,
+			chantypes.AttributeKeyUpgradeSequence,
+			upgradeSequence,
+		),
+	}
 }

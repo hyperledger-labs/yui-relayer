@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -41,39 +42,32 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 		}
 
 		chanSteps.Send(src, dst)
+
 		if chanSteps.Success() {
+			// In the case of success, synchronize the config file from generated channel identifiers
 			if err := SyncChainConfigsFromEvents(pathName, chanSteps.SrcMsgIDs, chanSteps.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
-		}
 
-		switch {
-		// In the case of success and this being the last transaction
-		// debug logging, log created connection and break
-		case chanSteps.Success() && chanSteps.Last:
-			logger.Info(
-				"★ Channel created",
-			)
-			return nil
-		// In the case of success, reset the failures counter
-		case chanSteps.Success():
-			failures = 0
-			continue
-		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
-		case !chanSteps.Success():
-			failures++
-			logger.Info("retrying transaction...")
-			time.Sleep(5 * time.Second)
-			if failures > 2 {
-				logger.Error(
-					"! Channel failed",
-					err,
-				)
-				return fmt.Errorf("! Channel failed: [%s]chan{%s}port{%s} -> [%s]chan{%s}port{%s}",
-					src.ChainID(), src.Path().ChannelID, src.Path().PortID,
-					dst.ChainID(), dst.Path().ChannelID, dst.Path().PortID,
-				)
+			// In the case of success and this being the last transaction
+			// debug logging, log created connection and break
+			if chanSteps.Last {
+				logger.Info("★ Channel created")
+				return nil
 			}
+
+			// In the case of success, reset the failures counter
+			failures = 0
+		} else {
+			// In the case of failure, increment the failures counter and exit if this is the 3rd failure
+			if failures++; failures > 2 {
+				err := errors.New("Channel handshake failed")
+				logger.Error(err.Error(), err)
+				return err
+			}
+
+			logger.Warn("Retrying transaction...")
+			time.Sleep(5 * time.Second)
 		}
 	}
 
@@ -115,10 +109,10 @@ func checkChannelCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 	}
 
 	if srcID != "" && srcState == chantypes.UNINITIALIZED {
-		return false, fmt.Errorf("src channel id is given but that channel does not exist: %s", srcID);
+		return false, fmt.Errorf("src channel id is given but that channel does not exist: %s", srcID)
 	}
 	if dstID != "" && dstState == chantypes.UNINITIALIZED {
-		return false, fmt.Errorf("dst channel id is given but that channel does not exist: %s", dstID);
+		return false, fmt.Errorf("dst channel id is given but that channel does not exist: %s", dstID)
 	}
 
 	if srcState == chantypes.OPEN && dstState == chantypes.OPEN {
@@ -157,14 +151,16 @@ func createChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		return nil, err
 	}
 
-	srcChan, dstChan, err := QueryChannelPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst, true)
+	srcChan, dstChan, settled, err := querySettledChannelPair(
+		sh.GetQueryContext(src.ChainID()),
+		sh.GetQueryContext(dst.ChainID()),
+		src,
+		dst,
+		true,
+	)
 	if err != nil {
 		return nil, err
-	}
-
-	if finalized, err := checkChannelFinality(src, dst, srcChan.Channel, dstChan.Channel); err != nil {
-		return nil, err
-	} else if !finalized {
+	} else if !settled {
 		return out, nil
 	}
 
@@ -250,29 +246,62 @@ func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.Query
 		))
 }
 
-func checkChannelFinality(src, dst *ProvableChain, srcChannel, dstChannel *chantypes.Channel) (bool, error) {
+func querySettledChannelPair(
+	srcCtx, dstCtx QueryContext,
+	src, dst interface {
+		Chain
+		StateProver
+	},
+	prove bool,
+) (*chantypes.QueryChannelResponse, *chantypes.QueryChannelResponse, bool, error) {
 	logger := GetChannelPairLogger(src, dst)
-	sh, err := src.LatestHeight()
+	logger = &log.RelayLogger{Logger: logger.With(
+		"src_height", srcCtx.Height().String(),
+		"dst_height", dstCtx.Height().String(),
+		"prove", prove,
+	)}
+
+	srcChan, dstChan, err := QueryChannelPair(srcCtx, dstCtx, src, dst, prove)
 	if err != nil {
-		return false, err
+		logger.Error("failed to query channel pair at the latest finalized height", err)
+		return nil, nil, false, err
 	}
-	dh, err := dst.LatestHeight()
+
+	var srcLatestCtx, dstLatestCtx QueryContext
+	if h, err := src.LatestHeight(); err != nil {
+		logger.Error("failed to get the latest height of the src chain", err)
+		return nil, nil, false, err
+	} else {
+		srcLatestCtx = NewQueryContext(context.TODO(), h)
+	}
+	if h, err := dst.LatestHeight(); err != nil {
+		logger.Error("failed to get the latest height of the dst chain", err)
+		return nil, nil, false, err
+	} else {
+		dstLatestCtx = NewQueryContext(context.TODO(), h)
+	}
+
+	srcLatestChan, dstLatestChan, err := QueryChannelPair(srcLatestCtx, dstLatestCtx, src, dst, false)
 	if err != nil {
-		return false, err
+		logger.Error("failed to query channel pair at the latest height", err)
+		return nil, nil, false, err
 	}
-	srcChanLatest, dstChanLatest, err := QueryChannelPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst, false)
-	if err != nil {
-		return false, err
+
+	if srcChan.Channel.String() != srcLatestChan.Channel.String() {
+		logger.Debug("src channel end in transition",
+			"from", srcChan.Channel.String(),
+			"to", srcLatestChan.Channel.String(),
+		)
+		return srcChan, dstChan, false, nil
 	}
-	if srcChannel.State != srcChanLatest.Channel.State {
-		logger.Debug("src channel state in transition", "from_state", srcChannel.State, "to_state", srcChanLatest.Channel.State)
-		return false, nil
+	if dstChan.Channel.String() != dstLatestChan.Channel.String() {
+		logger.Debug("dst channel end in transition",
+			"from", dstChan.Channel.String(),
+			"to", dstLatestChan.Channel.String(),
+		)
+		return srcChan, dstChan, false, nil
 	}
-	if dstChannel.State != dstChanLatest.Channel.State {
-		logger.Debug("dst channel state in transition", "from_state", dstChannel.State, "to_state", dstChanLatest.Channel.State)
-		return false, nil
-	}
-	return true, nil
+	return srcChan, dstChan, true, nil
 }
 
 func GetChannelLogger(c Chain) *log.RelayLogger {

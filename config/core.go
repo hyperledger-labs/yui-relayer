@@ -19,31 +19,37 @@ func initCoreConfig(c *Config) {
 	core.SetCoreConfig(config)
 }
 
-func (c CoreConfig) UpdateConfigID(pathName string, chainID string, configID core.ConfigIDType, id string) error {
+func (c CoreConfig) UpdatePathConfig(pathName string, chainID string, kv map[core.PathConfigKey]string) error {
 	configPath, err := c.config.Paths.Get(pathName)
 	if err != nil {
 		return err
 	}
+
 	var pathEnd *core.PathEnd
 	if chainID == configPath.Src.ChainID {
 		pathEnd = configPath.Src
-	}
-	if chainID == configPath.Dst.ChainID {
+	} else if chainID == configPath.Dst.ChainID {
 		pathEnd = configPath.Dst
-	}
-	if pathEnd == nil {
+	} else {
 		return fmt.Errorf("pathEnd is nil")
 	}
-	switch configID {
-	case core.ConfigIDClient:
-		pathEnd.ClientID = id
-	case core.ConfigIDConnection:
-		pathEnd.ConnectionID = id
-	case core.ConfigIDChannel:
-		pathEnd.ChannelID = id
+
+	for k, v := range kv {
+		switch k {
+		case core.PathConfigClientID:
+			pathEnd.ClientID = v
+		case core.PathConfigConnectionID:
+			pathEnd.ConnectionID = v
+		case core.PathConfigChannelID:
+			pathEnd.ChannelID = v
+		case core.PathConfigOrder:
+			pathEnd.Order = v
+		case core.PathConfigVersion:
+			pathEnd.Version = v
+		default:
+			panic(fmt.Sprintf("unexpected path config key: %s", k))
+		}
 	}
-	if err := c.config.OverWriteConfig(); err != nil {
-		return err
-	}
-	return nil
+
+	return c.config.OverWriteConfig()
 }

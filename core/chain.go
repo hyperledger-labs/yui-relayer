@@ -136,7 +136,7 @@ type ICS02Querier interface {
 // ICS03Querier is an interface to the state of ICS-03
 type ICS03Querier interface {
 	// QueryConnection returns the remote end of a given connection
-	QueryConnection(ctx QueryContext) (*conntypes.QueryConnectionResponse, error)
+	QueryConnection(ctx QueryContext, connectionID string) (*conntypes.QueryConnectionResponse, error)
 }
 
 // ICS04Querier is an interface to the state of ICS-04
@@ -155,6 +155,18 @@ type ICS04Querier interface {
 
 	// QueryUnfinalizedRelayedAcknowledgements returns acks and heights that are sent but not received at the latest finalized block on the counterpartychain
 	QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error)
+
+	// QueryChannelUpgrade returns the channel upgrade associated with a channelID
+	QueryChannelUpgrade(ctx QueryContext) (*chantypes.QueryUpgradeResponse, error)
+
+	// QueryChannelUpgradeError returns the channel upgrade error receipt associated with a channelID at the height of `ctx`.
+	// WARN: This error receipt may not be used to cancel upgrade in FLUSHCOMPLETE state because of upgrade sequence mismatch.
+	QueryChannelUpgradeError(ctx QueryContext) (*chantypes.QueryUpgradeErrorResponse, error)
+
+	// QueryCanTransitionToFlushComplete returns the channel can transition to FLUSHCOMPLETE state.
+	// Basically it requires that there remains no inflight packets.
+	// Maybe additional condition for transition is required by the IBC/APP module.
+	QueryCanTransitionToFlushComplete(ctx QueryContext) (bool, error)
 }
 
 // ICS20Querier is an interface to the state of ICS-20

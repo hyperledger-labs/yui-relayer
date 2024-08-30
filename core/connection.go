@@ -50,39 +50,32 @@ func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration
 		}
 
 		connSteps.Send(src, dst)
+
 		if connSteps.Success() {
+			// In the case of success, synchronize the config file from generated connection identifiers.
 			if err := SyncChainConfigsFromEvents(pathName, connSteps.SrcMsgIDs, connSteps.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
-		}
 
-		switch {
-		// In the case of success and this being the last transaction
-		// debug logging, log created connection and break
-		case connSteps.Success() && connSteps.Last:
-			logger.Info(
-				"★ Connection created",
-			)
-			return nil
-		// In the case of success, reset the failures counter
-		case connSteps.Success():
-			failed = 0
-			continue
-		// In the case of failure, increment the failures counter and exit if this is the 3rd failure
-		case !connSteps.Success():
-			failed++
-			logger.Info("retrying transaction...")
-			time.Sleep(5 * time.Second)
-			if failed > 2 {
-				logger.Error(
-					"! Connection failed",
-					errors.New("failed 3 times"),
-				)
-				return fmt.Errorf("! Connection failed: [%s]client{%s}conn{%s} -> [%s]client{%s}conn{%s}",
-					src.ChainID(), src.Path().ClientID, src.Path().ConnectionID,
-					dst.ChainID(), dst.Path().ClientID, dst.Path().ConnectionID,
-				)
+			// In the case of success and this being the last transaction
+			// debug logging, log created connection and break
+			if connSteps.Last {
+				logger.Info("★ Connection created")
+				return nil
 			}
+
+			// In the case of success, reset the failures counter
+			failed = 0
+		} else {
+			// In the case of failure, increment the failures counter and exit if this is the 3rd failure
+			if failed++; failed > 2 {
+				err := errors.New("Connection handshake failed")
+				logger.Error(err.Error(), err)
+				return err
+			}
+
+			logger.Warn("Retrying transaction...")
+			time.Sleep(5 * time.Second)
 		}
 
 	}
@@ -107,7 +100,7 @@ func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger
 		if err != nil {
 			return conntypes.UNINITIALIZED, err
 		}
-		res, err2 := pc.QueryConnection(NewQueryContext(context.TODO(), latestHeight))
+		res, err2 := pc.QueryConnection(NewQueryContext(context.TODO(), latestHeight), pc.Path().ConnectionID)
 		if err2 != nil {
 			return conntypes.UNINITIALIZED, err2
 		}
@@ -125,10 +118,10 @@ func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger
 	}
 
 	if srcID != "" && srcState == conntypes.UNINITIALIZED {
-		return false, fmt.Errorf("src connection id is given but that connection does not exist: %s", srcID);
+		return false, fmt.Errorf("src connection id is given but that connection does not exist: %s", srcID)
 	}
 	if dstID != "" && dstState == conntypes.UNINITIALIZED {
-		return false, fmt.Errorf("dst connection id is given but that connection does not exist: %s", dstID);
+		return false, fmt.Errorf("dst connection id is given but that connection does not exist: %s", dstID)
 	}
 
 	if srcState == conntypes.OPEN && dstState == conntypes.OPEN {
@@ -171,14 +164,16 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		return nil, err
 	}
 
-	srcConn, dstConn, err := QueryConnectionPair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst, true)
+	srcConn, dstConn, settled, err := querySettledConnectionPair(
+		sh.GetQueryContext(src.ChainID()),
+		sh.GetQueryContext(dst.ChainID()),
+		src,
+		dst,
+		true,
+	)
 	if err != nil {
 		return nil, err
-	}
-
-	if finalized, err := checkConnectionFinality(src, dst, srcConn.Connection, dstConn.Connection); err != nil {
-		return nil, err
-	} else if !finalized {
+	} else if !settled {
 		return out, nil
 	}
 
@@ -334,29 +329,62 @@ func mustGetAddress(chain interface {
 	return addr
 }
 
-func checkConnectionFinality(src, dst *ProvableChain, srcConnection, dstConnection *conntypes.ConnectionEnd) (bool, error) {
+func querySettledConnectionPair(
+	srcCtx, dstCtx QueryContext,
+	src, dst interface {
+		Chain
+		StateProver
+	},
+	prove bool,
+) (*conntypes.QueryConnectionResponse, *conntypes.QueryConnectionResponse, bool, error) {
 	logger := GetConnectionPairLogger(src, dst)
-	sh, err := src.LatestHeight()
+	logger = &log.RelayLogger{Logger: logger.With(
+		"src_height", srcCtx.Height().String(),
+		"dst_height", dstCtx.Height().String(),
+		"prove", prove,
+	)}
+
+	srcConn, dstConn, err := QueryConnectionPair(srcCtx, dstCtx, src, dst, prove)
 	if err != nil {
-		return false, err
+		logger.Error("failed to query connection pair at the latest finalized height", err)
+		return nil, nil, false, err
 	}
-	dh, err := dst.LatestHeight()
+
+	var srcLatestCtx, dstLatestCtx QueryContext
+	if h, err := src.LatestHeight(); err != nil {
+		logger.Error("failed to get the latest height of the src chain", err)
+		return nil, nil, false, err
+	} else {
+		srcLatestCtx = NewQueryContext(context.TODO(), h)
+	}
+	if h, err := dst.LatestHeight(); err != nil {
+		logger.Error("failed to get the latest height of the dst chain", err)
+		return nil, nil, false, err
+	} else {
+		dstLatestCtx = NewQueryContext(context.TODO(), h)
+	}
+
+	srcLatestConn, dstLatestConn, err := QueryConnectionPair(srcLatestCtx, dstLatestCtx, src, dst, false)
 	if err != nil {
-		return false, err
+		logger.Error("failed to query connection pair at the latest height", err)
+		return nil, nil, false, err
 	}
-	srcConnLatest, dstConnLatest, err := QueryConnectionPair(NewQueryContext(context.TODO(), sh), NewQueryContext(context.TODO(), dh), src, dst, false)
-	if err != nil {
-		return false, err
+
+	if srcConn.Connection.String() != srcLatestConn.Connection.String() {
+		logger.Debug("src connection end in transition",
+			"from", srcConn.Connection.String(),
+			"to", srcLatestConn.Connection.String(),
+		)
+		return srcConn, dstConn, false, nil
 	}
-	if srcConnection.State != srcConnLatest.Connection.State {
-		logger.Debug("src connection state in transition", "from_state", srcConnection.State, "to_state", srcConnLatest.Connection.State)
-		return false, nil
+	if dstConn.Connection.String() != dstLatestConn.Connection.String() {
+		logger.Debug("dst connection end in transition",
+			"from", dstConn.Connection.String(),
+			"to", dstLatestConn.Connection.String(),
+		)
+		return srcConn, dstConn, false, nil
 	}
-	if dstConnection.State != dstConnLatest.Connection.State {
-		logger.Debug("dst connection state in transition", "from_state", dstConnection.State, "to_state", dstConnLatest.Connection.State)
-		return false, nil
-	}
-	return true, nil
+	return srcConn, dstConn, true, nil
 }
 
 func GetConnectionPairLogger(src, dst Chain) *log.RelayLogger {

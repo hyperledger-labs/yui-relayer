@@ -12,6 +12,7 @@ test:
 	./scripts/fixture
 	./scripts/init-rly
 	./scripts/handshake
+	./scripts/test-channel-upgrade
 	./scripts/test-create-client-success-single
 	./scripts/test-create-client-fail-already-created
 	./scripts/test-create-client-fail-unexist

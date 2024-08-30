@@ -28,6 +28,8 @@ RUN ./scripts/tm-chain simd $CHAINID $CHAINDIR $RPCPORT $P2PPORT $PROFPORT $GRPC
 
 FROM alpine:${ALPINE_VER}
 
+RUN apk add jq
+
 WORKDIR /root
 
 ARG CHAINID

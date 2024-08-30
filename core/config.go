@@ -1,28 +1,32 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/gogoproto/proto"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/utils"
 )
 
 var config ConfigI
 
-type ConfigIDType string
+type PathConfigKey string
 
 const (
-	ConfigIDClient     ConfigIDType = "client"
-	ConfigIDConnection ConfigIDType = "connection"
-	ConfigIDChannel    ConfigIDType = "channel"
+	PathConfigClientID     PathConfigKey = "client-id"
+	PathConfigConnectionID PathConfigKey = "connection-id"
+	PathConfigChannelID    PathConfigKey = "channel-id"
+	PathConfigOrder        PathConfigKey = "order"
+	PathConfigVersion      PathConfigKey = "version"
 )
 
 type ConfigI interface {
-	UpdateConfigID(pathName string, chainID string, configID ConfigIDType, id string) error
+	UpdatePathConfig(pathName string, chainID string, kv map[PathConfigKey]string) error
 }
 
 func SetCoreConfig(c ConfigI) {
@@ -156,23 +160,51 @@ func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableC
 		}
 
 		for _, event := range msgRes.Events() {
-			var id string
-			var configID ConfigIDType
+			kv := make(map[PathConfigKey]string)
+
 			switch event := event.(type) {
 			case *EventGenerateClientIdentifier:
-				configID = ConfigIDClient
-				id = event.ID
+				kv[PathConfigClientID] = event.ID
 			case *EventGenerateConnectionIdentifier:
-				configID = ConfigIDConnection
-				id = event.ID
+				kv[PathConfigConnectionID] = event.ID
 			case *EventGenerateChannelIdentifier:
-				configID = ConfigIDChannel
-				id = event.ID
-			}
-			if id != "" {
-				if err := config.UpdateConfigID(pathName, chain.ChainID(), configID, id); err != nil {
-					return err
+				kv[PathConfigChannelID] = event.ID
+			case *EventUpgradeChannel:
+				chann, err := chain.QueryChannel(NewQueryContext(context.TODO(), msgRes.BlockHeight()))
+				if err != nil {
+					return fmt.Errorf("failed to query a channel corresponding to the EventUpgradeChannel event: %v", err)
 				}
+
+				if chann.Channel.UpgradeSequence != event.UpgradeSequence {
+					return fmt.Errorf("unexpected mismatch of upgrade sequence: channel.upgradeSequence=%d, event.upgradeSequence=%d",
+						chann.Channel.UpgradeSequence,
+						event.UpgradeSequence,
+					)
+				}
+
+				if len(chann.Channel.ConnectionHops) != 1 {
+					return fmt.Errorf("unexpected length of connectionHops: %d", len(chann.Channel.ConnectionHops))
+				}
+
+				var order string
+				switch chann.Channel.Ordering {
+				case chantypes.ORDERED:
+					order = "ordered"
+				case chantypes.UNORDERED:
+					order = "unordered"
+				default:
+					return fmt.Errorf("unexpected channel ordering: %d", chann.Channel.Ordering)
+				}
+
+				kv[PathConfigConnectionID] = chann.Channel.ConnectionHops[0]
+				kv[PathConfigOrder] = order
+				kv[PathConfigVersion] = chann.Channel.Version
+			default:
+				continue
+			}
+
+			if err := config.UpdatePathConfig(pathName, chain.ChainID(), kv); err != nil {
+				return err
 			}
 		}
 	}
