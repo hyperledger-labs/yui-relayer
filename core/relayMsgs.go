@@ -188,7 +188,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 func msgsToLoggable(msgs []sdk.Msg) []string {
 	var ret []string
 	for _, msg := range msgs {
-		ret = append(ret, fmt.Sprintf("%T{%v}", msg, msg))
+		ret = append(ret, fmt.Sprintf("%#v", msg))
 	}
 	return ret
 }
