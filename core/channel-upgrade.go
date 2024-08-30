@@ -109,13 +109,17 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 	failures := 0
 	firstCall := true
 	for {
-		<-ticker.C
+		if !firstCall {
+			<-ticker.C
+		}
 
 		steps, err := upgradeChannelStep(src, dst, targetSrcState, targetDstState, firstCall)
 		if err != nil {
 			logger.Error("failed to create channel upgrade step", err)
 			return err
 		}
+
+		firstCall = false
 
 		if steps.Last {
 			logger.Info("Channel upgrade completed")
@@ -124,7 +128,6 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 
 		if !steps.Ready() {
 			logger.Debug("Waiting for next channel upgrade step ...")
-			firstCall = false
 			continue
 		}
 
@@ -136,7 +139,6 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 				return err
 			}
 
-			firstCall = false
 			failures = 0
 		} else {
 			if failures++; failures > 2 {
@@ -146,7 +148,6 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 			}
 
 			logger.Warn("Retrying transaction...")
-			time.Sleep(5 * time.Second)
 		}
 	}
 }
