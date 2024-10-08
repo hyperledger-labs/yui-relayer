@@ -75,9 +75,39 @@ func (action UpgradeAction) String() string {
 }
 
 // InitChannelUpgrade builds `MsgChannelUpgradeInit` based on the specified UpgradeFields and sends it to the specified chain.
-func InitChannelUpgrade(chain *ProvableChain, upgradeFields chantypes.UpgradeFields) error {
+func InitChannelUpgrade(chain, cp *ProvableChain, upgradeFields chantypes.UpgradeFields, permitUnsafe bool) error {
 	logger := GetChannelLogger(chain.Chain)
 	defer logger.TimeTrack(time.Now(), "InitChannelUpgrade")
+
+	if h, err := chain.LatestHeight(); err != nil {
+		logger.Error("failed to get the latest height", err)
+		return err
+	} else if cpH, err := cp.LatestHeight(); err != nil {
+		logger.Error("failed to get the latest height of the counterparty chain", err)
+		return err
+	} else if chann, cpChann, err := QueryChannelPair(
+		NewQueryContext(context.TODO(), h),
+		NewQueryContext(context.TODO(), cpH),
+		chain,
+		cp,
+		false,
+	); err != nil {
+		logger.Error("failed to query for the channel pair", err)
+		return err
+	} else if chann.Channel.State != chantypes.OPEN || cpChann.Channel.State != chantypes.OPEN {
+		logger = &log.RelayLogger{Logger: logger.With(
+			"channel_state", chann.Channel.State,
+			"cp_channel_state", cpChann.Channel.State,
+		)}
+
+		if permitUnsafe {
+			logger.Info("unsafe channel upgrade is permitted")
+		} else {
+			err := errors.New("unsafe channel upgrade initialization")
+			logger.Error("unsafe channel upgrade is not permitted", err)
+			return err
+		}
+	}
 
 	addr, err := chain.GetAddress()
 	if err != nil {
