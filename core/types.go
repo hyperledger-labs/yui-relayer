@@ -3,6 +3,7 @@ package core
 import (
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 )
 
 // PacketInfo represents the packet information that is acquired from a SendPacket event or
@@ -13,6 +14,24 @@ type PacketInfo struct {
 	chantypes.Packet
 	Acknowledgement []byte             `json:"acknowledgement"`
 	EventHeight     clienttypes.Height `json:"event_height"`
+}
+
+func (p PacketInfo) HasTimedOut(height ibcexported.Height, time uint64) bool {
+	if p.Packet.TimeoutTimestamp == 0 && p.Packet.TimeoutHeight.IsZero() {
+		// should not happen according to the IBC spec
+		return false
+	}
+
+	if !p.Packet.TimeoutHeight.IsZero() && p.Packet.TimeoutHeight.LT(height) {
+		return true
+	}
+
+	if p.Packet.TimeoutTimestamp != 0 && p.Packet.TimeoutTimestamp <= time {
+		return true
+	}
+
+	return false
+
 }
 
 // PacketInfoList represents a list of PacketInfo that is sorted in the order in which

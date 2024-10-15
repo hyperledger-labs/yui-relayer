@@ -9,6 +9,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	"github.com/cosmos/ibc-go/v8/modules/core/exported"
 
 	mocktypes "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock/types"
@@ -123,6 +124,11 @@ func (pr *Prover) CheckRefreshRequired(dst core.ChainInfoICS02Querier) (bool, er
 func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
 	height := ctx.Height().(clienttypes.Height)
 	return makeProof(height, path, value), height, nil
+}
+
+func (pr *Prover) PacketReceipt(ctx core.QueryContext, msgTransfer core.PacketInfo, height uint64) ([]byte, clienttypes.Height, error) {
+	key := host.PacketReceiptKey(msgTransfer.Packet.DestinationPort, msgTransfer.Packet.DestinationChannel, msgTransfer.Sequence)
+	return makeProof(clienttypes.NewHeight(0, height), string(key), nil), clienttypes.NewHeight(0, height), nil
 }
 
 // ProveHostConsensusState returns the proof of the consensus state at `height`

@@ -450,6 +450,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			sp, err := st.UnrelayedPackets(c[src], c[dst], sh, false)
+			fmt.Printf("\n UnrelayedPackets: %v\n", sp)
 			if err != nil {
 				return err
 			}
@@ -461,8 +462,8 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 
 			msgs := core.NewRelayMsgs()
 
-			doExecuteRelaySrc := len(sp.Dst) > 0
-			doExecuteRelayDst := len(sp.Src) > 0
+			doExecuteRelaySrc := true
+			doExecuteRelayDst := true
 			doExecuteAckSrc := false
 			doExecuteAckDst := false
 
@@ -472,11 +473,15 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				msgs.Merge(m)
 			}
 
+			fmt.Printf("\n msgs after UpdateClients: %v\n", msgs)
+
 			if m, err := st.RelayPackets(c[src], c[dst], sp, sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)
 			}
+
+			fmt.Printf("\n msgs after UpdateClients: %v\n", msgs)
 
 			st.Send(c[src], c[dst], msgs)
 

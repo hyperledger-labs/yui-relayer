@@ -11,6 +11,7 @@ import (
 	tmtypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibcclient "github.com/cosmos/ibc-go/v8/modules/core/client"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	tmclient "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
@@ -52,6 +53,17 @@ func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) (
 	} else {
 		return proof, proofHeight, nil
 	}
+}
+
+func (pr *Prover) PacketReceipt(ctx core.QueryContext, msgTransfer core.PacketInfo, height uint64) ([]byte, clienttypes.Height, error) {
+	clientCtx := pr.chain.CLIContext(int64(ctx.Height().GetRevisionHeight()))
+	key := host.PacketReceiptKey(msgTransfer.Packet.DestinationPort, msgTransfer.Packet.DestinationChannel, msgTransfer.Sequence)
+	_, proof, proofHeight, err := ibcclient.QueryTendermintProof(clientCtx, key)
+	if err != nil {
+		return []byte{}, clienttypes.Height{}, fmt.Errorf("error querying comet proof for packet receipt: %w", err)
+	}
+
+	return proof, proofHeight, nil
 }
 
 // ProveHostConsensusState returns the existence proof of the consensus state at `height`

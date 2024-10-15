@@ -225,27 +225,19 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 		return nil, err
 	}
 
-	if doExecuteRelayDst {
-		msgs.Dst, err = collectPackets(srcCtx, src, rp.Src, dstAddress)
-		if err != nil {
-			logger.Error(
-				"error collecting packets",
-				err,
-			)
-			return nil, err
-		}
+	collectedSrc, collectedDst, err := collectPackets(srcCtx, dstCtx, src, dst, rp.Src, rp.Dst, srcAddress, dstAddress)
+	fmt.Printf("\n COLLECTED SRC: %v \n\n", collectedSrc)
+	fmt.Printf("\n COLLECTED DST: %v \n\n", collectedDst)
+	if err != nil {
+		logger.Error(
+			"error collecting packets",
+			err,
+		)
+		return nil, err
 	}
 
-	if doExecuteRelaySrc {
-		msgs.Src, err = collectPackets(dstCtx, dst, rp.Dst, srcAddress)
-		if err != nil {
-			logger.Error(
-				"error collecting packets",
-				err,
-			)
-			return nil, err
-		}
-	}
+	msgs.Dst = collectedDst
+	msgs.Src = collectedSrc
 
 	if len(msgs.Dst) == 0 && len(msgs.Src) == 0 {
 		logger.Info("no packates to relay")
@@ -389,26 +381,124 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 	}, nil
 }
 
-// TODO add packet-timeout support
-func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
-	logger := GetChannelLogger(chain)
-	var msgs []sdk.Msg
-	for _, p := range packets {
-		commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
+// collectPackets collects packets is used such that it collects packets from ther src to be relayed to the dst
+//
+// for normal packets this is straight forward: collect unrelayed packets on the source chain and proof their
+// commitment on the src chain
+//
+// for timed out packets, we collect unrelayed packets on the destination chain and prove their non-existence
+// on the source chain
+func collectPackets(srcCtx, dstCtx QueryContext, src, dst *ProvableChain, srcPackets, dstPackets PacketInfoList, srcSigner, dstSigner sdk.AccAddress) ([]sdk.Msg, []sdk.Msg, error) {
+	fmt.Printf("\n COLLECTING PACKETS \n\n")
+	fmt.Printf("\n SRC PACKETS: %v \n\n", srcPackets)
+	fmt.Printf("\n DST PACKETS: %v \n\n", dstPackets)
+
+	logger := GetChannelLogger(src)
+
+	dstHeader, err := dst.Prover.GetLatestFinalizedHeader()
+	if err != nil {
+		logger.Error("failed to get latest header", err)
+	}
+	dstHeight := dstHeader.GetHeight()
+	if err != nil {
+		logger.Error("failed to get latest height", err)
+		return nil, nil, err
+	}
+	dstTimestamp, err := dst.Timestamp(dstHeight)
+	if err != nil {
+		logger.Error("failed to get latest timestamp", err)
+		return nil, nil, err
+	}
+	srcHeader, err := src.Prover.GetLatestFinalizedHeader()
+	if err != nil {
+		logger.Error("failed to get latest header", err)
+	}
+	srcHeight := srcHeader.GetHeight()
+	if err != nil {
+		logger.Error("failed to get latest height", err)
+		return nil, nil, err
+	}
+	srcTimestamp, err := src.Timestamp(dstHeight)
+	if err != nil {
+		logger.Error("failed to get latest timestamp", err)
+		return nil, nil, err
+	}
+
+	var dstMsgs []sdk.Msg
+	var srcMsgs []sdk.Msg
+
+	for _, p := range srcPackets {
+		p.ValidateBasic()
+
+		fmt.Printf("\n DST CHAIN TIMESTAMP: %v \n\n", dstTimestamp.UnixNano())
+		fmt.Printf("\n PACKET TIMEOUT: %v \n\n", p.Packet.TimeoutTimestamp)
+
+		// src packet timed out on dst?
+		if p.HasTimedOut(dstHeight, uint64(dstTimestamp.UnixNano())) {
+			path := host.PacketReceiptPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
+			proof, proofHeight, err := dst.PacketReceipt(dstCtx, *p, dstHeight.GetRevisionHeight())
+			if err != nil {
+				logger.Error("failed to ProveState (timeout package)", err,
+					"height", dstCtx.Height(),
+					"path", path,
+				)
+				return nil, nil, err
+			}
+			fmt.Printf("\n PROOF UNRECEIVED: %v \n\n", proof)
+			msg := chantypes.NewMsgTimeout(p.Packet, p.Sequence, proof, proofHeight, srcSigner.String())
+			srcMsgs = append(srcMsgs, msg)
+			continue
+		}
+
+		commitment := chantypes.CommitPacket(src.Codec(), &p.Packet)
 		path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
-		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
+		proof, proofHeight, err := src.ProveState(srcCtx, path, commitment)
 		if err != nil {
 			logger.Error("failed to ProveState", err,
-				"height", ctx.Height(),
+				"height", srcCtx.Height(),
 				"path", path,
 				"commitment", commitment,
 			)
-			return nil, err
+			return nil, nil, err
 		}
-		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
-		msgs = append(msgs, msg)
+		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, dstSigner.String())
+		dstMsgs = append(dstMsgs, msg)
 	}
-	return msgs, nil
+
+	for _, p := range dstPackets {
+		p.ValidateBasic()
+
+		// dst packet timed out on src?
+		if p.HasTimedOut(srcHeight, uint64(srcTimestamp.Second())) {
+			path := host.PacketReceiptPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
+			proof, proofHeight, err := src.PacketReceipt(srcCtx, *p, srcHeight.GetRevisionHeight())
+			if err != nil {
+				logger.Error("failed to ProveState (timeout package)", err,
+					"height", srcCtx.Height(),
+					"path", path,
+				)
+				return nil, nil, err
+			}
+			msg := chantypes.NewMsgTimeout(p.Packet, p.Packet.Sequence, proof, proofHeight, srcSigner.String())
+			dstMsgs = append(dstMsgs, msg)
+			continue
+		}
+
+		commitment := chantypes.CommitPacket(dst.Codec(), &p.Packet)
+		path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
+		proof, proofHeight, err := dst.ProveState(dstCtx, path, commitment)
+		if err != nil {
+			logger.Error("failed to ProveState", err,
+				"height", dstCtx.Height(),
+				"path", path,
+				"commitment", commitment,
+			)
+			return nil, nil, err
+		}
+		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, srcSigner.String())
+		srcMsgs = append(srcMsgs, msg)
+	}
+	return srcMsgs, dstMsgs, nil
 }
 
 func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {

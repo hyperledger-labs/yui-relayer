@@ -29,6 +29,9 @@ type StateProver interface {
 	// ProveState returns a proof of an IBC state specified by `path` and `value`
 	ProveState(ctx QueryContext, path string, value []byte) (proof []byte, proofHeight clienttypes.Height, err error)
 
+	// PacketReceipt returns the proof of the packet receipt at `height`
+	PacketReceipt(ctx QueryContext, msgTransfer PacketInfo, height uint64) (proof []byte, proofHeight clienttypes.Height, err error)
+
 	// ProveHostConsensusState returns an existence proof of the consensus state at `height`
 	// This proof would be ignored in ibc-go, but it is required to `getSelfConsensusState` of ibc-solidity.
 	ProveHostConsensusState(ctx QueryContext, height exported.Height, consensusState exported.ConsensusState) (proof []byte, err error)
