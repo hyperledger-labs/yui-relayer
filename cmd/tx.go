@@ -450,7 +450,6 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			sp, err := st.UnrelayedPackets(c[src], c[dst], sh, false)
-			fmt.Printf("\n UnrelayedPackets: %v\n", sp)
 			if err != nil {
 				return err
 			}
@@ -462,26 +461,25 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 
 			msgs := core.NewRelayMsgs()
 
-			doExecuteRelaySrc := true
-			doExecuteRelayDst := true
+			// first collect relay packets (including timeouts - which reflect back)
+			mRelay, err := st.RelayPackets(c[src], c[dst], sp, sh, true, true)
+			if err != nil {
+				return err
+			}
+
+			// then evaluate if we need to update clients
+			doExecuteRelaySrc := len(mRelay.Dst) > 0
+			doExecuteRelayDst := len(mRelay.Src) > 0
 			doExecuteAckSrc := false
 			doExecuteAckDst := false
-
 			if m, err := st.UpdateClients(c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)
 			}
 
-			fmt.Printf("\n msgs after UpdateClients: %v\n", msgs)
-
-			if m, err := st.RelayPackets(c[src], c[dst], sp, sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
-				return err
-			} else {
-				msgs.Merge(m)
-			}
-
-			fmt.Printf("\n msgs after UpdateClients: %v\n", msgs)
+			// merge the relay messages after update clients
+			msgs.Merge(mRelay)
 
 			st.Send(c[src], c[dst], msgs)
 

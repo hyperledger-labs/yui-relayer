@@ -199,7 +199,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 	}, nil
 }
 
-func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, _, _ bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayPackets", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
@@ -226,8 +226,6 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 	}
 
 	collectedSrc, collectedDst, err := collectPackets(srcCtx, dstCtx, src, dst, rp.Src, rp.Dst, srcAddress, dstAddress)
-	fmt.Printf("\n COLLECTED SRC: %v \n\n", collectedSrc)
-	fmt.Printf("\n COLLECTED DST: %v \n\n", collectedDst)
 	if err != nil {
 		logger.Error(
 			"error collecting packets",
@@ -389,10 +387,6 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 // for timed out packets, we collect unrelayed packets on the destination chain and prove their non-existence
 // on the source chain
 func collectPackets(srcCtx, dstCtx QueryContext, src, dst *ProvableChain, srcPackets, dstPackets PacketInfoList, srcSigner, dstSigner sdk.AccAddress) ([]sdk.Msg, []sdk.Msg, error) {
-	fmt.Printf("\n COLLECTING PACKETS \n\n")
-	fmt.Printf("\n SRC PACKETS: %v \n\n", srcPackets)
-	fmt.Printf("\n DST PACKETS: %v \n\n", dstPackets)
-
 	logger := GetChannelLogger(src)
 
 	dstHeader, err := dst.Prover.GetLatestFinalizedHeader()
@@ -430,9 +424,6 @@ func collectPackets(srcCtx, dstCtx QueryContext, src, dst *ProvableChain, srcPac
 	for _, p := range srcPackets {
 		p.ValidateBasic()
 
-		fmt.Printf("\n DST CHAIN TIMESTAMP: %v \n\n", dstTimestamp.UnixNano())
-		fmt.Printf("\n PACKET TIMEOUT: %v \n\n", p.Packet.TimeoutTimestamp)
-
 		// src packet timed out on dst?
 		if p.HasTimedOut(dstHeight, uint64(dstTimestamp.UnixNano())) {
 			path := host.PacketReceiptPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
@@ -444,7 +435,6 @@ func collectPackets(srcCtx, dstCtx QueryContext, src, dst *ProvableChain, srcPac
 				)
 				return nil, nil, err
 			}
-			fmt.Printf("\n PROOF UNRECEIVED: %v \n\n", proof)
 			msg := chantypes.NewMsgTimeout(p.Packet, p.Sequence, proof, proofHeight, srcSigner.String())
 			srcMsgs = append(srcMsgs, msg)
 			continue
