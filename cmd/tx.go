@@ -254,16 +254,9 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			// check cp state
-			if unsafe, err := cmd.Flags().GetBool(flagUnsafe); err != nil {
+			permitUnsafe, err := cmd.Flags().GetBool(flagUnsafe)
+			if err != nil {
 				return err
-			} else if !unsafe {
-				if height, err := cp.LatestHeight(); err != nil {
-					return err
-				} else if chann, err := cp.QueryChannel(core.NewQueryContext(cmd.Context(), height)); err != nil {
-					return err
-				} else if state := chann.Channel.State; state >= chantypes.FLUSHING && state <= chantypes.FLUSHCOMPLETE {
-					return fmt.Errorf("stop channel upgrade initialization because the counterparty is in %v state", state)
-				}
 			}
 
 			// get ordering from flags
@@ -286,11 +279,16 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.InitChannelUpgrade(chain, chantypes.UpgradeFields{
-				Ordering:       ordering,
-				ConnectionHops: connHops,
-				Version:        version,
-			})
+			return core.InitChannelUpgrade(
+				chain,
+				cp,
+				chantypes.UpgradeFields{
+					Ordering:       ordering,
+					ConnectionHops: connHops,
+					Version:        version,
+				},
+				permitUnsafe,
+			)
 		},
 	}
 
