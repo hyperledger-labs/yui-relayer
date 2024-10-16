@@ -461,25 +461,25 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 
 			msgs := core.NewRelayMsgs()
 
-			// first collect relay packets (including timeouts - which reflect back)
-			mRelay, err := st.RelayPackets(c[src], c[dst], sp, sh, true, true)
-			if err != nil {
-				return err
-			}
-
-			// then evaluate if we need to update clients
-			doExecuteRelaySrc := len(mRelay.Dst) > 0
-			doExecuteRelayDst := len(mRelay.Src) > 0
+			// the new timeout handling approach can result in RelayPackets()
+			// filtering packets to the source OR the dest chain. Therefore,
+			// let's update the clients on both chains if there are any packets
+			// in the relay queue.
+			doExecuteRelay := len(sp.Dst) > 0 || len(sp.Src) > 0
 			doExecuteAckSrc := false
 			doExecuteAckDst := false
-			if m, err := st.UpdateClients(c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
+
+			if m, err := st.UpdateClients(c[src], c[dst], doExecuteRelay, doExecuteRelay, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)
 			}
 
-			// merge the relay messages after update clients
-			msgs.Merge(mRelay)
+			if m, err := st.RelayPackets(c[src], c[dst], sp, sh, doExecuteRelay, doExecuteRelay); err != nil {
+				return err
+			} else {
+				msgs.Merge(m)
+			}
 
 			st.Send(c[src], c[dst], msgs)
 
