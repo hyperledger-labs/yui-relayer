@@ -412,7 +412,7 @@ func collectPackets(srcCtx, dstCtx QueryContext, src, dst *ProvableChain, srcPac
 		logger.Error("failed to get latest height", err)
 		return nil, nil, err
 	}
-	srcTimestamp, err := src.Timestamp(dstHeight)
+	srcTimestamp, err := src.Timestamp(srcHeight)
 	if err != nil {
 		logger.Error("failed to get latest timestamp", err)
 		return nil, nil, err
@@ -423,7 +423,6 @@ func collectPackets(srcCtx, dstCtx QueryContext, src, dst *ProvableChain, srcPac
 
 	for _, p := range srcPackets {
 		p.ValidateBasic()
-
 		// src packet timed out on dst?
 		if p.HasTimedOut(dstHeight, uint64(dstTimestamp.UnixNano())) {
 			path := host.PacketReceiptPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
@@ -457,9 +456,8 @@ func collectPackets(srcCtx, dstCtx QueryContext, src, dst *ProvableChain, srcPac
 
 	for _, p := range dstPackets {
 		p.ValidateBasic()
-
 		// dst packet timed out on src?
-		if p.HasTimedOut(srcHeight, uint64(srcTimestamp.Second())) {
+		if p.HasTimedOut(srcHeight, uint64(srcTimestamp.UnixNano())) {
 			path := host.PacketReceiptPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
 			proof, proofHeight, err := src.PacketReceipt(srcCtx, *p, srcHeight.GetRevisionHeight())
 			if err != nil {
