@@ -379,113 +379,100 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 	}, nil
 }
 
-// collectPackets collects packets is used such that it collects packets from ther src to be relayed to the dst
-//
-// for normal packets this is straight forward: collect unrelayed packets on the source chain and proof their
-// commitment on the src chain
-//
-// for timed out packets, we collect unrelayed packets on the destination chain and prove their non-existence
-// on the source chain
-func collectPackets(srcCtx, dstCtx QueryContext, src, dst *ProvableChain, srcPackets, dstPackets PacketInfoList, srcSigner, dstSigner sdk.AccAddress) ([]sdk.Msg, []sdk.Msg, error) {
-	logger := GetChannelLogger(src)
+func processPackets(
+	ctx QueryContext,
+	counterpartyCtx QueryContext,
+	chain *ProvableChain,
+	counterpartyChain *ProvableChain,
+	packets PacketInfoList,
+	signer, counterpartySigner sdk.AccAddress,
+) ([]sdk.Msg, []sdk.Msg, error) {
 
-	dstHeader, err := dst.Prover.GetLatestFinalizedHeader()
+	logger := GetChannelLogger(chain)
+
+	header, err := chain.Prover.GetLatestFinalizedHeader()
 	if err != nil {
 		logger.Error("failed to get latest header", err)
+		return nil, nil, err
 	}
-	dstHeight := dstHeader.GetHeight()
+	height := header.GetHeight()
 	if err != nil {
 		logger.Error("failed to get latest height", err)
 		return nil, nil, err
 	}
-	dstTimestamp, err := dst.Timestamp(dstHeight)
-	if err != nil {
-		logger.Error("failed to get latest timestamp", err)
-		return nil, nil, err
-	}
-	srcHeader, err := src.Prover.GetLatestFinalizedHeader()
-	if err != nil {
-		logger.Error("failed to get latest header", err)
-	}
-	srcHeight := srcHeader.GetHeight()
-	if err != nil {
-		logger.Error("failed to get latest height", err)
-		return nil, nil, err
-	}
-	srcTimestamp, err := src.Timestamp(srcHeight)
+	timestamp, err := chain.Timestamp(height)
 	if err != nil {
 		logger.Error("failed to get latest timestamp", err)
 		return nil, nil, err
 	}
 
-	var dstMsgs []sdk.Msg
-	var srcMsgs []sdk.Msg
+	var forwardMsgs []sdk.Msg
+	var reflectMsgs []sdk.Msg
 
-	for _, p := range srcPackets {
+	for _, p := range packets {
 		p.ValidateBasic()
-		// src packet timed out on dst?
-		if p.HasTimedOut(dstHeight, uint64(dstTimestamp.UnixNano())) {
+
+		if p.HasTimedOut(height, uint64(timestamp.UnixNano())) {
+			logger.Info("packet has timed out", "sequence", p.Sequence)
+
 			path := host.PacketReceiptPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
-			proof, proofHeight, err := dst.PacketReceipt(dstCtx, *p, dstHeight.GetRevisionHeight())
+			proof, proofHeight, err := counterpartyChain.PacketReceipt(counterpartyCtx, *p, height.GetRevisionHeight())
 			if err != nil {
 				logger.Error("failed to ProveState (timeout package)", err,
-					"height", dstCtx.Height(),
+					"height", ctx.Height(),
 					"path", path,
 				)
 				return nil, nil, err
 			}
-			msg := chantypes.NewMsgTimeout(p.Packet, p.Sequence, proof, proofHeight, srcSigner.String())
-			srcMsgs = append(srcMsgs, msg)
+
+			msg := chantypes.NewMsgTimeout(p.Packet, p.Sequence, proof, proofHeight, signer.String())
+			reflectMsgs = append(reflectMsgs, msg)
 			continue
 		}
 
-		commitment := chantypes.CommitPacket(src.Codec(), &p.Packet)
+		commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
 		path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
-		proof, proofHeight, err := src.ProveState(srcCtx, path, commitment)
+		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 		if err != nil {
 			logger.Error("failed to ProveState", err,
-				"height", srcCtx.Height(),
+				"height", ctx.Height(),
 				"path", path,
 				"commitment", commitment,
 			)
 			return nil, nil, err
 		}
-		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, dstSigner.String())
-		dstMsgs = append(dstMsgs, msg)
+
+		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, counterpartySigner.String())
+		forwardMsgs = append(forwardMsgs, msg)
 	}
 
-	for _, p := range dstPackets {
-		p.ValidateBasic()
-		// dst packet timed out on src?
-		if p.HasTimedOut(srcHeight, uint64(srcTimestamp.UnixNano())) {
-			path := host.PacketReceiptPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
-			proof, proofHeight, err := src.PacketReceipt(srcCtx, *p, srcHeight.GetRevisionHeight())
-			if err != nil {
-				logger.Error("failed to ProveState (timeout package)", err,
-					"height", srcCtx.Height(),
-					"path", path,
-				)
-				return nil, nil, err
-			}
-			msg := chantypes.NewMsgTimeout(p.Packet, p.Packet.Sequence, proof, proofHeight, srcSigner.String())
-			dstMsgs = append(dstMsgs, msg)
-			continue
-		}
+	return forwardMsgs, reflectMsgs, nil
+}
 
-		commitment := chantypes.CommitPacket(dst.Codec(), &p.Packet)
-		path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
-		proof, proofHeight, err := dst.ProveState(dstCtx, path, commitment)
-		if err != nil {
-			logger.Error("failed to ProveState", err,
-				"height", dstCtx.Height(),
-				"path", path,
-				"commitment", commitment,
-			)
-			return nil, nil, err
-		}
-		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, srcSigner.String())
-		srcMsgs = append(srcMsgs, msg)
+// collectPackets is refactored to use the new processPackets function
+func collectPackets(
+	srcCtx, dstCtx QueryContext,
+	src, dst *ProvableChain,
+	srcPackets, dstPackets PacketInfoList,
+	srcSigner, dstSigner sdk.AccAddress,
+) ([]sdk.Msg, []sdk.Msg, error) {
+
+	// Process packets going from src to dst
+	srcForwardMsgs, srcReflectMsgs, err := processPackets(srcCtx, dstCtx, src, dst, srcPackets, srcSigner, dstSigner)
+	if err != nil {
+		return nil, nil, err
 	}
+
+	// Process packets going from dst to src
+	dstForwardMsgs, dstReflectMsgs, err := processPackets(dstCtx, srcCtx, dst, src, dstPackets, dstSigner, srcSigner)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Combine forward messages and timeout messages separately
+	srcMsgs := append(srcReflectMsgs, dstForwardMsgs...)
+	dstMsgs := append(dstReflectMsgs, srcForwardMsgs...)
+
 	return srcMsgs, dstMsgs, nil
 }
 
