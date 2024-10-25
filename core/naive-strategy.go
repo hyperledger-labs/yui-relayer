@@ -390,17 +390,17 @@ func processPackets(
 
 	logger := GetChannelLogger(chain)
 
-	header, err := chain.Prover.GetLatestFinalizedHeader()
+	cpheader, err := counterpartyChain.Prover.GetLatestFinalizedHeader()
 	if err != nil {
 		logger.Error("failed to get latest header", err)
 		return nil, nil, err
 	}
-	height := header.GetHeight()
+	cpheight := cpheader.GetHeight()
 	if err != nil {
 		logger.Error("failed to get latest height", err)
 		return nil, nil, err
 	}
-	timestamp, err := chain.Timestamp(height)
+	cptimestamp, err := counterpartyChain.Timestamp(cpheight)
 	if err != nil {
 		logger.Error("failed to get latest timestamp", err)
 		return nil, nil, err
@@ -412,11 +412,11 @@ func processPackets(
 	for _, p := range packets {
 		p.ValidateBasic()
 
-		if p.HasTimedOut(height, uint64(timestamp.UnixNano())) {
+		if p.HasTimedOut(cpheight, uint64(cptimestamp.UnixNano())) {
 			logger.Info("packet has timed out", "sequence", p.Sequence)
 
 			path := host.PacketReceiptPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
-			proof, proofHeight, err := counterpartyChain.PacketReceipt(counterpartyCtx, *p, height.GetRevisionHeight())
+			proof, proofHeight, err := counterpartyChain.PacketReceipt(counterpartyCtx, *p, cpheight.GetRevisionHeight())
 			if err != nil {
 				logger.Error("failed to ProveState (timeout package)", err,
 					"height", ctx.Height(),
