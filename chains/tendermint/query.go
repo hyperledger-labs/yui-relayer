@@ -527,7 +527,7 @@ func sendPacketQuery(channelID string, seq int) []string {
 }
 
 func recvPacketQuery(channelID string, seq int) []string {
-	return []string{fmt.Sprintf("%s.packet_src_channel='%s'", rpTag, channelID), fmt.Sprintf("%s.packet_sequence='%d'", rpTag, seq)}
+	return []string{fmt.Sprintf("%s.packet_dst_channel='%s'", rpTag, channelID), fmt.Sprintf("%s.packet_sequence='%d'", rpTag, seq)}
 }
 
 func writeAckQuery(channelID string, seq int) []string {
