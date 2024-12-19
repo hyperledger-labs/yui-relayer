@@ -16,7 +16,7 @@ require (
 	github.com/cosmos/gogoproto v1.4.11
 	github.com/cosmos/ibc-go/modules/capability v1.0.0
 	github.com/cosmos/ibc-go/v8 v8.2.1
-	github.com/datachainlab/ibc-mock-client v0.4.1
+	github.com/datachainlab/ibc-mock-client v0.4.2
 	github.com/prometheus/client_golang v1.20.5
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
