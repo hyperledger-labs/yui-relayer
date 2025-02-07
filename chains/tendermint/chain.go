@@ -404,7 +404,7 @@ func CalculateGas(
 	return simRes, uint64(txf.GasAdjustment() * float64(simRes.GasInfo.GasUsed)), nil
 }
 
-func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]core.MsgID, error) {
+func (c *Chain) SendMsgs(ctx context.Context, msgs []sdk.Msg) ([]core.MsgID, error) {
 	// Broadcast those bytes
 	res, err := c.sendMsgs(msgs)
 	if err != nil {
@@ -420,7 +420,7 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]core.MsgID, error) {
 	return msgIDs, nil
 }
 
-func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
+func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult, error) {
 	msgID, ok := id.(*MsgID)
 	if !ok {
 		return nil, fmt.Errorf("unexpected message id type: %T", id)

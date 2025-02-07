@@ -78,11 +78,11 @@ type Chain interface {
 	// SendMsgs sends msgs to the chain and waits for them to be included in blocks.
 	// This function returns err=nil only if all the msgs executed successfully at the blocks.
 	// It should be noted that the block is not finalized at that point and can be reverted afterwards.
-	SendMsgs(msgs []sdk.Msg) ([]MsgID, error)
+	SendMsgs(ctx context.Context, msgs []sdk.Msg) ([]MsgID, error)
 
 	// GetMsgResult returns the execution result of `sdk.Msg` specified by `MsgID`
 	// If the msg is not included in any block, this function waits for inclusion.
-	GetMsgResult(id MsgID) (MsgResult, error)
+	GetMsgResult(ctx context.Context, id MsgID) (MsgResult, error)
 
 	// RegisterMsgEventListener registers a given EventListener to the chain
 	RegisterMsgEventListener(MsgEventListener)

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -21,7 +22,7 @@ func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID) (MsgResult, error) 
 		}
 
 		// query MsgResult for each retry because it can be included in a different block because of reorg
-		msgRes, err = chain.GetMsgResult(msgID)
+		msgRes, err = chain.GetMsgResult(context.TODO(), msgID)
 		if err != nil {
 			return retry.Unrecoverable(fmt.Errorf("failed to get message result: %v", err))
 		} else if ok, failureReason := msgRes.Status(); !ok {

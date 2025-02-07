@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -78,7 +79,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			)}
 
 			// Submit the transactions to src chain and update its status
-			msgIDs, err := src.SendMsgs(msgs)
+			msgIDs, err := src.SendMsgs(context.TODO(), msgs)
 			if err != nil {
 				logger.Error("failed to send msgs", err)
 			} else {
@@ -105,7 +106,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			"side", "src",
 		)}
 
-		msgIDs, err := src.SendMsgs(msgs)
+		msgIDs, err := src.SendMsgs(context.TODO(), msgs)
 		if err != nil {
 			logger.Error("failed to send msgs", err)
 		} else {
@@ -141,7 +142,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			)}
 
 			// Submit the transaction to dst chain and update its status
-			msgIDs, err := dst.SendMsgs(msgs)
+			msgIDs, err := dst.SendMsgs(context.TODO(), msgs)
 			if err != nil {
 				logger.Error("failed to send msgs", err)
 			} else {
@@ -168,7 +169,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			"side", "dst",
 		)}
 
-		msgIDs, err := dst.SendMsgs(msgs)
+		msgIDs, err := dst.SendMsgs(context.TODO(), msgs)
 		if err != nil {
 			logger.Error("failed to send msgs", err)
 		} else {

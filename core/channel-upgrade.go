@@ -117,7 +117,7 @@ func InitChannelUpgrade(chain, cp *ProvableChain, upgradeFields chantypes.Upgrad
 
 	msg := chain.Path().ChanUpgradeInit(upgradeFields, addr)
 
-	if _, err := chain.SendMsgs([]sdk.Msg{msg}); err != nil {
+	if _, err := chain.SendMsgs(context.TODO(), []sdk.Msg{msg}); err != nil {
 		logger.Error("failed to send MsgChannelUpgradeInit", err)
 		return err
 	} else {
@@ -260,7 +260,7 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 		// NOTE: A call of SendMsgs for each msg is executed separately to avoid using multicall for eth.
 		//       This is just a workaround and should be fixed in the future.
 		for _, msg := range msgs {
-			if _, err := chain.SendMsgs([]sdk.Msg{msg}); err != nil {
+			if _, err := chain.SendMsgs(context.TODO(), []sdk.Msg{msg}); err != nil {
 				logger.Error("failed to send a msg to cancel the channel upgrade", err)
 				return err
 			}
