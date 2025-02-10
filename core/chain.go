@@ -113,7 +113,7 @@ type ChainInfo interface {
 // MsgEventListener is a listener that listens a msg send to the chain
 type MsgEventListener interface {
 	// OnSentMsg is a callback functoin that is called when a msg send to the chain
-	OnSentMsg(msgs []sdk.Msg) error
+	OnSentMsg(ctx context.Context, msgs []sdk.Msg) error
 }
 
 // IBCQuerier is an interface to the state of IBC

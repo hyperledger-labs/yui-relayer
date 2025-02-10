@@ -193,7 +193,7 @@ func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 
 	// call msgEventListener if needed
 	if c.msgEventListener != nil {
-		if err := c.msgEventListener.OnSentMsg(msgs); err != nil {
+		if err := c.msgEventListener.OnSentMsg(context.TODO(), msgs); err != nil {
 			logger.Error("failed to OnSendMsg call", err)
 			return res, nil
 		}
