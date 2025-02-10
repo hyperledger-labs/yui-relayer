@@ -1,6 +1,8 @@
 package signer
 
 import (
+	"context"
+
 	"github.com/cosmos/gogoproto/proto"
 )
 
@@ -11,6 +13,6 @@ type SignerConfig interface {
 }
 
 type Signer interface {
-	Sign(digest []byte) (signature []byte, err error)
-	GetPublicKey() ([]byte, error)
+	Sign(ctx context.Context, digest []byte) (signature []byte, err error)
+	GetPublicKey(ctx context.Context) ([]byte, error)
 }
