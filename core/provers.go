@@ -41,16 +41,16 @@ type LightClient interface {
 	// CreateInitialLightClientState returns a pair of ClientState and ConsensusState based on the state of the self chain at `height`.
 	// These states will be submitted to the counterparty chain as MsgCreateClient.
 	// If `height` is nil, the latest finalized height is selected automatically.
-	CreateInitialLightClientState(height exported.Height) (exported.ClientState, exported.ConsensusState, error)
+	CreateInitialLightClientState(ctx context.Context, height exported.Height) (exported.ClientState, exported.ConsensusState, error)
 
 	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 	// The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
 	// if the header slice's length == 0 and err == nil, the relayer should skips the update-client
-	SetupHeadersForUpdate(counterparty FinalityAwareChain, latestFinalizedHeader Header) ([]Header, error)
+	SetupHeadersForUpdate(ctx context.Context, counterparty FinalityAwareChain, latestFinalizedHeader Header) ([]Header, error)
 
 	// CheckRefreshRequired returns if the on-chain light client needs to be updated.
 	// For example, this requirement arises due to the trusting period mechanism.
-	CheckRefreshRequired(counterparty ChainInfoICS02Querier) (bool, error)
+	CheckRefreshRequired(ctx context.Context, counterparty ChainInfoICS02Querier) (bool, error)
 }
 
 // FinalityAware provides the capability to determine the finality of the chain

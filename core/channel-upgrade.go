@@ -219,7 +219,7 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 			continue
 		}
 
-		cpHeaders, err := cp.SetupHeadersForUpdate(chain, sh.GetLatestFinalizedHeader(cp.ChainID()))
+		cpHeaders, err := cp.SetupHeadersForUpdate(context.TODO(), chain, sh.GetLatestFinalizedHeader(cp.ChainID()))
 		if err != nil {
 			logger.Error("failed to set up headers for LC update", err)
 			return err

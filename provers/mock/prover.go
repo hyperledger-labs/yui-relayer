@@ -43,7 +43,7 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 }
 
 // CreateInitialLightClientState creates a pair of ClientState and ConsensusState for building MsgCreateClient submitted to the counterparty chain
-func (pr *Prover) CreateInitialLightClientState(height exported.Height) (exported.ClientState, exported.ConsensusState, error) {
+func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height exported.Height) (exported.ClientState, exported.ConsensusState, error) {
 	if head, err := pr.GetLatestFinalizedHeader(context.TODO()); err != nil {
 		return nil, nil, fmt.Errorf("failed to get the latest finalized header: %v", err)
 	} else if height == nil {
@@ -72,7 +72,7 @@ func (pr *Prover) CreateInitialLightClientState(height exported.Height) (exporte
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-func (pr *Prover) SetupHeadersForUpdate(_ core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
+func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	return []core.Header{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }
 
@@ -115,7 +115,7 @@ func (pr *Prover) GetLatestFinalizedHeader(context.Context) (core.Header, error)
 }
 
 // CheckRefreshRequired always returns false because mock clients don't need refresh.
-func (pr *Prover) CheckRefreshRequired(dst core.ChainInfoICS02Querier) (bool, error) {
+func (pr *Prover) CheckRefreshRequired(ctx context.Context, dst core.ChainInfoICS02Querier) (bool, error) {
 	return false, nil
 }
 
