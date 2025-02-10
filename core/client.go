@@ -20,7 +20,7 @@ func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 	}
 
 	getState := func(pc *ProvableChain) (*clienttypes.QueryClientStateResponse, error) {
-		latestHeight, err := pc.LatestHeight()
+		latestHeight, err := pc.LatestHeight(context.TODO())
 		if err != nil {
 			return nil, err
 		}

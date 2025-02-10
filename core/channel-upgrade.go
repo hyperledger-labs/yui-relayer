@@ -79,10 +79,10 @@ func InitChannelUpgrade(chain, cp *ProvableChain, upgradeFields chantypes.Upgrad
 	logger := GetChannelLogger(chain.Chain)
 	defer logger.TimeTrack(time.Now(), "InitChannelUpgrade")
 
-	if h, err := chain.LatestHeight(); err != nil {
+	if h, err := chain.LatestHeight(context.TODO()); err != nil {
 		logger.Error("failed to get the latest height", err)
 		return err
-	} else if cpH, err := cp.LatestHeight(); err != nil {
+	} else if cpH, err := cp.LatestHeight(context.TODO()); err != nil {
 		logger.Error("failed to get the latest height of the counterparty chain", err)
 		return err
 	} else if chann, cpChann, err := QueryChannelPair(
@@ -617,7 +617,7 @@ func queryCanTransitionToFlushComplete(chain interface {
 	ChainInfo
 	ICS04Querier
 }) (bool, error) {
-	if h, err := chain.LatestHeight(); err != nil {
+	if h, err := chain.LatestHeight(context.TODO()); err != nil {
 		return false, err
 	} else {
 		return chain.QueryCanTransitionToFlushComplete(NewQueryContext(context.TODO(), h))
@@ -648,13 +648,13 @@ func querySettledChannelUpgradePair(
 
 	// prepare QueryContext's based on the latest heights
 	var srcLatestCtx, dstLatestCtx QueryContext
-	if h, err := src.LatestHeight(); err != nil {
+	if h, err := src.LatestHeight(context.TODO()); err != nil {
 		logger.Error("failed to get the latest height of the src chain", err)
 		return nil, nil, false, err
 	} else {
 		srcLatestCtx = NewQueryContext(context.TODO(), h)
 	}
-	if h, err := dst.LatestHeight(); err != nil {
+	if h, err := dst.LatestHeight(context.TODO()); err != nil {
 		logger.Error("failed to get the latest height of the dst chain", err)
 		return nil, nil, false, err
 	} else {
@@ -712,7 +712,7 @@ func upgradeAlreadyTimedOut(
 	cpChanUpg *chantypes.QueryUpgradeResponse,
 ) (bool, error) {
 	height := ctx.Height().(clienttypes.Height)
-	timestamp, err := chain.Timestamp(height)
+	timestamp, err := chain.Timestamp(context.TODO(), height)
 	if err != nil {
 		return false, err
 	}

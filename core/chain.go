@@ -101,10 +101,10 @@ type ChainInfo interface {
 	//
 	// NOTE: The returned height does not have to be finalized.
 	// If a finalized height/header is required, the `Prover`'s `GetLatestFinalizedHeader` function should be called instead.
-	LatestHeight() (ibcexported.Height, error)
+	LatestHeight(ctx context.Context) (ibcexported.Height, error)
 
 	// Timestamp returns the block timestamp
-	Timestamp(ibcexported.Height) (time.Time, error)
+	Timestamp(ctx context.Context, height ibcexported.Height) (time.Time, error)
 
 	// AverageBlockTime returns the average time required for each new block to be committed
 	AverageBlockTime() time.Duration

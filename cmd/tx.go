@@ -81,7 +81,7 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			} else if height == 0 {
 				srcHeight = nil
-			} else if latestHeight, err := c[src].LatestHeight(); err != nil {
+			} else if latestHeight, err := c[src].LatestHeight(context.TODO()); err != nil {
 				return fmt.Errorf("failed to get the latest height of src chain: %v", err)
 			} else {
 				srcHeight = clienttypes.NewHeight(latestHeight.GetRevisionNumber(), height)
@@ -93,7 +93,7 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			} else if height == 0 {
 				dstHeight = nil
-			} else if latestHeight, err := c[dst].LatestHeight(); err != nil {
+			} else if latestHeight, err := c[dst].LatestHeight(context.TODO()); err != nil {
 				return fmt.Errorf("failed to get the latest height of dst chain: %v", err)
 			} else {
 				dstHeight = clienttypes.NewHeight(latestHeight.GetRevisionNumber(), height)

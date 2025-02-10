@@ -60,7 +60,7 @@ func (pr *Prover) CreateInitialLightClientState(height exported.Height) (exporte
 	}
 
 	var consensusState exported.ConsensusState
-	if timestamp, err := pr.chain.Timestamp(height); err != nil {
+	if timestamp, err := pr.chain.Timestamp(context.TODO(), height); err != nil {
 		return nil, nil, fmt.Errorf("get timestamp at height@%v: %v", height, err)
 	} else {
 		consensusState = &mocktypes.ConsensusState{
@@ -77,7 +77,7 @@ func (pr *Prover) SetupHeadersForUpdate(_ core.FinalityAwareChain, latestFinaliz
 }
 
 func (pr *Prover) createMockHeader(height exported.Height) (core.Header, error) {
-	timestamp, err := pr.chain.Timestamp(height)
+	timestamp, err := pr.chain.Timestamp(context.TODO(), height)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get block timestamp at height:%v", height)
 	}
@@ -91,7 +91,7 @@ func (pr *Prover) createMockHeader(height exported.Height) (core.Header, error) 
 }
 
 func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
-	height, err := pr.chain.LatestHeight()
+	height, err := pr.chain.LatestHeight(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest height: %v", err)
 	}

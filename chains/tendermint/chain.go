@@ -143,7 +143,7 @@ func (c *Chain) SetupForRelay(ctx context.Context) error {
 }
 
 // LatestHeight queries the chain for the latest height and returns it
-func (c *Chain) LatestHeight() (ibcexported.Height, error) {
+func (c *Chain) LatestHeight(ctx context.Context) (ibcexported.Height, error) {
 	res, err := c.Client.Status(context.Background())
 	if err != nil {
 		return nil, err
@@ -154,7 +154,7 @@ func (c *Chain) LatestHeight() (ibcexported.Height, error) {
 	return clienttypes.NewHeight(version, uint64(res.SyncInfo.LatestBlockHeight)), nil
 }
 
-func (c *Chain) Timestamp(height ibcexported.Height) (time.Time, error) {
+func (c *Chain) Timestamp(ctx context.Context, height ibcexported.Height) (time.Time, error) {
 	ht := int64(height.GetRevisionHeight())
 	if header, err := c.Client.Header(context.TODO(), &ht); err != nil {
 		return time.Time{}, err
@@ -280,7 +280,7 @@ func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 		// proofs of states updated up to height N are available.
 		// In order to make the proof of the state updated by a tx available just after `sendMsgs`,
 		// `waitForCommit` must wait until the latest height is greater than the tx height.
-		if height, err := c.LatestHeight(); err != nil {
+		if height, err := c.LatestHeight(context.TODO()); err != nil {
 			return fmt.Errorf("failed to obtain latest height: %v", err)
 		} else if height.GetRevisionHeight() <= uint64(resTx.Height) {
 			return fmt.Errorf("latest_height(%v) is less than or equal to tx_height(%v) yet", height, resTx.Height)

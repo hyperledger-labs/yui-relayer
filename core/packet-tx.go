@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -15,7 +16,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr string, t
 		timeoutTimestamp uint64
 	)
 
-	h, err := dst.LatestHeight()
+	h, err := dst.LatestHeight(context.TODO())
 	if err != nil {
 		return err
 	}

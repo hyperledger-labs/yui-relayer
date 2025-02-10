@@ -170,7 +170,7 @@ func (srv *RelayService) shouldExecuteRelay(seqs *RelayPackets) (bool, bool) {
 	dstRelay := false
 
 	if len(seqs.Src) > 0 {
-		tsDst, err := srv.src.Timestamp(seqs.Src[0].EventHeight)
+		tsDst, err := srv.src.Timestamp(context.TODO(), seqs.Src[0].EventHeight)
 		if err != nil {
 			return false, false
 		}
@@ -180,7 +180,7 @@ func (srv *RelayService) shouldExecuteRelay(seqs *RelayPackets) (bool, bool) {
 	}
 
 	if len(seqs.Dst) > 0 {
-		tsSrc, err := srv.dst.Timestamp(seqs.Dst[0].EventHeight)
+		tsSrc, err := srv.dst.Timestamp(context.TODO(), seqs.Dst[0].EventHeight)
 		if err != nil {
 			return false, false
 		}

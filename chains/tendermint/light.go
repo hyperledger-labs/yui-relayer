@@ -108,14 +108,14 @@ func (pr *Prover) LightClientWithoutTrust(db dbm.DB) (*light.Client, error) {
 	prov := pr.LightHTTP()
 
 	if err := retry.Do(func() error {
-		h, err := pr.chain.LatestHeight()
+		h, err := pr.chain.LatestHeight(context.TODO())
 		switch {
 		case err != nil:
 			return err
 		case h.GetRevisionHeight() == 0:
 			return fmt.Errorf("shouldn't be here")
 		default:
-			t, err := pr.chain.Timestamp(h)
+			t, err := pr.chain.Timestamp(context.TODO(), h)
 			if err != nil {
 				return err
 			}

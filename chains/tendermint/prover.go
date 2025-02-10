@@ -96,7 +96,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 	tmp := latestFinalizedHeader.(*tmclient.Header)
 	h := *tmp
 
-	cph, err := counterparty.LatestHeight()
+	cph, err := counterparty.LatestHeight(context.TODO())
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (core.Header, er
 }
 
 func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) (bool, error) {
-	cpQueryHeight, err := counterparty.LatestHeight()
+	cpQueryHeight, err := counterparty.LatestHeight(context.TODO())
 	if err != nil {
 		return false, fmt.Errorf("failed to get the latest height of the counterparty chain: %v", err)
 	}
@@ -159,12 +159,12 @@ func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) 
 	}
 	lcLastTimestamp := time.Unix(0, int64(cons.GetTimestamp()))
 
-	selfQueryHeight, err := pr.chain.LatestHeight()
+	selfQueryHeight, err := pr.chain.LatestHeight(context.TODO())
 	if err != nil {
 		return false, fmt.Errorf("failed to get the latest height of the self chain: %v", err)
 	}
 
-	selfTimestamp, err := pr.chain.Timestamp(selfQueryHeight)
+	selfTimestamp, err := pr.chain.Timestamp(context.TODO(), selfQueryHeight)
 	if err != nil {
 		return false, fmt.Errorf("failed to get timestamp of the self chain: %v", err)
 	}
