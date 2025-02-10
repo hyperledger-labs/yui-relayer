@@ -44,7 +44,7 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 
 // CreateInitialLightClientState creates a pair of ClientState and ConsensusState for building MsgCreateClient submitted to the counterparty chain
 func (pr *Prover) CreateInitialLightClientState(height exported.Height) (exported.ClientState, exported.ConsensusState, error) {
-	if head, err := pr.GetLatestFinalizedHeader(); err != nil {
+	if head, err := pr.GetLatestFinalizedHeader(context.TODO()); err != nil {
 		return nil, nil, fmt.Errorf("failed to get the latest finalized header: %v", err)
 	} else if height == nil {
 		height = head.GetHeight()
@@ -106,7 +106,7 @@ func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (core.Header, error) {
+func (pr *Prover) GetLatestFinalizedHeader(context.Context) (core.Header, error) {
 	if latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight(); err != nil {
 		return nil, err
 	} else {

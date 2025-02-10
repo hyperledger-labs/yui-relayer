@@ -57,7 +57,7 @@ type LightClient interface {
 type FinalityAware interface {
 	// GetLatestFinalizedHeader returns the latest finalized header on this chain
 	// The returned header is expected to be the latest one of headers that can be verified by the light client
-	GetLatestFinalizedHeader() (latestFinalizedHeader Header, err error)
+	GetLatestFinalizedHeader(ctx context.Context) (latestFinalizedHeader Header, err error)
 }
 
 // FinalityAwareChain is FinalityAware + Chain

@@ -127,7 +127,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (core.Header, error) {
+func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (core.Header, error) {
 	return pr.UpdateLightClient(0)
 }
 

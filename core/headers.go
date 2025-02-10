@@ -77,12 +77,12 @@ func (sh *syncHeaders) Updates(src, dst ChainInfoLightClient) error {
 		return err
 	}
 
-	srcHeader, err := src.GetLatestFinalizedHeader()
+	srcHeader, err := src.GetLatestFinalizedHeader(context.TODO())
 	if err != nil {
 		logger.Error("error getting latest finalized header of src", err)
 		return err
 	}
-	dstHeader, err := dst.GetLatestFinalizedHeader()
+	dstHeader, err := dst.GetLatestFinalizedHeader(context.TODO())
 	if err != nil {
 		logger.Error("error getting latest finalized header of dst", err)
 		return err
