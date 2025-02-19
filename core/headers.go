@@ -77,12 +77,12 @@ func (sh *syncHeaders) Updates(src, dst ChainInfoLightClient) error {
 		return err
 	}
 
-	srcHeader, err := src.GetLatestFinalizedHeader()
+	srcHeader, err := src.GetLatestFinalizedHeader(context.TODO())
 	if err != nil {
 		logger.Error("error getting latest finalized header of src", err)
 		return err
 	}
-	dstHeader, err := dst.GetLatestFinalizedHeader()
+	dstHeader, err := dst.GetLatestFinalizedHeader(context.TODO())
 	if err != nil {
 		logger.Error("error getting latest finalized header of dst", err)
 		return err
@@ -128,7 +128,7 @@ func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainLightClient) ([]Header
 		logger.Error("error ensuring different chains", err)
 		return nil, err
 	}
-	return src.SetupHeadersForUpdate(dst, sh.GetLatestFinalizedHeader(src.ChainID()))
+	return src.SetupHeadersForUpdate(context.TODO(), dst, sh.GetLatestFinalizedHeader(src.ChainID()))
 }
 
 // SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers to update the clients on each chain

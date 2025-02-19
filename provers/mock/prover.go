@@ -43,8 +43,8 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 }
 
 // CreateInitialLightClientState creates a pair of ClientState and ConsensusState for building MsgCreateClient submitted to the counterparty chain
-func (pr *Prover) CreateInitialLightClientState(height exported.Height) (exported.ClientState, exported.ConsensusState, error) {
-	if head, err := pr.GetLatestFinalizedHeader(); err != nil {
+func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height exported.Height) (exported.ClientState, exported.ConsensusState, error) {
+	if head, err := pr.GetLatestFinalizedHeader(context.TODO()); err != nil {
 		return nil, nil, fmt.Errorf("failed to get the latest finalized header: %v", err)
 	} else if height == nil {
 		height = head.GetHeight()
@@ -60,7 +60,7 @@ func (pr *Prover) CreateInitialLightClientState(height exported.Height) (exporte
 	}
 
 	var consensusState exported.ConsensusState
-	if timestamp, err := pr.chain.Timestamp(height); err != nil {
+	if timestamp, err := pr.chain.Timestamp(context.TODO(), height); err != nil {
 		return nil, nil, fmt.Errorf("get timestamp at height@%v: %v", height, err)
 	} else {
 		consensusState = &mocktypes.ConsensusState{
@@ -72,12 +72,12 @@ func (pr *Prover) CreateInitialLightClientState(height exported.Height) (exporte
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-func (pr *Prover) SetupHeadersForUpdate(_ core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
+func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	return []core.Header{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }
 
 func (pr *Prover) createMockHeader(height exported.Height) (core.Header, error) {
-	timestamp, err := pr.chain.Timestamp(height)
+	timestamp, err := pr.chain.Timestamp(context.TODO(), height)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get block timestamp at height:%v", height)
 	}
@@ -91,7 +91,7 @@ func (pr *Prover) createMockHeader(height exported.Height) (core.Header, error) 
 }
 
 func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
-	height, err := pr.chain.LatestHeight()
+	height, err := pr.chain.LatestHeight(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest height: %v", err)
 	}
@@ -106,7 +106,7 @@ func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (core.Header, error) {
+func (pr *Prover) GetLatestFinalizedHeader(context.Context) (core.Header, error) {
 	if latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight(); err != nil {
 		return nil, err
 	} else {
@@ -115,7 +115,7 @@ func (pr *Prover) GetLatestFinalizedHeader() (core.Header, error) {
 }
 
 // CheckRefreshRequired always returns false because mock clients don't need refresh.
-func (pr *Prover) CheckRefreshRequired(dst core.ChainInfoICS02Querier) (bool, error) {
+func (pr *Prover) CheckRefreshRequired(ctx context.Context, dst core.ChainInfoICS02Querier) (bool, error) {
 	return false, nil
 }
 

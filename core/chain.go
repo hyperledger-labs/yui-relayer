@@ -78,11 +78,11 @@ type Chain interface {
 	// SendMsgs sends msgs to the chain and waits for them to be included in blocks.
 	// This function returns err=nil only if all the msgs executed successfully at the blocks.
 	// It should be noted that the block is not finalized at that point and can be reverted afterwards.
-	SendMsgs(msgs []sdk.Msg) ([]MsgID, error)
+	SendMsgs(ctx context.Context, msgs []sdk.Msg) ([]MsgID, error)
 
 	// GetMsgResult returns the execution result of `sdk.Msg` specified by `MsgID`
 	// If the msg is not included in any block, this function waits for inclusion.
-	GetMsgResult(id MsgID) (MsgResult, error)
+	GetMsgResult(ctx context.Context, id MsgID) (MsgResult, error)
 
 	// RegisterMsgEventListener registers a given EventListener to the chain
 	RegisterMsgEventListener(MsgEventListener)
@@ -101,10 +101,10 @@ type ChainInfo interface {
 	//
 	// NOTE: The returned height does not have to be finalized.
 	// If a finalized height/header is required, the `Prover`'s `GetLatestFinalizedHeader` function should be called instead.
-	LatestHeight() (ibcexported.Height, error)
+	LatestHeight(ctx context.Context) (ibcexported.Height, error)
 
 	// Timestamp returns the block timestamp
-	Timestamp(ibcexported.Height) (time.Time, error)
+	Timestamp(ctx context.Context, height ibcexported.Height) (time.Time, error)
 
 	// AverageBlockTime returns the average time required for each new block to be committed
 	AverageBlockTime() time.Duration
@@ -113,7 +113,7 @@ type ChainInfo interface {
 // MsgEventListener is a listener that listens a msg send to the chain
 type MsgEventListener interface {
 	// OnSentMsg is a callback functoin that is called when a msg send to the chain
-	OnSentMsg(msgs []sdk.Msg) error
+	OnSentMsg(ctx context.Context, msgs []sdk.Msg) error
 }
 
 // IBCQuerier is an interface to the state of IBC

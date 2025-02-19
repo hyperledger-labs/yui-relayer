@@ -87,7 +87,7 @@ func checkChannelCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 			return chantypes.UNINITIALIZED, nil
 		}
 
-		latestHeight, err := pc.LatestHeight()
+		latestHeight, err := pc.LatestHeight(context.TODO())
 		if err != nil {
 			return chantypes.UNINITIALIZED, err
 		}
@@ -268,13 +268,13 @@ func querySettledChannelPair(
 	}
 
 	var srcLatestCtx, dstLatestCtx QueryContext
-	if h, err := src.LatestHeight(); err != nil {
+	if h, err := src.LatestHeight(context.TODO()); err != nil {
 		logger.Error("failed to get the latest height of the src chain", err)
 		return nil, nil, false, err
 	} else {
 		srcLatestCtx = NewQueryContext(context.TODO(), h)
 	}
-	if h, err := dst.LatestHeight(); err != nil {
+	if h, err := dst.LatestHeight(context.TODO()); err != nil {
 		logger.Error("failed to get the latest height of the dst chain", err)
 		return nil, nil, false, err
 	} else {

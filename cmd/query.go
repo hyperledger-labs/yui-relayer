@@ -56,7 +56,7 @@ func queryClientCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			latestHeight, err := c.LatestHeight()
+			latestHeight, err := c.LatestHeight(context.TODO())
 			if err != nil {
 				return err
 			}
@@ -98,7 +98,7 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			latestHeight, err := c.LatestHeight()
+			latestHeight, err := c.LatestHeight(context.TODO())
 			if err != nil {
 				return err
 			}
@@ -136,7 +136,7 @@ func queryChannel(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			latestHeight, err := c.LatestHeight()
+			latestHeight, err := c.LatestHeight(context.TODO())
 			if err != nil {
 				return err
 			}
@@ -175,7 +175,7 @@ func queryChannelUpgrade(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			latestHeight, err := c.LatestHeight()
+			latestHeight, err := c.LatestHeight(context.TODO())
 			if err != nil {
 				return err
 			}
@@ -221,7 +221,7 @@ func queryBalanceCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			h, err := chain.LatestHeight()
+			h, err := chain.LatestHeight(context.TODO())
 			if err != nil {
 				return err
 			}

@@ -152,7 +152,7 @@ func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableC
 		if msgID == nil {
 			continue
 		}
-		msgRes, err := chain.Chain.GetMsgResult(msgID)
+		msgRes, err := chain.Chain.GetMsgResult(context.TODO(), msgID)
 		if err != nil {
 			return fmt.Errorf("failed to get message result: %v", err)
 		} else if ok, failureReason := msgRes.Status(); !ok {

@@ -63,7 +63,7 @@ func (pr *Prover) ProveHostConsensusState(ctx core.QueryContext, height ibcexpor
 /* LightClient implementation */
 
 // CreateInitialLightClientState creates a pair of ClientState and ConsensusState submitted to the counterparty chain as MsgCreateClient
-func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibcexported.ClientState, ibcexported.ConsensusState, error) {
+func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height ibcexported.Height) (ibcexported.ClientState, ibcexported.ConsensusState, error) {
 	var tmHeight int64
 	if height != nil {
 		tmHeight = int64(height.GetRevisionHeight())
@@ -90,13 +90,13 @@ func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibce
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
+func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	self := pr.chain
 	// make copy of header stored in mop
 	tmp := latestFinalizedHeader.(*tmclient.Header)
 	h := *tmp
 
-	cph, err := counterparty.LatestHeight()
+	cph, err := counterparty.LatestHeight(context.TODO())
 	if err != nil {
 		return nil, err
 	}
@@ -127,12 +127,12 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader() (core.Header, error) {
+func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (core.Header, error) {
 	return pr.UpdateLightClient(0)
 }
 
-func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) (bool, error) {
-	cpQueryHeight, err := counterparty.LatestHeight()
+func (pr *Prover) CheckRefreshRequired(ctx context.Context, counterparty core.ChainInfoICS02Querier) (bool, error) {
+	cpQueryHeight, err := counterparty.LatestHeight(context.TODO())
 	if err != nil {
 		return false, fmt.Errorf("failed to get the latest height of the counterparty chain: %v", err)
 	}
@@ -159,12 +159,12 @@ func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) 
 	}
 	lcLastTimestamp := time.Unix(0, int64(cons.GetTimestamp()))
 
-	selfQueryHeight, err := pr.chain.LatestHeight()
+	selfQueryHeight, err := pr.chain.LatestHeight(context.TODO())
 	if err != nil {
 		return false, fmt.Errorf("failed to get the latest height of the self chain: %v", err)
 	}
 
-	selfTimestamp, err := pr.chain.Timestamp(selfQueryHeight)
+	selfTimestamp, err := pr.chain.Timestamp(context.TODO(), selfQueryHeight)
 	if err != nil {
 		return false, fmt.Errorf("failed to get timestamp of the self chain: %v", err)
 	}

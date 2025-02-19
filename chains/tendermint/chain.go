@@ -143,7 +143,7 @@ func (c *Chain) SetupForRelay(ctx context.Context) error {
 }
 
 // LatestHeight queries the chain for the latest height and returns it
-func (c *Chain) LatestHeight() (ibcexported.Height, error) {
+func (c *Chain) LatestHeight(ctx context.Context) (ibcexported.Height, error) {
 	res, err := c.Client.Status(context.Background())
 	if err != nil {
 		return nil, err
@@ -154,7 +154,7 @@ func (c *Chain) LatestHeight() (ibcexported.Height, error) {
 	return clienttypes.NewHeight(version, uint64(res.SyncInfo.LatestBlockHeight)), nil
 }
 
-func (c *Chain) Timestamp(height ibcexported.Height) (time.Time, error) {
+func (c *Chain) Timestamp(ctx context.Context, height ibcexported.Height) (time.Time, error) {
 	ht := int64(height.GetRevisionHeight())
 	if header, err := c.Client.Header(context.TODO(), &ht); err != nil {
 		return time.Time{}, err
@@ -193,7 +193,7 @@ func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 
 	// call msgEventListener if needed
 	if c.msgEventListener != nil {
-		if err := c.msgEventListener.OnSentMsg(msgs); err != nil {
+		if err := c.msgEventListener.OnSentMsg(context.TODO(), msgs); err != nil {
 			logger.Error("failed to OnSendMsg call", err)
 			return res, nil
 		}
@@ -280,7 +280,7 @@ func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 		// proofs of states updated up to height N are available.
 		// In order to make the proof of the state updated by a tx available just after `sendMsgs`,
 		// `waitForCommit` must wait until the latest height is greater than the tx height.
-		if height, err := c.LatestHeight(); err != nil {
+		if height, err := c.LatestHeight(context.TODO()); err != nil {
 			return fmt.Errorf("failed to obtain latest height: %v", err)
 		} else if height.GetRevisionHeight() <= uint64(resTx.Height) {
 			return fmt.Errorf("latest_height(%v) is less than or equal to tx_height(%v) yet", height, resTx.Height)
@@ -404,7 +404,7 @@ func CalculateGas(
 	return simRes, uint64(txf.GasAdjustment() * float64(simRes.GasInfo.GasUsed)), nil
 }
 
-func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]core.MsgID, error) {
+func (c *Chain) SendMsgs(ctx context.Context, msgs []sdk.Msg) ([]core.MsgID, error) {
 	// Broadcast those bytes
 	res, err := c.sendMsgs(msgs)
 	if err != nil {
@@ -420,7 +420,7 @@ func (c *Chain) SendMsgs(msgs []sdk.Msg) ([]core.MsgID, error) {
 	return msgIDs, nil
 }
 
-func (c *Chain) GetMsgResult(id core.MsgID) (core.MsgResult, error) {
+func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult, error) {
 	msgID, ok := id.(*MsgID)
 	if !ok {
 		return nil, fmt.Errorf("unexpected message id type: %T", id)

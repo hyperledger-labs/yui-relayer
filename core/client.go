@@ -20,7 +20,7 @@ func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 	}
 
 	getState := func(pc *ProvableChain) (*clienttypes.QueryClientStateResponse, error) {
-		latestHeight, err := pc.LatestHeight()
+		latestHeight, err := pc.LatestHeight(context.TODO())
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +85,7 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 			return err
 		}
 
-		cs, cons, err := dst.CreateInitialLightClientState(dstHeight)
+		cs, cons, err := dst.CreateInitialLightClientState(context.TODO(), dstHeight)
 		if err != nil {
 			logger.Error("failed to create initial light client state", err)
 			return err
@@ -107,7 +107,7 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 			return err
 		}
 
-		cs, cons, err := src.CreateInitialLightClientState(srcHeight)
+		cs, cons, err := src.CreateInitialLightClientState(context.TODO(), srcHeight)
 		if err != nil {
 			logger.Error("failed to create initial light client state", err)
 			return err

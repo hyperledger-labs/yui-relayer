@@ -69,7 +69,7 @@ func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bo
 	if useFinalizedHeader {
 		return sh.GetQueryContext(chain.ChainID()), nil
 	} else {
-		height, err := chain.LatestHeight()
+		height, err := chain.LatestHeight(context.TODO())
 		if err != nil {
 			return nil, err
 		}
@@ -506,14 +506,14 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 	// check if LC refresh is needed
 	if !needsUpdateForSrc && doRefresh {
 		var err error
-		needsUpdateForSrc, err = dst.CheckRefreshRequired(src)
+		needsUpdateForSrc, err = dst.CheckRefreshRequired(context.TODO(), src)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if the LC on the src chain needs to be refreshed: %v", err)
 		}
 	}
 	if !needsUpdateForDst && doRefresh {
 		var err error
-		needsUpdateForDst, err = src.CheckRefreshRequired(dst)
+		needsUpdateForDst, err = src.CheckRefreshRequired(context.TODO(), dst)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if the LC on the dst chain needs to be refreshed: %v", err)
 		}
@@ -585,7 +585,7 @@ func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, d
 
 	if len(newSrcBacklog) > 0 {
 		oldestHeight := newSrcBacklog[0].EventHeight
-		oldestTimestamp, err := src.Timestamp(oldestHeight)
+		oldestTimestamp, err := src.Timestamp(context.TODO(), oldestHeight)
 		if err != nil {
 			return fmt.Errorf("failed to get the timestamp of block[%d] on the src chain: %v", oldestHeight, err)
 		}
@@ -595,7 +595,7 @@ func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, d
 	}
 	if len(newDstBacklog) > 0 {
 		oldestHeight := newDstBacklog[0].EventHeight
-		oldestTimestamp, err := dst.Timestamp(oldestHeight)
+		oldestTimestamp, err := dst.Timestamp(context.TODO(), oldestHeight)
 		if err != nil {
 			return fmt.Errorf("failed to get the timestamp of block[%d] on the dst chain: %v", oldestHeight, err)
 		}

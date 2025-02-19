@@ -96,7 +96,7 @@ func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger
 			return conntypes.UNINITIALIZED, nil
 		}
 
-		latestHeight, err := pc.LatestHeight()
+		latestHeight, err := pc.LatestHeight(context.TODO())
 		if err != nil {
 			return conntypes.UNINITIALIZED, err
 		}
@@ -351,13 +351,13 @@ func querySettledConnectionPair(
 	}
 
 	var srcLatestCtx, dstLatestCtx QueryContext
-	if h, err := src.LatestHeight(); err != nil {
+	if h, err := src.LatestHeight(context.TODO()); err != nil {
 		logger.Error("failed to get the latest height of the src chain", err)
 		return nil, nil, false, err
 	} else {
 		srcLatestCtx = NewQueryContext(context.TODO(), h)
 	}
-	if h, err := dst.LatestHeight(); err != nil {
+	if h, err := dst.LatestHeight(context.TODO()); err != nil {
 		logger.Error("failed to get the latest height of the dst chain", err)
 		return nil, nil, false, err
 	} else {
