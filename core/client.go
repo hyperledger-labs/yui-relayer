@@ -123,7 +123,7 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 	// Send msgs to both chains
 	if clients.Ready() {
 		// TODO: Add retry here for out of gas or other errors
-		clients.Send(src, dst)
+		clients.Send(context.TODO(), src, dst)
 		if clients.Success() {
 			logger.Info(
 				"★ Clients created",
@@ -167,7 +167,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 	}
 	// Send msgs to both chains
 	if clients.Ready() {
-		if clients.Send(src, dst); clients.Success() {
+		if clients.Send(context.TODO(), src, dst); clients.Success() {
 			logger.Info(
 				"★ Clients updated",
 			)

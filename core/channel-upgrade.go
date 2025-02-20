@@ -161,7 +161,7 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 			continue
 		}
 
-		steps.Send(src, dst)
+		steps.Send(context.TODO(), src, dst)
 
 		if steps.Success() {
 			if err := SyncChainConfigsFromEvents(pathName, steps.SrcMsgIDs, steps.DstMsgIDs, src, dst); err != nil {

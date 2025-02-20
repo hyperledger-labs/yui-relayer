@@ -172,10 +172,10 @@ func (c *Chain) RegisterMsgEventListener(listener core.MsgEventListener) {
 	c.msgEventListener = listener
 }
 
-func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
+func (c *Chain) sendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxResponse, error) {
 	logger := GetChainLogger()
 	// broadcast tx
-	res, _, err := c.rawSendMsgs(msgs)
+	res, _, err := c.rawSendMsgs(ctx, msgs)
 	if err != nil {
 		return nil, err
 	} else if res.Code != 0 {
@@ -184,7 +184,7 @@ func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 	}
 
 	// wait for tx being committed
-	if resTx, err := c.waitForCommit(res.TxHash); err != nil {
+	if resTx, err := c.waitForCommit(ctx, res.TxHash); err != nil {
 		return nil, err
 	} else if resTx.TxResult.IsErr() {
 		// DeliverTx failed
@@ -193,7 +193,7 @@ func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 
 	// call msgEventListener if needed
 	if c.msgEventListener != nil {
-		if err := c.msgEventListener.OnSentMsg(context.TODO(), msgs); err != nil {
+		if err := c.msgEventListener.OnSentMsg(ctx, msgs); err != nil {
 			logger.Error("failed to OnSendMsg call", err)
 			return res, nil
 		}
@@ -202,12 +202,15 @@ func (c *Chain) sendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 	return res, nil
 }
 
-func (c *Chain) rawSendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
+func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
 	// Instantiate the client context
-	ctx := c.CLIContext(0)
+	// NOTE: Although cosmos-sdk does not currently use CmdContext in Context.QueryWithData,
+	//   set ctx to clientCtx in case cosmos-sdk uses it in the future.
+	//   (cf. https://github.com/cosmos/cosmos-sdk/blob/v0.50.5/client/query.go#L98, https://github.com/cosmos/cosmos-sdk/blob/v0.50.5/x/auth/types/account_retriever.go#L39, etc.)
+	clientCtx := c.CLIContext(0).WithCmdContext(ctx)
 
 	// Query account details
-	txf, err := prepareFactory(ctx, c.TxFactory(0))
+	txf, err := prepareFactory(clientCtx, c.TxFactory(0))
 	if err != nil {
 		return nil, false, err
 	}
@@ -215,7 +218,7 @@ func (c *Chain) rawSendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
 	// TODO: Make this work with new CalculateGas method
 	// https://github.com/cosmos/cosmos-sdk/blob/5725659684fc93790a63981c653feee33ecf3225/client/tx/tx.go#L297
 	// If users pass gas adjustment, then calculate gas
-	_, adjusted, err := CalculateGas(ctx.QueryWithData, txf, msgs...)
+	_, adjusted, err := CalculateGas(clientCtx.QueryWithData, txf, msgs...)
 	if err != nil {
 		return nil, false, err
 	}
@@ -230,19 +233,19 @@ func (c *Chain) rawSendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
 	}
 
 	// Attach the signature to the transaction
-	err = tx.Sign(context.TODO(), txf, c.config.Key, txb, false)
+	err = tx.Sign(ctx, txf, c.config.Key, txb, false)
 	if err != nil {
 		return nil, false, err
 	}
 
 	// Generate the transaction bytes
-	txBytes, err := ctx.TxConfig.TxEncoder()(txb.GetTx())
+	txBytes, err := clientCtx.TxConfig.TxEncoder()(txb.GetTx())
 	if err != nil {
 		return nil, false, err
 	}
 
 	// Broadcast those bytes
-	res, err := ctx.BroadcastTx(txBytes)
+	res, err := clientCtx.BroadcastTx(txBytes)
 	if err != nil {
 		return nil, false, err
 	}
@@ -259,7 +262,7 @@ func (c *Chain) rawSendMsgs(msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
 	return res, true, nil
 }
 
-func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
+func (c *Chain) waitForCommit(ctx context.Context, txHash string) (*coretypes.ResultTx, error) {
 	var resTx *coretypes.ResultTx
 
 	retryInterval := c.AverageBlockTime()
@@ -268,7 +271,7 @@ func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 	if err := retry.Do(func() error {
 		var err error
 		var recoverable bool
-		resTx, recoverable, err = c.rawQueryTx(txHash)
+		resTx, recoverable, err = c.rawQueryTx(ctx, txHash)
 		if err != nil {
 			if recoverable {
 				return err
@@ -280,13 +283,13 @@ func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 		// proofs of states updated up to height N are available.
 		// In order to make the proof of the state updated by a tx available just after `sendMsgs`,
 		// `waitForCommit` must wait until the latest height is greater than the tx height.
-		if height, err := c.LatestHeight(context.TODO()); err != nil {
+		if height, err := c.LatestHeight(ctx); err != nil {
 			return fmt.Errorf("failed to obtain latest height: %v", err)
 		} else if height.GetRevisionHeight() <= uint64(resTx.Height) {
 			return fmt.Errorf("latest_height(%v) is less than or equal to tx_height(%v) yet", height, resTx.Height)
 		}
 		return nil
-	}, retry.Attempts(maxRetry), retry.Delay(retryInterval), rtyErr); err != nil {
+	}, retry.Context(ctx), retry.Attempts(maxRetry), retry.Delay(retryInterval), rtyErr); err != nil {
 		return resTx, fmt.Errorf("failed to make sure that tx is committed: %v", err)
 	}
 
@@ -295,20 +298,20 @@ func (c *Chain) waitForCommit(txHash string) (*coretypes.ResultTx, error) {
 
 // rawQueryTx returns a tx of which hash equals to `hexTxHash`.
 // If the RPC is successful but the tx is not found, this returns nil with nil error.
-func (c *Chain) rawQueryTx(hexTxHash string) (*coretypes.ResultTx, bool, error) {
-	ctx := c.CLIContext(0)
+func (c *Chain) rawQueryTx(ctx context.Context, hexTxHash string) (*coretypes.ResultTx, bool, error) {
+	clientCtx := c.CLIContext(0).WithCmdContext(ctx)
 
 	txHash, err := hex.DecodeString(hexTxHash)
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to decode the hex string of tx hash: %v", err)
 	}
 
-	node, err := ctx.GetNode()
+	node, err := clientCtx.GetNode()
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to get node: %v", err)
 	}
 
-	resTx, err := node.Tx(context.TODO(), txHash, false)
+	resTx, err := node.Tx(ctx, txHash, false)
 	if err != nil {
 		recoverable := !strings.Contains(err.Error(), "transaction indexing is disabled")
 		return nil, recoverable, fmt.Errorf("failed to retrieve tx: %v", err)
@@ -406,7 +409,7 @@ func CalculateGas(
 
 func (c *Chain) SendMsgs(ctx context.Context, msgs []sdk.Msg) ([]core.MsgID, error) {
 	// Broadcast those bytes
-	res, err := c.sendMsgs(msgs)
+	res, err := c.sendMsgs(ctx, msgs)
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +430,7 @@ func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult
 	}
 
 	// find tx
-	resTx, err := c.waitForCommit(msgID.TxHash)
+	resTx, err := c.waitForCommit(ctx, msgID.TxHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query tx: %v", err)
 	}

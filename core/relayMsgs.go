@@ -47,7 +47,7 @@ func (r *RelayMsgs) IsMaxTx(msgLen, txSize uint64) bool {
 
 // Send sends the messages with appropriate output
 // TODO: Parallelize? Maybe?
-func (r *RelayMsgs) Send(src, dst Chain) {
+func (r *RelayMsgs) Send(ctx context.Context, src, dst Chain) {
 	logger := GetChannelPairLogger(src, dst)
 	//nolint:prealloc // can not be pre allocated
 	var (
@@ -79,7 +79,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			)}
 
 			// Submit the transactions to src chain and update its status
-			msgIDs, err := src.SendMsgs(context.TODO(), msgs)
+			msgIDs, err := src.SendMsgs(ctx, msgs)
 			if err != nil {
 				logger.Error("failed to send msgs", err)
 			} else {
@@ -106,7 +106,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			"side", "src",
 		)}
 
-		msgIDs, err := src.SendMsgs(context.TODO(), msgs)
+		msgIDs, err := src.SendMsgs(ctx, msgs)
 		if err != nil {
 			logger.Error("failed to send msgs", err)
 		} else {
@@ -142,7 +142,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			)}
 
 			// Submit the transaction to dst chain and update its status
-			msgIDs, err := dst.SendMsgs(context.TODO(), msgs)
+			msgIDs, err := dst.SendMsgs(ctx, msgs)
 			if err != nil {
 				logger.Error("failed to send msgs", err)
 			} else {
@@ -169,7 +169,7 @@ func (r *RelayMsgs) Send(src, dst Chain) {
 			"side", "dst",
 		)}
 
-		msgIDs, err := dst.SendMsgs(context.TODO(), msgs)
+		msgIDs, err := dst.SendMsgs(ctx, msgs)
 		if err != nil {
 			logger.Error("failed to send msgs", err)
 		} else {

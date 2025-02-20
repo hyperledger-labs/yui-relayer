@@ -41,7 +41,7 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 			continue
 		}
 
-		chanSteps.Send(src, dst)
+		chanSteps.Send(context.TODO(), src, dst)
 
 		if chanSteps.Success() {
 			// In the case of success, synchronize the config file from generated channel identifiers

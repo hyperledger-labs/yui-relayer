@@ -49,7 +49,7 @@ func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration
 			continue
 		}
 
-		connSteps.Send(src, dst)
+		connSteps.Send(context.TODO(), src, dst)
 
 		if connSteps.Success() {
 			// In the case of success, synchronize the config file from generated connection identifiers.

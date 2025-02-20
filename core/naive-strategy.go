@@ -562,7 +562,7 @@ func (st *NaiveStrategy) Send(src, dst Chain, msgs *RelayMsgs) {
 
 	msgs.MaxTxSize = st.MaxTxSize
 	msgs.MaxMsgLength = st.MaxMsgLength
-	msgs.Send(src, dst)
+	msgs.Send(context.TODO(), src, dst)
 
 	logger.Info("msgs relayed",
 		slog.Group("src", "msg_count", len(msgs.Src)),

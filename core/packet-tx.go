@@ -52,7 +52,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr string, t
 		Dst: []sdk.Msg{},
 	}
 
-	if txs.Send(src, dst); !txs.Success() {
+	if txs.Send(context.TODO(), src, dst); !txs.Success() {
 		err := fmt.Errorf("failed to send transfer message")
 		logger.Error(err.Error(), err)
 		return err
