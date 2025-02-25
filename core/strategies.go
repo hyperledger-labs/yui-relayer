@@ -31,7 +31,7 @@ type StrategyI interface {
 	UpdateClients(src, dst *ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error)
 
 	// Send executes submission of msgs to src/dst chains
-	Send(src, dst Chain, msgs *RelayMsgs)
+	Send(ctx context.Context, src, dst Chain, msgs *RelayMsgs)
 }
 
 // StrategyCfg defines which relaying strategy to take for a given path

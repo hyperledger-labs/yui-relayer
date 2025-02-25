@@ -557,12 +557,12 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 	return msgs, nil
 }
 
-func (st *NaiveStrategy) Send(src, dst Chain, msgs *RelayMsgs) {
+func (st *NaiveStrategy) Send(ctx context.Context, src, dst Chain, msgs *RelayMsgs) {
 	logger := GetChannelPairLogger(src, dst)
 
 	msgs.MaxTxSize = st.MaxTxSize
 	msgs.MaxMsgLength = st.MaxMsgLength
-	msgs.Send(context.TODO(), src, dst)
+	msgs.Send(ctx, src, dst)
 
 	logger.Info("msgs relayed",
 		slog.Group("src", "msg_count", len(msgs.Src)),

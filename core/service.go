@@ -158,7 +158,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	}
 
 	// send all msgs to src/dst chains
-	srv.st.Send(srv.src, srv.dst, msgs)
+	srv.st.Send(context.TODO(), srv.src, srv.dst, msgs)
 
 	return nil
 }

@@ -476,7 +476,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				msgs.Merge(m)
 			}
 
-			st.Send(c[src], c[dst], msgs)
+			st.Send(context.TODO(), c[src], c[dst], msgs)
 
 			return nil
 		},
@@ -551,7 +551,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 				msgs.Merge(m)
 			}
 
-			st.Send(c[src], c[dst], msgs)
+			st.Send(context.TODO(), c[src], c[dst], msgs)
 
 			return nil
 		},
