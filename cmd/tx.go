@@ -464,7 +464,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			doExecuteAckSrc := false
 			doExecuteAckDst := false
 
-			if m, err := st.UpdateClients(c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
+			if m, err := st.UpdateClients(context.TODO(), c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)
@@ -539,7 +539,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			doExecuteAckSrc := len(sp.Dst) > 0
 			doExecuteAckDst := len(sp.Src) > 0
 
-			if m, err := st.UpdateClients(c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
+			if m, err := st.UpdateClients(context.TODO(), c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)

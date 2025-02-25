@@ -28,7 +28,7 @@ type StrategyI interface {
 	RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*RelayMsgs, error)
 
 	// UpdateClients executes UpdateClient only if needed
-	UpdateClients(src, dst *ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error)
+	UpdateClients(ctx context.Context, src, dst *ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error)
 
 	// Send executes submission of msgs to src/dst chains
 	Send(ctx context.Context, src, dst Chain, msgs *RelayMsgs)

@@ -495,7 +495,7 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 	return msgs, nil
 }
 
-func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) UpdateClients(ctx context.Context, src, dst *ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 
 	msgs := NewRelayMsgs()
@@ -506,14 +506,14 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 	// check if LC refresh is needed
 	if !needsUpdateForSrc && doRefresh {
 		var err error
-		needsUpdateForSrc, err = dst.CheckRefreshRequired(context.TODO(), src)
+		needsUpdateForSrc, err = dst.CheckRefreshRequired(ctx, src)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if the LC on the src chain needs to be refreshed: %v", err)
 		}
 	}
 	if !needsUpdateForDst && doRefresh {
 		var err error
-		needsUpdateForDst, err = src.CheckRefreshRequired(context.TODO(), dst)
+		needsUpdateForDst, err = src.CheckRefreshRequired(ctx, dst)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if the LC on the dst chain needs to be refreshed: %v", err)
 		}
@@ -524,7 +524,7 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 		if err != nil {
 			return nil, fmt.Errorf("failed to get relayer address on src chain: %v", err)
 		}
-		hs, err := sh.SetupHeadersForUpdate(context.TODO(), dst, src)
+		hs, err := sh.SetupHeadersForUpdate(ctx, dst, src)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set up headers for updating client on src chain: %v", err)
 		}
@@ -538,7 +538,7 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 		if err != nil {
 			return nil, fmt.Errorf("failed to get relayer address on dst chain: %v", err)
 		}
-		hs, err := sh.SetupHeadersForUpdate(context.TODO(), src, dst)
+		hs, err := sh.SetupHeadersForUpdate(ctx, src, dst)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set up headers for updating client on dst chain: %v", err)
 		}

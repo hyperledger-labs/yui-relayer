@@ -144,7 +144,7 @@ func (c *Chain) SetupForRelay(ctx context.Context) error {
 
 // LatestHeight queries the chain for the latest height and returns it
 func (c *Chain) LatestHeight(ctx context.Context) (ibcexported.Height, error) {
-	res, err := c.Client.Status(context.Background())
+	res, err := c.Client.Status(ctx)
 	if err != nil {
 		return nil, err
 	} else if res.SyncInfo.CatchingUp {
@@ -156,7 +156,7 @@ func (c *Chain) LatestHeight(ctx context.Context) (ibcexported.Height, error) {
 
 func (c *Chain) Timestamp(ctx context.Context, height ibcexported.Height) (time.Time, error) {
 	ht := int64(height.GetRevisionHeight())
-	if header, err := c.Client.Header(context.TODO(), &ht); err != nil {
+	if header, err := c.Client.Header(ctx, &ht); err != nil {
 		return time.Time{}, err
 	} else {
 		return header.Header.Time, nil

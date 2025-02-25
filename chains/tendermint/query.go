@@ -101,16 +101,16 @@ func (c *Chain) queryChannel(height int64, prove bool) (chanRes *chantypes.Query
 	return res, nil
 }
 
-// QueryClientConsensusState retrevies the latest consensus state for a client in state at a given height
+// QueryClientConsensusState retrieves the latest consensus state for a client in state at a given height
 func (c *Chain) QueryClientConsensusState(
 	ctx core.QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	return c.queryClientConsensusState(int64(ctx.Height().GetRevisionHeight()), dstClientConsHeight, false)
+	return c.queryClientConsensusState(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), dstClientConsHeight, false)
 }
 
 func (c *Chain) queryClientConsensusState(
-	height int64, dstClientConsHeight ibcexported.Height, _ bool) (*clienttypes.QueryConsensusStateResponse, error) {
+	ctx context.Context, height int64, dstClientConsHeight ibcexported.Height, _ bool) (*clienttypes.QueryConsensusStateResponse, error) {
 	return clientutils.QueryConsensusStateABCI(
-		c.CLIContext(height),
+		c.CLIContext(height).WithCmdContext(ctx),
 		c.PathEnd.ClientID,
 		dstClientConsHeight,
 	)

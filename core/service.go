@@ -134,7 +134,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	doExecuteRelaySrc, doExecuteRelayDst := srv.shouldExecuteRelay(pseqs)
 	doExecuteAckSrc, doExecuteAckDst := srv.shouldExecuteRelay(aseqs)
 	// update clients
-	if m, err := srv.st.UpdateClients(srv.src, srv.dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, srv.sh, true); err != nil {
+	if m, err := srv.st.UpdateClients(context.TODO(), srv.src, srv.dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, srv.sh, true); err != nil {
 		logger.Error("failed to update clients", err)
 		return err
 	} else {
