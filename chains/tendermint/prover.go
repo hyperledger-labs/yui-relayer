@@ -68,7 +68,7 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height ibce
 	if height != nil {
 		tmHeight = int64(height.GetRevisionHeight())
 	}
-	selfHeader, err := pr.UpdateLightClient(tmHeight)
+	selfHeader, err := pr.UpdateLightClient(context.TODO(), tmHeight)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to update the local light client and get the header@%d: %v", tmHeight, err)
 	}
@@ -128,7 +128,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 
 // GetLatestFinalizedHeader returns the latest finalized header
 func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (core.Header, error) {
-	return pr.UpdateLightClient(0)
+	return pr.UpdateLightClient(ctx, 0)
 }
 
 func (pr *Prover) CheckRefreshRequired(ctx context.Context, counterparty core.ChainInfoICS02Querier) (bool, error) {
@@ -198,7 +198,7 @@ func (pr *Prover) GetLatestLightHeight() (int64, error) {
 	return client.LastTrustedHeight()
 }
 
-func (pr *Prover) UpdateLightClient(height int64) (*tmclient.Header, error) {
+func (pr *Prover) UpdateLightClient(ctx context.Context, height int64) (*tmclient.Header, error) {
 	// create database connection
 	db, df, err := pr.NewLightDB()
 	if err != nil {
@@ -213,7 +213,7 @@ func (pr *Prover) UpdateLightClient(height int64) (*tmclient.Header, error) {
 
 	var sh *types.LightBlock
 	if height == 0 {
-		if sh, err = client.Update(context.Background(), time.Now()); err != nil {
+		if sh, err = client.Update(ctx, time.Now()); err != nil {
 			return nil, lightError(err)
 		} else if sh == nil {
 			sh, err = client.TrustedLightBlock(0)
@@ -222,7 +222,7 @@ func (pr *Prover) UpdateLightClient(height int64) (*tmclient.Header, error) {
 			}
 		}
 	} else {
-		if sh, err = client.VerifyLightBlockAtHeight(context.Background(), height, time.Now()); err != nil {
+		if sh, err = client.VerifyLightBlockAtHeight(ctx, height, time.Now()); err != nil {
 			return nil, lightError(err)
 		}
 	}

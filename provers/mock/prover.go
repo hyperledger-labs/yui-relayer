@@ -76,8 +76,8 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 	return []core.Header{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }
 
-func (pr *Prover) createMockHeader(height exported.Height) (core.Header, error) {
-	timestamp, err := pr.chain.Timestamp(context.TODO(), height)
+func (pr *Prover) createMockHeader(ctx context.Context, height exported.Height) (core.Header, error) {
+	timestamp, err := pr.chain.Timestamp(ctx, height)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get block timestamp at height:%v", height)
 	}
@@ -90,8 +90,8 @@ func (pr *Prover) createMockHeader(height exported.Height) (core.Header, error) 
 	}, nil
 }
 
-func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
-	height, err := pr.chain.LatestHeight(context.TODO())
+func (pr *Prover) getDelayedLatestFinalizedHeight(ctx context.Context) (exported.Height, error) {
+	height, err := pr.chain.LatestHeight(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest height: %v", err)
 	}
@@ -106,11 +106,11 @@ func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader(context.Context) (core.Header, error) {
-	if latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight(); err != nil {
+func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (core.Header, error) {
+	if latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight(ctx); err != nil {
 		return nil, err
 	} else {
-		return pr.createMockHeader(latestFinalizedHeight)
+		return pr.createMockHeader(ctx, latestFinalizedHeight)
 	}
 }
 

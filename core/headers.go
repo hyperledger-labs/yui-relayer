@@ -18,7 +18,7 @@ type Header interface {
 // It also provides the helper functions to update the clients on the chains
 type SyncHeaders interface {
 	// Updates updates the headers on both chains
-	Updates(src, dst ChainInfoLightClient) error
+	Updates(ctx context.Context, src, dst ChainInfoLightClient) error
 
 	// GetLatestFinalizedHeader returns the latest finalized header of the chain
 	GetLatestFinalizedHeader(chainID string) Header
@@ -62,7 +62,7 @@ func NewSyncHeaders(src, dst ChainInfoLightClient) (SyncHeaders, error) {
 	sh := &syncHeaders{
 		latestFinalizedHeaders: map[string]Header{src.ChainID(): nil, dst.ChainID(): nil},
 	}
-	if err := sh.Updates(src, dst); err != nil {
+	if err := sh.Updates(context.TODO(), src, dst); err != nil {
 		logger.Error("error updating headers", err)
 		return nil, err
 	}
@@ -70,25 +70,25 @@ func NewSyncHeaders(src, dst ChainInfoLightClient) (SyncHeaders, error) {
 }
 
 // Updates updates the headers on both chains
-func (sh *syncHeaders) Updates(src, dst ChainInfoLightClient) error {
+func (sh *syncHeaders) Updates(ctx context.Context, src, dst ChainInfoLightClient) error {
 	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
 		logger.Error("error ensuring different chains", err)
 		return err
 	}
 
-	srcHeader, err := src.GetLatestFinalizedHeader(context.TODO())
+	srcHeader, err := src.GetLatestFinalizedHeader(ctx)
 	if err != nil {
 		logger.Error("error getting latest finalized header of src", err)
 		return err
 	}
-	dstHeader, err := dst.GetLatestFinalizedHeader(context.TODO())
+	dstHeader, err := dst.GetLatestFinalizedHeader(ctx)
 	if err != nil {
 		logger.Error("error getting latest finalized header of dst", err)
 		return err
 	}
 
-	if err := sh.updateBlockMetrics(context.TODO(), src, dst, srcHeader, dstHeader); err != nil {
+	if err := sh.updateBlockMetrics(src, dst, srcHeader, dstHeader); err != nil {
 		return err
 	}
 
@@ -97,7 +97,7 @@ func (sh *syncHeaders) Updates(src, dst ChainInfoLightClient) error {
 	return nil
 }
 
-func (sh syncHeaders) updateBlockMetrics(ctx context.Context, src, dst ChainInfo, srcHeader, dstHeader Header) error {
+func (sh syncHeaders) updateBlockMetrics(src, dst ChainInfo, srcHeader, dstHeader Header) error {
 	metrics.ProcessedBlockHeightGauge.Set(
 		int64(srcHeader.GetHeight().GetRevisionHeight()),
 		attribute.Key("chain_id").String(src.ChainID()),

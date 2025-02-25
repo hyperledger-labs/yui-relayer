@@ -110,7 +110,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	logger := GetChannelPairLogger(srv.src, srv.dst)
 
 	// First, update the latest headers for src and dst
-	if err := srv.sh.Updates(srv.src, srv.dst); err != nil {
+	if err := srv.sh.Updates(context.TODO(), srv.src, srv.dst); err != nil {
 		logger.Error("failed to update headers", err)
 		return err
 	}

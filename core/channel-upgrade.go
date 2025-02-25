@@ -312,7 +312,7 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(src, dst)
 		return err
 	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(uint, error) {
-		if err := sh.Updates(src, dst); err != nil {
+		if err := sh.Updates(context.TODO(), src, dst); err != nil {
 			panic(err)
 		}
 	})); err != nil {

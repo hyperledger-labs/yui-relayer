@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -103,7 +104,7 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			ah, err := prover.UpdateLightClient(0)
+			ah, err := prover.UpdateLightClient(context.TODO(), 0)
 			if err != nil {
 				return err
 			}

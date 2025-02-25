@@ -299,7 +299,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 					"try_limit", rtyAttNum,
 					"error", err.Error(),
 				)
-				sh.Updates(src, dst)
+				sh.Updates(context.TODO(), src, dst)
 			}))
 		})
 	}
@@ -324,7 +324,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 					"try_limit", rtyAttNum,
 					"error", err.Error(),
 				)
-				sh.Updates(src, dst)
+				sh.Updates(context.TODO(), src, dst)
 			}))
 		})
 	}

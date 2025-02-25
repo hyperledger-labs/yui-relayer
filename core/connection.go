@@ -156,7 +156,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		return err
 	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)
-		if err := sh.Updates(src, dst); err != nil {
+		if err := sh.Updates(context.TODO(), src, dst); err != nil {
 			panic(err)
 		}
 	}))
