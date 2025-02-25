@@ -434,7 +434,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sh, err := core.NewSyncHeaders(c[src], c[dst])
+			sh, err := core.NewSyncHeaders(context.TODO(), c[src], c[dst])
 			if err != nil {
 				return err
 			}
@@ -511,7 +511,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sh, err := core.NewSyncHeaders(c[src], c[dst])
+			sh, err := core.NewSyncHeaders(context.TODO(), c[src], c[dst])
 			if err != nil {
 				return err
 			}

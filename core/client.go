@@ -143,7 +143,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 	// First, update the light clients to the latest header and return the header
-	sh, err := NewSyncHeaders(src, dst)
+	sh, err := NewSyncHeaders(context.TODO(), src, dst)
 	if err != nil {
 		logger.Error(
 			"failed to create sync headers for update client",

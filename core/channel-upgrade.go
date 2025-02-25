@@ -192,7 +192,7 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 	defer ticker.Stop()
 
 	for {
-		sh, err := NewSyncHeaders(chain, cp)
+		sh, err := NewSyncHeaders(context.TODO(), chain, cp)
 		if err != nil {
 			logger.Error("failed to create a SyncHeaders", err)
 			return err
@@ -300,7 +300,7 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 	out := NewRelayMsgs()
 
 	// First, update the light clients to the latest header and return the header
-	sh, err := NewSyncHeaders(src, dst)
+	sh, err := NewSyncHeaders(context.TODO(), src, dst)
 	if err != nil {
 		logger.Error("failed to create SyncHeaders", err)
 		return nil, err

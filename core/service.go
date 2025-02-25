@@ -18,7 +18,7 @@ func StartService(
 	dstRelayOptimizaInterval time.Duration,
 	dstRelayOptimizeCount uint64,
 ) error {
-	sh, err := NewSyncHeaders(src, dst)
+	sh, err := NewSyncHeaders(context.TODO(), src, dst)
 	if err != nil {
 		return err
 	}

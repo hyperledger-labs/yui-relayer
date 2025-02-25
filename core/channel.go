@@ -128,7 +128,7 @@ func createChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		return nil, err
 	}
 	// First, update the light clients to the latest header and return the header
-	sh, err := NewSyncHeaders(src, dst)
+	sh, err := NewSyncHeaders(context.TODO(), src, dst)
 	if err != nil {
 		return nil, err
 	}

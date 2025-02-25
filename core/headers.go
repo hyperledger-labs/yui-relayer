@@ -53,7 +53,7 @@ var _ SyncHeaders = (*syncHeaders)(nil)
 
 // NewSyncHeaders returns a new instance of SyncHeaders that can be easily
 // kept "reasonably up to date"
-func NewSyncHeaders(src, dst ChainInfoLightClient) (SyncHeaders, error) {
+func NewSyncHeaders(ctx context.Context, src, dst ChainInfoLightClient) (SyncHeaders, error) {
 	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
 		logger.Error("error ensuring different chains", err)
@@ -62,7 +62,7 @@ func NewSyncHeaders(src, dst ChainInfoLightClient) (SyncHeaders, error) {
 	sh := &syncHeaders{
 		latestFinalizedHeaders: map[string]Header{src.ChainID(): nil, dst.ChainID(): nil},
 	}
-	if err := sh.Updates(context.TODO(), src, dst); err != nil {
+	if err := sh.Updates(ctx, src, dst); err != nil {
 		logger.Error("error updating headers", err)
 		return nil, err
 	}
