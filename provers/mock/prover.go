@@ -71,7 +71,7 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height expo
 	return clientState, consensusState, nil
 }
 
-// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
+// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterparty chain
 func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	return []core.Header{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }

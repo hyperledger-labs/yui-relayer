@@ -96,13 +96,13 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 	tmp := latestFinalizedHeader.(*tmclient.Header)
 	h := *tmp
 
-	cph, err := counterparty.LatestHeight(context.TODO())
+	cph, err := counterparty.LatestHeight(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// retrieve the client state from the counterparty chain
-	counterpartyClientRes, err := counterparty.QueryClientState(core.NewQueryContext(context.TODO(), cph))
+	counterpartyClientRes, err := counterparty.QueryClientState(core.NewQueryContext(ctx, cph))
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 	h.TrustedHeight = cs.GetLatestHeight().(clienttypes.Height)
 
 	// query TrustedValidators at Trusted Height from the self chain
-	valSet, err := self.QueryValsetAtHeight(h.TrustedHeight)
+	valSet, err := self.QueryValsetAtHeight(ctx, h.TrustedHeight)
 	if err != nil {
 		return nil, err
 	}

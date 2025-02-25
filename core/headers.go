@@ -27,7 +27,7 @@ type SyncHeaders interface {
 	GetQueryContext(chainID string) QueryContext
 
 	// SetupHeadersForUpdate returns `src` chain's headers needed to update the client on `dst` chain
-	SetupHeadersForUpdate(src, dst ChainLightClient) ([]Header, error)
+	SetupHeadersForUpdate(ctx context.Context, src, dst ChainLightClient) ([]Header, error)
 
 	// SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers needed to update the clients on each chain
 	SetupBothHeadersForUpdate(src, dst ChainLightClient) (srcHeaders []Header, dstHeaders []Header, err error)
@@ -122,24 +122,24 @@ func (sh syncHeaders) GetQueryContext(chainID string) QueryContext {
 }
 
 // SetupHeadersForUpdate returns `src` chain's headers to update the client on `dst` chain
-func (sh syncHeaders) SetupHeadersForUpdate(src, dst ChainLightClient) ([]Header, error) {
+func (sh syncHeaders) SetupHeadersForUpdate(ctx context.Context, src, dst ChainLightClient) ([]Header, error) {
 	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
 		logger.Error("error ensuring different chains", err)
 		return nil, err
 	}
-	return src.SetupHeadersForUpdate(context.TODO(), dst, sh.GetLatestFinalizedHeader(src.ChainID()))
+	return src.SetupHeadersForUpdate(ctx, dst, sh.GetLatestFinalizedHeader(src.ChainID()))
 }
 
 // SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers to update the clients on each chain
 func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst ChainLightClient) ([]Header, []Header, error) {
 	logger := GetChainPairLogger(src, dst)
-	srcHs, err := sh.SetupHeadersForUpdate(src, dst)
+	srcHs, err := sh.SetupHeadersForUpdate(context.TODO(), src, dst)
 	if err != nil {
 		logger.Error("error setting up headers for update on src", err)
 		return nil, nil, err
 	}
-	dstHs, err := sh.SetupHeadersForUpdate(dst, src)
+	dstHs, err := sh.SetupHeadersForUpdate(context.TODO(), dst, src)
 	if err != nil {
 		logger.Error("error setting up headers for update on dst", err)
 		return nil, nil, err

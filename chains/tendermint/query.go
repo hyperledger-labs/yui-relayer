@@ -33,11 +33,11 @@ import (
 
 // QueryClientState retrevies the latest consensus state for a client in state at a given height
 func (c *Chain) QueryClientState(ctx core.QueryContext) (*clienttypes.QueryClientStateResponse, error) {
-	return c.queryClientState(int64(ctx.Height().GetRevisionHeight()), false)
+	return c.queryClientState(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), false)
 }
 
-func (c *Chain) queryClientState(height int64, _ bool) (*clienttypes.QueryClientStateResponse, error) {
-	return clientutils.QueryClientStateABCI(c.CLIContext(height), c.PathEnd.ClientID)
+func (c *Chain) queryClientState(ctx context.Context, height int64, _ bool) (*clienttypes.QueryClientStateResponse, error) {
+	return clientutils.QueryClientStateABCI(c.CLIContext(height).WithCmdContext(ctx), c.PathEnd.ClientID)
 }
 
 var emptyConnRes = conntypes.NewQueryConnectionResponse(
@@ -442,17 +442,17 @@ func (c *Chain) queryCanTransitionToFlushComplete(height int64) (bool, error) {
 /////////////////////////////////////
 
 // QueryHistoricalInfo returns historical header data
-func (c *Chain) QueryHistoricalInfo(height clienttypes.Height) (*stakingtypes.QueryHistoricalInfoResponse, error) {
+func (c *Chain) QueryHistoricalInfo(ctx context.Context, height clienttypes.Height) (*stakingtypes.QueryHistoricalInfoResponse, error) {
 	//TODO: use epoch number in query once SDK gets updated
-	qc := stakingtypes.NewQueryClient(c.CLIContext(int64(height.GetRevisionHeight())))
-	return qc.HistoricalInfo(context.Background(), &stakingtypes.QueryHistoricalInfoRequest{
+	qc := stakingtypes.NewQueryClient(c.CLIContext(int64(height.GetRevisionHeight())).WithCmdContext(ctx))
+	return qc.HistoricalInfo(ctx, &stakingtypes.QueryHistoricalInfoRequest{
 		Height: int64(height.GetRevisionHeight()),
 	})
 }
 
 // QueryValsetAtHeight returns the validator set at a given height
-func (c *Chain) QueryValsetAtHeight(height clienttypes.Height) (*tmproto.ValidatorSet, error) {
-	res, err := c.QueryHistoricalInfo(height)
+func (c *Chain) QueryValsetAtHeight(ctx context.Context, height clienttypes.Height) (*tmproto.ValidatorSet, error) {
+	res, err := c.QueryHistoricalInfo(ctx, height)
 	if err != nil {
 		return nil, err
 	}

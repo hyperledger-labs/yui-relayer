@@ -524,7 +524,7 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 		if err != nil {
 			return nil, fmt.Errorf("failed to get relayer address on src chain: %v", err)
 		}
-		hs, err := sh.SetupHeadersForUpdate(dst, src)
+		hs, err := sh.SetupHeadersForUpdate(context.TODO(), dst, src)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set up headers for updating client on src chain: %v", err)
 		}
@@ -538,7 +538,7 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 		if err != nil {
 			return nil, fmt.Errorf("failed to get relayer address on dst chain: %v", err)
 		}
-		hs, err := sh.SetupHeadersForUpdate(src, dst)
+		hs, err := sh.SetupHeadersForUpdate(context.TODO(), src, dst)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set up headers for updating client on dst chain: %v", err)
 		}
