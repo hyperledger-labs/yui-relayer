@@ -30,7 +30,7 @@ type SyncHeaders interface {
 	SetupHeadersForUpdate(ctx context.Context, src, dst ChainLightClient) ([]Header, error)
 
 	// SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers needed to update the clients on each chain
-	SetupBothHeadersForUpdate(src, dst ChainLightClient) (srcHeaders []Header, dstHeaders []Header, err error)
+	SetupBothHeadersForUpdate(ctx context.Context, src, dst ChainLightClient) (srcHeaders, dstHeaders []Header, err error)
 }
 
 // ChainInfoLightClient = ChainInfo + LightClient
@@ -132,14 +132,14 @@ func (sh syncHeaders) SetupHeadersForUpdate(ctx context.Context, src, dst ChainL
 }
 
 // SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers to update the clients on each chain
-func (sh syncHeaders) SetupBothHeadersForUpdate(src, dst ChainLightClient) ([]Header, []Header, error) {
+func (sh syncHeaders) SetupBothHeadersForUpdate(ctx context.Context, src, dst ChainLightClient) ([]Header, []Header, error) {
 	logger := GetChainPairLogger(src, dst)
-	srcHs, err := sh.SetupHeadersForUpdate(context.TODO(), src, dst)
+	srcHs, err := sh.SetupHeadersForUpdate(ctx, src, dst)
 	if err != nil {
 		logger.Error("error setting up headers for update on src", err)
 		return nil, nil, err
 	}
-	dstHs, err := sh.SetupHeadersForUpdate(context.TODO(), dst, src)
+	dstHs, err := sh.SetupHeadersForUpdate(ctx, dst, src)
 	if err != nil {
 		logger.Error("error setting up headers for update on dst", err)
 		return nil, nil, err

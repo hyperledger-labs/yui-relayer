@@ -152,7 +152,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		srcHostConsProof, dstHostConsProof []byte
 	)
 	err = retry.Do(func() error {
-		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(src, dst)
+		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(context.TODO(), src, dst)
 		return err
 	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)

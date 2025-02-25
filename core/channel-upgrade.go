@@ -309,7 +309,7 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 	// Query a number of things all at once
 	var srcUpdateHeaders, dstUpdateHeaders []Header
 	if err := retry.Do(func() error {
-		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(src, dst)
+		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(context.TODO(), src, dst)
 		return err
 	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(uint, error) {
 		if err := sh.Updates(context.TODO(), src, dst); err != nil {

@@ -151,7 +151,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 		)
 		return err
 	}
-	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(src, dst)
+	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(context.TODO(), src, dst)
 	if err != nil {
 		logger.Error(
 			"failed to setup both headers for update client",
