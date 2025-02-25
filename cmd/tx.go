@@ -470,7 +470,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				msgs.Merge(m)
 			}
 
-			if m, err := st.RelayPackets(c[src], c[dst], sp, sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
+			if m, err := st.RelayPackets(context.TODO(), c[src], c[dst], sp, sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)
@@ -545,7 +545,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 				msgs.Merge(m)
 			}
 
-			if m, err := st.RelayAcknowledgements(c[src], c[dst], sp, sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
+			if m, err := st.RelayAcknowledgements(context.TODO(), c[src], c[dst], sp, sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)

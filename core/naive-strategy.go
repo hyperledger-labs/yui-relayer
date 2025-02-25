@@ -67,7 +67,7 @@ func (st *NaiveStrategy) SetupRelay(ctx context.Context, src, dst *ProvableChain
 
 func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bool) (QueryContext, error) {
 	if useFinalizedHeader {
-		return sh.GetQueryContext(chain.ChainID()), nil
+		return sh.GetQueryContext(context.TODO(), chain.ChainID()), nil
 	} else {
 		height, err := chain.LatestHeight(context.TODO())
 		if err != nil {
@@ -199,14 +199,14 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 	}, nil
 }
 
-func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayPackets", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
 	msgs := NewRelayMsgs()
 
-	srcCtx := sh.GetQueryContext(src.ChainID())
-	dstCtx := sh.GetQueryContext(dst.ChainID())
+	srcCtx := sh.GetQueryContext(ctx, src.ChainID())
+	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 	srcAddress, err := src.GetAddress()
 	if err != nil {
 		logger.Error(
@@ -420,14 +420,14 @@ func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 	)
 }
 
-func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
 	msgs := NewRelayMsgs()
 
-	srcCtx := sh.GetQueryContext(src.ChainID())
-	dstCtx := sh.GetQueryContext(dst.ChainID())
+	srcCtx := sh.GetQueryContext(ctx, src.ChainID())
+	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 	srcAddress, err := src.GetAddress()
 	if err != nil {
 		logger.Error(

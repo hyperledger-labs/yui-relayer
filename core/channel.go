@@ -152,8 +152,8 @@ func createChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	}
 
 	srcChan, dstChan, settled, err := querySettledChannelPair(
-		sh.GetQueryContext(src.ChainID()),
-		sh.GetQueryContext(dst.ChainID()),
+		sh.GetQueryContext(context.TODO(), src.ChainID()),
+		sh.GetQueryContext(context.TODO(), dst.ChainID()),
 		src,
 		dst,
 		true,

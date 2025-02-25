@@ -142,7 +142,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	}
 
 	// relay packets if unrelayed seqs exist
-	if m, err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
+	if m, err := srv.st.RelayPackets(context.TODO(), srv.src, srv.dst, pseqs, srv.sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
 		logger.Error("failed to relay packets", err)
 		return err
 	} else {
@@ -150,7 +150,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	}
 
 	// relay acks if unrelayed seqs exist
-	if m, err := srv.st.RelayAcknowledgements(srv.src, srv.dst, aseqs, srv.sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
+	if m, err := srv.st.RelayAcknowledgements(context.TODO(), srv.src, srv.dst, aseqs, srv.sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
 		logger.Error("failed to relay acknowledgements", err)
 		return err
 	} else {

@@ -165,8 +165,8 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	}
 
 	srcConn, dstConn, settled, err := querySettledConnectionPair(
-		sh.GetQueryContext(src.ChainID()),
-		sh.GetQueryContext(dst.ChainID()),
+		sh.GetQueryContext(context.TODO(), src.ChainID()),
+		sh.GetQueryContext(context.TODO(), dst.ChainID()),
 		src,
 		dst,
 		true,
@@ -179,7 +179,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 
 	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
 		// Query client state from each chain's client
-		srcCsRes, dstCsRes, err = QueryClientStatePair(sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()), src, dst, true)
+		srcCsRes, dstCsRes, err = QueryClientStatePair(sh.GetQueryContext(context.TODO(), src.ChainID()), sh.GetQueryContext(context.TODO(), dst.ChainID()), src, dst, true)
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +193,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		// Store the heights
 		srcConsH, dstConsH = srcCS.GetLatestHeight(), dstCS.GetLatestHeight()
 		srcConsRes, dstConsRes, err = QueryClientConsensusStatePair(
-			sh.GetQueryContext(src.ChainID()), sh.GetQueryContext(dst.ChainID()),
+			sh.GetQueryContext(context.TODO(), src.ChainID()), sh.GetQueryContext(context.TODO(), dst.ChainID()),
 			src, dst, srcConsH, dstConsH, true)
 		if err != nil {
 			return nil, err
@@ -204,11 +204,11 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		if err := dst.Codec().UnpackAny(dstConsRes.ConsensusState, &dstCons); err != nil {
 			return nil, err
 		}
-		srcHostConsProof, err = src.ProveHostConsensusState(sh.GetQueryContext(src.ChainID()), dstCS.GetLatestHeight(), dstCons)
+		srcHostConsProof, err = src.ProveHostConsensusState(sh.GetQueryContext(context.TODO(), src.ChainID()), dstCS.GetLatestHeight(), dstCons)
 		if err != nil {
 			return nil, err
 		}
-		dstHostConsProof, err = dst.ProveHostConsensusState(sh.GetQueryContext(dst.ChainID()), srcCS.GetLatestHeight(), srcCons)
+		dstHostConsProof, err = dst.ProveHostConsensusState(sh.GetQueryContext(context.TODO(), dst.ChainID()), srcCS.GetLatestHeight(), srcCons)
 		if err != nil {
 			return nil, err
 		}

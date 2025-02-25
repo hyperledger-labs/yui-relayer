@@ -24,7 +24,7 @@ type SyncHeaders interface {
 	GetLatestFinalizedHeader(chainID string) Header
 
 	// GetQueryContext builds a query context based on the latest finalized header
-	GetQueryContext(chainID string) QueryContext
+	GetQueryContext(ctx context.Context, chainID string) QueryContext
 
 	// SetupHeadersForUpdate returns `src` chain's headers needed to update the client on `dst` chain
 	SetupHeadersForUpdate(ctx context.Context, src, dst ChainLightClient) ([]Header, error)
@@ -117,8 +117,8 @@ func (sh syncHeaders) GetLatestFinalizedHeader(chainID string) Header {
 }
 
 // GetQueryContext builds a query context based on the latest finalized header
-func (sh syncHeaders) GetQueryContext(chainID string) QueryContext {
-	return NewQueryContext(context.TODO(), sh.GetLatestFinalizedHeader(chainID).GetHeight())
+func (sh syncHeaders) GetQueryContext(ctx context.Context, chainID string) QueryContext {
+	return NewQueryContext(ctx, sh.GetLatestFinalizedHeader(chainID).GetHeight())
 }
 
 // SetupHeadersForUpdate returns `src` chain's headers to update the client on `dst` chain

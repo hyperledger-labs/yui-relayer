@@ -44,7 +44,7 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 
 // ProveState returns the proof of an IBC state specified by `path` and `value`
 func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
-	clientCtx := pr.chain.CLIContext(int64(ctx.Height().GetRevisionHeight()))
+	clientCtx := pr.chain.CLIContext(int64(ctx.Height().GetRevisionHeight())).WithCmdContext(ctx.Context())
 	if v, proof, proofHeight, err := ibcclient.QueryTendermintProof(clientCtx, []byte(path)); err != nil {
 		return nil, clienttypes.Height{}, err
 	} else if !bytes.Equal(v, value) {

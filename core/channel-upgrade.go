@@ -197,8 +197,8 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 			logger.Error("failed to create a SyncHeaders", err)
 			return err
 		}
-		ctx := sh.GetQueryContext(chain.ChainID())
-		cpCtx := sh.GetQueryContext(cp.ChainID())
+		ctx := sh.GetQueryContext(context.TODO(), chain.ChainID())
+		cpCtx := sh.GetQueryContext(context.TODO(), cp.ChainID())
 
 		chann, _, settled, err := querySettledChannelPair(ctx, cpCtx, chain, cp, false)
 		if err != nil {
@@ -320,8 +320,8 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		return nil, err
 	}
 
-	srcCtx := sh.GetQueryContext(src.ChainID())
-	dstCtx := sh.GetQueryContext(dst.ChainID())
+	srcCtx := sh.GetQueryContext(context.TODO(), src.ChainID())
+	dstCtx := sh.GetQueryContext(context.TODO(), dst.ChainID())
 
 	// query finalized channels with proofs
 	srcChan, dstChan, settled, err := querySettledChannelPair(srcCtx, dstCtx, src, dst, true)
