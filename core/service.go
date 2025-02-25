@@ -116,14 +116,14 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	}
 
 	// get unrelayed packets
-	pseqs, err := srv.st.UnrelayedPackets(srv.src, srv.dst, srv.sh, false)
+	pseqs, err := srv.st.UnrelayedPackets(context.TODO(), srv.src, srv.dst, srv.sh, false)
 	if err != nil {
 		logger.Error("failed to get unrelayed packets", err)
 		return err
 	}
 
 	// get unrelayed acks
-	aseqs, err := srv.st.UnrelayedAcknowledgements(srv.src, srv.dst, srv.sh, false)
+	aseqs, err := srv.st.UnrelayedAcknowledgements(context.TODO(), srv.src, srv.dst, srv.sh, false)
 	if err != nil {
 		logger.Error("failed to get unrelayed acknowledgements", err)
 		return err

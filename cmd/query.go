@@ -260,7 +260,7 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sp, err := st.UnrelayedPackets(c[src], c[dst], sh, true)
+			sp, err := st.UnrelayedPackets(context.TODO(), c[src], c[dst], sh, true)
 			if err != nil {
 				return err
 			}
@@ -309,7 +309,7 @@ func queryUnrelayedAcknowledgements(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh, true)
+			sp, err := st.UnrelayedAcknowledgements(context.TODO(), c[src], c[dst], sh, true)
 			if err != nil {
 				return err
 			}
