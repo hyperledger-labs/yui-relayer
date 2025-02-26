@@ -22,20 +22,20 @@ var (
 	rtyErr    = retry.LastErrorOnly(true)
 )
 
-func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration) error {
+func CreateConnection(ctx context.Context, pathName string, src, dst *ProvableChain, to time.Duration) error {
 	logger := GetConnectionPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateConnection")
 	ticker := time.NewTicker(to)
 
-	if cont, err := checkConnectionCreateReady(src, dst, logger); err != nil {
+	if cont, err := checkConnectionCreateReady(ctx, src, dst, logger); err != nil {
 		return err
 	} else if !cont {
 		return nil
 	}
 
 	failed := 0
-	for ; true; <-ticker.C {
-		connSteps, err := createConnectionStep(src, dst)
+	for {
+		connSteps, err := createConnectionStep(ctx, src, dst)
 		if err != nil {
 			logger.Error(
 				"failed to create connection step",
@@ -49,11 +49,11 @@ func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration
 			continue
 		}
 
-		connSteps.Send(context.TODO(), src, dst)
+		connSteps.Send(ctx, src, dst)
 
 		if connSteps.Success() {
 			// In the case of success, synchronize the config file from generated connection identifiers.
-			if err := SyncChainConfigsFromEvents(context.TODO(), pathName, connSteps.SrcMsgIDs, connSteps.DstMsgIDs, src, dst); err != nil {
+			if err := SyncChainConfigsFromEvents(ctx, pathName, connSteps.SrcMsgIDs, connSteps.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
 
@@ -78,12 +78,15 @@ func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration
 			time.Sleep(5 * time.Second)
 		}
 
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
-
-	return nil
 }
 
-func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
+func checkConnectionCreateReady(ctx context.Context, src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
 	srcID := src.Chain.Path().ConnectionID
 	dstID := dst.Chain.Path().ConnectionID
 
@@ -96,11 +99,11 @@ func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger
 			return conntypes.UNINITIALIZED, nil
 		}
 
-		latestHeight, err := pc.LatestHeight(context.TODO())
+		latestHeight, err := pc.LatestHeight(ctx)
 		if err != nil {
 			return conntypes.UNINITIALIZED, err
 		}
-		res, err2 := pc.QueryConnection(NewQueryContext(context.TODO(), latestHeight), pc.Path().ConnectionID)
+		res, err2 := pc.QueryConnection(NewQueryContext(ctx, latestHeight), pc.Path().ConnectionID)
 		if err2 != nil {
 			return conntypes.UNINITIALIZED, err2
 		}
@@ -131,13 +134,13 @@ func checkConnectionCreateReady(src, dst *ProvableChain, logger *log.RelayLogger
 	return true, nil
 }
 
-func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
+func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs, error) {
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
 	}
 	// First, update the light clients to the latest header and return the header
-	sh, err := NewSyncHeaders(context.TODO(), src, dst)
+	sh, err := NewSyncHeaders(ctx, src, dst)
 	if err != nil {
 		return nil, err
 	}
@@ -152,11 +155,11 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		srcHostConsProof, dstHostConsProof []byte
 	)
 	err = retry.Do(func() error {
-		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(context.TODO(), src, dst)
+		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(ctx, src, dst)
 		return err
-	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)
-		if err := sh.Updates(context.TODO(), src, dst); err != nil {
+		if err := sh.Updates(ctx, src, dst); err != nil {
 			panic(err)
 		}
 	}))
@@ -165,8 +168,8 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	}
 
 	srcConn, dstConn, settled, err := querySettledConnectionPair(
-		sh.GetQueryContext(context.TODO(), src.ChainID()),
-		sh.GetQueryContext(context.TODO(), dst.ChainID()),
+		sh.GetQueryContext(ctx, src.ChainID()),
+		sh.GetQueryContext(ctx, dst.ChainID()),
 		src,
 		dst,
 		true,
@@ -179,7 +182,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 
 	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
 		// Query client state from each chain's client
-		srcCsRes, dstCsRes, err = QueryClientStatePair(sh.GetQueryContext(context.TODO(), src.ChainID()), sh.GetQueryContext(context.TODO(), dst.ChainID()), src, dst, true)
+		srcCsRes, dstCsRes, err = QueryClientStatePair(sh.GetQueryContext(ctx, src.ChainID()), sh.GetQueryContext(ctx, dst.ChainID()), src, dst, true)
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +196,7 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		// Store the heights
 		srcConsH, dstConsH = srcCS.GetLatestHeight(), dstCS.GetLatestHeight()
 		srcConsRes, dstConsRes, err = QueryClientConsensusStatePair(
-			sh.GetQueryContext(context.TODO(), src.ChainID()), sh.GetQueryContext(context.TODO(), dst.ChainID()),
+			sh.GetQueryContext(ctx, src.ChainID()), sh.GetQueryContext(ctx, dst.ChainID()),
 			src, dst, srcConsH, dstConsH, true)
 		if err != nil {
 			return nil, err
@@ -204,11 +207,11 @@ func createConnectionStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 		if err := dst.Codec().UnpackAny(dstConsRes.ConsensusState, &dstCons); err != nil {
 			return nil, err
 		}
-		srcHostConsProof, err = src.ProveHostConsensusState(sh.GetQueryContext(context.TODO(), src.ChainID()), dstCS.GetLatestHeight(), dstCons)
+		srcHostConsProof, err = src.ProveHostConsensusState(sh.GetQueryContext(ctx, src.ChainID()), dstCS.GetLatestHeight(), dstCons)
 		if err != nil {
 			return nil, err
 		}
-		dstHostConsProof, err = dst.ProveHostConsensusState(sh.GetQueryContext(context.TODO(), dst.ChainID()), srcCS.GetLatestHeight(), srcCons)
+		dstHostConsProof, err = dst.ProveHostConsensusState(sh.GetQueryContext(ctx, dst.ChainID()), srcCS.GetLatestHeight(), srcCons)
 		if err != nil {
 			return nil, err
 		}
@@ -351,17 +354,17 @@ func querySettledConnectionPair(
 	}
 
 	var srcLatestCtx, dstLatestCtx QueryContext
-	if h, err := src.LatestHeight(context.TODO()); err != nil {
+	if h, err := src.LatestHeight(srcCtx.Context()); err != nil {
 		logger.Error("failed to get the latest height of the src chain", err)
 		return nil, nil, false, err
 	} else {
-		srcLatestCtx = NewQueryContext(context.TODO(), h)
+		srcLatestCtx = NewQueryContext(srcCtx.Context(), h)
 	}
-	if h, err := dst.LatestHeight(context.TODO()); err != nil {
+	if h, err := dst.LatestHeight(dstCtx.Context()); err != nil {
 		logger.Error("failed to get the latest height of the dst chain", err)
 		return nil, nil, false, err
 	} else {
-		dstLatestCtx = NewQueryContext(context.TODO(), h)
+		dstLatestCtx = NewQueryContext(dstCtx.Context(), h)
 	}
 
 	srcLatestConn, dstLatestConn, err := QueryConnectionPair(srcLatestCtx, dstLatestCtx, src, dst, false)

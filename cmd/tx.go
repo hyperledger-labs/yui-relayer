@@ -160,7 +160,7 @@ func createConnectionCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateConnection(pathName, c[src], c[dst], to)
+			return core.CreateConnection(cmd.Context(), pathName, c[src], c[dst], to)
 		},
 	}
 
