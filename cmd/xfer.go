@@ -64,11 +64,11 @@ func xfersend(ctx *config.Context) *cobra.Command {
 			case toHeightOffset > 0 && toTimeOffset > 0:
 				return fmt.Errorf("cannot set both --timeout-height-offset and --timeout-time-offset, choose one")
 			case toHeightOffset > 0:
-				return core.SendTransferMsg(c[src], c[dst], amount, dstAddr, toHeightOffset, 0)
+				return core.SendTransferMsg(cmd.Context(), c[src], c[dst], amount, dstAddr, toHeightOffset, 0)
 			case toTimeOffset > 0:
-				return core.SendTransferMsg(c[src], c[dst], amount, dstAddr, 0, toTimeOffset)
+				return core.SendTransferMsg(cmd.Context(), c[src], c[dst], amount, dstAddr, 0, toTimeOffset)
 			case toHeightOffset == 0 && toTimeOffset == 0:
-				return core.SendTransferMsg(c[src], c[dst], amount, dstAddr, 0, 0)
+				return core.SendTransferMsg(cmd.Context(), c[src], c[dst], amount, dstAddr, 0, 0)
 			default:
 				return fmt.Errorf("shouldn't be here")
 			}

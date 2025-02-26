@@ -503,12 +503,12 @@ func (c *Chain) toTmValidator(val stakingtypes.Validator) (*tmtypes.Validator, e
 }
 
 // QueryUnbondingPeriod returns the unbonding period of the chain
-func (c *Chain) QueryUnbondingPeriod() (time.Duration, error) {
+func (c *Chain) QueryUnbondingPeriod(ctx context.Context) (time.Duration, error) {
 	req := stakingtypes.QueryParamsRequest{}
 
-	queryClient := stakingtypes.NewQueryClient(c.CLIContext(0))
+	queryClient := stakingtypes.NewQueryClient(c.CLIContext(0).WithCmdContext(ctx))
 
-	res, err := queryClient.Params(context.Background(), &req)
+	res, err := queryClient.Params(ctx, &req)
 	if err != nil {
 		return 0, err
 	}

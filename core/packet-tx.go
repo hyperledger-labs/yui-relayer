@@ -8,7 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr string, toHeightOffset uint64, toTimeOffset time.Duration) error {
+func SendTransferMsg(ctx context.Context, src, dst *ProvableChain, amount sdk.Coin, dstAddr string, toHeightOffset uint64, toTimeOffset time.Duration) error {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "SendTransferMsg")
 	var (
@@ -16,7 +16,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr string, t
 		timeoutTimestamp uint64
 	)
 
-	h, err := dst.LatestHeight(context.TODO())
+	h, err := dst.LatestHeight(ctx)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func SendTransferMsg(src, dst *ProvableChain, amount sdk.Coin, dstAddr string, t
 		Dst: []sdk.Msg{},
 	}
 
-	if txs.Send(context.TODO(), src, dst); !txs.Success() {
+	if txs.Send(ctx, src, dst); !txs.Success() {
 		err := fmt.Errorf("failed to send transfer message")
 		logger.Error(err.Error(), err)
 		return err

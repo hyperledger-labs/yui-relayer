@@ -11,7 +11,7 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
-func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
+func checkCreateClientsReady(ctx context.Context, src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
 	srcID := src.Chain.Path().ClientID
 	dstID := dst.Chain.Path().ClientID
 
@@ -20,12 +20,12 @@ func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 	}
 
 	getState := func(pc *ProvableChain) (*clienttypes.QueryClientStateResponse, error) {
-		latestHeight, err := pc.LatestHeight(context.TODO())
+		latestHeight, err := pc.LatestHeight(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		ctx := NewQueryContext(context.TODO(), latestHeight)
+		ctx := NewQueryContext(ctx, latestHeight)
 		return pc.QueryClientState(ctx)
 	}
 
@@ -61,11 +61,11 @@ func checkCreateClientsReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 	}
 }
 
-func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeight exported.Height) error {
+func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain, srcHeight, dstHeight exported.Height) error {
 	logger := GetChainPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateClients")
 
-	if cont, err := checkCreateClientsReady(src, dst, logger); err != nil {
+	if cont, err := checkCreateClientsReady(ctx, src, dst, logger); err != nil {
 		return err
 	} else if !cont {
 		return nil
@@ -85,7 +85,7 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 			return err
 		}
 
-		cs, cons, err := dst.CreateInitialLightClientState(context.TODO(), dstHeight)
+		cs, cons, err := dst.CreateInitialLightClientState(ctx, dstHeight)
 		if err != nil {
 			logger.Error("failed to create initial light client state", err)
 			return err
@@ -107,7 +107,7 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 			return err
 		}
 
-		cs, cons, err := src.CreateInitialLightClientState(context.TODO(), srcHeight)
+		cs, cons, err := src.CreateInitialLightClientState(ctx, srcHeight)
 		if err != nil {
 			logger.Error("failed to create initial light client state", err)
 			return err
@@ -123,12 +123,12 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 	// Send msgs to both chains
 	if clients.Ready() {
 		// TODO: Add retry here for out of gas or other errors
-		clients.Send(context.TODO(), src, dst)
+		clients.Send(ctx, src, dst)
 		if clients.Success() {
 			logger.Info(
 				"★ Clients created",
 			)
-			if err := SyncChainConfigsFromEvents(context.TODO(), pathName, clients.SrcMsgIDs, clients.DstMsgIDs, src, dst); err != nil {
+			if err := SyncChainConfigsFromEvents(ctx, pathName, clients.SrcMsgIDs, clients.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
 		}
@@ -136,14 +136,14 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 	return nil
 }
 
-func UpdateClients(src, dst *ProvableChain) error {
+func UpdateClients(ctx context.Context, src, dst *ProvableChain) error {
 	logger := GetClientPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "UpdateClients")
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 	// First, update the light clients to the latest header and return the header
-	sh, err := NewSyncHeaders(context.TODO(), src, dst)
+	sh, err := NewSyncHeaders(ctx, src, dst)
 	if err != nil {
 		logger.Error(
 			"failed to create sync headers for update client",
@@ -151,7 +151,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 		)
 		return err
 	}
-	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(context.TODO(), src, dst)
+	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(ctx, src, dst)
 	if err != nil {
 		logger.Error(
 			"failed to setup both headers for update client",
@@ -167,7 +167,7 @@ func UpdateClients(src, dst *ProvableChain) error {
 	}
 	// Send msgs to both chains
 	if clients.Ready() {
-		if clients.Send(context.TODO(), src, dst); clients.Success() {
+		if clients.Send(ctx, src, dst); clients.Success() {
 			logger.Info(
 				"★ Clients updated",
 			)

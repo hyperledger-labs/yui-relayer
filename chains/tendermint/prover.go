@@ -68,12 +68,12 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height ibce
 	if height != nil {
 		tmHeight = int64(height.GetRevisionHeight())
 	}
-	selfHeader, err := pr.UpdateLightClient(context.TODO(), tmHeight)
+	selfHeader, err := pr.UpdateLightClient(ctx, tmHeight)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to update the local light client and get the header@%d: %v", tmHeight, err)
 	}
 
-	ubdPeriod, err := pr.chain.QueryUnbondingPeriod()
+	ubdPeriod, err := pr.chain.QueryUnbondingPeriod(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query for the unbonding period: %v", err)
 	}

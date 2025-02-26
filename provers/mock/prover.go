@@ -44,7 +44,7 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 
 // CreateInitialLightClientState creates a pair of ClientState and ConsensusState for building MsgCreateClient submitted to the counterparty chain
 func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height exported.Height) (exported.ClientState, exported.ConsensusState, error) {
-	if head, err := pr.GetLatestFinalizedHeader(context.TODO()); err != nil {
+	if head, err := pr.GetLatestFinalizedHeader(ctx); err != nil {
 		return nil, nil, fmt.Errorf("failed to get the latest finalized header: %v", err)
 	} else if height == nil {
 		height = head.GetHeight()
@@ -60,7 +60,7 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height expo
 	}
 
 	var consensusState exported.ConsensusState
-	if timestamp, err := pr.chain.Timestamp(context.TODO(), height); err != nil {
+	if timestamp, err := pr.chain.Timestamp(ctx, height); err != nil {
 		return nil, nil, fmt.Errorf("get timestamp at height@%v: %v", height, err)
 	} else {
 		consensusState = &mocktypes.ConsensusState{
