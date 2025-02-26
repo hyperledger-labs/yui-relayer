@@ -128,7 +128,7 @@ func CreateClients(pathName string, src, dst *ProvableChain, srcHeight, dstHeigh
 			logger.Info(
 				"★ Clients created",
 			)
-			if err := SyncChainConfigsFromEvents(pathName, clients.SrcMsgIDs, clients.DstMsgIDs, src, dst); err != nil {
+			if err := SyncChainConfigsFromEvents(context.TODO(), pathName, clients.SrcMsgIDs, clients.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
 		}

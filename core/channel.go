@@ -45,7 +45,7 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 
 		if chanSteps.Success() {
 			// In the case of success, synchronize the config file from generated channel identifiers
-			if err := SyncChainConfigsFromEvents(pathName, chanSteps.SrcMsgIDs, chanSteps.DstMsgIDs, src, dst); err != nil {
+			if err := SyncChainConfigsFromEvents(context.TODO(), pathName, chanSteps.SrcMsgIDs, chanSteps.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
 

@@ -164,7 +164,7 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 		steps.Send(context.TODO(), src, dst)
 
 		if steps.Success() {
-			if err := SyncChainConfigsFromEvents(pathName, steps.SrcMsgIDs, steps.DstMsgIDs, src, dst); err != nil {
+			if err := SyncChainConfigsFromEvents(context.TODO(), pathName, steps.SrcMsgIDs, steps.DstMsgIDs, src, dst); err != nil {
 				logger.Error("failed to synchronize the updated path config to the config file", err)
 				return err
 			}

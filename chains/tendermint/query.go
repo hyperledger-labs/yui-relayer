@@ -88,11 +88,11 @@ var emptyChannelRes = chantypes.NewQueryChannelResponse(
 
 // QueryChannel returns the channel associated with a channelID
 func (c *Chain) QueryChannel(ctx core.QueryContext) (chanRes *chantypes.QueryChannelResponse, err error) {
-	return c.queryChannel(int64(ctx.Height().GetRevisionHeight()), false)
+	return c.queryChannel(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), false)
 }
 
-func (c *Chain) queryChannel(height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error) {
-	res, err := chanutils.QueryChannel(c.CLIContext(height), c.PathEnd.PortID, c.PathEnd.ChannelID, prove)
+func (c *Chain) queryChannel(ctx context.Context, height int64, prove bool) (chanRes *chantypes.QueryChannelResponse, err error) {
+	res, err := chanutils.QueryChannel(c.CLIContext(height).WithCmdContext(ctx), c.PathEnd.PortID, c.PathEnd.ChannelID, prove)
 	if err != nil && strings.Contains(err.Error(), "not found") {
 		return emptyChannelRes, nil
 	} else if err != nil {

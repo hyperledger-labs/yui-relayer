@@ -53,7 +53,7 @@ func CreateConnection(pathName string, src, dst *ProvableChain, to time.Duration
 
 		if connSteps.Success() {
 			// In the case of success, synchronize the config file from generated connection identifiers.
-			if err := SyncChainConfigsFromEvents(pathName, connSteps.SrcMsgIDs, connSteps.DstMsgIDs, src, dst); err != nil {
+			if err := SyncChainConfigsFromEvents(context.TODO(), pathName, connSteps.SrcMsgIDs, connSteps.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
 

@@ -137,22 +137,22 @@ func (cc ChainProverConfig) Build() (*ProvableChain, error) {
 	return NewProvableChain(chain, prover), nil
 }
 
-func SyncChainConfigsFromEvents(pathName string, msgIDsSrc, msgIDsDst []MsgID, src, dst *ProvableChain) error {
-	if err := SyncChainConfigFromEvents(pathName, msgIDsSrc, src); err != nil {
+func SyncChainConfigsFromEvents(ctx context.Context, pathName string, msgIDsSrc, msgIDsDst []MsgID, src, dst *ProvableChain) error {
+	if err := SyncChainConfigFromEvents(ctx, pathName, msgIDsSrc, src); err != nil {
 		return err
 	}
-	if err := SyncChainConfigFromEvents(pathName, msgIDsDst, dst); err != nil {
+	if err := SyncChainConfigFromEvents(ctx, pathName, msgIDsDst, dst); err != nil {
 		return err
 	}
 	return nil
 }
 
-func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableChain) error {
+func SyncChainConfigFromEvents(ctx context.Context, pathName string, msgIDs []MsgID, chain *ProvableChain) error {
 	for _, msgID := range msgIDs {
 		if msgID == nil {
 			continue
 		}
-		msgRes, err := chain.Chain.GetMsgResult(context.TODO(), msgID)
+		msgRes, err := chain.Chain.GetMsgResult(ctx, msgID)
 		if err != nil {
 			return fmt.Errorf("failed to get message result: %v", err)
 		} else if ok, failureReason := msgRes.Status(); !ok {
@@ -170,7 +170,7 @@ func SyncChainConfigFromEvents(pathName string, msgIDs []MsgID, chain *ProvableC
 			case *EventGenerateChannelIdentifier:
 				kv[PathConfigChannelID] = event.ID
 			case *EventUpgradeChannel:
-				chann, err := chain.QueryChannel(NewQueryContext(context.TODO(), msgRes.BlockHeight()))
+				chann, err := chain.QueryChannel(NewQueryContext(ctx, msgRes.BlockHeight()))
 				if err != nil {
 					return fmt.Errorf("failed to query a channel corresponding to the EventUpgradeChannel event: %v", err)
 				}
