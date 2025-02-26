@@ -14,11 +14,11 @@ import (
 
 // CreateChannel runs the channel creation messages on timeout until they pass
 // TODO: add max retries or something to this function
-func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) error {
+func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain, to time.Duration) error {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateChannel")
 
-	if cont, err := checkChannelCreateReady(src, dst, logger); err != nil {
+	if cont, err := checkChannelCreateReady(ctx, src, dst, logger); err != nil {
 		return err
 	} else if !cont {
 		return nil
@@ -26,8 +26,8 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 
 	ticker := time.NewTicker(to)
 	failures := 0
-	for ; true; <-ticker.C {
-		chanSteps, err := createChannelStep(src, dst)
+	for {
+		chanSteps, err := createChannelStep(ctx, src, dst)
 		if err != nil {
 			logger.Error(
 				"failed to create channel step",
@@ -41,11 +41,11 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 			continue
 		}
 
-		chanSteps.Send(context.TODO(), src, dst)
+		chanSteps.Send(ctx, src, dst)
 
 		if chanSteps.Success() {
 			// In the case of success, synchronize the config file from generated channel identifiers
-			if err := SyncChainConfigsFromEvents(context.TODO(), pathName, chanSteps.SrcMsgIDs, chanSteps.DstMsgIDs, src, dst); err != nil {
+			if err := SyncChainConfigsFromEvents(ctx, pathName, chanSteps.SrcMsgIDs, chanSteps.DstMsgIDs, src, dst); err != nil {
 				return err
 			}
 
@@ -69,12 +69,16 @@ func CreateChannel(pathName string, src, dst *ProvableChain, to time.Duration) e
 			logger.Warn("Retrying transaction...")
 			time.Sleep(5 * time.Second)
 		}
-	}
 
-	return nil
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 }
 
-func checkChannelCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
+func checkChannelCreateReady(ctx context.Context, src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
 	srcID := src.Chain.Path().ChannelID
 	dstID := dst.Chain.Path().ChannelID
 
@@ -87,11 +91,11 @@ func checkChannelCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 			return chantypes.UNINITIALIZED, nil
 		}
 
-		latestHeight, err := pc.LatestHeight(context.TODO())
+		latestHeight, err := pc.LatestHeight(ctx)
 		if err != nil {
 			return chantypes.UNINITIALIZED, err
 		}
-		res, err2 := pc.QueryChannel(NewQueryContext(context.TODO(), latestHeight))
+		res, err2 := pc.QueryChannel(NewQueryContext(ctx, latestHeight))
 		if err2 != nil {
 			return chantypes.UNINITIALIZED, err2
 		}
@@ -122,13 +126,13 @@ func checkChannelCreateReady(src, dst *ProvableChain, logger *log.RelayLogger) (
 	return true, nil
 }
 
-func createChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
+func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs, error) {
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
 	}
 	// First, update the light clients to the latest header and return the header
-	sh, err := NewSyncHeaders(context.TODO(), src, dst)
+	sh, err := NewSyncHeaders(ctx, src, dst)
 	if err != nil {
 		return nil, err
 	}
@@ -139,11 +143,11 @@ func createChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	)
 
 	err = retry.Do(func() error {
-		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(context.TODO(), src, dst)
+		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(ctx, src, dst)
 		return err
-	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)
-		if err := sh.Updates(context.TODO(), src, dst); err != nil {
+		if err := sh.Updates(ctx, src, dst); err != nil {
 			panic(err)
 		}
 	}))
@@ -152,8 +156,8 @@ func createChannelStep(src, dst *ProvableChain) (*RelayMsgs, error) {
 	}
 
 	srcChan, dstChan, settled, err := querySettledChannelPair(
-		sh.GetQueryContext(context.TODO(), src.ChainID()),
-		sh.GetQueryContext(context.TODO(), dst.ChainID()),
+		sh.GetQueryContext(ctx, src.ChainID()),
+		sh.GetQueryContext(ctx, dst.ChainID()),
 		src,
 		dst,
 		true,
@@ -268,17 +272,17 @@ func querySettledChannelPair(
 	}
 
 	var srcLatestCtx, dstLatestCtx QueryContext
-	if h, err := src.LatestHeight(context.TODO()); err != nil {
+	if h, err := src.LatestHeight(srcCtx.Context()); err != nil {
 		logger.Error("failed to get the latest height of the src chain", err)
 		return nil, nil, false, err
 	} else {
-		srcLatestCtx = NewQueryContext(context.TODO(), h)
+		srcLatestCtx = NewQueryContext(srcCtx.Context(), h)
 	}
-	if h, err := dst.LatestHeight(context.TODO()); err != nil {
+	if h, err := dst.LatestHeight(dstCtx.Context()); err != nil {
 		logger.Error("failed to get the latest height of the dst chain", err)
 		return nil, nil, false, err
 	} else {
-		dstLatestCtx = NewQueryContext(context.TODO(), h)
+		dstLatestCtx = NewQueryContext(dstCtx.Context(), h)
 	}
 
 	srcLatestChan, dstLatestChan, err := QueryChannelPair(srcLatestCtx, dstLatestCtx, src, dst, false)

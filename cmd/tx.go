@@ -194,7 +194,7 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateChannel(pathName, c[src], c[dst], to)
+			return core.CreateChannel(cmd.Context(), pathName, c[src], c[dst], to)
 		},
 	}
 
