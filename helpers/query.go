@@ -10,9 +10,9 @@ import (
 )
 
 // QueryBalance is a helper function for query balance
-func QueryBalance(chain *core.ProvableChain, height ibcexported.Height, address sdk.AccAddress, showDenoms bool) (sdk.Coins, error) {
-	ctx := core.NewQueryContext(context.TODO(), height)
-	coins, err := chain.QueryBalance(ctx, address)
+func QueryBalance(ctx context.Context, chain *core.ProvableChain, height ibcexported.Height, address sdk.AccAddress, showDenoms bool) (sdk.Coins, error) {
+	queryCtx := core.NewQueryContext(ctx, height)
+	coins, err := chain.QueryBalance(queryCtx, address)
 	if err != nil {
 		return nil, err
 	}
@@ -21,7 +21,7 @@ func QueryBalance(chain *core.ProvableChain, height ibcexported.Height, address 
 		return coins, nil
 	}
 
-	dts, err := chain.QueryDenomTraces(ctx, 0, 1000)
+	dts, err := chain.QueryDenomTraces(queryCtx, 0, 1000)
 	if err != nil {
 		return nil, err
 	}

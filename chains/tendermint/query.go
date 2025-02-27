@@ -125,9 +125,9 @@ func (c *Chain) QueryBalance(ctx core.QueryContext, addr sdk.AccAddress) (sdk.Co
 		CountTotal: true,
 	}, true)
 
-	queryClient := bankTypes.NewQueryClient(c.CLIContext(0))
+	queryClient := bankTypes.NewQueryClient(c.CLIContext(0).WithCmdContext(ctx.Context()))
 
-	res, err := queryClient.AllBalances(context.Background(), params)
+	res, err := queryClient.AllBalances(ctx.Context(), params)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func (c *Chain) QueryBalance(ctx core.QueryContext, addr sdk.AccAddress) (sdk.Co
 
 // QueryDenomTraces returns all the denom traces from a given chain
 func (c *Chain) QueryDenomTraces(ctx core.QueryContext, offset, limit uint64) (*transfertypes.QueryDenomTracesResponse, error) {
-	return transfertypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight()))).DenomTraces(context.Background(), &transfertypes.QueryDenomTracesRequest{
+	return transfertypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight())).WithCmdContext(ctx.Context())).DenomTraces(ctx.Context(), &transfertypes.QueryDenomTracesRequest{
 		Pagination: &querytypes.PageRequest{
 			Key:        []byte(""),
 			Offset:     offset,
