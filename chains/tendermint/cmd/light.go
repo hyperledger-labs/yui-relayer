@@ -43,7 +43,7 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 			chain := c.Chain.(*tendermint.Chain)
 			prover := c.Prover.(*tendermint.Prover)
 
-			db, df, err := prover.NewLightDB()
+			db, df, err := prover.NewLightDB(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -98,7 +98,7 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 			}
 			prover := c.Prover.(*tendermint.Prover)
 
-			bh, err := prover.GetLatestLightHeader()
+			bh, err := prover.GetLatestLightHeader(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -136,7 +136,7 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 
 			switch len(args) {
 			case 1:
-				header, err = prover.GetLatestLightHeader()
+				header, err = prover.GetLatestLightHeader(cmd.Context())
 				if err != nil {
 					return err
 				}
@@ -148,7 +148,7 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 				}
 
 				if height == 0 {
-					height, err = prover.GetLatestLightHeight()
+					height, err = prover.GetLatestLightHeight(cmd.Context())
 					if err != nil {
 						return err
 					}
@@ -158,7 +158,7 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 					}
 				}
 
-				header, err = prover.GetLightSignedHeaderAtHeight(height)
+				header, err = prover.GetLightSignedHeaderAtHeight(cmd.Context(), height)
 				if err != nil {
 					return err
 				}

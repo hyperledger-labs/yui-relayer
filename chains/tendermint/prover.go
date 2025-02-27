@@ -183,8 +183,8 @@ func (pr *Prover) CheckRefreshRequired(ctx context.Context, counterparty core.Ch
 /* Local LightClient implementation */
 
 // GetLatestLightHeight uses the CLI utilities to pull the latest height from a given chain
-func (pr *Prover) GetLatestLightHeight() (int64, error) {
-	db, df, err := pr.NewLightDB()
+func (pr *Prover) GetLatestLightHeight(ctx context.Context) (int64, error) {
+	db, df, err := pr.NewLightDB(ctx)
 	if err != nil {
 		return -1, err
 	}
@@ -200,7 +200,7 @@ func (pr *Prover) GetLatestLightHeight() (int64, error) {
 
 func (pr *Prover) UpdateLightClient(ctx context.Context, height int64) (*tmclient.Header, error) {
 	// create database connection
-	db, df, err := pr.NewLightDB()
+	db, df, err := pr.NewLightDB(ctx)
 	if err != nil {
 		return nil, lightError(err)
 	}

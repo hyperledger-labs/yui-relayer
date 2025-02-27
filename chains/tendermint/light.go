@@ -55,7 +55,7 @@ func (pr *Prover) LightHTTP() lightp.Provider {
 	return cl
 }
 
-func (pr *Prover) NewLightDB() (db *dbm.GoLevelDB, df func(), err error) {
+func (pr *Prover) NewLightDB(ctx context.Context) (db *dbm.GoLevelDB, df func(), err error) {
 	c := pr.chain
 	if err := retry.Do(func() error {
 		db, err = dbm.NewGoLevelDB(c.config.ChainId, lightDir(c.HomePath))
@@ -63,7 +63,7 @@ func (pr *Prover) NewLightDB() (db *dbm.GoLevelDB, df func(), err error) {
 			return fmt.Errorf("can't open light client database: %w", err)
 		}
 		return nil
-	}, rtyAtt, rtyDel, rtyErr); err != nil {
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx)); err != nil {
 		return nil, nil, err
 	}
 
@@ -150,14 +150,14 @@ func (pr *Prover) LightClientWithoutTrust(ctx context.Context, db dbm.DB) (*ligh
 }
 
 // GetLatestLightHeader returns the header to be used for client creation
-func (pr *Prover) GetLatestLightHeader() (*tmclient.Header, error) {
-	return pr.GetLightSignedHeaderAtHeight(0)
+func (pr *Prover) GetLatestLightHeader(ctx context.Context) (*tmclient.Header, error) {
+	return pr.GetLightSignedHeaderAtHeight(ctx, 0)
 }
 
 // GetLightSignedHeaderAtHeight returns a signed header at a particular height.
-func (pr *Prover) GetLightSignedHeaderAtHeight(height int64) (*tmclient.Header, error) {
+func (pr *Prover) GetLightSignedHeaderAtHeight(ctx context.Context, height int64) (*tmclient.Header, error) {
 	// create database connection
-	db, df, err := pr.NewLightDB()
+	db, df, err := pr.NewLightDB(ctx)
 	if err != nil {
 		return nil, err
 	}
