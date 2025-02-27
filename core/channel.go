@@ -67,7 +67,9 @@ func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain
 			}
 
 			logger.Warn("Retrying transaction...")
-			time.Sleep(5 * time.Second)
+			if err := wait(ctx, 5*time.Second); err != nil {
+				return err
+			}
 		}
 
 		select {

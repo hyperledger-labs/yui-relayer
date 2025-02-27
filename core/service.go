@@ -96,7 +96,9 @@ func (srv *RelayService) Start(ctx context.Context) error {
 		})); err != nil {
 			return err
 		}
-		time.Sleep(srv.interval)
+		if err := wait(ctx, srv.interval); err != nil {
+			return err
+		}
 	}
 }
 

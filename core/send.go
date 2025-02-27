@@ -38,7 +38,9 @@ func GetFinalizedMsgResult(ctx context.Context, chain ProvableChain, msgID MsgID
 			} else {
 				waitTime = avgBlockTime * time.Duration(msgHeight.GetRevisionHeight()-lfHeight.GetRevisionHeight())
 			}
-			time.Sleep(waitTime)
+			if err := wait(ctx, waitTime); err != nil {
+				return err
+			}
 			return fmt.Errorf("msg(id=%v) not finalied: msg.height(%v) > lfh.height(%v)", msgID, msgHeight, lfHeight)
 		}
 

@@ -1,10 +1,12 @@
 package core
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
@@ -170,4 +172,18 @@ func strToUint64(s string) uint64 {
 		panic(err)
 	}
 	return uint64(v)
+}
+
+func wait(ctx context.Context, d time.Duration) error {
+	// NOTE: We can use time.After with Go 1.23 or later
+	// cf. https://pkg.go.dev/time@go1.23.0#After
+	t := time.NewTimer(d)
+	defer t.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-t.C:
+		return nil
+	}
 }
