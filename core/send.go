@@ -9,20 +9,20 @@ import (
 )
 
 // GetFinalizedMsgResult is an utility function that waits for the finalization of the message execution and then returns the result.
-func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID) (MsgResult, error) {
+func GetFinalizedMsgResult(ctx context.Context, chain ProvableChain, msgID MsgID) (MsgResult, error) {
 	var msgRes MsgResult
 
 	avgBlockTime := chain.AverageBlockTime()
 
 	if err := retry.Do(func() error {
 		// query LFH for each retry because it can proceed.
-		lfHeader, err := chain.GetLatestFinalizedHeader(context.TODO())
+		lfHeader, err := chain.GetLatestFinalizedHeader(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get latest finalized header: %v", err)
 		}
 
 		// query MsgResult for each retry because it can be included in a different block because of reorg
-		msgRes, err = chain.GetMsgResult(context.TODO(), msgID)
+		msgRes, err = chain.GetMsgResult(ctx, msgID)
 		if err != nil {
 			return retry.Unrecoverable(fmt.Errorf("failed to get message result: %v", err))
 		} else if ok, failureReason := msgRes.Status(); !ok {
@@ -43,7 +43,7 @@ func GetFinalizedMsgResult(chain ProvableChain, msgID MsgID) (MsgResult, error) 
 		}
 
 		return nil
-	}, rtyAtt, rtyDel, rtyErr); err != nil {
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx)); err != nil {
 		return nil, err
 	}
 
