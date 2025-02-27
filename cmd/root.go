@@ -2,15 +2,19 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/metrics"
+	"golang.org/x/sys/unix"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
@@ -91,6 +95,7 @@ func Execute(modules ...config.ModuleI) error {
 		if err := metrics.InitializeMetrics(metrics.ExporterNull{}); err != nil {
 			return fmt.Errorf("failed to initialize the metrics: %v", err)
 		}
+		cmd.SetContext(notifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM))
 		return nil
 	}
 	rootCmd.PersistentPostRunE = func(cmd *cobra.Command, _ []string) error {
@@ -117,4 +122,25 @@ func initLogger(ctx *config.Context) error {
 func noCommand(cmd *cobra.Command, args []string) error {
 	cmd.Help()
 	return errors.New("specified command does not exist")
+}
+
+func notifyContext(ctx context.Context, signals ...os.Signal) context.Context {
+	ctx, cancel := context.WithCancel(ctx)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, signals...)
+
+	go func() {
+		sig := <-sigChan
+		var sigName string
+		if s, ok := sig.(syscall.Signal); ok {
+			sigName = unix.SignalName(s)
+		} else {
+			sigName = s.String()
+		}
+		log.GetLogger().Info(fmt.Sprintf("Received %s. Shutting down...", sigName))
+		cancel()
+	}()
+
+	return ctx
 }
