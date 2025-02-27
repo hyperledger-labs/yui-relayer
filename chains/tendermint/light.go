@@ -84,10 +84,10 @@ func (pr *Prover) DeleteLightDB() error {
 
 // LightClientWithTrust takes a header from the chain and attempts to add that header to the light
 // database.
-func (pr *Prover) LightClientWithTrust(db dbm.DB, to light.TrustOptions) (*light.Client, error) {
+func (pr *Prover) LightClientWithTrust(ctx context.Context, db dbm.DB, to light.TrustOptions) (*light.Client, error) {
 	prov := pr.LightHTTP()
 	return light.NewClient(
-		context.Background(),
+		ctx,
 		pr.chain.config.ChainId,
 		to,
 		prov,
@@ -98,9 +98,9 @@ func (pr *Prover) LightClientWithTrust(db dbm.DB, to light.TrustOptions) (*light
 		logger)
 }
 
-// LightClientWithoutTrust querys the latest header from the chain and initializes a new light client
+// LightClientWithoutTrust queries the latest header from the chain and initializes a new light client
 // database using that header. This should only be called when first initializing the light client
-func (pr *Prover) LightClientWithoutTrust(db dbm.DB) (*light.Client, error) {
+func (pr *Prover) LightClientWithoutTrust(ctx context.Context, db dbm.DB) (*light.Client, error) {
 	var (
 		height int64
 		err    error
@@ -108,14 +108,14 @@ func (pr *Prover) LightClientWithoutTrust(db dbm.DB) (*light.Client, error) {
 	prov := pr.LightHTTP()
 
 	if err := retry.Do(func() error {
-		h, err := pr.chain.LatestHeight(context.TODO())
+		h, err := pr.chain.LatestHeight(ctx)
 		switch {
 		case err != nil:
 			return err
 		case h.GetRevisionHeight() == 0:
 			return fmt.Errorf("shouldn't be here")
 		default:
-			t, err := pr.chain.Timestamp(context.TODO(), h)
+			t, err := pr.chain.Timestamp(ctx, h)
 			if err != nil {
 				return err
 			}
@@ -125,16 +125,16 @@ func (pr *Prover) LightClientWithoutTrust(db dbm.DB) (*light.Client, error) {
 			height = int64(h.GetRevisionHeight())
 			return nil
 		}
-	}, rtyAtt, rtyDel, rtyErr); err != nil {
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx)); err != nil {
 		return nil, err
 	}
 
-	lb, err := prov.LightBlock(context.Background(), height)
+	lb, err := prov.LightBlock(ctx, height)
 	if err != nil {
 		return nil, err
 	}
 	return light.NewClient(
-		context.Background(),
+		ctx,
 		pr.chain.config.ChainId,
 		light.TrustOptions{
 			Period: pr.getTrustingPeriod(),
