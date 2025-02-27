@@ -379,12 +379,12 @@ func (c *Chain) QueryTxs(ctx context.Context, maxHeight int64, page, limit int, 
 }
 
 func (c *Chain) QueryChannelUpgrade(ctx core.QueryContext) (*chantypes.QueryUpgradeResponse, error) {
-	return c.queryChannelUpgrade(int64(ctx.Height().GetRevisionHeight()), false)
+	return c.queryChannelUpgrade(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), false)
 }
 
-func (c *Chain) queryChannelUpgrade(height int64, prove bool) (chanRes *chantypes.QueryUpgradeResponse, err error) {
+func (c *Chain) queryChannelUpgrade(ctx context.Context, height int64, prove bool) (chanRes *chantypes.QueryUpgradeResponse, err error) {
 	if res, err := chanutils.QueryUpgrade(
-		c.CLIContext(height),
+		c.CLIContext(height).WithCmdContext(ctx),
 		c.PathEnd.PortID,
 		c.PathEnd.ChannelID,
 		prove,
@@ -400,12 +400,12 @@ func (c *Chain) queryChannelUpgrade(height int64, prove bool) (chanRes *chantype
 }
 
 func (c *Chain) QueryChannelUpgradeError(ctx core.QueryContext) (*chantypes.QueryUpgradeErrorResponse, error) {
-	return c.queryChannelUpgradeError(int64(ctx.Height().GetRevisionHeight()), false)
+	return c.queryChannelUpgradeError(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), false)
 }
 
-func (c *Chain) queryChannelUpgradeError(height int64, prove bool) (chanRes *chantypes.QueryUpgradeErrorResponse, err error) {
+func (c *Chain) queryChannelUpgradeError(ctx context.Context, height int64, prove bool) (chanRes *chantypes.QueryUpgradeErrorResponse, err error) {
 	if res, err := chanutils.QueryUpgradeError(
-		c.CLIContext(height),
+		c.CLIContext(height).WithCmdContext(ctx),
 		c.PathEnd.PortID,
 		c.PathEnd.ChannelID,
 		prove,
@@ -421,16 +421,16 @@ func (c *Chain) queryChannelUpgradeError(height int64, prove bool) (chanRes *cha
 }
 
 func (c *Chain) QueryCanTransitionToFlushComplete(ctx core.QueryContext) (bool, error) {
-	return c.queryCanTransitionToFlushComplete(int64(ctx.Height().GetRevisionHeight()))
+	return c.queryCanTransitionToFlushComplete(ctx.Context(), int64(ctx.Height().GetRevisionHeight()))
 }
 
-func (c *Chain) queryCanTransitionToFlushComplete(height int64) (bool, error) {
-	queryClient := chantypes.NewQueryClient(c.CLIContext(height))
+func (c *Chain) queryCanTransitionToFlushComplete(ctx context.Context, height int64) (bool, error) {
+	queryClient := chantypes.NewQueryClient(c.CLIContext(height).WithCmdContext(ctx))
 	req := chantypes.QueryPacketCommitmentsRequest{
 		PortId:    c.PathEnd.PortID,
 		ChannelId: c.PathEnd.ChannelID,
 	}
-	if res, err := queryClient.PacketCommitments(context.TODO(), &req); err != nil {
+	if res, err := queryClient.PacketCommitments(ctx, &req); err != nil {
 		return false, err
 	} else {
 		return len(res.Commitments) == 0, nil

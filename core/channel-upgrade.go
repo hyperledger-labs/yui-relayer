@@ -75,19 +75,19 @@ func (action UpgradeAction) String() string {
 }
 
 // InitChannelUpgrade builds `MsgChannelUpgradeInit` based on the specified UpgradeFields and sends it to the specified chain.
-func InitChannelUpgrade(chain, cp *ProvableChain, upgradeFields chantypes.UpgradeFields, permitUnsafe bool) error {
+func InitChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, upgradeFields chantypes.UpgradeFields, permitUnsafe bool) error {
 	logger := GetChannelLogger(chain.Chain)
 	defer logger.TimeTrack(time.Now(), "InitChannelUpgrade")
 
-	if h, err := chain.LatestHeight(context.TODO()); err != nil {
+	if h, err := chain.LatestHeight(ctx); err != nil {
 		logger.Error("failed to get the latest height", err)
 		return err
-	} else if cpH, err := cp.LatestHeight(context.TODO()); err != nil {
+	} else if cpH, err := cp.LatestHeight(ctx); err != nil {
 		logger.Error("failed to get the latest height of the counterparty chain", err)
 		return err
 	} else if chann, cpChann, err := QueryChannelPair(
-		NewQueryContext(context.TODO(), h),
-		NewQueryContext(context.TODO(), cpH),
+		NewQueryContext(ctx, h),
+		NewQueryContext(ctx, cpH),
 		chain,
 		cp,
 		false,
@@ -117,7 +117,7 @@ func InitChannelUpgrade(chain, cp *ProvableChain, upgradeFields chantypes.Upgrad
 
 	msg := chain.Path().ChanUpgradeInit(upgradeFields, addr)
 
-	if _, err := chain.SendMsgs(context.TODO(), []sdk.Msg{msg}); err != nil {
+	if _, err := chain.SendMsgs(ctx, []sdk.Msg{msg}); err != nil {
 		logger.Error("failed to send MsgChannelUpgradeInit", err)
 		return err
 	} else {
@@ -129,7 +129,7 @@ func InitChannelUpgrade(chain, cp *ProvableChain, upgradeFields chantypes.Upgrad
 
 // ExecuteChannelUpgrade carries out channel upgrade handshake until both chains transition to the OPEN state.
 // This function repeatedly checks the states of both chains and decides the next action.
-func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval time.Duration, targetSrcState, targetDstState UpgradeState) error {
+func ExecuteChannelUpgrade(ctx context.Context, pathName string, src, dst *ProvableChain, interval time.Duration, targetSrcState, targetDstState UpgradeState) error {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "ExecuteChannelUpgrade")
 
@@ -139,11 +139,7 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 	failures := 0
 	firstCall := true
 	for {
-		if !firstCall {
-			<-ticker.C
-		}
-
-		steps, err := upgradeChannelStep(src, dst, targetSrcState, targetDstState, firstCall)
+		steps, err := upgradeChannelStep(ctx, src, dst, targetSrcState, targetDstState, firstCall)
 		if err != nil {
 			logger.Error("failed to create channel upgrade step", err)
 			return err
@@ -161,10 +157,10 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 			continue
 		}
 
-		steps.Send(context.TODO(), src, dst)
+		steps.Send(ctx, src, dst)
 
 		if steps.Success() {
-			if err := SyncChainConfigsFromEvents(context.TODO(), pathName, steps.SrcMsgIDs, steps.DstMsgIDs, src, dst); err != nil {
+			if err := SyncChainConfigsFromEvents(ctx, pathName, steps.SrcMsgIDs, steps.DstMsgIDs, src, dst); err != nil {
 				logger.Error("failed to synchronize the updated path config to the config file", err)
 				return err
 			}
@@ -179,11 +175,17 @@ func ExecuteChannelUpgrade(pathName string, src, dst *ProvableChain, interval ti
 
 			logger.Warn("Retrying transaction...")
 		}
+
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
 
 // CancelChannelUpgrade executes chanUpgradeCancel on `chain`.
-func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Duration) error {
+func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlementInterval time.Duration) error {
 	logger := GetChannelPairLogger(chain, cp)
 	defer logger.TimeTrack(time.Now(), "CancelChannelUpgrade")
 
@@ -192,15 +194,15 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 	defer ticker.Stop()
 
 	for {
-		sh, err := NewSyncHeaders(context.TODO(), chain, cp)
+		sh, err := NewSyncHeaders(ctx, chain, cp)
 		if err != nil {
 			logger.Error("failed to create a SyncHeaders", err)
 			return err
 		}
-		ctx := sh.GetQueryContext(context.TODO(), chain.ChainID())
-		cpCtx := sh.GetQueryContext(context.TODO(), cp.ChainID())
+		queryCtx := sh.GetQueryContext(ctx, chain.ChainID())
+		cpQueryCtx := sh.GetQueryContext(ctx, cp.ChainID())
 
-		chann, _, settled, err := querySettledChannelPair(ctx, cpCtx, chain, cp, false)
+		chann, _, settled, err := querySettledChannelPair(queryCtx, cpQueryCtx, chain, cp, false)
 		if err != nil {
 			logger.Error("failed to query for settled channel pair", err)
 			return err
@@ -210,7 +212,7 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 			continue
 		}
 
-		if _, _, settled, err := querySettledChannelUpgradePair(ctx, cpCtx, chain, cp, false); err != nil {
+		if _, _, settled, err := querySettledChannelUpgradePair(queryCtx, cpQueryCtx, chain, cp, false); err != nil {
 			logger.Error("failed to query for settled channel upgrade pair", err)
 			return err
 		} else if !settled {
@@ -219,13 +221,13 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 			continue
 		}
 
-		cpHeaders, err := cp.SetupHeadersForUpdate(context.TODO(), chain, sh.GetLatestFinalizedHeader(cp.ChainID()))
+		cpHeaders, err := cp.SetupHeadersForUpdate(ctx, chain, sh.GetLatestFinalizedHeader(cp.ChainID()))
 		if err != nil {
 			logger.Error("failed to set up headers for LC update", err)
 			return err
 		}
 
-		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true)
+		upgErr, err := QueryChannelUpgradeError(cpQueryCtx, cp, true)
 		if err != nil {
 			logger.Error("failed to query the channel upgrade error receipt", err)
 			return err
@@ -260,7 +262,7 @@ func CancelChannelUpgrade(chain, cp *ProvableChain, settlementInterval time.Dura
 		// NOTE: A call of SendMsgs for each msg is executed separately to avoid using multicall for eth.
 		//       This is just a workaround and should be fixed in the future.
 		for _, msg := range msgs {
-			if _, err := chain.SendMsgs(context.TODO(), []sdk.Msg{msg}); err != nil {
+			if _, err := chain.SendMsgs(ctx, []sdk.Msg{msg}); err != nil {
 				logger.Error("failed to send a msg to cancel the channel upgrade", err)
 				return err
 			}
@@ -288,7 +290,7 @@ func NewUpgradeState(chanState chantypes.State, upgradeExists bool) (UpgradeStat
 	}
 }
 
-func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState UpgradeState, firstCall bool) (*RelayMsgs, error) {
+func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcState, targetDstState UpgradeState, firstCall bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	logger = &log.RelayLogger{Logger: logger.With("first_call", firstCall)}
 
@@ -300,7 +302,7 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 	out := NewRelayMsgs()
 
 	// First, update the light clients to the latest header and return the header
-	sh, err := NewSyncHeaders(context.TODO(), src, dst)
+	sh, err := NewSyncHeaders(ctx, src, dst)
 	if err != nil {
 		logger.Error("failed to create SyncHeaders", err)
 		return nil, err
@@ -309,10 +311,10 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 	// Query a number of things all at once
 	var srcUpdateHeaders, dstUpdateHeaders []Header
 	if err := retry.Do(func() error {
-		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(context.TODO(), src, dst)
+		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(ctx, src, dst)
 		return err
-	}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(uint, error) {
-		if err := sh.Updates(context.TODO(), src, dst); err != nil {
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(uint, error) {
+		if err := sh.Updates(ctx, src, dst); err != nil {
 			panic(err)
 		}
 	})); err != nil {
@@ -320,8 +322,8 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 		return nil, err
 	}
 
-	srcCtx := sh.GetQueryContext(context.TODO(), src.ChainID())
-	dstCtx := sh.GetQueryContext(context.TODO(), dst.ChainID())
+	srcCtx := sh.GetQueryContext(ctx, src.ChainID())
+	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 
 	// query finalized channels with proofs
 	srcChan, dstChan, settled, err := querySettledChannelPair(srcCtx, dstCtx, src, dst, true)
@@ -498,13 +500,13 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 			break
 		}
 
-		if completable, err := queryCanTransitionToFlushComplete(src); err != nil {
+		if completable, err := queryCanTransitionToFlushComplete(srcCtx.Context(), src); err != nil {
 			logger.Error("failed to check if the src channel can transition to FLUSHCOMPLETE", err)
 			return nil, err
 		} else if completable {
 			srcAction = UPGRADE_ACTION_CONFIRM
 		}
-		if completable, err := queryCanTransitionToFlushComplete(dst); err != nil {
+		if completable, err := queryCanTransitionToFlushComplete(dstCtx.Context(), dst); err != nil {
 			logger.Error("failed to check if the dst channel can transition to FLUSHCOMPLETE", err)
 			return nil, err
 		} else if completable {
@@ -516,7 +518,7 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 			return nil, err
 		} else if timedout {
 			dstAction = UPGRADE_ACTION_TIMEOUT
-		} else if completable, err := queryCanTransitionToFlushComplete(src); err != nil {
+		} else if completable, err := queryCanTransitionToFlushComplete(srcCtx.Context(), src); err != nil {
 			logger.Error("failed to check if the src channel can transition to FLUSHCOMPLETE", err)
 			return nil, err
 		} else if completable {
@@ -528,7 +530,7 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 			return nil, err
 		} else if timedout {
 			srcAction = UPGRADE_ACTION_TIMEOUT
-		} else if completable, err := queryCanTransitionToFlushComplete(dst); err != nil {
+		} else if completable, err := queryCanTransitionToFlushComplete(dstCtx.Context(), dst); err != nil {
 			logger.Error("failed to check if the dst channel can transition to FLUSHCOMPLETE", err)
 			return nil, err
 		} else if completable {
@@ -613,14 +615,14 @@ func queryProposedConnectionID(cpCtx QueryContext, cp *ProvableChain, cpChanUpg 
 	}
 }
 
-func queryCanTransitionToFlushComplete(chain interface {
+func queryCanTransitionToFlushComplete(ctx context.Context, chain interface {
 	ChainInfo
 	ICS04Querier
 }) (bool, error) {
-	if h, err := chain.LatestHeight(context.TODO()); err != nil {
+	if h, err := chain.LatestHeight(ctx); err != nil {
 		return false, err
 	} else {
-		return chain.QueryCanTransitionToFlushComplete(NewQueryContext(context.TODO(), h))
+		return chain.QueryCanTransitionToFlushComplete(NewQueryContext(ctx, h))
 	}
 }
 
@@ -648,17 +650,17 @@ func querySettledChannelUpgradePair(
 
 	// prepare QueryContext's based on the latest heights
 	var srcLatestCtx, dstLatestCtx QueryContext
-	if h, err := src.LatestHeight(context.TODO()); err != nil {
+	if h, err := src.LatestHeight(srcCtx.Context()); err != nil {
 		logger.Error("failed to get the latest height of the src chain", err)
 		return nil, nil, false, err
 	} else {
-		srcLatestCtx = NewQueryContext(context.TODO(), h)
+		srcLatestCtx = NewQueryContext(srcCtx.Context(), h)
 	}
-	if h, err := dst.LatestHeight(context.TODO()); err != nil {
+	if h, err := dst.LatestHeight(dstCtx.Context()); err != nil {
 		logger.Error("failed to get the latest height of the dst chain", err)
 		return nil, nil, false, err
 	} else {
-		dstLatestCtx = NewQueryContext(context.TODO(), h)
+		dstLatestCtx = NewQueryContext(dstCtx.Context(), h)
 	}
 
 	// query channel upgrade pair at latest heights
@@ -712,7 +714,7 @@ func upgradeAlreadyTimedOut(
 	cpChanUpg *chantypes.QueryUpgradeResponse,
 ) (bool, error) {
 	height := ctx.Height().(clienttypes.Height)
-	timestamp, err := chain.Timestamp(context.TODO(), height)
+	timestamp, err := chain.Timestamp(ctx.Context(), height)
 	if err != nil {
 		return false, err
 	}

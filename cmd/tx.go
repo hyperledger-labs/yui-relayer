@@ -279,6 +279,7 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			return core.InitChannelUpgrade(
+				cmd.Context(),
 				chain,
 				cp,
 				chantypes.UpgradeFields{
@@ -347,7 +348,7 @@ func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.ExecuteChannelUpgrade(pathName, src, dst, interval, targetSrcState, targetDstState)
+			return core.ExecuteChannelUpgrade(cmd.Context(), pathName, src, dst, interval, targetSrcState, targetDstState)
 		},
 	}
 
@@ -401,7 +402,7 @@ func channelUpgradeCancelCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CancelChannelUpgrade(chain, cp, settlementInterval)
+			return core.CancelChannelUpgrade(cmd.Context(), chain, cp, settlementInterval)
 		},
 	}
 
