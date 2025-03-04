@@ -122,6 +122,13 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		return err
 	}
 
+	// remove timeouted packets and add packets which call timeoutPacket to sender's queue
+	tseqs, err := srv.st.SortTimeoutedPackets(srv.src, srv.dst, srv.sh, pseqs)
+	if err != nil {
+		logger.Error("failed to sort timeouted papckets", err)
+		return err
+	}
+
 	// get unrelayed acks
 	aseqs, err := srv.st.UnrelayedAcknowledgements(srv.src, srv.dst, srv.sh, false)
 	if err != nil {
@@ -131,7 +138,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 
 	msgs := NewRelayMsgs()
 
-	doExecuteRelaySrc, doExecuteRelayDst := srv.shouldExecuteRelay(pseqs)
+	doExecuteRelaySrc, doExecuteRelayDst := srv.shouldExecuteRelay(tseqs)
 	doExecuteAckSrc, doExecuteAckDst := srv.shouldExecuteRelay(aseqs)
 	// update clients
 	if m, err := srv.st.UpdateClients(srv.src, srv.dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, srv.sh, true); err != nil {
@@ -142,7 +149,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	}
 
 	// relay packets if unrelayed seqs exist
-	if m, err := srv.st.RelayPackets(srv.src, srv.dst, pseqs, srv.sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
+	if m, err := srv.st.RelayPackets(srv.src, srv.dst, tseqs, srv.sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
 		logger.Error("failed to relay packets", err)
 		return err
 	} else {

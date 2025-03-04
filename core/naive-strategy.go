@@ -199,7 +199,56 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 	}, nil
 }
 
-func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) SortTimeoutedPackets(src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) (*RelayPackets, error) {
+	var (
+		srcPackets PacketInfoList
+		dstPackets PacketInfoList
+	)
+
+	srcHeader := sh.GetLatestFinalizedHeader(src.ChainID())
+	srcTimestamp := src.Timestamp(context.TODO(), srcHeader.GetHeight())
+	dstHeader := sh.GetLatestFinalizedHeader(dst.ChainID())
+	dstTimestamp := src.Timestamp(context.TODO(), dstHeader.GetHeight())
+
+	for i, p := range packets.Src {
+		if (!p.TimeoutHeight.IsZero() && p.TimeoutHeight.LTE(dstHeader.GetHeight()))
+		|| (p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= dstTimestamp) {
+			msg := src.Path().NewMsgTimeout(p, nextSequenceRecv, proof, height, signer)...
+			if src.Path().GetOrder() == chantypes.ORDERED {
+				if i == 0 {
+					dstPackets = append(dstPackets, msg)
+				}
+				break
+			} else {
+				dstPackets = append(dstPackets, msg)
+			}
+		} else {
+			srcPackets = append(srcPackets, p)
+		}
+	}
+	for i, p := range packets.Dst {
+		if (!p.TimeoutHeight.IsZero() && p.TimeoutHeight.LTE(srcHeader.GetHeight()))
+		|| (p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= srcTimestamp) {
+			msg := src.Path().NewMsgTimeout()
+			if dst.Path().GetOrder() == chantypes.ORDERED {
+				if i == 0 {
+					srcPackets = append(srcPackets, msg)
+				}
+				break
+			} else {
+				srcPackets = append(srcPackets, msg)
+			}
+		} else {
+			dstPackets = append(dstPackets, msg)
+		}
+	}
+	return &RelayPackets{
+		Src: srcPackets,
+		Dst: dstPackets,
+	}, nil
+}
+
+func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, torp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayPackets", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 

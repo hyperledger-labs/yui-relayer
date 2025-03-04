@@ -17,6 +17,8 @@ type StrategyI interface {
 	// `includeRelayedButUnfinalized` decides if the result includes packets of which recvPacket has been executed but not finalized
 	UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error)
 
+	SortTimeoutedPackets(src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) (*RelayPackets, errro)
+
 	// RelayPackets executes RecvPacket to the packets contained in `rp` on both chains (`src` and `dst`).
 	RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error)
 

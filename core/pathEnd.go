@@ -237,6 +237,17 @@ func (pe *PathEnd) ChanCloseConfirm(dstChanState *chantypes.QueryChannelResponse
 	)
 }
 
+// ChanTimeout creates a MsgTimeout
+func (pe *PathEnd) ChanTimeout(packet Packet, nextSequenceRecv uint64, dstChanState *chantypes.QueryChannelResponse, signer sdk.AccAddress) sdk.Msg {
+	return chantypes.NewMsgTimeout(
+		packet,
+		nextSequenceRecv,
+		dstChanState.Proof,
+		dstChanState.ProofHeight,
+		signer.String(),
+	)
+}
+
 // ChanUpgradeInit creates a MsgChannelUpgradeInit
 func (pe *PathEnd) ChanUpgradeInit(upgradeFields chantypes.UpgradeFields, signer sdk.AccAddress) sdk.Msg {
 	return chantypes.NewMsgChannelUpgradeInit(
