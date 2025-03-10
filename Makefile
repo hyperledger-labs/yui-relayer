@@ -8,8 +8,9 @@ protoImage=$(DOCKER) run --user 0 --rm -v $(CURDIR):/workspace --workdir /worksp
 build:
 	go build -o ./build/yrly .
 
+TESTMOCKS = core/strategies_testmock.go core/provers_testmock.go core/chain_testmock.go core/headers_testmock.go
 .PHONY: test
-test:
+test: $(TESTMOCKS)
 	go test -v ./...
 
 proto-gen:
@@ -18,6 +19,8 @@ proto-gen:
 
 proto-update-deps:
 	@echo "Updating Protobuf dependencies"
-	$(DOCKER) run --user 0 --rm -v $(CURDIR)/proto:/workspace --workdir /workspace $(protoImageName) buf mod update
+
+$(TESTMOCKS):
+	for f in $@; do mockgen -source `echo $$f | sed -e s/_testmock//g` -destination $$f -package core; done
 
 .PHONY: proto-gen proto-update-deps
