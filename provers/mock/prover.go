@@ -44,7 +44,7 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 
 // CreateInitialLightClientState creates a pair of ClientState and ConsensusState for building MsgCreateClient submitted to the counterparty chain
 func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height exported.Height) (exported.ClientState, exported.ConsensusState, error) {
-	if head, err := pr.GetLatestFinalizedHeader(context.TODO()); err != nil {
+	if head, err := pr.GetLatestFinalizedHeader(ctx); err != nil {
 		return nil, nil, fmt.Errorf("failed to get the latest finalized header: %v", err)
 	} else if height == nil {
 		height = head.GetHeight()
@@ -60,7 +60,7 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height expo
 	}
 
 	var consensusState exported.ConsensusState
-	if timestamp, err := pr.chain.Timestamp(context.TODO(), height); err != nil {
+	if timestamp, err := pr.chain.Timestamp(ctx, height); err != nil {
 		return nil, nil, fmt.Errorf("get timestamp at height@%v: %v", height, err)
 	} else {
 		consensusState = &mocktypes.ConsensusState{
@@ -71,13 +71,13 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height expo
 	return clientState, consensusState, nil
 }
 
-// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
+// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterparty chain
 func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	return []core.Header{latestFinalizedHeader.(*mocktypes.Header)}, nil
 }
 
-func (pr *Prover) createMockHeader(height exported.Height) (core.Header, error) {
-	timestamp, err := pr.chain.Timestamp(context.TODO(), height)
+func (pr *Prover) createMockHeader(ctx context.Context, height exported.Height) (core.Header, error) {
+	timestamp, err := pr.chain.Timestamp(ctx, height)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get block timestamp at height:%v", height)
 	}
@@ -90,8 +90,8 @@ func (pr *Prover) createMockHeader(height exported.Height) (core.Header, error) 
 	}, nil
 }
 
-func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
-	height, err := pr.chain.LatestHeight(context.TODO())
+func (pr *Prover) getDelayedLatestFinalizedHeight(ctx context.Context) (exported.Height, error) {
+	height, err := pr.chain.LatestHeight(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest height: %v", err)
 	}
@@ -106,11 +106,11 @@ func (pr *Prover) getDelayedLatestFinalizedHeight() (exported.Height, error) {
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header
-func (pr *Prover) GetLatestFinalizedHeader(context.Context) (core.Header, error) {
-	if latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight(); err != nil {
+func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (core.Header, error) {
+	if latestFinalizedHeight, err := pr.getDelayedLatestFinalizedHeight(ctx); err != nil {
 		return nil, err
 	} else {
-		return pr.createMockHeader(latestFinalizedHeight)
+		return pr.createMockHeader(ctx, latestFinalizedHeight)
 	}
 }
 

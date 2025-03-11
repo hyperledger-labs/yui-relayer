@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -63,11 +62,11 @@ func startCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := st.SetupRelay(context.TODO(), c[src], c[dst]); err != nil {
+			if err := st.SetupRelay(cmd.Context(), c[src], c[dst]); err != nil {
 				return err
 			}
 			return core.StartService(
-				context.Background(),
+				cmd.Context(),
 				st,
 				c[src],
 				c[dst],

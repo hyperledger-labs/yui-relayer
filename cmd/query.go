@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -56,12 +55,12 @@ func queryClientCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			latestHeight, err := c.LatestHeight(context.TODO())
+			latestHeight, err := c.LatestHeight(cmd.Context())
 			if err != nil {
 				return err
 			}
 			queryHeight := clienttypes.NewHeight(latestHeight.GetRevisionNumber(), uint64(height))
-			res, err := c.QueryClientState(core.NewQueryContext(context.TODO(), queryHeight))
+			res, err := c.QueryClientState(core.NewQueryContext(cmd.Context(), queryHeight))
 			if err != nil {
 				return err
 			}
@@ -98,12 +97,12 @@ func queryConnection(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			latestHeight, err := c.LatestHeight(context.TODO())
+			latestHeight, err := c.LatestHeight(cmd.Context())
 			if err != nil {
 				return err
 			}
 			queryHeight := clienttypes.NewHeight(latestHeight.GetRevisionNumber(), uint64(height))
-			res, err := c.QueryConnection(core.NewQueryContext(context.TODO(), queryHeight), c.Path().ConnectionID)
+			res, err := c.QueryConnection(core.NewQueryContext(cmd.Context(), queryHeight), c.Path().ConnectionID)
 			if err != nil {
 				return err
 			}
@@ -136,12 +135,12 @@ func queryChannel(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			latestHeight, err := c.LatestHeight(context.TODO())
+			latestHeight, err := c.LatestHeight(cmd.Context())
 			if err != nil {
 				return err
 			}
 			queryHeight := clienttypes.NewHeight(latestHeight.GetRevisionNumber(), uint64(height))
-			res, err := c.QueryChannel(core.NewQueryContext(context.TODO(), queryHeight))
+			res, err := c.QueryChannel(core.NewQueryContext(cmd.Context(), queryHeight))
 			if err != nil {
 				return err
 			}
@@ -175,12 +174,12 @@ func queryChannelUpgrade(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			latestHeight, err := c.LatestHeight(context.TODO())
+			latestHeight, err := c.LatestHeight(cmd.Context())
 			if err != nil {
 				return err
 			}
 			queryHeight := clienttypes.NewHeight(latestHeight.GetRevisionNumber(), uint64(height))
-			res, err := c.QueryChannelUpgrade(core.NewQueryContext(context.TODO(), queryHeight))
+			res, err := c.QueryChannelUpgrade(core.NewQueryContext(cmd.Context(), queryHeight))
 			if err != nil {
 				return err
 			} else if res == nil {
@@ -221,12 +220,12 @@ func queryBalanceCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			h, err := chain.LatestHeight(context.TODO())
+			h, err := chain.LatestHeight(cmd.Context())
 			if err != nil {
 				return err
 			}
 
-			coins, err := helpers.QueryBalance(chain, h, addr, showDenoms)
+			coins, err := helpers.QueryBalance(cmd.Context(), chain, h, addr, showDenoms)
 			if err != nil {
 				return err
 			}
@@ -252,7 +251,7 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sh, err := core.NewSyncHeaders(c[src], c[dst])
+			sh, err := core.NewSyncHeaders(cmd.Context(), c[src], c[dst])
 			if err != nil {
 				return err
 			}
@@ -260,7 +259,7 @@ func queryUnrelayedPackets(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sp, err := st.UnrelayedPackets(c[src], c[dst], sh, true)
+			sp, err := st.UnrelayedPackets(cmd.Context(), c[src], c[dst], sh, true)
 			if err != nil {
 				return err
 			}
@@ -300,7 +299,7 @@ func queryUnrelayedAcknowledgements(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sh, err := core.NewSyncHeaders(c[src], c[dst])
+			sh, err := core.NewSyncHeaders(cmd.Context(), c[src], c[dst])
 			if err != nil {
 				return err
 			}
@@ -309,7 +308,7 @@ func queryUnrelayedAcknowledgements(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh, true)
+			sp, err := st.UnrelayedAcknowledgements(cmd.Context(), c[src], c[dst], sh, true)
 			if err != nil {
 				return err
 			}

@@ -43,7 +43,7 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 			chain := c.Chain.(*tendermint.Chain)
 			prover := c.Prover.(*tendermint.Prover)
 
-			db, df, err := prover.NewLightDB()
+			db, df, err := prover.NewLightDB(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -64,13 +64,13 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 
 			switch {
 			case force: // force initialization from trusted node
-				_, err := prover.LightClientWithoutTrust(db)
+				_, err := prover.LightClientWithoutTrust(cmd.Context(), db)
 				if err != nil {
 					return err
 				}
 				fmt.Printf("successfully created light client for %s by trusting endpoint %s...\n", chain.ChainID(), chain.Config().RpcAddr)
 			case height > 0 && len(hash) > 0: // height and hash are given
-				_, err = prover.LightClientWithTrust(db, prover.TrustOptions(height, hash))
+				_, err = prover.LightClientWithTrust(cmd.Context(), db, prover.TrustOptions(height, hash))
 				if err != nil {
 					return wrapInitFailed(err)
 				}
@@ -98,12 +98,12 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 			}
 			prover := c.Prover.(*tendermint.Prover)
 
-			bh, err := prover.GetLatestLightHeader()
+			bh, err := prover.GetLatestLightHeader(cmd.Context())
 			if err != nil {
 				return err
 			}
 
-			ah, err := prover.UpdateLightClient(0)
+			ah, err := prover.UpdateLightClient(cmd.Context(), 0)
 			if err != nil {
 				return err
 			}
@@ -136,7 +136,7 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 
 			switch len(args) {
 			case 1:
-				header, err = prover.GetLatestLightHeader()
+				header, err = prover.GetLatestLightHeader(cmd.Context())
 				if err != nil {
 					return err
 				}
@@ -148,7 +148,7 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 				}
 
 				if height == 0 {
-					height, err = prover.GetLatestLightHeight()
+					height, err = prover.GetLatestLightHeight(cmd.Context())
 					if err != nil {
 						return err
 					}
@@ -158,7 +158,7 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 					}
 				}
 
-				header, err = prover.GetLightSignedHeaderAtHeight(height)
+				header, err = prover.GetLightSignedHeaderAtHeight(cmd.Context(), height)
 				if err != nil {
 					return err
 				}
@@ -181,7 +181,7 @@ func deleteLightCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete [chain-id]",
 		Aliases: []string{"d"},
-		Short:   "wipe the light client database, forcing re-initialzation on the next run",
+		Short:   "wipe the light client database, forcing re-initialization on the next run",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c, err := ctx.Config.GetChain(args[0])

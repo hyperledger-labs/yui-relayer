@@ -65,19 +65,19 @@ func (st *NaiveStrategy) SetupRelay(ctx context.Context, src, dst *ProvableChain
 	return nil
 }
 
-func getQueryContext(chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bool) (QueryContext, error) {
+func getQueryContext(ctx context.Context, chain *ProvableChain, sh SyncHeaders, useFinalizedHeader bool) (QueryContext, error) {
 	if useFinalizedHeader {
-		return sh.GetQueryContext(chain.ChainID()), nil
+		return sh.GetQueryContext(ctx, chain.ChainID()), nil
 	} else {
-		height, err := chain.LatestHeight(context.TODO())
+		height, err := chain.LatestHeight(ctx)
 		if err != nil {
 			return nil, err
 		}
-		return NewQueryContext(context.TODO(), height), nil
+		return NewQueryContext(ctx, height), nil
 	}
 }
 
-func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
+func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	logger := GetChannelPairLogger(src, dst)
 	now := time.Now()
 	var (
@@ -86,11 +86,11 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 		dstPackets PacketInfoList
 	)
 
-	srcCtx, err := getQueryContext(src, sh, true)
+	srcCtx, err := getQueryContext(ctx, src, sh, true)
 	if err != nil {
 		return nil, err
 	}
-	dstCtx, err := getQueryContext(dst, sh, true)
+	dstCtx, err := getQueryContext(ctx, dst, sh, true)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			}
 			logger.TimeTrack(now, "QueryUnfinalizedRelayPackets", "queried_chain", "src", "num_packets", len(srcPackets))
 			return nil
-		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+		}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
 			logger.Info(
 				"retrying to query unfinalized packet relays",
 				"direction", "src",
@@ -127,7 +127,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 			}
 			logger.TimeTrack(now, "QueryUnfinalizedRelayPackets", "queried_chain", "dst", "num_packets", len(dstPackets))
 			return nil
-		}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+		}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
 			logger.Info(
 				"retrying to query unfinalized packet relays",
 				"direction", "dst",
@@ -147,7 +147,7 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 		return nil, err
 	}
 
-	if err := st.metrics.updateBacklogMetrics(context.TODO(), src, dst, srcPackets, dstPackets); err != nil {
+	if err := st.metrics.updateBacklogMetrics(ctx, src, dst, srcPackets, dstPackets); err != nil {
 		return nil, err
 	}
 
@@ -155,11 +155,11 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 	// In this case, filtering packets by QueryUnreceivedPackets is not needed because QueryUnfinalizedRelayPackets
 	// has already returned packets that completely match this condition.
 	if !includeRelayedButUnfinalized {
-		srcCtx, err := getQueryContext(src, sh, false)
+		srcCtx, err := getQueryContext(ctx, src, sh, false)
 		if err != nil {
 			return nil, err
 		}
-		dstCtx, err := getQueryContext(dst, sh, false)
+		dstCtx, err := getQueryContext(ctx, dst, sh, false)
 		if err != nil {
 			return nil, err
 		}
@@ -199,14 +199,14 @@ func (st *NaiveStrategy) UnrelayedPackets(src, dst *ProvableChain, sh SyncHeader
 	}, nil
 }
 
-func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayPackets", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
 	msgs := NewRelayMsgs()
 
-	srcCtx := sh.GetQueryContext(src.ChainID())
-	dstCtx := sh.GetQueryContext(dst.ChainID())
+	srcCtx := sh.GetQueryContext(ctx, src.ChainID())
+	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 	srcAddress, err := src.GetAddress()
 	if err != nil {
 		logger.Error(
@@ -261,7 +261,7 @@ func (st *NaiveStrategy) RelayPackets(src, dst *ProvableChain, rp *RelayPackets,
 	return msgs, nil
 }
 
-func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
+func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
 	logger := GetChannelPairLogger(src, dst)
 	now := time.Now()
 	var (
@@ -270,11 +270,11 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 		dstAcks PacketInfoList
 	)
 
-	srcCtx, err := getQueryContext(src, sh, true)
+	srcCtx, err := getQueryContext(ctx, src, sh, true)
 	if err != nil {
 		return nil, err
 	}
-	dstCtx, err := getQueryContext(dst, sh, true)
+	dstCtx, err := getQueryContext(ctx, dst, sh, true)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +290,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				}
 				logger.TimeTrack(now, "QueryUnfinalizedRelayAcknowledgements", "queried_chain", "src", "num_packets", len(srcAcks))
 				return nil
-			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+			}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
 				logger.Info(
 					"retrying to query unfinalized ack relays",
 					"direction", "src",
@@ -299,7 +299,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 					"try_limit", rtyAttNum,
 					"error", err.Error(),
 				)
-				sh.Updates(src, dst)
+				sh.Updates(ctx, src, dst)
 			}))
 		})
 	}
@@ -315,7 +315,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 				}
 				logger.TimeTrack(now, "QueryUnfinalizedRelayAcknowledgements", "queried_chain", "dst", "num_packets", len(dstAcks))
 				return nil
-			}, rtyAtt, rtyDel, rtyErr, retry.OnRetry(func(n uint, err error) {
+			}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
 				logger.Info(
 					"retrying to query unfinalized ack relays",
 					"direction", "dst",
@@ -324,7 +324,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 					"try_limit", rtyAttNum,
 					"error", err.Error(),
 				)
-				sh.Updates(src, dst)
+				sh.Updates(ctx, src, dst)
 			}))
 		})
 	}
@@ -341,11 +341,11 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(src, dst *ProvableChain, sh S
 	// In this case, filtering packets by QueryUnreceivedAcknowledgements is not needed because QueryUnfinalizedRelayAcknowledgements
 	// has already returned packets that completely match this condition.
 	if !includeRelayedButUnfinalized {
-		srcCtx, err := getQueryContext(src, sh, false)
+		srcCtx, err := getQueryContext(ctx, src, sh, false)
 		if err != nil {
 			return nil, err
 		}
-		dstCtx, err := getQueryContext(dst, sh, false)
+		dstCtx, err := getQueryContext(ctx, dst, sh, false)
 		if err != nil {
 			return nil, err
 		}
@@ -420,14 +420,14 @@ func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 	)
 }
 
-func (st *NaiveStrategy) RelayAcknowledgements(src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
 	msgs := NewRelayMsgs()
 
-	srcCtx := sh.GetQueryContext(src.ChainID())
-	dstCtx := sh.GetQueryContext(dst.ChainID())
+	srcCtx := sh.GetQueryContext(ctx, src.ChainID())
+	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 	srcAddress, err := src.GetAddress()
 	if err != nil {
 		logger.Error(
@@ -495,7 +495,7 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 	return msgs, nil
 }
 
-func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error) {
+func (st *NaiveStrategy) UpdateClients(ctx context.Context, src, dst *ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error) {
 	logger := GetChannelPairLogger(src, dst)
 
 	msgs := NewRelayMsgs()
@@ -506,14 +506,14 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 	// check if LC refresh is needed
 	if !needsUpdateForSrc && doRefresh {
 		var err error
-		needsUpdateForSrc, err = dst.CheckRefreshRequired(context.TODO(), src)
+		needsUpdateForSrc, err = dst.CheckRefreshRequired(ctx, src)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if the LC on the src chain needs to be refreshed: %v", err)
 		}
 	}
 	if !needsUpdateForDst && doRefresh {
 		var err error
-		needsUpdateForDst, err = src.CheckRefreshRequired(context.TODO(), dst)
+		needsUpdateForDst, err = src.CheckRefreshRequired(ctx, dst)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check if the LC on the dst chain needs to be refreshed: %v", err)
 		}
@@ -524,7 +524,7 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 		if err != nil {
 			return nil, fmt.Errorf("failed to get relayer address on src chain: %v", err)
 		}
-		hs, err := sh.SetupHeadersForUpdate(dst, src)
+		hs, err := sh.SetupHeadersForUpdate(ctx, dst, src)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set up headers for updating client on src chain: %v", err)
 		}
@@ -538,7 +538,7 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 		if err != nil {
 			return nil, fmt.Errorf("failed to get relayer address on dst chain: %v", err)
 		}
-		hs, err := sh.SetupHeadersForUpdate(src, dst)
+		hs, err := sh.SetupHeadersForUpdate(ctx, src, dst)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set up headers for updating client on dst chain: %v", err)
 		}
@@ -557,12 +557,12 @@ func (st *NaiveStrategy) UpdateClients(src, dst *ProvableChain, doExecuteRelaySr
 	return msgs, nil
 }
 
-func (st *NaiveStrategy) Send(src, dst Chain, msgs *RelayMsgs) {
+func (st *NaiveStrategy) Send(ctx context.Context, src, dst Chain, msgs *RelayMsgs) {
 	logger := GetChannelPairLogger(src, dst)
 
 	msgs.MaxTxSize = st.MaxTxSize
 	msgs.MaxMsgLength = st.MaxMsgLength
-	msgs.Send(src, dst)
+	msgs.Send(ctx, src, dst)
 
 	logger.Info("msgs relayed",
 		slog.Group("src", "msg_count", len(msgs.Src)),
@@ -585,7 +585,7 @@ func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, d
 
 	if len(newSrcBacklog) > 0 {
 		oldestHeight := newSrcBacklog[0].EventHeight
-		oldestTimestamp, err := src.Timestamp(context.TODO(), oldestHeight)
+		oldestTimestamp, err := src.Timestamp(ctx, oldestHeight)
 		if err != nil {
 			return fmt.Errorf("failed to get the timestamp of block[%d] on the src chain: %v", oldestHeight, err)
 		}
@@ -595,7 +595,7 @@ func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, d
 	}
 	if len(newDstBacklog) > 0 {
 		oldestHeight := newDstBacklog[0].EventHeight
-		oldestTimestamp, err := dst.Timestamp(context.TODO(), oldestHeight)
+		oldestTimestamp, err := dst.Timestamp(ctx, oldestHeight)
 		if err != nil {
 			return fmt.Errorf("failed to get the timestamp of block[%d] on the dst chain: %v", oldestHeight, err)
 		}

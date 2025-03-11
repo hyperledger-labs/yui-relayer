@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -81,7 +80,7 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			} else if height == 0 {
 				srcHeight = nil
-			} else if latestHeight, err := c[src].LatestHeight(context.TODO()); err != nil {
+			} else if latestHeight, err := c[src].LatestHeight(cmd.Context()); err != nil {
 				return fmt.Errorf("failed to get the latest height of src chain: %v", err)
 			} else {
 				srcHeight = clienttypes.NewHeight(latestHeight.GetRevisionNumber(), height)
@@ -93,13 +92,13 @@ func createClientsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			} else if height == 0 {
 				dstHeight = nil
-			} else if latestHeight, err := c[dst].LatestHeight(context.TODO()); err != nil {
+			} else if latestHeight, err := c[dst].LatestHeight(cmd.Context()); err != nil {
 				return fmt.Errorf("failed to get the latest height of dst chain: %v", err)
 			} else {
 				dstHeight = clienttypes.NewHeight(latestHeight.GetRevisionNumber(), height)
 			}
 
-			return core.CreateClients(pathName, c[src], c[dst], srcHeight, dstHeight)
+			return core.CreateClients(cmd.Context(), pathName, c[src], c[dst], srcHeight, dstHeight)
 		},
 	}
 	cmd.Flags().Uint64(flagSrcHeight, defaultSrcHeight, "src header at this height is submitted to dst chain")
@@ -128,7 +127,7 @@ func updateClientsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.UpdateClients(c[src], c[dst])
+			return core.UpdateClients(cmd.Context(), c[src], c[dst])
 		},
 	}
 	return cmd
@@ -161,7 +160,7 @@ func createConnectionCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateConnection(pathName, c[src], c[dst], to)
+			return core.CreateConnection(cmd.Context(), pathName, c[src], c[dst], to)
 		},
 	}
 
@@ -195,7 +194,7 @@ func createChannelCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CreateChannel(pathName, c[src], c[dst], to)
+			return core.CreateChannel(cmd.Context(), pathName, c[src], c[dst], to)
 		},
 	}
 
@@ -280,6 +279,7 @@ func channelUpgradeInitCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			return core.InitChannelUpgrade(
+				cmd.Context(),
 				chain,
 				cp,
 				chantypes.UpgradeFields{
@@ -348,7 +348,7 @@ func channelUpgradeExecuteCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.ExecuteChannelUpgrade(pathName, src, dst, interval, targetSrcState, targetDstState)
+			return core.ExecuteChannelUpgrade(cmd.Context(), pathName, src, dst, interval, targetSrcState, targetDstState)
 		},
 	}
 
@@ -402,7 +402,7 @@ func channelUpgradeCancelCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			return core.CancelChannelUpgrade(chain, cp, settlementInterval)
+			return core.CancelChannelUpgrade(cmd.Context(), chain, cp, settlementInterval)
 		},
 	}
 
@@ -434,7 +434,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sh, err := core.NewSyncHeaders(c[src], c[dst])
+			sh, err := core.NewSyncHeaders(cmd.Context(), c[src], c[dst])
 			if err != nil {
 				return err
 			}
@@ -443,11 +443,11 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			if err := st.SetupRelay(context.TODO(), c[src], c[dst]); err != nil {
+			if err := st.SetupRelay(cmd.Context(), c[src], c[dst]); err != nil {
 				return err
 			}
 
-			sp, err := st.UnrelayedPackets(c[src], c[dst], sh, false)
+			sp, err := st.UnrelayedPackets(cmd.Context(), c[src], c[dst], sh, false)
 			if err != nil {
 				return err
 			}
@@ -464,19 +464,19 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			doExecuteAckSrc := false
 			doExecuteAckDst := false
 
-			if m, err := st.UpdateClients(c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
+			if m, err := st.UpdateClients(cmd.Context(), c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)
 			}
 
-			if m, err := st.RelayPackets(c[src], c[dst], sp, sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
+			if m, err := st.RelayPackets(cmd.Context(), c[src], c[dst], sp, sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)
 			}
 
-			st.Send(c[src], c[dst], msgs)
+			st.Send(cmd.Context(), c[src], c[dst], msgs)
 
 			return nil
 		},
@@ -511,7 +511,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sh, err := core.NewSyncHeaders(c[src], c[dst])
+			sh, err := core.NewSyncHeaders(cmd.Context(), c[src], c[dst])
 			if err != nil {
 				return err
 			}
@@ -522,7 +522,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 
 			// sp.Src contains all sequences acked on SRC but acknowledgement not processed on DST
 			// sp.Dst contains all sequences acked on DST but acknowledgement not processed on SRC
-			sp, err := st.UnrelayedAcknowledgements(c[src], c[dst], sh, false)
+			sp, err := st.UnrelayedAcknowledgements(cmd.Context(), c[src], c[dst], sh, false)
 			if err != nil {
 				return err
 			}
@@ -539,19 +539,19 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			doExecuteAckSrc := len(sp.Dst) > 0
 			doExecuteAckDst := len(sp.Src) > 0
 
-			if m, err := st.UpdateClients(c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
+			if m, err := st.UpdateClients(cmd.Context(), c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)
 			}
 
-			if m, err := st.RelayAcknowledgements(c[src], c[dst], sp, sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
+			if m, err := st.RelayAcknowledgements(cmd.Context(), c[src], c[dst], sp, sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
 				return err
 			} else {
 				msgs.Merge(m)
 			}
 
-			st.Send(c[src], c[dst], msgs)
+			st.Send(cmd.Context(), c[src], c[dst], msgs)
 
 			return nil
 		},

@@ -44,7 +44,7 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 
 // ProveState returns the proof of an IBC state specified by `path` and `value`
 func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
-	clientCtx := pr.chain.CLIContext(int64(ctx.Height().GetRevisionHeight()))
+	clientCtx := pr.chain.CLIContext(int64(ctx.Height().GetRevisionHeight())).WithCmdContext(ctx.Context())
 	if v, proof, proofHeight, err := ibcclient.QueryTendermintProof(clientCtx, []byte(path)); err != nil {
 		return nil, clienttypes.Height{}, err
 	} else if !bytes.Equal(v, value) {
@@ -68,12 +68,12 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height ibce
 	if height != nil {
 		tmHeight = int64(height.GetRevisionHeight())
 	}
-	selfHeader, err := pr.UpdateLightClient(tmHeight)
+	selfHeader, err := pr.UpdateLightClient(ctx, tmHeight)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to update the local light client and get the header@%d: %v", tmHeight, err)
 	}
 
-	ubdPeriod, err := pr.chain.QueryUnbondingPeriod()
+	ubdPeriod, err := pr.chain.QueryUnbondingPeriod(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query for the unbonding period: %v", err)
 	}
@@ -96,13 +96,13 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 	tmp := latestFinalizedHeader.(*tmclient.Header)
 	h := *tmp
 
-	cph, err := counterparty.LatestHeight(context.TODO())
+	cph, err := counterparty.LatestHeight(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// retrieve the client state from the counterparty chain
-	counterpartyClientRes, err := counterparty.QueryClientState(core.NewQueryContext(context.TODO(), cph))
+	counterpartyClientRes, err := counterparty.QueryClientState(core.NewQueryContext(ctx, cph))
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 	h.TrustedHeight = cs.GetLatestHeight().(clienttypes.Height)
 
 	// query TrustedValidators at Trusted Height from the self chain
-	valSet, err := self.QueryValsetAtHeight(h.TrustedHeight)
+	valSet, err := self.QueryValsetAtHeight(ctx, h.TrustedHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -128,15 +128,15 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 
 // GetLatestFinalizedHeader returns the latest finalized header
 func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (core.Header, error) {
-	return pr.UpdateLightClient(0)
+	return pr.UpdateLightClient(ctx, 0)
 }
 
 func (pr *Prover) CheckRefreshRequired(ctx context.Context, counterparty core.ChainInfoICS02Querier) (bool, error) {
-	cpQueryHeight, err := counterparty.LatestHeight(context.TODO())
+	cpQueryHeight, err := counterparty.LatestHeight(ctx)
 	if err != nil {
 		return false, fmt.Errorf("failed to get the latest height of the counterparty chain: %v", err)
 	}
-	cpQueryCtx := core.NewQueryContext(context.TODO(), cpQueryHeight)
+	cpQueryCtx := core.NewQueryContext(ctx, cpQueryHeight)
 
 	resCs, err := counterparty.QueryClientState(cpQueryCtx)
 	if err != nil {
@@ -159,12 +159,12 @@ func (pr *Prover) CheckRefreshRequired(ctx context.Context, counterparty core.Ch
 	}
 	lcLastTimestamp := time.Unix(0, int64(cons.GetTimestamp()))
 
-	selfQueryHeight, err := pr.chain.LatestHeight(context.TODO())
+	selfQueryHeight, err := pr.chain.LatestHeight(ctx)
 	if err != nil {
 		return false, fmt.Errorf("failed to get the latest height of the self chain: %v", err)
 	}
 
-	selfTimestamp, err := pr.chain.Timestamp(context.TODO(), selfQueryHeight)
+	selfTimestamp, err := pr.chain.Timestamp(ctx, selfQueryHeight)
 	if err != nil {
 		return false, fmt.Errorf("failed to get timestamp of the self chain: %v", err)
 	}
@@ -183,8 +183,8 @@ func (pr *Prover) CheckRefreshRequired(ctx context.Context, counterparty core.Ch
 /* Local LightClient implementation */
 
 // GetLatestLightHeight uses the CLI utilities to pull the latest height from a given chain
-func (pr *Prover) GetLatestLightHeight() (int64, error) {
-	db, df, err := pr.NewLightDB()
+func (pr *Prover) GetLatestLightHeight(ctx context.Context) (int64, error) {
+	db, df, err := pr.NewLightDB(ctx)
 	if err != nil {
 		return -1, err
 	}
@@ -198,9 +198,9 @@ func (pr *Prover) GetLatestLightHeight() (int64, error) {
 	return client.LastTrustedHeight()
 }
 
-func (pr *Prover) UpdateLightClient(height int64) (*tmclient.Header, error) {
+func (pr *Prover) UpdateLightClient(ctx context.Context, height int64) (*tmclient.Header, error) {
 	// create database connection
-	db, df, err := pr.NewLightDB()
+	db, df, err := pr.NewLightDB(ctx)
 	if err != nil {
 		return nil, lightError(err)
 	}
@@ -213,7 +213,7 @@ func (pr *Prover) UpdateLightClient(height int64) (*tmclient.Header, error) {
 
 	var sh *types.LightBlock
 	if height == 0 {
-		if sh, err = client.Update(context.Background(), time.Now()); err != nil {
+		if sh, err = client.Update(ctx, time.Now()); err != nil {
 			return nil, lightError(err)
 		} else if sh == nil {
 			sh, err = client.TrustedLightBlock(0)
@@ -222,7 +222,7 @@ func (pr *Prover) UpdateLightClient(height int64) (*tmclient.Header, error) {
 			}
 		}
 	} else {
-		if sh, err = client.VerifyLightBlockAtHeight(context.Background(), height, time.Now()); err != nil {
+		if sh, err = client.VerifyLightBlockAtHeight(ctx, height, time.Now()); err != nil {
 			return nil, lightError(err)
 		}
 	}
