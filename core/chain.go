@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+//go:generate mockgen -source=chain.go -destination=chain_testmock.go -package core
 // Chain represents a chain that supports sending transactions and querying the state
 type Chain interface {
 	// GetAddress returns the address of relayer
