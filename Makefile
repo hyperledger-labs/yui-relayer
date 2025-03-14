@@ -19,6 +19,7 @@ proto-gen:
 
 proto-update-deps:
 	@echo "Updating Protobuf dependencies"
+	$(DOCKER) run --user 0 --rm -v $(CURDIR)/proto:/workspace --workdir /workspace $(protoImageName) buf mod update
 
 $(TESTMOCKS):
 	go generate ./...
