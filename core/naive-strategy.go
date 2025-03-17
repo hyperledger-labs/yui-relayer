@@ -8,6 +8,7 @@ import (
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
@@ -195,6 +196,74 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 
 	defer logger.TimeTrackContext(ctx, now, "UnrelayedPackets", "num_src", len(srcPackets), "num_dst", len(dstPackets))
 
+	return &RelayPackets{
+		Src: srcPackets,
+		Dst: dstPackets,
+	}, nil
+}
+
+func (st *NaiveStrategy) SortUnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) (*RelayPackets, error) {
+	logger := GetChannelPairLogger(src, dst)
+	var (
+		srcPackets   PacketInfoList
+		dstPackets   PacketInfoList
+		srcHeight    ibcexported.Height
+		srcTimestamp uint64
+		dstHeight    ibcexported.Height
+		dstTimestamp uint64
+	)
+
+	if 0 < len(rp.Src) {
+		dstHeight := sh.GetLatestFinalizedHeader(dst.ChainID()).GetHeight()
+		timestamp, err := dst.Timestamp(context.TODO(), dstHeight)
+		if err != nil {
+			logger.Error("fail to get dst.Timestamp", err)
+			return nil, err
+		}
+		dstTimestamp = uint64(timestamp.UnixNano())
+	}
+	if 0 < len(rp.Dst) {
+		srcHeight := sh.GetLatestFinalizedHeader(src.ChainID()).GetHeight()
+		timestamp, err := src.Timestamp(context.TODO(), srcHeight)
+		if err != nil {
+			logger.Error("fail to get src.Timestamp", err)
+			return nil, err
+		}
+		srcTimestamp = uint64(timestamp.UnixNano())
+	}
+
+	for i, p := range rp.Src {
+		if (!p.TimeoutHeight.IsZero() && p.TimeoutHeight.LTE(dstHeight)) ||
+			(p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= dstTimestamp) {
+			p.Sort = "timeout"
+			if src.Path().GetOrder() == chantypes.ORDERED {
+				if i == 0 {
+					dstPackets = append(dstPackets, p)
+				}
+				break
+			} else {
+				dstPackets = append(dstPackets, p)
+			}
+		} else {
+			srcPackets = append(srcPackets, p)
+		}
+	}
+	for i, p := range rp.Dst {
+		if (!p.TimeoutHeight.IsZero() && p.TimeoutHeight.LTE(srcHeight)) ||
+			(p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= srcTimestamp) {
+			p.Sort = "timeout"
+			if dst.Path().GetOrder() == chantypes.ORDERED {
+				if i == 0 {
+					srcPackets = append(srcPackets, p)
+				}
+				break
+			} else {
+				srcPackets = append(srcPackets, p)
+			}
+		} else {
+			dstPackets = append(dstPackets, p)
+		}
+	}
 	return &RelayPackets{
 		Src: srcPackets,
 		Dst: dstPackets,
@@ -393,6 +462,22 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst
 // TODO add packet-timeout support
 func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	logger := GetChannelLogger(chain)
+
+	var nextSequenceRecv uint64
+	for _, p := range packets {
+		if p.Sort == "timeout" {
+			res, err := chain.QueryNextSequenceReceive(ctx)
+			if err != nil {
+				logger.Error("failed to QueryNextSequenceReceive", err,
+					"height", ctx.Height(),
+				)
+				return nil, err
+			}
+			nextSequenceRecv = res.NextSequenceReceive
+			break
+		}
+	}
+
 	var msgs []sdk.Msg
 	for _, p := range packets {
 		commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
@@ -406,7 +491,12 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 			)
 			return nil, err
 		}
-		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
+		var msg sdk.Msg
+		if p.Sort == "timeout" {
+			msg = chantypes.NewMsgTimeout(p.Packet, nextSequenceRecv, proof, proofHeight, signer.String())
+		} else {
+			msg = chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
+		}
 		msgs = append(msgs, msg)
 	}
 	return msgs, nil

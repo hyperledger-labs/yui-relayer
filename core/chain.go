@@ -107,6 +107,9 @@ type ICS04Querier interface {
 	// QueryChannel returns the channel associated with a channelID
 	QueryChannel(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
 
+	// QueryNextSequenceReceive returns a info about nextSequence
+	QueryNextSequenceReceive(ctx QueryContext) (res *chantypes.QueryNextSequenceReceiveResponse, err error)
+
 	// QueryUnreceivedPackets returns a list of unrelayed packet commitments
 	QueryUnreceivedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
