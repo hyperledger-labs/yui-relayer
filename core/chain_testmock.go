@@ -298,6 +298,21 @@ func (mr *MockChainMockRecorder) QueryDenomTraces(ctx, offset, limit any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryDenomTraces", reflect.TypeOf((*MockChain)(nil).QueryDenomTraces), ctx, offset, limit)
 }
 
+// QueryNextSequenceReceive mocks base method.
+func (m *MockChain) QueryNextSequenceReceive(ctx QueryContext) (*types3.QueryNextSequenceReceiveResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryNextSequenceReceive", ctx)
+	ret0, _ := ret[0].(*types3.QueryNextSequenceReceiveResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueryNextSequenceReceive indicates an expected call of QueryNextSequenceReceive.
+func (mr *MockChainMockRecorder) QueryNextSequenceReceive(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryNextSequenceReceive", reflect.TypeOf((*MockChain)(nil).QueryNextSequenceReceive), ctx)
+}
+
 // QueryUnfinalizedRelayAcknowledgements mocks base method.
 func (m *MockChain) QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error) {
 	m.ctrl.T.Helper()
@@ -677,6 +692,21 @@ func (mr *MockIBCQuerierMockRecorder) QueryConnection(ctx, connectionID any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryConnection", reflect.TypeOf((*MockIBCQuerier)(nil).QueryConnection), ctx, connectionID)
 }
 
+// QueryNextSequenceReceive mocks base method.
+func (m *MockIBCQuerier) QueryNextSequenceReceive(ctx QueryContext) (*types3.QueryNextSequenceReceiveResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryNextSequenceReceive", ctx)
+	ret0, _ := ret[0].(*types3.QueryNextSequenceReceiveResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueryNextSequenceReceive indicates an expected call of QueryNextSequenceReceive.
+func (mr *MockIBCQuerierMockRecorder) QueryNextSequenceReceive(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryNextSequenceReceive", reflect.TypeOf((*MockIBCQuerier)(nil).QueryNextSequenceReceive), ctx)
+}
+
 // QueryUnfinalizedRelayAcknowledgements mocks base method.
 func (m *MockIBCQuerier) QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error) {
 	m.ctrl.T.Helper()
@@ -912,6 +942,21 @@ func (m *MockICS04Querier) QueryChannelUpgradeError(ctx QueryContext) (*types3.Q
 func (mr *MockICS04QuerierMockRecorder) QueryChannelUpgradeError(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryChannelUpgradeError", reflect.TypeOf((*MockICS04Querier)(nil).QueryChannelUpgradeError), ctx)
+}
+
+// QueryNextSequenceReceive mocks base method.
+func (m *MockICS04Querier) QueryNextSequenceReceive(ctx QueryContext) (*types3.QueryNextSequenceReceiveResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryNextSequenceReceive", ctx)
+	ret0, _ := ret[0].(*types3.QueryNextSequenceReceiveResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueryNextSequenceReceive indicates an expected call of QueryNextSequenceReceive.
+func (mr *MockICS04QuerierMockRecorder) QueryNextSequenceReceive(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryNextSequenceReceive", reflect.TypeOf((*MockICS04Querier)(nil).QueryNextSequenceReceive), ctx)
 }
 
 // QueryUnfinalizedRelayAcknowledgements mocks base method.
@@ -1156,6 +1201,21 @@ func (m *MockLightClientICS04Querier) QueryChannelUpgradeError(ctx QueryContext)
 func (mr *MockLightClientICS04QuerierMockRecorder) QueryChannelUpgradeError(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryChannelUpgradeError", reflect.TypeOf((*MockLightClientICS04Querier)(nil).QueryChannelUpgradeError), ctx)
+}
+
+// QueryNextSequenceReceive mocks base method.
+func (m *MockLightClientICS04Querier) QueryNextSequenceReceive(ctx QueryContext) (*types3.QueryNextSequenceReceiveResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryNextSequenceReceive", ctx)
+	ret0, _ := ret[0].(*types3.QueryNextSequenceReceiveResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueryNextSequenceReceive indicates an expected call of QueryNextSequenceReceive.
+func (mr *MockLightClientICS04QuerierMockRecorder) QueryNextSequenceReceive(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryNextSequenceReceive", reflect.TypeOf((*MockLightClientICS04Querier)(nil).QueryNextSequenceReceive), ctx)
 }
 
 // QueryUnfinalizedRelayAcknowledgements mocks base method.

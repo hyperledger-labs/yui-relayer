@@ -27,6 +27,7 @@ type NaiveStrategyWrap struct {
 	Inner *core.NaiveStrategy
 
 	UnrelayedPacketsOut *core.RelayPackets
+	SortUnrelayedPacketsOut *core.RelayPackets
 	UnrelayedAcknowledgementsOut *core.RelayPackets
 	RelayPacketsOut *core.RelayMsgs
 	RelayAcknowledgementsOut *core.RelayMsgs
@@ -35,35 +36,41 @@ type NaiveStrategyWrap struct {
 }
 func (s *NaiveStrategyWrap) GetType() string { return s.Inner.GetType() }
 func (s *NaiveStrategyWrap) SetupRelay(ctx context.Context, src, dst *core.ProvableChain) error { return s.Inner.SetupRelay(ctx, src, dst) }
-func (s *NaiveStrategyWrap) UnrelayedPackets(src, dst *core.ProvableChain, sh core.SyncHeaders, includeRelayedButUnfinalized bool) (*core.RelayPackets, error) {
-	ret, err := s.Inner.UnrelayedPackets(src, dst, sh, includeRelayedButUnfinalized)
+func (s *NaiveStrategyWrap) UnrelayedPackets(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, includeRelayedButUnfinalized bool) (*core.RelayPackets, error) {
+	ret, err := s.Inner.UnrelayedPackets(ctx, src, dst, sh, includeRelayedButUnfinalized)
 	s.UnrelayedPacketsOut = ret
 	return ret, err
 }
-func (s *NaiveStrategyWrap) RelayPackets(src, dst *core.ProvableChain, rp *core.RelayPackets, sh core.SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*core.RelayMsgs, error) {
-	ret, err := s.Inner.RelayPackets(src, dst, rp, sh, doExecuteRelaySrc, doExecuteRelayDst)
+
+func (s *NaiveStrategyWrap) SortUnrelayedPackets(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, rp *core.RelayPackets) (*core.RelayPackets, error) {
+	ret, err := s.Inner.SortUnrelayedPackets(ctx, src, dst, sh, rp)
+	s.SortUnrelayedPacketsOut = ret
+	return ret, err
+}
+
+func (s *NaiveStrategyWrap) RelayPackets(ctx context.Context, src, dst *core.ProvableChain, rp *core.RelayPackets, sh core.SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*core.RelayMsgs, error) {
+	ret, err := s.Inner.RelayPackets(ctx, src, dst, rp, sh, doExecuteRelaySrc, doExecuteRelayDst)
 	s.RelayPacketsOut = ret
 	return ret, err
 }
-func (s *NaiveStrategyWrap) UnrelayedAcknowledgements(src, dst *core.ProvableChain, sh core.SyncHeaders, includeRelayedButUnfinalized bool) (*core.RelayPackets, error) {
-	ret, err := s.Inner.UnrelayedAcknowledgements(src, dst, sh, includeRelayedButUnfinalized)
+func (s *NaiveStrategyWrap) UnrelayedAcknowledgements(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, includeRelayedButUnfinalized bool) (*core.RelayPackets, error) {
+	ret, err := s.Inner.UnrelayedAcknowledgements(ctx, src, dst, sh, includeRelayedButUnfinalized)
 	s.UnrelayedAcknowledgementsOut = ret
 	return ret, err
 }
-func (s *NaiveStrategyWrap) RelayAcknowledgements(src, dst *core.ProvableChain, rp *core.RelayPackets, sh core.SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*core.RelayMsgs, error) {
-	ret, err := s.Inner.RelayAcknowledgements(src, dst, rp, sh, doExecuteAckSrc, doExecuteAckDst)
+func (s *NaiveStrategyWrap) RelayAcknowledgements(ctx context.Context, src, dst *core.ProvableChain, rp *core.RelayPackets, sh core.SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*core.RelayMsgs, error) {
+	ret, err := s.Inner.RelayAcknowledgements(ctx, src, dst, rp, sh, doExecuteAckSrc, doExecuteAckDst)
 	s.RelayAcknowledgementsOut = ret
 	return ret, err
 }
-func (s *NaiveStrategyWrap) UpdateClients(src, dst *core.ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh core.SyncHeaders, doRefresh bool) (*core.RelayMsgs, error) {
-	ret, err := s.Inner.UpdateClients(src, dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, doRefresh)
-	fmt.Printf("UpdateClients: %v, %v, %v, %v, %v\n", doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, doRefresh)
+func (s *NaiveStrategyWrap) UpdateClients(ctx context.Context, src, dst *core.ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh core.SyncHeaders, doRefresh bool) (*core.RelayMsgs, error) {
+	ret, err := s.Inner.UpdateClients(ctx, src, dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, doRefresh)
 	s.UpdateClientsOut = ret
 	return ret, err
 }
-func (s *NaiveStrategyWrap) Send(src, dst core.Chain, msgs *core.RelayMsgs) {
+func (s *NaiveStrategyWrap) Send(ctx context.Context, src, dst core.Chain, msgs *core.RelayMsgs) {
 	s.SendIn = msgs
-	s.Inner.Send(src, dst, msgs)
+	s.Inner.Send(ctx, src, dst, msgs)
 }
 
 func NewMockProvableChain(
@@ -189,7 +196,7 @@ func testServe(t *testing.T, tc testCase) {
 	dst := NewMockProvableChain(ctrl, "dst", tc.Order, dstLatestHeader, []*core.PacketInfo{}, unreceivedPackets)
 
 	st := &NaiveStrategyWrap{ Inner: core.NewNaiveStrategy(false, false) }
-	sh, err := core.NewSyncHeaders(src, dst)
+	sh, err := core.NewSyncHeaders(context.TODO(), src, dst)
 	if err != nil {
 		fmt.Printf("NewSyncHeders: %v\n", err)
 	}
