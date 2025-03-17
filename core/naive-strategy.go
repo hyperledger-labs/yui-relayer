@@ -202,7 +202,7 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 	}, nil
 }
 
-func (st *NaiveStrategy) SortUnrelayedPackets(src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) (*RelayPackets, error) {
+func (st *NaiveStrategy) SortUnrelayedPackets(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) (*RelayPackets, error) {
 	logger := GetChannelPairLogger(src, dst)
 	var (
 		srcPackets   PacketInfoList
