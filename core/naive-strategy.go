@@ -214,7 +214,7 @@ func (st *NaiveStrategy) SortUnrelayedPackets(ctx context.Context, src, dst *Pro
 	)
 
 	if 0 < len(rp.Src) {
-		dstHeight := sh.GetLatestFinalizedHeader(dst.ChainID()).GetHeight()
+		dstHeight = sh.GetLatestFinalizedHeader(dst.ChainID()).GetHeight()
 		timestamp, err := dst.Timestamp(context.TODO(), dstHeight)
 		if err != nil {
 			logger.Error("fail to get dst.Timestamp", err)
@@ -223,7 +223,7 @@ func (st *NaiveStrategy) SortUnrelayedPackets(ctx context.Context, src, dst *Pro
 		dstTimestamp = uint64(timestamp.UnixNano())
 	}
 	if 0 < len(rp.Dst) {
-		srcHeight := sh.GetLatestFinalizedHeader(src.ChainID()).GetHeight()
+		srcHeight = sh.GetLatestFinalizedHeader(src.ChainID()).GetHeight()
 		timestamp, err := src.Timestamp(context.TODO(), srcHeight)
 		if err != nil {
 			logger.Error("fail to get src.Timestamp", err)
