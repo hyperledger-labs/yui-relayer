@@ -3,6 +3,7 @@ package core_test
 import (
 	"testing"
 	"go.uber.org/mock/gomock"
+	"github.com/stretchr/testify/assert"
 
 	"time"
 	"context"
@@ -32,7 +33,8 @@ type NaiveStrategyWrap struct {
 	RelayPacketsOut *core.RelayMsgs
 	RelayAcknowledgementsOut *core.RelayMsgs
 	UpdateClientsOut *core.RelayMsgs
-	SendIn *core.RelayMsgs
+	SendInSrc []string
+	SendInDst []string
 }
 func (s *NaiveStrategyWrap) GetType() string { return s.Inner.GetType() }
 func (s *NaiveStrategyWrap) SetupRelay(ctx context.Context, src, dst *core.ProvableChain) error { return s.Inner.SetupRelay(ctx, src, dst) }
@@ -69,10 +71,41 @@ func (s *NaiveStrategyWrap) UpdateClients(ctx context.Context, src, dst *core.Pr
 	return ret, err
 }
 func (s *NaiveStrategyWrap) Send(ctx context.Context, src, dst core.Chain, msgs *core.RelayMsgs) {
-	s.SendIn = msgs
+	// format message object as string to be easily comparable
+	format := func(msgs []sdk.Msg) ([]string) {
+		ret := []string{}
+		for _, msg := range msgs {
+			typeof := reflect.TypeOf(msg).Elem().Name()
+			var desc string
+			switch typeof {
+			case "MsgUpdateClient":
+				m := msg.(*clienttypes.MsgUpdateClient)
+				desc = fmt.Sprintf("%s(%s)", typeof, m.ClientId)
+			case "MsgRecvPacket":
+				m := msg.(*chantypes.MsgRecvPacket)
+				desc = fmt.Sprintf("%s(%v)", typeof, m.Packet.GetSequence())
+			case "MsgTimeout":
+				m := msg.(*chantypes.MsgTimeout)
+				desc = fmt.Sprintf("%s(%v)", typeof, m.Packet.GetSequence())
+			default:
+				desc = fmt.Sprintf("%s()", typeof)
+			}
+			ret = append(ret, desc)
+		}
+		return ret
+	}
+	s.SendInSrc = format(msgs.Src)
+	s.SendInDst = format(msgs.Dst)
 	s.Inner.Send(ctx, src, dst, msgs)
 }
 
+/**
+  * create mock ProvableChain with our MockProver and gomock's MockChain.
+  * about height:
+  *   LatestHeight: returns header that NewMockProvableChain is given
+  *   LatestFinalizedHeight: LatestHeight - 10
+  *   Timestamp: height + 10000
+  */
 func NewMockProvableChain(
 	ctrl *gomock.Controller,
 	name, order string,
@@ -100,10 +133,15 @@ func NewMockProvableChain(
 		func(ctx context.Context, h ibcexported.Height) (time.Time, error) {
 			return time.Unix(0, int64(10000 + h.GetRevisionHeight())), nil
 		}).AnyTimes()
+	chain.EXPECT().QueryNextSequenceReceive(gomock.Any()).DoAndReturn(
+		func(ctx core.QueryContext) (*chantypes.QueryNextSequenceReceiveResponse, error) {
+			height := ctx.Height().(clienttypes.Height)
+			return &chantypes.QueryNextSequenceReceiveResponse{ 1, []byte{}, height }, nil
+		}).AnyTimes()
 	chain.EXPECT().QueryUnfinalizedRelayPackets(gomock.Any(), gomock.Any()).Return(unfinalizedRelayPackets, nil)
 	chain.EXPECT().QueryUnreceivedPackets(gomock.Any(), gomock.Any()).Return(unreceivedPackets, nil).AnyTimes()
-	chain.EXPECT().QueryUnfinalizedRelayAcknowledgements(gomock.Any(), gomock.Any()).Return([]*core.PacketInfo{}, nil).AnyTimes()
 	chain.EXPECT().QueryUnreceivedAcknowledgements(gomock.Any(), gomock.Any()).Return([]uint64{}, nil).AnyTimes()
+	chain.EXPECT().QueryUnfinalizedRelayAcknowledgements(gomock.Any(), gomock.Any()).Return([]*core.PacketInfo{}, nil).AnyTimes()
 	chain.EXPECT().SendMsgs(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, msgs []sdk.Msg) ([]core.MsgID, error) {
 		var msgIDs []core.MsgID
 		for _, _ = range msgs {
@@ -116,9 +154,10 @@ func NewMockProvableChain(
 
 type testCase struct {
 	Order string
-	dstOptimizeCount uint64
+	optimizeCount uint64
 	UnfinalizedRelayPackets core.PacketInfoList
-	ExpectSend []string
+	ExpectSendSrc []string
+	ExpectSendDst []string
 }
 
 func newPacketInfo(seq uint64, timeoutHeight uint64) (*core.PacketInfo) {
@@ -131,7 +170,7 @@ func newPacketInfo(seq uint64, timeoutHeight uint64) (*core.PacketInfo) {
 			"dstPort",
 			"dstChannel",
 			clienttypes.NewHeight(1, timeoutHeight),
-			^uint64(0),
+			0, // timeoutTimestamp
 		),
 		EventHeight: clienttypes.NewHeight(1, 1),
 	}
@@ -143,27 +182,68 @@ func TestServe(t *testing.T) {
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{},
-			[]string{
-			},
+			[]string{ },
+			[]string{ },
 		},
 		"single": {
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{
-				newPacketInfo(1, 99999),
+				newPacketInfo(1, 9999),
 			},
+			[]string{ },
 			[]string{
 				"MsgUpdateClient(dstClient)",
 				"MsgRecvPacket(1)",
+			},
+		},
+		"multi": {
+			"ORDERED",
+			1,
+			[]*core.PacketInfo{
+				newPacketInfo(1, 9999),
+				newPacketInfo(2, 9999),
+				newPacketInfo(3, 9999),
+			},
+			[]string{ },
+			[]string{
+				"MsgUpdateClient(dstClient)",
+				"MsgRecvPacket(1)",
+				"MsgRecvPacket(2)",
+				"MsgRecvPacket(3)",
 			},
 		},
 		"queued": {
 			"ORDERED",
 			9,
 			[]*core.PacketInfo{
-				newPacketInfo(1, 99999),
+				newPacketInfo(1, 9999),
 			},
+			[]string{ },
+			[]string{ },
+		},
+		"timeout": {
+			"ORDERED",
+			1,
+			[]*core.PacketInfo{
+				newPacketInfo(1, 9),
+			},
+			[]string{ "MsgUpdateClient(srcClient)", "MsgTimeout(1)" },
+			[]string{ },
+		},
+		"only packets precede timeout packet": {
+			"ORDERED",
+			1,
+			[]*core.PacketInfo{
+				newPacketInfo(1, 9999),
+				newPacketInfo(2, 9999),
+				newPacketInfo(3, 9),
+			},
+			[]string{ },
 			[]string{
+				"MsgUpdateClient(dstClient)",
+				"MsgRecvPacket(1)",
+				"MsgRecvPacket(2)",
 			},
 		},
 	}
@@ -178,12 +258,12 @@ func testServe(t *testing.T, tc testCase) {
 	metrics.InitializeMetrics(metrics.ExporterNull{})
 
 	srcLatestHeader := mocktypes.Header{
-		Height: clienttypes.NewHeight(10, 99),
-		Timestamp: uint64(10099),
+		Height: clienttypes.NewHeight(1, 100),
+		Timestamp: uint64(10100),
 	}
 	dstLatestHeader := mocktypes.Header{
-		Height: clienttypes.NewHeight(110, 199),
-		Timestamp: uint64(10199),
+		Height: clienttypes.NewHeight(1, 100),
+		Timestamp: uint64(10100),
 	}
 
 	ctrl := gomock.NewController(t)
@@ -201,38 +281,18 @@ func testServe(t *testing.T, tc testCase) {
 		fmt.Printf("NewSyncHeders: %v\n", err)
 	}
 	var forever time.Duration = 1 << 63 - 1
-	srv := core.NewRelayService(st, src, dst, sh, time.Minute, forever, 1, forever, tc.dstOptimizeCount)
+	srv := core.NewRelayService(st, src, dst, sh, time.Minute, forever, tc.optimizeCount, forever, tc.optimizeCount)
 
 	srv.Serve(context.TODO())
+	/* for debug
 	fmt.Printf("UnrelayedPackets: %v\n", st.UnrelayedPacketsOut)
 	fmt.Printf("UnrelayedAcknowledgementsOut: %v\n", st.UnrelayedAcknowledgementsOut)
 	fmt.Printf("RelayPacketsOut: %v\n", st.RelayPacketsOut)
 	fmt.Printf("RelayAcknowledgementsOut: %v\n", st.RelayAcknowledgementsOut)
 	fmt.Printf("UpdateClientsOut: %v\n", st.UpdateClientsOut)
-	fmt.Printf("Send.Src: %v\n", st.SendIn.Src)
-	fmt.Printf("Send.Dst: %v\n", st.SendIn.Dst)
-	if len(st.SendIn.Dst) != len(tc.ExpectSend) {
-		t.Fatal(fmt.Sprintf("sendExpect size mismatch: %v but %v", len(tc.ExpectSend), len(st.SendIn.Dst)))
-	}
-	for i, msg := range st.SendIn.Dst {
-		//fmt.Printf("  %v: %v\n", i, proto.MessaageName(msg))
-		typeof := reflect.TypeOf(msg).Elem().Name()
-		var desc string
-		switch typeof {
-		case "MsgUpdateClient":
-			m := msg.(*clienttypes.MsgUpdateClient)
-			desc = fmt.Sprintf("%s(%s)", typeof, m.ClientId)
-		case"MsgRecvPacket":
-			m := msg.(*chantypes.MsgRecvPacket)
-			desc = fmt.Sprintf("%s(%v)", typeof, m.Packet.GetSequence())
-		case"MsgTimeout":
-			m := msg.(*chantypes.MsgTimeout)
-			desc = fmt.Sprintf("%s(%v)", typeof, m.Packet.GetSequence())
-		default:
-			desc = fmt.Sprintf("%s()", typeof)
-		}
-		if desc != tc.ExpectSend[i] {
-			t.Fatal(fmt.Sprintf("send mismatch at %v: '%s' but '%s'", i, tc.ExpectSend[i], desc))
-		}
-	}
+	fmt.Printf("Send.Src: %v\n", st.SendInSrc)
+	fmt.Printf("Send.Dst: %v\n", st.SendInDst)
+	*/
+	assert.Equal(t, tc.ExpectSendSrc, st.SendInSrc, "Send.Src")
+	assert.Equal(t, tc.ExpectSendDst, st.SendInDst, "Send.Dst")
 }
