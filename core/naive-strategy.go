@@ -480,21 +480,32 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 
 	var msgs []sdk.Msg
 	for _, p := range packets {
-		commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
-		path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
-		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
-		if err != nil {
-			logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
-				"height", ctx.Height(),
-				"path", path,
-				"commitment", commitment,
-			)
-			return nil, err
-		}
 		var msg sdk.Msg
 		if p.Sort == "timeout" {
+			path := host.PacketReceiptPath(p.SourcePort, p.SourceChannel, p.Sequence)
+			commitment := []byte{} //ABSENSE
+			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
+			if err != nil {
+				logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
+					"height", ctx.Height(),
+					"path", path,
+					"commitment", commitment,
+				)
+				return nil, err
+			}
 			msg = chantypes.NewMsgTimeout(p.Packet, nextSequenceRecv, proof, proofHeight, signer.String())
 		} else {
+			path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
+			commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
+			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
+			if err != nil {
+				logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
+					"height", ctx.Height(),
+					"path", path,
+					"commitment", commitment,
+				)
+				return nil, err
+			}
 			msg = chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
 		}
 		msgs = append(msgs, msg)
