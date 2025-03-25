@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+	"encoding/binary"
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -482,8 +483,17 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	for _, p := range packets {
 		var msg sdk.Msg
 		if p.Sort == "timeout" {
-			path := host.PacketReceiptPath(p.SourcePort, p.SourceChannel, p.Sequence)
-			commitment := []byte{} //ABSENSE
+			// make path of original packet's destination port and channel
+			var path string
+			var commitment []byte
+			if chain.Path().GetOrder() == chantypes.ORDERED {
+				path = host.NextSequenceRecvPath(p.SourcePort, p.SourceChannel)
+				commitment = make([]byte, 8)
+				binary.BigEndian.PutUint64(commitment[0:], nextSequenceRecv)
+			} else {
+				path = host.PacketReceiptPath(p.SourcePort, p.SourceChannel, p.Sequence)
+				commitment = []byte{} //ABSENSE
+			}
 			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 			if err != nil {
 				logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
