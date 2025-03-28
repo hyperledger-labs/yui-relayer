@@ -465,18 +465,23 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	logger := GetChannelLogger(chain)
 
 	var nextSequenceRecv uint64
-	for _, p := range packets {
-		if p.Sort == "timeout" {
-			res, err := chain.QueryNextSequenceReceive(ctx)
-			if err != nil {
-				logger.Error("failed to QueryNextSequenceReceive", err,
-					"height", ctx.Height(),
-				)
-				return nil, err
+	if chain.Path().GetOrder() == chantypes.ORDERED {
+		for _, p := range packets {
+			if p.Sort == "timeout" {
+				res, err := chain.QueryNextSequenceReceive(ctx)
+				if err != nil {
+					logger.Error("failed to QueryNextSequenceReceive", err,
+						"height", ctx.Height(),
+					)
+					return nil, err
+				}
+				nextSequenceRecv = res.NextSequenceReceive
+				break
 			}
-			nextSequenceRecv = res.NextSequenceReceive
-			break
 		}
+	} else {
+		// nextSequenceRecv has no effect in unordered channel but ibc-go expect it is not zero.
+		nextSequenceRecv = 1
 	}
 
 	var msgs []sdk.Msg
