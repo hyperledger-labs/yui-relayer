@@ -12,9 +12,9 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
-// CreateChannel runs the channel creation messages on timeout until they pass
+// CreateChannel sends channel creation messages every interval until a channel is created
 // TODO: add max retries or something to this function
-func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain, to time.Duration) error {
+func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain, interval time.Duration) error {
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateChannel")
 
@@ -24,21 +24,20 @@ func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain
 		return nil
 	}
 
-	ticker := time.NewTicker(to)
 	failures := 0
-	for {
+	return runUntilComplete(ctx, interval, func() (bool, error) {
 		chanSteps, err := createChannelStep(ctx, src, dst)
 		if err != nil {
 			logger.Error(
 				"failed to create channel step",
 				err,
 			)
-			return err
+			return false, err
 		}
 
 		if !chanSteps.Ready() {
 			logger.Debug("Waiting for next channel step ...")
-			continue
+			return false, nil
 		}
 
 		chanSteps.Send(ctx, src, dst)
@@ -46,14 +45,14 @@ func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain
 		if chanSteps.Success() {
 			// In the case of success, synchronize the config file from generated channel identifiers
 			if err := SyncChainConfigsFromEvents(ctx, pathName, chanSteps.SrcMsgIDs, chanSteps.DstMsgIDs, src, dst); err != nil {
-				return err
+				return false, err
 			}
 
 			// In the case of success and this being the last transaction
 			// debug logging, log created connection and break
 			if chanSteps.Last {
 				logger.Info("★ Channel created")
-				return nil
+				return true, nil
 			}
 
 			// In the case of success, reset the failures counter
@@ -63,21 +62,17 @@ func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain
 			if failures++; failures > 2 {
 				err := errors.New("Channel handshake failed")
 				logger.Error(err.Error(), err)
-				return err
+				return false, err
 			}
 
 			logger.Warn("Retrying transaction...")
 			if err := wait(ctx, 5*time.Second); err != nil {
-				return err
+				return false, err
 			}
 		}
 
-		select {
-		case <-ticker.C:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
+		return false, nil
+	})
 }
 
 func checkChannelCreateReady(ctx context.Context, src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {

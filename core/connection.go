@@ -22,10 +22,10 @@ var (
 	rtyErr    = retry.LastErrorOnly(true)
 )
 
-func CreateConnection(ctx context.Context, pathName string, src, dst *ProvableChain, to time.Duration) error {
+// CreateConnection sends connection creation messages every interval until a connection is created
+func CreateConnection(ctx context.Context, pathName string, src, dst *ProvableChain, interval time.Duration) error {
 	logger := GetConnectionPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateConnection")
-	ticker := time.NewTicker(to)
 
 	if cont, err := checkConnectionCreateReady(ctx, src, dst, logger); err != nil {
 		return err
@@ -34,19 +34,19 @@ func CreateConnection(ctx context.Context, pathName string, src, dst *ProvableCh
 	}
 
 	failed := 0
-	for {
+	return runUntilComplete(ctx, interval, func() (bool, error) {
 		connSteps, err := createConnectionStep(ctx, src, dst)
 		if err != nil {
 			logger.Error(
 				"failed to create connection step",
 				err,
 			)
-			return err
+			return false, err
 		}
 
 		if !connSteps.Ready() {
 			logger.Debug("Waiting for next connection step ...")
-			continue
+			return false, nil
 		}
 
 		connSteps.Send(ctx, src, dst)
@@ -54,14 +54,14 @@ func CreateConnection(ctx context.Context, pathName string, src, dst *ProvableCh
 		if connSteps.Success() {
 			// In the case of success, synchronize the config file from generated connection identifiers.
 			if err := SyncChainConfigsFromEvents(ctx, pathName, connSteps.SrcMsgIDs, connSteps.DstMsgIDs, src, dst); err != nil {
-				return err
+				return false, err
 			}
 
 			// In the case of success and this being the last transaction
 			// debug logging, log created connection and break
 			if connSteps.Last {
 				logger.Info("★ Connection created")
-				return nil
+				return true, nil
 			}
 
 			// In the case of success, reset the failures counter
@@ -71,21 +71,17 @@ func CreateConnection(ctx context.Context, pathName string, src, dst *ProvableCh
 			if failed++; failed > 2 {
 				err := errors.New("Connection handshake failed")
 				logger.Error(err.Error(), err)
-				return err
+				return false, err
 			}
 
 			logger.Warn("Retrying transaction...")
 			if err := wait(ctx, 5*time.Second); err != nil {
-				return err
+				return false, err
 			}
 		}
 
-		select {
-		case <-ticker.C:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
+		return false, nil
+	})
 }
 
 func checkConnectionCreateReady(ctx context.Context, src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
@@ -228,7 +224,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
 		}
 		out.Src = append(out.Src, src.Path().ConnInit(dst.Path(), addr))
-		// Handshake has started on dst (1 stepdone), relay `connOpenTry` and `updateClient` on src
+		// Handshake has started on dst (1 step done), relay `connOpenTry` and `updateClient` on src
 	case srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.INIT:
 		logConnectionStates(src, dst, srcConn, dstConn)
 		addr := mustGetAddress(src)

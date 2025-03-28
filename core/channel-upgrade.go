@@ -133,28 +133,25 @@ func ExecuteChannelUpgrade(ctx context.Context, pathName string, src, dst *Prova
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "ExecuteChannelUpgrade")
 
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
 	failures := 0
 	firstCall := true
-	for {
+	return runUntilComplete(ctx, interval, func() (bool, error) {
 		steps, err := upgradeChannelStep(ctx, src, dst, targetSrcState, targetDstState, firstCall)
 		if err != nil {
 			logger.Error("failed to create channel upgrade step", err)
-			return err
+			return false, err
 		}
 
 		firstCall = false
 
 		if steps.Last {
 			logger.Info("Channel upgrade completed")
-			return nil
+			return true, nil
 		}
 
 		if !steps.Ready() {
 			logger.Debug("Waiting for next channel upgrade step ...")
-			continue
+			return false, nil
 		}
 
 		steps.Send(ctx, src, dst)
@@ -162,7 +159,7 @@ func ExecuteChannelUpgrade(ctx context.Context, pathName string, src, dst *Prova
 		if steps.Success() {
 			if err := SyncChainConfigsFromEvents(ctx, pathName, steps.SrcMsgIDs, steps.DstMsgIDs, src, dst); err != nil {
 				logger.Error("failed to synchronize the updated path config to the config file", err)
-				return err
+				return false, err
 			}
 
 			failures = 0
@@ -170,18 +167,14 @@ func ExecuteChannelUpgrade(ctx context.Context, pathName string, src, dst *Prova
 			if failures++; failures > 2 {
 				err := errors.New("channel upgrade failed")
 				logger.Error(err.Error(), err)
-				return err
+				return false, err
 			}
 
 			logger.Warn("Retrying transaction...")
 		}
 
-		select {
-		case <-ticker.C:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
+		return false, nil
+	})
 }
 
 // CancelChannelUpgrade executes chanUpgradeCancel on `chain`.
@@ -190,14 +183,11 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 	defer logger.TimeTrack(time.Now(), "CancelChannelUpgrade")
 
 	// wait for settlement
-	ticker := time.NewTicker(settlementInterval)
-	defer ticker.Stop()
-
-	for {
+	return runUntilComplete(ctx, settlementInterval, func() (bool, error) {
 		sh, err := NewSyncHeaders(ctx, chain, cp)
 		if err != nil {
 			logger.Error("failed to create a SyncHeaders", err)
-			return err
+			return false, err
 		}
 		queryCtx := sh.GetQueryContext(ctx, chain.ChainID())
 		cpQueryCtx := sh.GetQueryContext(ctx, cp.ChainID())
@@ -205,32 +195,30 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 		chann, _, settled, err := querySettledChannelPair(queryCtx, cpQueryCtx, chain, cp, false)
 		if err != nil {
 			logger.Error("failed to query for settled channel pair", err)
-			return err
+			return false, err
 		} else if !settled {
 			logger.Info("waiting for settlement of channel pair ...")
-			<-ticker.C
-			continue
+			return false, nil
 		}
 
 		if _, _, settled, err := querySettledChannelUpgradePair(queryCtx, cpQueryCtx, chain, cp, false); err != nil {
 			logger.Error("failed to query for settled channel upgrade pair", err)
-			return err
+			return false, err
 		} else if !settled {
 			logger.Info("waiting for settlement of channel upgrade pair")
-			<-ticker.C
-			continue
+			return false, nil
 		}
 
 		cpHeaders, err := cp.SetupHeadersForUpdate(ctx, chain, sh.GetLatestFinalizedHeader(cp.ChainID()))
 		if err != nil {
 			logger.Error("failed to set up headers for LC update", err)
-			return err
+			return false, err
 		}
 
 		upgErr, err := QueryChannelUpgradeError(cpQueryCtx, cp, true)
 		if err != nil {
 			logger.Error("failed to query the channel upgrade error receipt", err)
-			return err
+			return false, err
 		} else if chann.Channel.State == chantypes.FLUSHCOMPLETE &&
 			(upgErr == nil || upgErr.ErrorReceipt.Sequence != chann.Channel.UpgradeSequence) {
 			var err error
@@ -241,7 +229,7 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 					chann.Channel.UpgradeSequence, upgErr.ErrorReceipt.Sequence)
 			}
 			logger.Error("cannot cancel the upgrade in FLUSHCOMPLETE state", err)
-			return err
+			return false, err
 		} else if upgErr == nil {
 			// NOTE: Even if an error receipt is not found, anyway try to execute ChanUpgradeCancel.
 			// If the sender is authority and the channel state is anything other than FLUSHCOMPLETE,
@@ -252,7 +240,7 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 		addr, err := chain.GetAddress()
 		if err != nil {
 			logger.Error("failed to get address", err)
-			return err
+			return false, err
 		}
 
 		var msgs []sdk.Msg
@@ -264,13 +252,13 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 		for _, msg := range msgs {
 			if _, err := chain.SendMsgs(ctx, []sdk.Msg{msg}); err != nil {
 				logger.Error("failed to send a msg to cancel the channel upgrade", err)
-				return err
+				return false, err
 			}
 		}
 		logger.Info("successfully cancelled the channel upgrade")
 
-		return nil
-	}
+		return true, nil
+	})
 }
 
 func NewUpgradeState(chanState chantypes.State, upgradeExists bool) (UpgradeState, error) {
