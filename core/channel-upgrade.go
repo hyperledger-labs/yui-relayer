@@ -367,7 +367,7 @@ func upgradeChannelStep(src, dst *ProvableChain, targetSrcState, targetDstState 
 	)}
 
 	// check if both chains have reached the target states or UNINIT states
-	if !firstCall && srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT ||
+	if srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT ||
 		srcState != UPGRADE_STATE_UNINIT && dstState != UPGRADE_STATE_UNINIT && srcState == targetSrcState && dstState == targetDstState {
 		logger.Info("both chains have reached the target states")
 		out.Last = true
