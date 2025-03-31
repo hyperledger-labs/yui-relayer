@@ -201,7 +201,7 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 	}, nil
 }
 
-func (st *NaiveStrategy) SortUnrelayedPackets(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) (*RelayPackets, error) {
+func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) (*RelayPackets, error) {
 	logger := GetChannelPairLogger(src, dst)
 	var (
 		srcPackets   PacketInfoList
@@ -269,7 +269,7 @@ func (st *NaiveStrategy) SortUnrelayedPackets(ctx context.Context, src, dst *Pro
 
 	for i, p := range rp.Src {
 		if isTimeout(p, dstLatestFinalizedHeight, dstLatestFinalizedTimestamp) {
-			p.Sort = "timeout"
+			p.TimedOut = true
 			if src.Path().GetOrder() == chantypes.ORDERED {
 				if i == 0 {
 					dstPackets = append(dstPackets, p)
@@ -281,12 +281,13 @@ func (st *NaiveStrategy) SortUnrelayedPackets(ctx context.Context, src, dst *Pro
 		} else if isTimeout(p, dstLatestHeight, dstLatestTimestamp) {
 			break
 		} else {
+			p.TimedOut = false
 			srcPackets = append(srcPackets, p)
 		}
 	}
 	for i, p := range rp.Dst {
 		if (isTimeout(p, srcLatestFinalizedHeight, srcLatestFinalizedTimestamp)) {
-			p.Sort = "timeout"
+			p.TimedOut = true
 			if dst.Path().GetOrder() == chantypes.ORDERED {
 				if i == 0 {
 					srcPackets = append(srcPackets, p)
@@ -298,6 +299,7 @@ func (st *NaiveStrategy) SortUnrelayedPackets(ctx context.Context, src, dst *Pro
 		} else if (isTimeout(p, srcLatestHeight, srcLatestTimestamp)) {
 			break
 		} else {
+			p.TimedOut = false
 			dstPackets = append(dstPackets, p)
 		}
 	}
@@ -504,7 +506,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	var nextSequenceRecv uint64
 	if chain.Path().GetOrder() == chantypes.ORDERED {
 		for _, p := range packets {
-			if p.Sort == "timeout" {
+			if p.TimedOut {
 				res, err := chain.QueryNextSequenceReceive(ctx)
 				if err != nil {
 					logger.Error("failed to QueryNextSequenceReceive", err,
@@ -524,7 +526,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	var msgs []sdk.Msg
 	for _, p := range packets {
 		var msg sdk.Msg
-		if p.Sort == "timeout" {
+		if p.TimedOut {
 			// make path of original packet's destination port and channel
 			var path string
 			var commitment []byte
