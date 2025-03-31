@@ -8,7 +8,7 @@ protoImage=$(DOCKER) run --user 0 --rm -v $(CURDIR):/workspace --workdir /worksp
 build:
 	go build -o ./build/yrly .
 
-TESTMOCKS = core/chain_testmock.go
+TESTMOCKS = core/mock_chain_test.go
 .PHONY: test
 test: $(TESTMOCKS)
 	go test -v ./...
