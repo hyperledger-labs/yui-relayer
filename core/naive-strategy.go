@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+	"encoding/binary"
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	"github.com/hyperledger-labs/yui-relayer/metrics"
@@ -193,6 +195,114 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 
 	defer logger.TimeTrack(now, "UnrelayedPackets", "num_src", len(srcPackets), "num_dst", len(dstPackets))
 
+	return &RelayPackets{
+		Src: srcPackets,
+		Dst: dstPackets,
+	}, nil
+}
+
+func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) (*RelayPackets, error) {
+	logger := GetChannelPairLogger(src, dst)
+	var (
+		srcPackets   PacketInfoList
+		dstPackets   PacketInfoList
+		srcLatestHeight             ibcexported.Height
+		srcLatestTimestamp          uint64
+		srcLatestFinalizedHeight    ibcexported.Height
+		srcLatestFinalizedTimestamp uint64
+		dstLatestHeight             ibcexported.Height
+		dstLatestTimestamp          uint64
+		dstLatestFinalizedHeight    ibcexported.Height
+		dstLatestFinalizedTimestamp uint64
+	)
+
+	if 0 < len(rp.Src) {
+		if h, err := dst.LatestHeight(context.TODO()); err != nil {
+			logger.Error("fail to get dst.LatestHeight", err)
+			return nil, err
+		} else {
+			dstLatestHeight = h
+		}
+
+		if t, err := dst.Timestamp(context.TODO(), dstLatestHeight); err != nil {
+			logger.Error("fail to get dst.Timestamp", err)
+			return nil, err
+		} else {
+			dstLatestTimestamp = uint64(t.UnixNano())
+		}
+
+		dstLatestFinalizedHeight = sh.GetLatestFinalizedHeader(dst.ChainID()).GetHeight()
+		if t, err := dst.Timestamp(context.TODO(), dstLatestFinalizedHeight); err != nil {
+			logger.Error("fail to get dst.Timestamp", err)
+			return nil, err
+		} else {
+			dstLatestFinalizedTimestamp = uint64(t.UnixNano())
+		}
+	}
+	if 0 < len(rp.Dst) {
+		if h, err := src.LatestHeight(context.TODO()); err != nil {
+			logger.Error("fail to get src.LatestHeight", err)
+			return nil, err
+		} else {
+			srcLatestHeight = h
+		}
+		if t, err := src.Timestamp(context.TODO(), srcLatestHeight); err != nil {
+			logger.Error("fail to get src.Timestamp", err)
+			return nil, err
+		} else {
+			srcLatestTimestamp = uint64(t.UnixNano())
+		}
+
+		srcLatestFinalizedHeight = sh.GetLatestFinalizedHeader(src.ChainID()).GetHeight()
+		if t, err := src.Timestamp(context.TODO(), srcLatestFinalizedHeight); err != nil {
+			logger.Error("fail to get src.Timestamp", err)
+			return nil, err
+		} else {
+			srcLatestFinalizedTimestamp = uint64(t.UnixNano())
+		}
+	}
+
+	isTimeout := func(p *PacketInfo, height ibcexported.Height, timestamp uint64) (bool) {
+		return (!p.TimeoutHeight.IsZero() && p.TimeoutHeight.LTE(height)) ||
+			(p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= timestamp)
+	}
+
+	for i, p := range rp.Src {
+		if isTimeout(p, dstLatestFinalizedHeight, dstLatestFinalizedTimestamp) {
+			p.TimedOut = true
+			if src.Path().GetOrder() == chantypes.ORDERED {
+				if i == 0 {
+					dstPackets = append(dstPackets, p)
+				}
+				break
+			} else {
+				dstPackets = append(dstPackets, p)
+			}
+		} else if isTimeout(p, dstLatestHeight, dstLatestTimestamp) {
+			break
+		} else {
+			p.TimedOut = false
+			srcPackets = append(srcPackets, p)
+		}
+	}
+	for i, p := range rp.Dst {
+		if (isTimeout(p, srcLatestFinalizedHeight, srcLatestFinalizedTimestamp)) {
+			p.TimedOut = true
+			if dst.Path().GetOrder() == chantypes.ORDERED {
+				if i == 0 {
+					srcPackets = append(srcPackets, p)
+				}
+				break
+			} else {
+				srcPackets = append(srcPackets, p)
+			}
+		} else if (isTimeout(p, srcLatestHeight, srcLatestTimestamp)) {
+			break
+		} else {
+			p.TimedOut = false
+			dstPackets = append(dstPackets, p)
+		}
+	}
 	return &RelayPackets{
 		Src: srcPackets,
 		Dst: dstPackets,
@@ -392,20 +502,66 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst
 // TODO add packet-timeout support
 func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	logger := GetChannelLogger(chain)
+
+	var nextSequenceRecv uint64
+	if chain.Path().GetOrder() == chantypes.ORDERED {
+		for _, p := range packets {
+			if p.TimedOut {
+				res, err := chain.QueryNextSequenceReceive(ctx)
+				if err != nil {
+					logger.Error("failed to QueryNextSequenceReceive", err,
+						"height", ctx.Height(),
+					)
+					return nil, err
+				}
+				nextSequenceRecv = res.NextSequenceReceive
+				break
+			}
+		}
+	} else {
+		// nextSequenceRecv has no effect in unordered channel but ibc-go expect it is not zero.
+		nextSequenceRecv = 1
+	}
+
 	var msgs []sdk.Msg
 	for _, p := range packets {
-		commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
-		path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
-		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
-		if err != nil {
-			logger.Error("failed to ProveState", err,
-				"height", ctx.Height(),
-				"path", path,
-				"commitment", commitment,
-			)
-			return nil, err
+		var msg sdk.Msg
+		if p.TimedOut {
+			// make path of original packet's destination port and channel
+			var path string
+			var commitment []byte
+			if chain.Path().GetOrder() == chantypes.ORDERED {
+				path = host.NextSequenceRecvPath(p.SourcePort, p.SourceChannel)
+				commitment = make([]byte, 8)
+				binary.BigEndian.PutUint64(commitment[0:], nextSequenceRecv)
+			} else {
+				path = host.PacketReceiptPath(p.SourcePort, p.SourceChannel, p.Sequence)
+				commitment = []byte{} //ABSENSE
+			}
+			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
+			if err != nil {
+				logger.Error("failed to ProveState", err,
+					"height", ctx.Height(),
+					"path", path,
+					"commitment", commitment,
+				)
+				return nil, err
+			}
+			msg = chantypes.NewMsgTimeout(p.Packet, nextSequenceRecv, proof, proofHeight, signer.String())
+		} else {
+			path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
+			commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
+			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
+			if err != nil {
+				logger.Error("failed to ProveState", err,
+					"height", ctx.Height(),
+					"path", path,
+					"commitment", commitment,
+				)
+				return nil, err
+			}
+			msg = chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
 		}
-		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
 		msgs = append(msgs, msg)
 	}
 	return msgs, nil
