@@ -222,13 +222,43 @@ func TestServe(t *testing.T) {
 			[]string{ },
 			[]string{ },
 		},
+		"@not timeout(at border height)": {
+			"ORDERED",
+			1,
+			[]*core.PacketInfo{
+				newPacketInfo(1, 101),
+			},
+			[]string{ },
+			[]string{
+				"MsgUpdateClient(dstClient)",
+				"MsgRecvPacket(1)",
+			},
+		},
 		"timeout": {
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{
-				newPacketInfo(1, 9),
+				newPacketInfo(1, 90),
 			},
 			[]string{ "MsgUpdateClient(srcClient)", "MsgTimeout(1)" },
+			[]string{ },
+		},
+		"timeout at latest block but not at finalized block(at lower border)": {
+			"ORDERED",
+			1,
+			[]*core.PacketInfo{
+				newPacketInfo(1, 91),
+			},
+			[]string{ },
+			[]string{ },
+		},
+		"timeout at latest block but not at finalized block(at heigher border)": {
+			"ORDERED",
+			1,
+			[]*core.PacketInfo{
+				newPacketInfo(1, 100),
+			},
+			[]string{ },
 			[]string{ },
 		},
 		"only packets precede timeout packet": {

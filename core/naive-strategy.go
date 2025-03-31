@@ -208,34 +208,69 @@ func (st *NaiveStrategy) SortUnrelayedPackets(ctx context.Context, src, dst *Pro
 	var (
 		srcPackets   PacketInfoList
 		dstPackets   PacketInfoList
-		srcHeight    ibcexported.Height
-		srcTimestamp uint64
-		dstHeight    ibcexported.Height
-		dstTimestamp uint64
+		srcLatestHeight             ibcexported.Height
+		srcLatestTimestamp          uint64
+		srcLatestFinalizedHeight    ibcexported.Height
+		srcLatestFinalizedTimestamp uint64
+		dstLatestHeight             ibcexported.Height
+		dstLatestTimestamp          uint64
+		dstLatestFinalizedHeight    ibcexported.Height
+		dstLatestFinalizedTimestamp uint64
 	)
 
 	if 0 < len(rp.Src) {
-		dstHeight = sh.GetLatestFinalizedHeader(dst.ChainID()).GetHeight()
-		timestamp, err := dst.Timestamp(context.TODO(), dstHeight)
-		if err != nil {
+		if h, err := dst.LatestHeight(context.TODO()); err != nil {
+			logger.Error("fail to get dst.LatestHeight", err)
+			return nil, err
+		} else {
+			dstLatestHeight = h
+		}
+
+		if t, err := dst.Timestamp(context.TODO(), dstLatestHeight); err != nil {
 			logger.Error("fail to get dst.Timestamp", err)
 			return nil, err
+		} else {
+			dstLatestTimestamp = uint64(t.UnixNano())
 		}
-		dstTimestamp = uint64(timestamp.UnixNano())
+
+		dstLatestFinalizedHeight = sh.GetLatestFinalizedHeader(dst.ChainID()).GetHeight()
+		if t, err := dst.Timestamp(context.TODO(), dstLatestFinalizedHeight); err != nil {
+			logger.Error("fail to get dst.Timestamp", err)
+			return nil, err
+		} else {
+			dstLatestFinalizedTimestamp = uint64(t.UnixNano())
+		}
 	}
 	if 0 < len(rp.Dst) {
-		srcHeight = sh.GetLatestFinalizedHeader(src.ChainID()).GetHeight()
-		timestamp, err := src.Timestamp(context.TODO(), srcHeight)
-		if err != nil {
+		if h, err := src.LatestHeight(context.TODO()); err != nil {
+			logger.Error("fail to get src.LatestHeight", err)
+			return nil, err
+		} else {
+			srcLatestHeight = h
+		}
+		if t, err := src.Timestamp(context.TODO(), srcLatestHeight); err != nil {
 			logger.Error("fail to get src.Timestamp", err)
 			return nil, err
+		} else {
+			srcLatestTimestamp = uint64(t.UnixNano())
 		}
-		srcTimestamp = uint64(timestamp.UnixNano())
+
+		srcLatestFinalizedHeight = sh.GetLatestFinalizedHeader(src.ChainID()).GetHeight()
+		if t, err := src.Timestamp(context.TODO(), srcLatestFinalizedHeight); err != nil {
+			logger.Error("fail to get src.Timestamp", err)
+			return nil, err
+		} else {
+			srcLatestFinalizedTimestamp = uint64(t.UnixNano())
+		}
+	}
+
+	isTimeout := func(p *PacketInfo, height ibcexported.Height, timestamp uint64) (bool) {
+		return (!p.TimeoutHeight.IsZero() && p.TimeoutHeight.LTE(height)) ||
+			(p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= timestamp)
 	}
 
 	for i, p := range rp.Src {
-		if (!p.TimeoutHeight.IsZero() && p.TimeoutHeight.LTE(dstHeight)) ||
-			(p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= dstTimestamp) {
+		if isTimeout(p, dstLatestFinalizedHeight, dstLatestFinalizedTimestamp) {
 			p.Sort = "timeout"
 			if src.Path().GetOrder() == chantypes.ORDERED {
 				if i == 0 {
@@ -245,13 +280,14 @@ func (st *NaiveStrategy) SortUnrelayedPackets(ctx context.Context, src, dst *Pro
 			} else {
 				dstPackets = append(dstPackets, p)
 			}
+		} else if isTimeout(p, dstLatestHeight, dstLatestTimestamp) {
+			break
 		} else {
 			srcPackets = append(srcPackets, p)
 		}
 	}
 	for i, p := range rp.Dst {
-		if (!p.TimeoutHeight.IsZero() && p.TimeoutHeight.LTE(srcHeight)) ||
-			(p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= srcTimestamp) {
+		if (isTimeout(p, srcLatestFinalizedHeight, srcLatestFinalizedTimestamp)) {
 			p.Sort = "timeout"
 			if dst.Path().GetOrder() == chantypes.ORDERED {
 				if i == 0 {
@@ -261,6 +297,8 @@ func (st *NaiveStrategy) SortUnrelayedPackets(ctx context.Context, src, dst *Pro
 			} else {
 				srcPackets = append(srcPackets, p)
 			}
+		} else if (isTimeout(p, srcLatestHeight, srcLatestTimestamp)) {
+			break
 		} else {
 			dstPackets = append(dstPackets, p)
 		}
