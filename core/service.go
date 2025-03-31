@@ -124,9 +124,9 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		return err
 	}
 
-	pseqs2, err := srv.st.SortUnrelayedPackets(ctx, srv.src, srv.dst, srv.sh, pseqs)
+	pseqs2, err := srv.st.ProcessTimeoutPackets(ctx, srv.src, srv.dst, srv.sh, pseqs)
 	if err != nil {
-		logger.Error("failed to sort unrelayed packets", err)
+		logger.Error("failed to process timeout packets", err)
 		return err
 	}
 

@@ -28,7 +28,7 @@ type NaiveStrategyWrap struct {
 	Inner *core.NaiveStrategy
 
 	UnrelayedPacketsOut *core.RelayPackets
-	SortUnrelayedPacketsOut *core.RelayPackets
+	ProcessTimeoutPacketsOut *core.RelayPackets
 	UnrelayedAcknowledgementsOut *core.RelayPackets
 	RelayPacketsOut *core.RelayMsgs
 	RelayAcknowledgementsOut *core.RelayMsgs
@@ -44,9 +44,9 @@ func (s *NaiveStrategyWrap) UnrelayedPackets(ctx context.Context, src, dst *core
 	return ret, err
 }
 
-func (s *NaiveStrategyWrap) SortUnrelayedPackets(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, rp *core.RelayPackets) (*core.RelayPackets, error) {
-	ret, err := s.Inner.SortUnrelayedPackets(ctx, src, dst, sh, rp)
-	s.SortUnrelayedPacketsOut = ret
+func (s *NaiveStrategyWrap) ProcessTimeoutPackets(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, rp *core.RelayPackets) (*core.RelayPackets, error) {
+	ret, err := s.Inner.ProcessTimeoutPackets(ctx, src, dst, sh, rp)
+	s.ProcessTimeoutPacketsOut = ret
 	return ret, err
 }
 
