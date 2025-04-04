@@ -103,3 +103,29 @@ You can use it by specifying the package name of the proto definition correspond
   }
 }
 ```
+
+## OpenTelemetry integration
+
+OpenTelemetry integration can be enabled by specifying the `--enable-telemetry` flag or by setting `YLRY_ENABLE_TELEMETRY` environment variable to true.
+You can configure its behavior using environment variables supported by Go, as listed in the [Compliance of Implementations with Specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/spec-compliance-matrix.md#environment-variables).
+
+In addition to the environment variables supported by Go, yui-relayer supports the following variables, which are not available in the Go SDK:
+
+* OTEL_PROPAGATORS
+* OTEL_TRACES_EXPORTER
+    - Note that `"zipkin"` is not supported
+* OTEL_METRICS_EXPORTER
+* OTEL_LOGS_EXPORTER
+* OTEL_EXPORTER_PROMETHEUS_HOST
+* OTEL_EXPORTER_PROMETHEUS_PORT
+* OTEL_EXPORTER_CONSOLE_TRACES_WRITER
+* OTEL_EXPORTER_CONSOLE_LOGS_WRITER
+* OTEL_EXPORTER_CONSOLE_METRICS_WRITER
+
+The `OTEL_EXPORTER_CONSOLE_*_WRITER` variables are specific to yui-relayer and allow you to change the output destination of the standard output exporters. To redirect output to standard error, set the value to `stderr`.
+
+For more information about OpenTelemetry environment variables, refer to the [OpenTelemetry Environment Variable Specification](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables).
+
+
+When OpenTelemetry integration is enabled, the OTLP log exporter is enabled by default and you may want to disable ordinal logs.
+In this case, you can disable them by setting `.global.logger.output` to `"null"` in the yui-relayer configuration file.
