@@ -99,7 +99,7 @@ func Execute(modules ...config.ModuleI) error {
 		return nil
 	}
 	rootCmd.PersistentPostRunE = func(cmd *cobra.Command, _ []string) error {
-		if err := telemetry.ShutdownMetrics(cmd.Context()); err != nil {
+		if err := telemetry.ShutdownMetrics(context.Background()); err != nil {
 			return fmt.Errorf("failed to shutdown the metrics subsystem: %v", err)
 		}
 		return nil
