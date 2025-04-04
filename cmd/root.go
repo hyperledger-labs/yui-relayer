@@ -12,8 +12,8 @@ import (
 
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
 	"github.com/hyperledger-labs/yui-relayer/log"
-	"github.com/hyperledger-labs/yui-relayer/metrics"
 	"golang.org/x/sys/unix"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -92,14 +92,14 @@ func Execute(modules ...config.ModuleI) error {
 		if err := ctx.InitConfig(homePath, debug); err != nil {
 			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
-		if err := metrics.InitializeMetrics(metrics.ExporterNull{}); err != nil {
+		if err := telemetry.InitializeMetrics(telemetry.ExporterNull{}); err != nil {
 			return fmt.Errorf("failed to initialize the metrics: %v", err)
 		}
 		cmd.SetContext(notifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM))
 		return nil
 	}
 	rootCmd.PersistentPostRunE = func(cmd *cobra.Command, _ []string) error {
-		if err := metrics.ShutdownMetrics(cmd.Context()); err != nil {
+		if err := telemetry.ShutdownMetrics(cmd.Context()); err != nil {
 			return fmt.Errorf("failed to shutdown the metrics subsystem: %v", err)
 		}
 		return nil

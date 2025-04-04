@@ -10,7 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
-	"github.com/hyperledger-labs/yui-relayer/metrics"
+	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
 	"go.opentelemetry.io/otel/attribute"
 	api "go.opentelemetry.io/otel/metric"
 	"golang.org/x/sync/errgroup"
@@ -580,8 +580,8 @@ func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, d
 		attribute.Key("direction").String("dst"),
 	}
 
-	metrics.BacklogSizeGauge.Set(int64(len(newSrcBacklog)), srcAttrs...)
-	metrics.BacklogSizeGauge.Set(int64(len(newDstBacklog)), dstAttrs...)
+	telemetry.BacklogSizeGauge.Set(int64(len(newSrcBacklog)), srcAttrs...)
+	telemetry.BacklogSizeGauge.Set(int64(len(newDstBacklog)), dstAttrs...)
 
 	if len(newSrcBacklog) > 0 {
 		oldestHeight := newSrcBacklog[0].EventHeight
@@ -589,9 +589,9 @@ func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, d
 		if err != nil {
 			return fmt.Errorf("failed to get the timestamp of block[%d] on the src chain: %v", oldestHeight, err)
 		}
-		metrics.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), srcAttrs...)
+		telemetry.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), srcAttrs...)
 	} else {
-		metrics.BacklogOldestTimestampGauge.Set(0, srcAttrs...)
+		telemetry.BacklogOldestTimestampGauge.Set(0, srcAttrs...)
 	}
 	if len(newDstBacklog) > 0 {
 		oldestHeight := newDstBacklog[0].EventHeight
@@ -599,17 +599,17 @@ func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, d
 		if err != nil {
 			return fmt.Errorf("failed to get the timestamp of block[%d] on the dst chain: %v", oldestHeight, err)
 		}
-		metrics.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), dstAttrs...)
+		telemetry.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), dstAttrs...)
 	} else {
-		metrics.BacklogOldestTimestampGauge.Set(0, dstAttrs...)
+		telemetry.BacklogOldestTimestampGauge.Set(0, dstAttrs...)
 	}
 
 	srcReceivedPackets := st.srcBacklog.Subtract(newSrcBacklog.ExtractSequenceList())
-	metrics.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(srcReceivedPackets)), api.WithAttributes(srcAttrs...))
+	telemetry.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(srcReceivedPackets)), api.WithAttributes(srcAttrs...))
 	st.srcBacklog = newSrcBacklog
 
 	dstReceivedPackets := st.dstBacklog.Subtract(newDstBacklog.ExtractSequenceList())
-	metrics.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(dstReceivedPackets)), api.WithAttributes(dstAttrs...))
+	telemetry.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(dstReceivedPackets)), api.WithAttributes(dstAttrs...))
 	st.dstBacklog = newDstBacklog
 
 	return nil

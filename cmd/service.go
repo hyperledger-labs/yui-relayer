@@ -6,7 +6,7 @@ import (
 
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
-	"github.com/hyperledger-labs/yui-relayer/metrics"
+	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -44,10 +44,10 @@ func startCmd(ctx *config.Context) *cobra.Command {
 		Use:  "start [path-name]",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := metrics.ShutdownMetrics(cmd.Context()); err != nil {
+			if err := telemetry.ShutdownMetrics(cmd.Context()); err != nil {
 				return fmt.Errorf("failed to shutdown the metrics subsystem with null exporter: %v", err)
 			}
-			if err := metrics.InitializeMetrics(metrics.ExporterProm{Addr: viper.GetString(flagPrometheusAddr)}); err != nil {
+			if err := telemetry.InitializeMetrics(telemetry.ExporterProm{Addr: viper.GetString(flagPrometheusAddr)}); err != nil {
 				return fmt.Errorf("failed to re-initialize the metrics subsystem with prometheus exporter: %v", err)
 			}
 			c, src, dst, err := ctx.Config.ChainsFromPath(args[0])
