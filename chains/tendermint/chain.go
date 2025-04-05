@@ -113,7 +113,13 @@ func (c *Chain) Path() *core.PathEnd {
 }
 
 func (c *Chain) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
-	keybase, err := keys.New(c.config.ChainId, "test", keysDir(homePath, c.config.ChainId), nil, codec)
+	keybase, err := keys.New(
+		c.config.TmChainId,
+		c.config.KeyringBackend,
+		keysDir(homePath, c.config.TmChainId),
+		nil,
+		codec,
+	)
 	if err != nil {
 		return err
 	}
@@ -515,7 +521,7 @@ func (c *Chain) CLIContext(height int64) sdkCtx.Context {
 	txConfig := authtx.NewTxConfig(c.codec, authtx.DefaultSignModes)
 	unlock()
 	return sdkCtx.Context{}.
-		WithChainID(c.config.ChainId).
+		WithChainID(c.config.TmChainId).
 		WithCodec(c.codec).
 		WithInterfaceRegistry(c.codec.InterfaceRegistry()).
 		WithTxConfig(txConfig).
@@ -539,7 +545,7 @@ func (c *Chain) TxFactory(height int64) tx.Factory {
 	ctx := c.CLIContext(height)
 	return tx.Factory{}.
 		WithAccountRetriever(ctx.AccountRetriever).
-		WithChainID(c.config.ChainId).
+		WithChainID(c.config.TmChainId).
 		WithTxConfig(ctx.TxConfig).
 		WithGasAdjustment(c.config.GasAdjustment).
 		WithGasPrices(c.config.GasPrices).
