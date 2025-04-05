@@ -35,7 +35,7 @@ var ErrLightNotInitialized = errors.New("light client is not initialized")
 func (pr *Prover) LightClient(db dbm.DB) (*light.Client, error) {
 	prov := pr.LightHTTP()
 	return light.NewClientFromTrustedStore(
-		pr.chain.config.ChainId,
+		pr.chain.config.TmChainId,
 		pr.getTrustingPeriod(),
 		prov,
 		// TODO: provide actual witnesses!
@@ -48,7 +48,7 @@ func (pr *Prover) LightClient(db dbm.DB) (*light.Client, error) {
 
 // LightHTTP returns the http client for light clients
 func (pr *Prover) LightHTTP() lightp.Provider {
-	cl, err := lighthttp.New(pr.chain.config.ChainId, pr.chain.config.RpcAddr)
+	cl, err := lighthttp.New(pr.chain.config.TmChainId, pr.chain.config.RpcAddr)
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +58,7 @@ func (pr *Prover) LightHTTP() lightp.Provider {
 func (pr *Prover) NewLightDB(ctx context.Context) (db *dbm.GoLevelDB, df func(), err error) {
 	c := pr.chain
 	if err := retry.Do(func() error {
-		db, err = dbm.NewGoLevelDB(c.config.ChainId, lightDir(c.HomePath))
+		db, err = dbm.NewGoLevelDB(c.config.TmChainId, lightDir(c.HomePath))
 		if err != nil {
 			return fmt.Errorf("can't open light client database: %w", err)
 		}
@@ -88,7 +88,7 @@ func (pr *Prover) LightClientWithTrust(ctx context.Context, db dbm.DB, to light.
 	prov := pr.LightHTTP()
 	return light.NewClient(
 		ctx,
-		pr.chain.config.ChainId,
+		pr.chain.config.TmChainId,
 		to,
 		prov,
 		// TODO: provide actual witnesses!
@@ -135,7 +135,7 @@ func (pr *Prover) LightClientWithoutTrust(ctx context.Context, db dbm.DB) (*ligh
 	}
 	return light.NewClient(
 		ctx,
-		pr.chain.config.ChainId,
+		pr.chain.config.TmChainId,
 		light.TrustOptions{
 			Period: pr.getTrustingPeriod(),
 			Height: height,
