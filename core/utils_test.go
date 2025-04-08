@@ -12,14 +12,14 @@ func TestRunUntilComplete(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		fn      func() (bool, error)
+		fn      func(int) (bool, error)
 		attempt int
 		cancel  bool
 		err     error
 	}{
 		{
 			name: "Complete immediately",
-			fn: func() (bool, error) {
+			fn: func(_ int) (bool, error) {
 				return true, nil
 			},
 			attempt: 1,
@@ -28,41 +28,33 @@ func TestRunUntilComplete(t *testing.T) {
 		},
 		{
 			name: "Complete on the second try",
-			fn: func() func() (bool, error) {
-				attempt := 0
-				return func() (bool, error) {
-					attempt++
-					if attempt == 2 {
-						return true, nil
-					} else {
-						return false, nil
-					}
+			fn: func(attempt int) (bool, error) {
+				if attempt == 2 {
+					return true, nil
+				} else {
+					return false, nil
 				}
-			}(),
+			},
 			attempt: 2,
 			cancel:  false,
 			err:     nil,
 		},
 		{
 			name: "Complete on the third try",
-			fn: func() func() (bool, error) {
-				attempt := 0
-				return func() (bool, error) {
-					attempt++
-					if attempt == 3 {
-						return true, nil
-					} else {
-						return false, nil
-					}
+			fn: func(attempt int) (bool, error) {
+				if attempt == 3 {
+					return true, nil
+				} else {
+					return false, nil
 				}
-			}(),
+			},
 			attempt: 3,
 			cancel:  false,
 			err:     nil,
 		},
 		{
 			name: "Error immediately",
-			fn: func() (bool, error) {
+			fn: func(_ int) (bool, error) {
 				return false, runtimeError
 			},
 			attempt: 1,
@@ -71,24 +63,20 @@ func TestRunUntilComplete(t *testing.T) {
 		},
 		{
 			name: "Error on the second try",
-			fn: func() func() (bool, error) {
-				attempt := 0
-				return func() (bool, error) {
-					attempt++
-					if attempt == 2 {
-						return false, runtimeError
-					} else {
-						return false, nil
-					}
+			fn: func(attempt int) (bool, error) {
+				if attempt == 2 {
+					return false, runtimeError
+				} else {
+					return false, nil
 				}
-			}(),
+			},
 			attempt: 2,
 			cancel:  false,
 			err:     runtimeError,
 		},
 		{
 			name: "Error immediately with complete true",
-			fn: func() (bool, error) {
+			fn: func(_ int) (bool, error) {
 				return true, runtimeError
 			},
 			attempt: 1,
@@ -97,7 +85,7 @@ func TestRunUntilComplete(t *testing.T) {
 		},
 		{
 			name: "Cancelled",
-			fn: func() (bool, error) {
+			fn: func(_ int) (bool, error) {
 				return false, nil
 			},
 			attempt: 1,
@@ -118,7 +106,7 @@ func TestRunUntilComplete(t *testing.T) {
 			attempt := 0
 			fn := func() (bool, error) {
 				attempt++
-				return tt.fn()
+				return tt.fn(attempt)
 			}
 			if err := runUntilComplete(ctx, time.Millisecond, fn); err != tt.err {
 				t.Errorf("err = %v; want %v", err, tt.err)
