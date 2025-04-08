@@ -1,12 +1,10 @@
-package core_test
+package core
 
 import (
 	"context"
 	"errors"
 	"testing"
 	"time"
-
-	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
 func TestRunUntilComplete(t *testing.T) {
@@ -122,7 +120,7 @@ func TestRunUntilComplete(t *testing.T) {
 				attempt++
 				return tt.fn()
 			}
-			if err := core.RunUntilComplete(ctx, time.Millisecond, fn); err != tt.err {
+			if err := runUntilComplete(ctx, time.Millisecond, fn); err != tt.err {
 				t.Errorf("err = %v; want %v", err, tt.err)
 			}
 			if attempt != tt.attempt {
