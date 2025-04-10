@@ -10,6 +10,7 @@ import (
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // CreateChannel sends channel creation messages every interval until a channel is created
@@ -320,4 +321,12 @@ func GetChannelPairLogger(src, dst Chain) *log.RelayLogger {
 			dst.ChainID(), dst.Path().PortID, dst.Path().ChannelID,
 		).
 		WithModule("core.channel")
+}
+
+func WithChannelAttributes(c Chain) trace.SpanStartOption {
+	return trace.WithAttributes(
+		AttributeKeyChainID.String(c.ChainID()),
+		AttributeKeyPortID.String(c.Path().PortID),
+		AttributeKeyChannelID.String(c.Path().ChannelID),
+	)
 }

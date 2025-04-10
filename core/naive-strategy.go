@@ -572,12 +572,12 @@ func (st *NaiveStrategy) Send(ctx context.Context, src, dst Chain, msgs *RelayMs
 
 func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, dst ChainInfo, newSrcBacklog, newDstBacklog PacketInfoList) error {
 	srcAttrs := []attribute.KeyValue{
-		attribute.Key("chain_id").String(src.ChainID()),
-		attribute.Key("direction").String("src"),
+		AttributeKeyChainID.String(src.ChainID()),
+		AttributeKeyDirection.String("src"),
 	}
 	dstAttrs := []attribute.KeyValue{
-		attribute.Key("chain_id").String(dst.ChainID()),
-		attribute.Key("direction").String("dst"),
+		AttributeKeyChainID.String(dst.ChainID()),
+		AttributeKeyDirection.String("dst"),
 	}
 
 	telemetry.BacklogSizeGauge.Set(int64(len(newSrcBacklog)), srcAttrs...)

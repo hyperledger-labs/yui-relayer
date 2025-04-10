@@ -107,6 +107,9 @@ You can use it by specifying the package name of the proto definition correspond
 ## OpenTelemetry integration
 
 OpenTelemetry integration can be enabled by specifying the `--enable-telemetry` flag or by setting `YLRY_ENABLE_TELEMETRY` environment variable to true.
+
+### Configurations
+
 You can configure its behavior using environment variables supported by Go, as listed in the [Compliance of Implementations with Specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/spec-compliance-matrix.md#environment-variables).
 
 In addition to the environment variables supported by Go, yui-relayer supports the following variables, which are not available in the Go SDK:
@@ -129,3 +132,34 @@ For more information about OpenTelemetry environment variables, refer to the [Op
 
 When OpenTelemetry integration is enabled, the OTLP log exporter is enabled by default and you may want to disable ordinal logs.
 In this case, you can disable them by setting `.global.logger.output` to `"null"` in the yui-relayer configuration file.
+
+### Add spans and span attributes in external modules
+
+Although `ProvableChain` wraps primary methods of the Chain and Prover interfaces with tracing, you can create a span if needed:
+
+```go
+var tracer = otel.Tracer("example.com/my-module")
+
+func someFunction(ctx context.Context) {
+	ctx, span := tracer.Start(ctx, "someFunction")
+	defer span.End()
+
+	// -- snip --
+}
+```
+
+You can also add span atributes as follows:
+
+```go
+func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult, error) {
+	msgID, ok := id.(*MsgID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected message id type: %T", id)
+	}
+
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(core.AttributeKeyTxHash.String(msgID.TxHash))
+
+	// -- snip --
+}
+```

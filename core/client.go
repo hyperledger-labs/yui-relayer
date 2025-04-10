@@ -9,6 +9,7 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	"github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func checkCreateClientsReady(ctx context.Context, src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
@@ -183,4 +184,11 @@ func GetClientPairLogger(src, dst Chain) *log.RelayLogger {
 			dst.ChainID(), dst.Path().ClientID,
 		).
 		WithModule("core.client")
+}
+
+func WithClientAttributes(c Chain) trace.SpanStartOption {
+	return trace.WithAttributes(
+		AttributeKeyChainID.String(c.ChainID()),
+		AttributeKeyClientID.String(c.Path().ClientID),
+	)
 }
