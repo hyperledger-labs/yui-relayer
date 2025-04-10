@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	retry "github.com/avast/retry-go"
@@ -329,4 +330,19 @@ func WithChannelAttributes(c Chain) trace.SpanStartOption {
 		AttributeKeyPortID.String(c.Path().PortID),
 		AttributeKeyChannelID.String(c.Path().ChannelID),
 	)
+}
+
+func WithChannelPairAttributes(src, dst Chain) trace.SpanStartOption {
+	return trace.WithAttributes(slices.Concat(
+		AttributeGroup("src",
+			AttributeKeyChainID.String(src.ChainID()),
+			AttributeKeyPortID.String(src.Path().PortID),
+			AttributeKeyChannelID.String(src.Path().ChannelID),
+		),
+		AttributeGroup("dst",
+			AttributeKeyChainID.String(dst.ChainID()),
+			AttributeKeyPortID.String(dst.Path().PortID),
+			AttributeKeyChannelID.String(dst.Path().ChannelID),
+		),
+	)...)
 }

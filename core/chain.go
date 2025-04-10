@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -195,4 +196,11 @@ func WithChainAttributes(chainID string) trace.SpanStartOption {
 	return trace.WithAttributes(
 		AttributeKeyChainID.String(chainID),
 	)
+}
+
+func WithChainPairAttributes(src, dst ChainInfoLightClient) trace.SpanStartOption {
+	return trace.WithAttributes(slices.Concat(
+		AttributeGroup("src", AttributeKeyChainID.String(src.ChainID())),
+		AttributeGroup("dst", AttributeKeyChainID.String(dst.ChainID())),
+	)...)
 }

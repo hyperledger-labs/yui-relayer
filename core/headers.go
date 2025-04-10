@@ -6,6 +6,7 @@ import (
 
 	"github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
+	"go.opentelemetry.io/otel/codes"
 )
 
 type Header interface {
@@ -70,24 +71,30 @@ func NewSyncHeaders(ctx context.Context, src, dst ChainInfoLightClient) (SyncHea
 
 // Updates updates the headers on both chains
 func (sh *syncHeaders) Updates(ctx context.Context, src, dst ChainInfoLightClient) error {
+	ctx, span := tracer.Start(ctx, "syncHeaders.Updates", WithChainPairAttributes(src, dst))
+	defer span.End()
 	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
 		logger.Error("error ensuring different chains", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
 	srcHeader, err := src.GetLatestFinalizedHeader(ctx)
 	if err != nil {
 		logger.Error("error getting latest finalized header of src", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	dstHeader, err := dst.GetLatestFinalizedHeader(ctx)
 	if err != nil {
 		logger.Error("error getting latest finalized header of dst", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
 	if err := sh.updateBlockMetrics(src, dst, srcHeader, dstHeader); err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
