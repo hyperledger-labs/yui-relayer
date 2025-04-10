@@ -187,3 +187,27 @@ func wait(ctx context.Context, d time.Duration) error {
 		return nil
 	}
 }
+
+func runUntilComplete(ctx context.Context, interval time.Duration, fn func() (bool, error)) error {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	if complete, err := fn(); err != nil {
+		return err
+	} else if complete {
+		return nil
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if complete, err := fn(); err != nil {
+				return err
+			} else if complete {
+				return nil
+			}
+		}
+	}
+}
