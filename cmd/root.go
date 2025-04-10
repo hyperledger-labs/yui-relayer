@@ -22,8 +22,6 @@ import (
 )
 
 var (
-	homePath    string
-	debug       bool
 	defaultHome = os.ExpandEnv("$HOME/.yui-relayer")
 	configPath  = "config/config.json"
 )
@@ -43,12 +41,9 @@ func Execute(modules ...config.ModuleI) error {
 	rootCmd.SilenceErrors = true
 
 	// Register top level flags --home and --debug
-	rootCmd.PersistentFlags().StringVar(&homePath, flags.FlagHome, defaultHome, "set home directory")
-	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "debug output")
-	if err := viper.BindPFlag(flags.FlagHome, rootCmd.PersistentFlags().Lookup(flags.FlagHome)); err != nil {
-		return err
-	}
-	if err := viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug")); err != nil {
+	rootCmd.PersistentFlags().String(flags.FlagHome, defaultHome, "set home directory")
+	rootCmd.PersistentFlags().BoolP("debug", "d", false, "debug output")
+	if err := viper.BindPFlags(rootCmd.PersistentFlags()); err != nil {
 		return err
 	}
 
@@ -80,6 +75,7 @@ func Execute(modules ...config.ModuleI) error {
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		// reads `homeDir/config/config.json` into `var config *Config` before each command
+		homePath := viper.GetString(flags.FlagHome)
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			return fmt.Errorf("failed to bind the flag set to the configuration: %v", err)
 		}
@@ -89,7 +85,7 @@ func Execute(modules ...config.ModuleI) error {
 		if err := initLogger(ctx); err != nil {
 			return err
 		}
-		if err := ctx.InitConfig(homePath, debug); err != nil {
+		if err := ctx.InitConfig(homePath, viper.GetBool("debug")); err != nil {
 			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
 		if err := telemetry.InitializeMetrics(telemetry.ExporterNull{}); err != nil {
