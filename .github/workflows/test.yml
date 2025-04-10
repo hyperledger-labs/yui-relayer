@@ -56,6 +56,13 @@ jobs:
     needs:
       - relayer-build
       - tendermint-build
+    strategy:
+      matrix:
+        enable-telemetry:
+          - 'false'
+          - 'true'
+    env:
+      YRLY_ENABLE_TELEMETRY: ${{ matrix.enable-telemetry }}
     steps:
       - uses: actions/checkout@v4
       - name: Restore relayer binary cache
@@ -87,6 +94,13 @@ jobs:
     needs:
       - relayer-build
       - tendermint-build
+    strategy:
+      matrix:
+        enable-telemetry:
+          - 'false'
+          - 'true'
+    env:
+      YRLY_ENABLE_TELEMETRY: ${{ matrix.enable-telemetry }}
     steps:
       - uses: actions/checkout@v4
       - name: Restore relayer binary cache

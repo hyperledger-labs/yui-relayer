@@ -7,6 +7,8 @@ RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
 RLY="${RLY_BINARY} --debug"
 CONFIG=$HOME/.yui-relayer/config/config.json
 
+source ${SCRIPT_DIR}/../../../scripts/set-telemetry-envvars
+
 cp $CONFIG $CONFIG.tmp
 cat $CONFIG.tmp \
     | jq '.paths.ibc01.src["client-id"] |= "07-tendermint-999"' \
