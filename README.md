@@ -135,7 +135,7 @@ In this case, you can disable them by setting `.global.logger.output` to `"null"
 
 ### Add spans and span attributes in external modules
 
-Although `ProvableChain` wraps primary methods of the Chain and Prover interfaces with tracing, you can create a span if needed:
+Although `ProvableChain` wraps primary methods of the Chain and Prover interfaces with tracing, you can create additional spans manually when needed:
 
 ```go
 var tracer = otel.Tracer("example.com/my-module")
@@ -146,6 +146,16 @@ func someFunction(ctx context.Context) {
 
 	// -- snip --
 }
+```
+
+If the function or method receives a `core.QueryContext`, you can use `core.StartTraceWithQueryContext` to create a span:
+
+```go
+func (c *Chain) QuerySomething(ctx core.QueryContext) (any, error) {
+	ctx, span := core.StartTraceWithQueryContext(tracer, ctx, "Chain.QuerySomething", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
+    // -- snip --
 ```
 
 You can also add span atributes as follows:

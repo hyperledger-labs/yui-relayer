@@ -12,7 +12,8 @@ var (
 	tracer = otel.Tracer("github.com/hyperledger-labs/yui-relayer/core")
 )
 
-func startTraceWithQueryContext(ctx QueryContext, spanName string, opts ...trace.SpanStartOption) (QueryContext, trace.Span) {
+// StartTraceWithQueryContext creates a span and a QueryContext containing the newly-created span.
+func StartTraceWithQueryContext(tracer trace.Tracer, ctx QueryContext, spanName string, opts ...trace.SpanStartOption) (QueryContext, trace.Span) {
 	opts = append(opts, trace.WithAttributes(AttributeGroup("query",
 		// Convert revision_number and revision_height to string because the attribute package does not support uint64
 		AttributeKeyRevisionNumber.String(fmt.Sprint(ctx.Height().GetRevisionNumber())),

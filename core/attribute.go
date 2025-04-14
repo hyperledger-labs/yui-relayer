@@ -15,6 +15,7 @@ const (
 	AttributeKeyRevisionNumber = attribute.Key("revision_number")
 	AttributeKeyRevisionHeight = attribute.Key("revision_height")
 	AttributeKeyPackage        = attribute.Key("package")
+	AttributeKeyTxHash         = attribute.Key("tx_hash")
 )
 
 // AttributeGroup prefixes the given key to all attributes.

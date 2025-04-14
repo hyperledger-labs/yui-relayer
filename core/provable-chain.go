@@ -132,7 +132,7 @@ func (pc *ProvableChain) Timestamp(ctx context.Context, height ibcexported.Heigh
 }
 
 func (pc *ProvableChain) QueryClientConsensusState(ctx QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryClientConsensusState",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryClientConsensusState",
 		WithClientAttributes(pc),
 		withPackage(pc.Chain),
 	)
@@ -146,7 +146,7 @@ func (pc *ProvableChain) QueryClientConsensusState(ctx QueryContext, dstClientCo
 }
 
 func (pc *ProvableChain) QueryClientState(ctx QueryContext) (*clienttypes.QueryClientStateResponse, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryClientState",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryClientState",
 		WithChainAttributes(pc.ChainID()),
 		withPackage(pc.Chain),
 	)
@@ -160,7 +160,7 @@ func (pc *ProvableChain) QueryClientState(ctx QueryContext) (*clienttypes.QueryC
 }
 
 func (pc *ProvableChain) QueryConnection(ctx QueryContext, connectionID string) (*conntypes.QueryConnectionResponse, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryConnection",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryConnection",
 		WithClientAttributes(pc),
 		trace.WithAttributes(AttributeKeyConnectionID.String(connectionID)),
 		withPackage(pc.Chain),
@@ -175,7 +175,7 @@ func (pc *ProvableChain) QueryConnection(ctx QueryContext, connectionID string) 
 }
 
 func (pc *ProvableChain) QueryChannel(ctx QueryContext) (*chantypes.QueryChannelResponse, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryChannel",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryChannel",
 		WithChannelAttributes(pc),
 		withPackage(pc.Chain),
 	)
@@ -189,7 +189,7 @@ func (pc *ProvableChain) QueryChannel(ctx QueryContext) (*chantypes.QueryChannel
 }
 
 func (pc *ProvableChain) QueryUnreceivedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryUnreceivedPackets",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryUnreceivedPackets",
 		WithChannelAttributes(pc),
 		withPackage(pc.Chain),
 	)
@@ -203,7 +203,7 @@ func (pc *ProvableChain) QueryUnreceivedPackets(ctx QueryContext, seqs []uint64)
 }
 
 func (pc *ProvableChain) QueryUnfinalizedRelayPackets(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryUnfinalizedRelayPackets",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryUnfinalizedRelayPackets",
 		WithChannelAttributes(pc),
 		withPackage(pc.Chain),
 	)
@@ -217,7 +217,7 @@ func (pc *ProvableChain) QueryUnfinalizedRelayPackets(ctx QueryContext, counterp
 }
 
 func (pc *ProvableChain) QueryUnreceivedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryUnreceivedAcknowledgements",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryUnreceivedAcknowledgements",
 		WithChannelAttributes(pc),
 		withPackage(pc.Chain),
 	)
@@ -231,7 +231,7 @@ func (pc *ProvableChain) QueryUnreceivedAcknowledgements(ctx QueryContext, seqs 
 }
 
 func (pc *ProvableChain) QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryUnfinalizedRelayAcknowledgements",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryUnfinalizedRelayAcknowledgements",
 		WithChannelAttributes(pc),
 		withPackage(pc.Chain),
 	)
@@ -245,7 +245,7 @@ func (pc *ProvableChain) QueryUnfinalizedRelayAcknowledgements(ctx QueryContext,
 }
 
 func (pc *ProvableChain) QueryChannelUpgrade(ctx QueryContext) (*chantypes.QueryUpgradeResponse, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryChannelUpgrade",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryChannelUpgrade",
 		WithChannelAttributes(pc),
 		withPackage(pc.Chain),
 	)
@@ -259,7 +259,7 @@ func (pc *ProvableChain) QueryChannelUpgrade(ctx QueryContext) (*chantypes.Query
 }
 
 func (pc *ProvableChain) QueryChannelUpgradeError(ctx QueryContext) (*chantypes.QueryUpgradeErrorResponse, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryChannelUpgradeError",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryChannelUpgradeError",
 		WithChannelAttributes(pc),
 		withPackage(pc.Chain),
 	)
@@ -273,7 +273,7 @@ func (pc *ProvableChain) QueryChannelUpgradeError(ctx QueryContext) (*chantypes.
 }
 
 func (pc *ProvableChain) QueryCanTransitionToFlushComplete(ctx QueryContext) (bool, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryCanTransitionToFlushComplete",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryCanTransitionToFlushComplete",
 		WithChannelAttributes(pc),
 		withPackage(pc.Chain),
 	)
@@ -287,7 +287,7 @@ func (pc *ProvableChain) QueryCanTransitionToFlushComplete(ctx QueryContext) (bo
 }
 
 func (pc *ProvableChain) QueryBalance(ctx QueryContext, address sdk.AccAddress) (sdk.Coins, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryBalance",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryBalance",
 		WithChainAttributes(pc.ChainID()),
 		withPackage(pc.Chain),
 	)
@@ -301,7 +301,7 @@ func (pc *ProvableChain) QueryBalance(ctx QueryContext, address sdk.AccAddress) 
 }
 
 func (pc *ProvableChain) QueryDenomTraces(ctx QueryContext, offset, limit uint64) (*transfertypes.QueryDenomTracesResponse, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Chain.QueryDenomTraces",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Chain.QueryDenomTraces",
 		WithChainAttributes(pc.ChainID()),
 		withPackage(pc.Chain),
 	)
@@ -373,7 +373,7 @@ func (pc *ProvableChain) CheckRefreshRequired(ctx context.Context, counterparty 
 }
 
 func (pc *ProvableChain) ProveState(ctx QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Prover.ProveState",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Prover.ProveState",
 		WithChainAttributes(pc.ChainID()),
 		trace.WithAttributes(AttributeKeyPath.String(path)),
 		withPackage(pc.Prover),
@@ -388,7 +388,7 @@ func (pc *ProvableChain) ProveState(ctx QueryContext, path string, value []byte)
 }
 
 func (pc *ProvableChain) ProveHostConsensusState(ctx QueryContext, height ibcexported.Height, consensusState ibcexported.ConsensusState) ([]byte, error) {
-	ctx, span := startTraceWithQueryContext(ctx, "Prover.ProveHostConsensusState",
+	ctx, span := StartTraceWithQueryContext(tracer, ctx, "Prover.ProveHostConsensusState",
 		WithChainAttributes(pc.ChainID()),
 		withPackage(pc.Prover),
 	)
