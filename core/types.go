@@ -13,6 +13,7 @@ type PacketInfo struct {
 	chantypes.Packet
 	Acknowledgement []byte             `json:"acknowledgement"`
 	EventHeight     clienttypes.Height `json:"event_height"`
+	TimedOut        bool               `json:"timed_out"`
 }
 
 // PacketInfoList represents a list of PacketInfo that is sorted in the order in which
