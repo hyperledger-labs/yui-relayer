@@ -1,8 +1,14 @@
 if [ "${YRLY_ENABLE_TELEMETRY-}" = "true" ]; then
-  export OTEL_TRACES_EXPORTER=console
-  export OTEL_EXPORTER_CONSOLE_TRACES_WRITER=stderr
-  export OTEL_METRICS_EXPORTER=console
-  export OTEL_EXPORTER_CONSOLE_METRICS_WRITER=stderr
-  export OTEL_LOGS_EXPORTER=console
-  export OTEL_EXPORTER_CONSOLE_LOGS_WRITER=stderr
+  if [ -z "${OTEL_TRACES_EXPORTER-}" ]; then
+    export OTEL_TRACES_EXPORTER=console
+    export OTEL_EXPORTER_CONSOLE_TRACES_WRITER=stderr
+  fi
+  if [ -z "${OTEL_METRICS_EXPORTER-}" ]; then
+    export OTEL_METRICS_EXPORTER=console
+    export OTEL_EXPORTER_CONSOLE_METRICS_WRITER=stderr
+  fi
+  if [ -z "${OTEL_LOGS_EXPORTER-}" ]; then
+    export OTEL_LOGS_EXPORTER=console
+    export OTEL_EXPORTER_CONSOLE_LOGS_WRITER=stderr
+  fi
 fi
