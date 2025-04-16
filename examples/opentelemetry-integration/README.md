@@ -1,7 +1,7 @@
 # OpenTelmetry integration example
 
 This is an example of OpenTelmetry integration using the test cases in this repository.
-The telemetry data collected by OpenTelmetry ca be visualized in Grafana, which is also included in this example.
+The telemetry data collected by OpenTelmetry can be visualized in Grafana, which is also included in this example.
 
 ## Usage
 

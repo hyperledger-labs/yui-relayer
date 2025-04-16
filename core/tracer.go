@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"reflect"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
@@ -22,21 +21,4 @@ func StartTraceWithQueryContext(tracer trace.Tracer, ctx QueryContext, spanName 
 	spanCtx, span := tracer.Start(ctx.Context(), spanName, opts...)
 	ctx = NewQueryContext(spanCtx, ctx.Height())
 	return ctx, span
-}
-
-// withPackage adds the package name of the function/method `v`
-func withPackage(v any) trace.SpanStartOption {
-	return trace.WithAttributes(AttributeKeyPackage.String(getPackageName(v)))
-}
-
-func getPackageName(v any) string {
-	if v == nil {
-		return ""
-	}
-
-	rt := reflect.TypeOf(v)
-	if rt.Kind() == reflect.Ptr {
-		rt = rt.Elem()
-	}
-	return rt.PkgPath()
 }

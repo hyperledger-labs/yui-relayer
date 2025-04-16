@@ -136,7 +136,47 @@ In this case, you can disable them by setting `.global.logger.output` to `"null"
 
 ### Add spans and span attributes in external modules
 
-Although `ProvableChain` wraps primary methods of the Chain and Prover interfaces with tracing, you can create additional spans manually when needed:
+#### Using tracing bridges
+
+The Relayer provides OpenTelemetry tracing bridges: `otelcore.Chain` and `otelcore.Prover`.
+These bridges add tracing to the primary methods defined in the Chain and Prover interfaces.
+You can use the tracing bridges by returning them in `ChainConfig.Build` and `ProverConfig.Build`:
+
+```go
+var tracer = otel.Tracer("example.com/my-module")
+
+func (c ChainConfig) Build() (core.Chain, error) {
+	return otelcore.NewChain(&Chain{}, tracer), nil
+}
+
+func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
+	return otelcore.NewProver(&Prover{}, chain.ChainID(), tracer), nil
+}
+```
+
+If you need to acces the original Chain and Prover implementations, you can unwrap them as follows:
+
+```go
+chain, err := otelcore.UnwrapChain(provableChain.Chain)
+originalChain := chain.(module.Chain)
+prover, err := otelcore.UnwrapProver(provableChain.Prover)
+originalProver := prover.(module.Prover)
+```
+
+Alternatively, you can use `core.AsChain` and `core.AsProver`, similar to how `errors.As` works:
+
+```go
+var chain module.Chain
+ok := core.AsChain(provableChain, &chain)
+var prover module.Prover
+ok := core.AsProver(provableChain, &prover)
+```
+
+Note that, if you call methods defined in your Chain module and Prover module directly, tracing data will not be recorded.
+
+#### Manual tracing
+
+In addition to using the tracing bridges, you can manually create spans when needed:
 
 ```go
 var tracer = otel.Tracer("example.com/my-module")
@@ -149,17 +189,17 @@ func someFunction(ctx context.Context) {
 }
 ```
 
-If the function or method receives a `core.QueryContext`, you can use `core.StartTraceWithQueryContext` to create a span:
+If a function or method receives a `core.QueryContext`, you can use `core.StartTraceWithQueryContext` to create a span:
 
 ```go
 func (c *Chain) QuerySomething(ctx core.QueryContext) (any, error) {
 	ctx, span := core.StartTraceWithQueryContext(tracer, ctx, "Chain.QuerySomething", core.WithChainAttributes(c.ChainID()))
 	defer span.End()
 
-    // -- snip --
+	// -- snip --
 ```
 
-You can also add span atributes as follows:
+You can also add span attributes as follows:
 
 ```go
 func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult, error) {

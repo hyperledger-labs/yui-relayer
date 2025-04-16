@@ -8,6 +8,7 @@ import (
 	tmclient "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
 	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
 	"github.com/hyperledger-labs/yui-relayer/config"
+	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
 )
 
@@ -40,8 +41,15 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.Chain.(*tendermint.Chain)
-			prover := c.Prover.(*tendermint.Prover)
+
+			var chain tendermint.Chain
+			if ok := core.AsChain(c, &chain); !ok {
+				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
+			}
+			var prover tendermint.Prover
+			if ok := core.AsProver(c, &prover); !ok {
+				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
+			}
 
 			db, df, err := prover.NewLightDB(cmd.Context())
 			if err != nil {
@@ -96,7 +104,11 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			prover := c.Prover.(*tendermint.Prover)
+
+			var prover tendermint.Prover
+			if ok := core.AsProver(c, &prover); !ok {
+				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
+			}
 
 			bh, err := prover.GetLatestLightHeader(cmd.Context())
 			if err != nil {
@@ -129,8 +141,15 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chain := c.Chain.(*tendermint.Chain)
-			prover := c.Prover.(*tendermint.Prover)
+
+			var chain tendermint.Chain
+			if ok := core.AsChain(c.Chain, &chain); !ok {
+				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
+			}
+			var prover tendermint.Prover
+			if ok := core.AsProver(c, &prover); !ok {
+				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
+			}
 
 			var header *tmclient.Header
 
@@ -188,7 +207,11 @@ func deleteLightCmd(ctx *config.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			prover := c.Prover.(*tendermint.Prover)
+
+			var prover tendermint.Prover
+			if ok := core.AsProver(c, &prover); !ok {
+				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
+			}
 
 			err = prover.DeleteLightDB()
 			if err != nil {

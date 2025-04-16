@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -156,6 +157,58 @@ func FindPacketAcknowledgementFromEventsBySequence(events []abci.Event, seq uint
 		}
 	}
 	return nil, nil
+}
+
+// AsChain is a method similar to errors.As and finds the first struct value in the Chain
+// field that matches target.
+//
+// In the following example, AsChain sets a struct value in the Chain field to the chain variable:
+//
+//	var chain module.Chain
+//	if ok := core.AsChain(provableChain, &chain); !ok {
+//	        return errors.New("Chain is not a module.Chain")
+//	}
+func AsChain(v any, target any) bool {
+	return as(v, target, "Chain")
+}
+
+// AsProver is a method similar to errors.As and finds the first struct value in the Prover
+// field that matches target.
+//
+// In the following example, AsProver sets a struct value in the Prover field to the prover variable:
+//
+//	var prover module.Prover
+//	if ok := core.AsProver(provableChain, &prover); !ok {
+//	        return errors.New("Prover is not a module.Prover")
+//	}
+func AsProver(v any, target any) bool {
+	return as(v, target, "Prover")
+}
+
+func as(v any, target any, fieldName string) bool {
+	targetType := reflect.TypeOf(target).Elem()
+
+	rv := reflect.ValueOf(v)
+	for {
+		// core.Chain/core.Prover to concrete chain/prover (struct or pointer)
+		if rv.Kind() == reflect.Interface {
+			rv = rv.Elem()
+		}
+		// chain/prover pointer to struct
+		if rv.Kind() == reflect.Ptr {
+			rv = rv.Elem()
+		}
+
+		if reflect.TypeOf(rv.Interface()).AssignableTo(targetType) {
+			reflect.ValueOf(target).Elem().Set(rv)
+			return true
+		}
+
+		rv = rv.FieldByName(fieldName)
+		if !rv.IsValid() || rv.IsNil() {
+			return false
+		}
+	}
 }
 
 func assertIndex(actual, expected int) error {
