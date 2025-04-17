@@ -16,8 +16,8 @@ var (
 func StartTraceWithQueryContext(tracer trace.Tracer, ctx QueryContext, spanName string, opts ...trace.SpanStartOption) (QueryContext, trace.Span) {
 	opts = append(opts, trace.WithAttributes(AttributeGroup("query",
 		// Convert revision_number and revision_height to string because the attribute package does not support uint64
-		AttributeKeyRevisionNumber.String(fmt.Sprint(ctx.Height().GetRevisionNumber())),
-		AttributeKeyRevisionHeight.String(fmt.Sprint(ctx.Height().GetRevisionHeight())),
+		AttributeKeyHeightRevisionNumber.String(fmt.Sprint(ctx.Height().GetRevisionNumber())),
+		AttributeKeyHeightRevisionHeight.String(fmt.Sprint(ctx.Height().GetRevisionHeight())),
 	)...))
 	spanCtx, span := tracer.Start(ctx.Context(), spanName, opts...)
 	ctx = NewQueryContext(spanCtx, ctx.Height())

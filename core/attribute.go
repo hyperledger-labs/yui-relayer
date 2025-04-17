@@ -5,17 +5,17 @@ import (
 )
 
 const (
-	AttributeKeyChainID        = attribute.Key("chain_id")
-	AttributeKeyClientID       = attribute.Key("client_id")
-	AttributeKeyConnectionID   = attribute.Key("connection_id")
-	AttributeKeyChannelID      = attribute.Key("channel_id")
-	AttributeKeyPortID         = attribute.Key("port_id")
-	AttributeKeyDirection      = attribute.Key("direction")
-	AttributeKeyPath           = attribute.Key("path")
-	AttributeKeyRevisionNumber = attribute.Key("revision_number")
-	AttributeKeyRevisionHeight = attribute.Key("revision_height")
-	AttributeKeyPackage        = attribute.Key("package")
-	AttributeKeyTxHash         = attribute.Key("tx_hash")
+	AttributeKeyChainID              = attribute.Key("chain_id")
+	AttributeKeyClientID             = attribute.Key("client_id")
+	AttributeKeyConnectionID         = attribute.Key("connection_id")
+	AttributeKeyChannelID            = attribute.Key("channel_id")
+	AttributeKeyPortID               = attribute.Key("port_id")
+	AttributeKeyDirection            = attribute.Key("direction")
+	AttributeKeyPath                 = attribute.Key("path")
+	AttributeKeyHeightRevisionNumber = attribute.Key("height.revision_number")
+	AttributeKeyHeightRevisionHeight = attribute.Key("height.revision_height")
+	AttributeKeyPackage              = attribute.Key("package")
+	AttributeKeyTxHash               = attribute.Key("tx_hash")
 )
 
 // AttributeGroup prefixes the given key to all attributes.
