@@ -59,14 +59,9 @@ func (c ChainConfig) Validate() error {
 var _ core.ProverConfig = (*ProverConfig)(nil)
 
 func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
-	var err error
-	chain, err = otelcore.UnwrapChain(chain)
-	if err != nil {
+	var tmChain *Chain
+	if err := core.AsChain(chain, &tmChain); err != nil {
 		return nil, err
-	}
-	tmChain, ok := chain.(*Chain)
-	if !ok {
-		return nil, fmt.Errorf("chain type must be %T, not %T", &Chain{}, chain)
 	}
 	return otelcore.NewProver(NewProver(tmChain, c), chain.ChainID(), tracer), nil
 }

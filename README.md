@@ -154,22 +154,16 @@ func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
 }
 ```
 
-If you need to acces the original Chain and Prover implementations, you can unwrap them as follows:
+If you need to access the original Chain and Prover implementations, you can use `core.AsChain` and `core.AsProver`, similar to how `errors.As` works:
 
 ```go
-chain, err := otelcore.UnwrapChain(provableChain.Chain)
-originalChain := chain.(module.Chain)
-prover, err := otelcore.UnwrapProver(provableChain.Prover)
-originalProver := prover.(module.Prover)
-```
-
-Alternatively, you can use `core.AsChain` and `core.AsProver`, similar to how `errors.As` works:
-
-```go
+// The case where a ProvableChain contains a chain struct (module.Chain)
 var chain module.Chain
-ok := core.AsChain(provableChain, &chain)
-var prover module.Prover
-ok := core.AsProver(provableChain, &prover)
+err := core.AsChain(provableChain, &chain)
+
+// The case where a ProvableChain contains a chain struct pointer (*module.Chain)
+var chainPtr *module.Chain
+err := core.AsChain(provableChain, &chainPtr)
 ```
 
 Note that, if you call methods defined in your Chain module and Prover module directly, tracing data will not be recorded.

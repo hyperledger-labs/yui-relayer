@@ -2,7 +2,6 @@ package otelcore
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -26,14 +25,6 @@ func NewChain(chain core.Chain, tracer trace.Tracer) core.Chain {
 		Chain:  chain,
 		tracer: tracer,
 	}
-}
-
-func UnwrapChain(chain core.Chain) (core.Chain, error) {
-	c, ok := chain.(*Chain)
-	if !ok {
-		return nil, fmt.Errorf("chain type is not %T, but %T", &Chain{}, chain)
-	}
-	return c.Chain, nil
 }
 
 func (c *Chain) SendMsgs(ctx context.Context, msgs []sdk.Msg) ([]core.MsgID, error) {

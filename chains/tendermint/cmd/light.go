@@ -42,12 +42,12 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var chain tendermint.Chain
-			if ok := core.AsChain(c, &chain); !ok {
+			var chain *tendermint.Chain
+			if err := core.AsChain(c, &chain); err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
 			}
-			var prover tendermint.Prover
-			if ok := core.AsProver(c, &prover); !ok {
+			var prover *tendermint.Prover
+			if err := core.AsProver(c, &prover); err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
 			}
 
@@ -105,8 +105,8 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var prover tendermint.Prover
-			if ok := core.AsProver(c, &prover); !ok {
+			var prover *tendermint.Prover
+			if err := core.AsProver(c, &prover); err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
 			}
 
@@ -142,12 +142,12 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var chain tendermint.Chain
-			if ok := core.AsChain(c.Chain, &chain); !ok {
+			var chain *tendermint.Chain
+			if err := core.AsChain(c.Chain, &chain); err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
 			}
-			var prover tendermint.Prover
-			if ok := core.AsProver(c, &prover); !ok {
+			var prover *tendermint.Prover
+			if err := core.AsProver(c, &prover); err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
 			}
 
@@ -208,8 +208,8 @@ func deleteLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var prover tendermint.Prover
-			if ok := core.AsProver(c, &prover); !ok {
+			var prover *tendermint.Prover
+			if err := core.AsProver(c, &prover); err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
 			}
 

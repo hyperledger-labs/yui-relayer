@@ -42,8 +42,8 @@ func keysAddCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var chain tendermint.Chain
-			if ok := core.AsChain(c, &chain); !ok {
+			var chain *tendermint.Chain
+			if err := core.AsChain(c, &chain); err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
 			}
 
@@ -106,8 +106,8 @@ func keysRestoreCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var chain tendermint.Chain
-			if ok := core.AsChain(c, &chain); !ok {
+			var chain *tendermint.Chain
+			if err := core.AsChain(c, &chain); err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
 			}
 
@@ -146,8 +146,8 @@ func keysShowCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var chain tendermint.Chain
-			if ok := core.AsChain(c, &chain); !ok {
+			var chain *tendermint.Chain
+			if err := core.AsChain(c, &chain); err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
 			}
 
@@ -191,8 +191,8 @@ func keysListCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var chain tendermint.Chain
-			if ok := core.AsChain(c, &chain); !ok {
+			var chain *tendermint.Chain
+			if err := core.AsChain(c, &chain); err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
 			}
 

@@ -164,11 +164,11 @@ func FindPacketAcknowledgementFromEventsBySequence(events []abci.Event, seq uint
 //
 // In the following example, AsChain sets a struct value in the Chain field to the chain variable:
 //
-//	var chain module.Chain
+//	var chain *module.Chain
 //	if ok := core.AsChain(provableChain, &chain); !ok {
-//	        return errors.New("Chain is not a module.Chain")
+//	        return errors.New("chain is not a *module.Chain")
 //	}
-func AsChain(v any, target any) bool {
+func AsChain(v any, target any) error {
 	return as(v, target, "Chain")
 }
 
@@ -177,36 +177,39 @@ func AsChain(v any, target any) bool {
 //
 // In the following example, AsProver sets a struct value in the Prover field to the prover variable:
 //
-//	var prover module.Prover
+//	var prover *module.Prover
 //	if ok := core.AsProver(provableChain, &prover); !ok {
-//	        return errors.New("Prover is not a module.Prover")
+//	        return errors.New("prover is not a *module.Prover")
 //	}
-func AsProver(v any, target any) bool {
+func AsProver(v any, target any) error {
 	return as(v, target, "Prover")
 }
 
-func as(v any, target any, fieldName string) bool {
+func as(v any, target any, fieldName string) error {
 	targetType := reflect.TypeOf(target).Elem()
 
+	var types []string
 	rv := reflect.ValueOf(v)
 	for {
 		// core.Chain/core.Prover to concrete chain/prover (struct or pointer)
 		if rv.Kind() == reflect.Interface {
 			rv = rv.Elem()
 		}
-		// chain/prover pointer to struct
+		types = append(types, rv.Type().String())
+
+		if rv.Type().AssignableTo(targetType) {
+			reflect.ValueOf(target).Elem().Set(rv)
+			return nil
+		}
+
 		if rv.Kind() == reflect.Ptr {
 			rv = rv.Elem()
 		}
 
-		if reflect.TypeOf(rv.Interface()).AssignableTo(targetType) {
-			reflect.ValueOf(target).Elem().Set(rv)
-			return true
-		}
-
 		rv = rv.FieldByName(fieldName)
 		if !rv.IsValid() || rv.IsNil() {
-			return false
+			actualType := strings.Join(types, "{"+fieldName+":") + strings.Repeat("}", len(types)-1)
+			return fmt.Errorf("%s does not contain %s; the actual type is %s", strings.ToLower(fieldName), targetType.String(), actualType)
 		}
 	}
 }

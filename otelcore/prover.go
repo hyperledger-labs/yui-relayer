@@ -2,7 +2,6 @@ package otelcore
 
 import (
 	"context"
-	"fmt"
 
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
@@ -24,14 +23,6 @@ func NewProver(prover core.Prover, chainID string, tracer trace.Tracer) core.Pro
 		chainID: chainID,
 		tracer:  tracer,
 	}
-}
-
-func UnwrapProver(prover core.Prover) (core.Prover, error) {
-	p, ok := prover.(*Prover)
-	if !ok {
-		return nil, fmt.Errorf("prover type is not %T, but %T", &Prover{}, prover)
-	}
-	return p.Prover, nil
 }
 
 func (p *Prover) GetLatestFinalizedHeader(ctx context.Context) (core.Header, error) {
