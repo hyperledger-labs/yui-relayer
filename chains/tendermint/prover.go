@@ -14,6 +14,7 @@ import (
 	ibcclient "github.com/cosmos/ibc-go/v8/modules/core/client"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	tmclient "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
@@ -199,30 +200,38 @@ func (pr *Prover) GetLatestLightHeight(ctx context.Context) (int64, error) {
 }
 
 func (pr *Prover) UpdateLightClient(ctx context.Context, height int64) (*tmclient.Header, error) {
+	ctx, span := tracer.Start(ctx, "Prover.UpdateLightClient", core.WithChainAttributes(pr.chain.ChainID()))
+	defer span.End()
+
 	// create database connection
 	db, df, err := pr.NewLightDB(ctx)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, lightError(err)
 	}
 	defer df()
 
 	client, err := pr.LightClient(db)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, lightError(err)
 	}
 
 	var sh *types.LightBlock
 	if height == 0 {
 		if sh, err = client.Update(ctx, time.Now()); err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			return nil, lightError(err)
 		} else if sh == nil {
 			sh, err = client.TrustedLightBlock(0)
 			if err != nil {
+				span.SetStatus(codes.Error, err.Error())
 				return nil, lightError(err)
 			}
 		}
 	} else {
 		if sh, err = client.VerifyLightBlockAtHeight(ctx, height, time.Now()); err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			return nil, lightError(err)
 		}
 	}
@@ -230,6 +239,7 @@ func (pr *Prover) UpdateLightClient(ctx context.Context, height int64) (*tmclien
 	valSet := tmtypes.NewValidatorSet(sh.ValidatorSet.Validators)
 	protoVal, err := valSet.ToProto()
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	protoVal.TotalVotingPower = valSet.TotalVotingPower()

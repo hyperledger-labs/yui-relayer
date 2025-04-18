@@ -2,11 +2,12 @@
 
 set -eux
 
-source $(cd $(dirname "$0"); pwd)/../../../scripts/util
-
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
 RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
 RLY="${RLY_BINARY} --debug"
+
+source ${SCRIPT_DIR}/../../../scripts/set-telemetry-envvars
+source ${SCRIPT_DIR}/../../../scripts/util
 
 CHAINID_ONE=ibc0
 RLYKEY=testkey

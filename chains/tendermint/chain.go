@@ -12,6 +12,8 @@ import (
 
 	"cosmossdk.io/errors"
 	"github.com/avast/retry-go"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 
 	rpcclient "github.com/cometbft/cometbft/rpc/client"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
@@ -258,6 +260,7 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 		return res, false, nil
 	}
 
+	trace.SpanFromContext(ctx).SetAttributes(core.AttributeKeyTxHash.String(res.TxHash))
 	c.LogSuccessTx(res, msgs)
 	return res, true, nil
 }
@@ -429,6 +432,9 @@ func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult
 		return nil, fmt.Errorf("unexpected message id type: %T", id)
 	}
 
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(core.AttributeKeyTxHash.String(msgID.TxHash))
+
 	// find tx
 	resTx, err := c.waitForCommit(ctx, msgID.TxHash)
 	if err != nil {
@@ -558,6 +564,10 @@ func newRPCClient(addr string, timeout time.Duration) (*rpchttp.HTTP, error) {
 		return nil, err
 	}
 
+	// NOTE: The Cosmos SDK typically does not propagate parent contexts when making JSON-RPC calls,
+	//   so most spans recorded by otelhttp do not have a parent span.
+	//   cf. https://github.com/cosmos/cosmos-sdk/issues/24500
+	httpClient.Transport = otelhttp.NewTransport(httpClient.Transport)
 	httpClient.Timeout = timeout
 	rpcClient, err := rpchttp.NewWithClient(addr, "/websocket", httpClient)
 	if err != nil {

@@ -18,7 +18,7 @@ type setupType struct {
 func beforeEach(t *testing.T) *setupType {
 	var r setupType
 
-	err := InitLoggerWithWriter("info", "json", &r.buffer)
+	err := InitLoggerWithWriter("info", "json", &r.buffer, false)
 	if err != nil {
 		t.Fatal(err)
 	}

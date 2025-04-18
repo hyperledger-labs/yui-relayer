@@ -27,6 +27,7 @@ import (
 	committypes "github.com/cosmos/ibc-go/v8/modules/core/23-commitment/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	otelcodes "go.opentelemetry.io/otel/codes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -151,8 +152,11 @@ func (c *Chain) QueryDenomTraces(ctx core.QueryContext, offset, limit uint64) (*
 func (c *Chain) queryPacketCommitments(
 	ctx core.QueryContext,
 	offset, limit uint64) (comRes *chantypes.QueryPacketCommitmentsResponse, err error) {
+	ctx, span := core.StartTraceWithQueryContext(tracer, ctx, "Chain.queryPacketCommitments", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight())).WithCmdContext(ctx.Context()))
-	return qc.PacketCommitments(ctx.Context(), &chantypes.QueryPacketCommitmentsRequest{
+	resp, err := qc.PacketCommitments(ctx.Context(), &chantypes.QueryPacketCommitmentsRequest{
 		PortId:    c.PathEnd.PortID,
 		ChannelId: c.PathEnd.ChannelID,
 		Pagination: &querytypes.PageRequest{
@@ -161,12 +165,20 @@ func (c *Chain) queryPacketCommitments(
 			CountTotal: true,
 		},
 	})
+	if err != nil {
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, err
+	}
+	return resp, nil
 }
 
 // queryPacketAcknowledgementCommitments returns an array of packet acks
 func (c *Chain) queryPacketAcknowledgementCommitments(ctx core.QueryContext, offset, limit uint64) (comRes *chantypes.QueryPacketAcknowledgementsResponse, err error) {
+	ctx, span := core.StartTraceWithQueryContext(tracer, ctx, "Chain.queryPacketAcknowledgementCommitments", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight())).WithCmdContext(ctx.Context()))
-	return qc.PacketAcknowledgements(ctx.Context(), &chantypes.QueryPacketAcknowledgementsRequest{
+	resp, err := qc.PacketAcknowledgements(ctx.Context(), &chantypes.QueryPacketAcknowledgementsRequest{
 		PortId:    c.PathEnd.PortID,
 		ChannelId: c.PathEnd.ChannelID,
 		Pagination: &querytypes.PageRequest{
@@ -175,6 +187,11 @@ func (c *Chain) queryPacketAcknowledgementCommitments(ctx core.QueryContext, off
 			CountTotal: true,
 		},
 	})
+	if err != nil {
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, err
+	}
+	return resp, nil
 }
 
 // QueryUnreceivedPackets returns a list of unrelayed packet commitments
@@ -281,22 +298,33 @@ func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, cou
 
 // querySentPacket finds a SendPacket event corresponding to `seq` and returns the packet in it
 func (c *Chain) querySentPacket(ctx core.QueryContext, seq uint64) (*chantypes.Packet, clienttypes.Height, error) {
+	ctx, span := core.StartTraceWithQueryContext(tracer, ctx, "Chain.querySentPacket", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
 	txs, err := c.QueryTxs(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), 1, 1000, sendPacketQuery(c.Path().ChannelID, int(seq)))
 	switch {
 	case err != nil:
+		span.SetStatus(otelcodes.Error, err.Error())
 		return nil, clienttypes.Height{}, err
 	case len(txs) == 0:
-		return nil, clienttypes.Height{}, fmt.Errorf("no transactions returned with query")
+		err = fmt.Errorf("no transactions returned with query")
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, clienttypes.Height{}, err
 	case len(txs) > 1:
-		return nil, clienttypes.Height{}, fmt.Errorf("more than one transaction returned with query")
+		err = fmt.Errorf("more than one transaction returned with query")
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, clienttypes.Height{}, err
 	}
 
 	packet, err := core.FindPacketFromEventsBySequence(txs[0].TxResult.Events, chantypes.EventTypeSendPacket, seq)
 	if err != nil {
+		span.SetStatus(otelcodes.Error, err.Error())
 		return nil, clienttypes.Height{}, err
 	}
 	if packet == nil {
-		return nil, clienttypes.Height{}, fmt.Errorf("can't find the packet from events")
+		err = fmt.Errorf("can't find the packet from events")
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, clienttypes.Height{}, err
 	}
 
 	height := clienttypes.NewHeight(clienttypes.ParseChainID(c.ChainID()), uint64(txs[0].Height))
@@ -306,22 +334,33 @@ func (c *Chain) querySentPacket(ctx core.QueryContext, seq uint64) (*chantypes.P
 
 // queryReceivedPacket finds a RecvPacket event corresponding to `seq` and return the packet in it
 func (c *Chain) queryReceivedPacket(ctx core.QueryContext, seq uint64) (*chantypes.Packet, clienttypes.Height, error) {
+	ctx, span := core.StartTraceWithQueryContext(tracer, ctx, "Chain.queryReceivedPacket", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
 	txs, err := c.QueryTxs(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), 1, 1000, recvPacketQuery(c.Path().ChannelID, int(seq)))
 	switch {
 	case err != nil:
+		span.SetStatus(otelcodes.Error, err.Error())
 		return nil, clienttypes.Height{}, err
 	case len(txs) == 0:
-		return nil, clienttypes.Height{}, fmt.Errorf("no transactions returned with query")
+		err = fmt.Errorf("no transactions returned with query")
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, clienttypes.Height{}, err
 	case len(txs) > 1:
-		return nil, clienttypes.Height{}, fmt.Errorf("more than one transaction returned with query")
+		err = fmt.Errorf("more than one transaction returned with query")
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, clienttypes.Height{}, err
 	}
 
 	packet, err := core.FindPacketFromEventsBySequence(txs[0].TxResult.Events, chantypes.EventTypeRecvPacket, seq)
 	if err != nil {
+		span.SetStatus(otelcodes.Error, err.Error())
 		return nil, clienttypes.Height{}, err
 	}
 	if packet == nil {
-		return nil, clienttypes.Height{}, fmt.Errorf("can't find the packet from events")
+		err = fmt.Errorf("can't find the packet from events")
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, clienttypes.Height{}, err
 	}
 
 	height := clienttypes.NewHeight(clienttypes.ParseChainID(c.ChainID()), uint64(txs[0].Height))
@@ -332,22 +371,33 @@ func (c *Chain) queryReceivedPacket(ctx core.QueryContext, seq uint64) (*chantyp
 
 // queryWrittenAcknowledgement finds a WriteAcknowledgement event corresponding to `seq` and returns the acknowledgement in it
 func (c *Chain) queryWrittenAcknowledgement(ctx core.QueryContext, seq uint64) ([]byte, clienttypes.Height, error) {
+	ctx, span := core.StartTraceWithQueryContext(tracer, ctx, "Chain.queryWrittenAcknowledgement", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
 	txs, err := c.QueryTxs(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), 1, 1000, writeAckQuery(c.Path().ChannelID, int(seq)))
 	switch {
 	case err != nil:
+		span.SetStatus(otelcodes.Error, err.Error())
 		return nil, clienttypes.Height{}, err
 	case len(txs) == 0:
-		return nil, clienttypes.Height{}, fmt.Errorf("no transactions returned with query")
+		err = fmt.Errorf("no transactions returned with query")
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, clienttypes.Height{}, err
 	case len(txs) > 1:
-		return nil, clienttypes.Height{}, fmt.Errorf("more than one transaction returned with query")
+		err = fmt.Errorf("more than one transaction returned with query")
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, clienttypes.Height{}, err
 	}
 
 	ack, err := core.FindPacketAcknowledgementFromEventsBySequence(txs[0].TxResult.Events, seq)
 	if err != nil {
+		span.SetStatus(otelcodes.Error, err.Error())
 		return nil, clienttypes.Height{}, err
 	}
 	if ack == nil {
-		return nil, clienttypes.Height{}, fmt.Errorf("can't find the packet from events")
+		err = fmt.Errorf("can't find the packet from events")
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, clienttypes.Height{}, err
 	}
 
 	height := clienttypes.NewHeight(clienttypes.ParseChainID(c.ChainID()), uint64(txs[0].Height))
@@ -443,23 +493,36 @@ func (c *Chain) queryCanTransitionToFlushComplete(ctx context.Context, height in
 
 // QueryHistoricalInfo returns historical header data
 func (c *Chain) QueryHistoricalInfo(ctx context.Context, height clienttypes.Height) (*stakingtypes.QueryHistoricalInfoResponse, error) {
+	ctx, span := tracer.Start(ctx, "Chain.QueryHistoricalInfo", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
 	//TODO: use epoch number in query once SDK gets updated
 	qc := stakingtypes.NewQueryClient(c.CLIContext(int64(height.GetRevisionHeight())).WithCmdContext(ctx))
-	return qc.HistoricalInfo(ctx, &stakingtypes.QueryHistoricalInfoRequest{
+	resp, err := qc.HistoricalInfo(ctx, &stakingtypes.QueryHistoricalInfoRequest{
 		Height: int64(height.GetRevisionHeight()),
 	})
+	if err != nil {
+		span.SetStatus(otelcodes.Error, err.Error())
+		return nil, err
+	}
+	return resp, nil
 }
 
 // QueryValsetAtHeight returns the validator set at a given height
 func (c *Chain) QueryValsetAtHeight(ctx context.Context, height clienttypes.Height) (*tmproto.ValidatorSet, error) {
+	ctx, span := tracer.Start(ctx, "Chain.QueryValsetAtHeight", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
 	res, err := c.QueryHistoricalInfo(ctx, height)
 	if err != nil {
+		span.SetStatus(otelcodes.Error, err.Error())
 		return nil, err
 	}
 
 	// create tendermint ValidatorSet from SDK Validators
 	tmVals, err := c.toTmValidators(res.Hist.Valset)
 	if err != nil {
+		span.SetStatus(otelcodes.Error, err.Error())
 		return nil, err
 	}
 
@@ -471,6 +534,7 @@ func (c *Chain) QueryValsetAtHeight(ctx context.Context, height clienttypes.Heig
 
 	protoValSet, err := tmValSet.ToProto()
 	if err != nil {
+		span.SetStatus(otelcodes.Error, err.Error())
 		return nil, err
 	}
 	protoValSet.TotalVotingPower = tmValSet.TotalVotingPower()
@@ -504,12 +568,16 @@ func (c *Chain) toTmValidator(val stakingtypes.Validator) (*tmtypes.Validator, e
 
 // QueryUnbondingPeriod returns the unbonding period of the chain
 func (c *Chain) QueryUnbondingPeriod(ctx context.Context) (time.Duration, error) {
+	ctx, span := tracer.Start(ctx, "Chain.QueryUnbondingPeriod", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
 	req := stakingtypes.QueryParamsRequest{}
 
 	queryClient := stakingtypes.NewQueryClient(c.CLIContext(0).WithCmdContext(ctx))
 
 	res, err := queryClient.Params(ctx, &req)
 	if err != nil {
+		span.SetStatus(otelcodes.Error, err.Error())
 		return 0, err
 	}
 

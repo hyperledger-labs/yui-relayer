@@ -5,6 +5,7 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // StartService starts a relay service
@@ -104,11 +105,14 @@ func (srv *RelayService) Start(ctx context.Context) error {
 
 // Serve performs packet-relay
 func (srv *RelayService) Serve(ctx context.Context) error {
+	ctx, span := tracer.Start(ctx, "RelayService.Serve", WithChannelPairAttributes(srv.src, srv.dst))
+	defer span.End()
 	logger := GetChannelPairLogger(srv.src, srv.dst)
 
 	// First, update the latest headers for src and dst
 	if err := srv.sh.Updates(ctx, srv.src, srv.dst); err != nil {
 		logger.Error("failed to update headers", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
@@ -116,6 +120,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	pseqs, err := srv.st.UnrelayedPackets(ctx, srv.src, srv.dst, srv.sh, false)
 	if err != nil {
 		logger.Error("failed to get unrelayed packets", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
@@ -123,6 +128,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	aseqs, err := srv.st.UnrelayedAcknowledgements(ctx, srv.src, srv.dst, srv.sh, false)
 	if err != nil {
 		logger.Error("failed to get unrelayed acknowledgements", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
@@ -133,6 +139,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	// update clients
 	if m, err := srv.st.UpdateClients(ctx, srv.src, srv.dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, srv.sh, true); err != nil {
 		logger.Error("failed to update clients", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else {
 		msgs.Merge(m)
@@ -141,6 +148,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	// relay packets if unrelayed seqs exist
 	if m, err := srv.st.RelayPackets(ctx, srv.src, srv.dst, pseqs, srv.sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
 		logger.Error("failed to relay packets", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else {
 		msgs.Merge(m)
@@ -149,6 +157,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	// relay acks if unrelayed seqs exist
 	if m, err := srv.st.RelayAcknowledgements(ctx, srv.src, srv.dst, aseqs, srv.sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
 		logger.Error("failed to relay acknowledgements", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else {
 		msgs.Merge(m)
