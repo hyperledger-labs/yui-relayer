@@ -22,7 +22,7 @@ func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain
 	ctx, span := tracer.Start(ctx, "CreateChannel", WithChannelPairAttributes(src, dst))
 	defer span.End()
 	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "CreateChannel")
+	defer logger.TimeTrackContext(ctx, time.Now(), "CreateChannel")
 
 	if cont, err := checkChannelCreateReady(ctx, src, dst, logger); err != nil {
 		span.SetStatus(codes.Error, err.Error())
@@ -35,15 +35,12 @@ func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain
 	err := runUntilComplete(ctx, interval, func() (bool, error) {
 		chanSteps, err := createChannelStep(ctx, src, dst)
 		if err != nil {
-			logger.Error(
-				"failed to create channel step",
-				err,
-			)
+			logger.ErrorContext(ctx, "failed to create channel step", err)
 			return false, err
 		}
 
 		if !chanSteps.Ready() {
-			logger.Debug("Waiting for next channel step ...")
+			logger.DebugContext(ctx, "Waiting for next channel step ...")
 			return false, nil
 		}
 
@@ -58,7 +55,7 @@ func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain
 			// In the case of success and this being the last transaction
 			// debug logging, log created connection and break
 			if chanSteps.Last {
-				logger.Info("★ Channel created")
+				logger.InfoContext(ctx, "★ Channel created")
 				return true, nil
 			}
 
@@ -68,11 +65,11 @@ func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain
 			// In the case of failure, increment the failures counter and exit if this is the 3rd failure
 			if failures++; failures > 2 {
 				err := errors.New("Channel handshake failed")
-				logger.Error(err.Error(), err)
+				logger.ErrorContext(ctx, err.Error(), err)
 				return false, err
 			}
 
-			logger.Warn("Retrying transaction...")
+			logger.WarnContext(ctx, "Retrying transaction...")
 			if err := wait(ctx, 5*time.Second); err != nil {
 				return false, err
 			}
@@ -130,7 +127,7 @@ func checkChannelCreateReady(ctx context.Context, src, dst *ProvableChain, logge
 	}
 
 	if srcState == chantypes.OPEN && dstState == chantypes.OPEN {
-		logger.Warn("channels are already created", "src_channel_id", srcID, "dst_channel_id", dstID)
+		logger.WarnContext(ctx, "channels are already created", "src_channel_id", srcID, "dst_channel_id", dstID)
 		return false, nil
 	}
 	return true, nil
@@ -181,14 +178,14 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	switch {
 	// Handshake hasn't been started on src or dst, relay `chanOpenInit` to src
 	case srcChan.Channel.State == chantypes.UNINITIALIZED && dstChan.Channel.State == chantypes.UNINITIALIZED:
-		logChannelStates(src, dst, srcChan, dstChan)
+		logChannelStates(ctx, src, dst, srcChan, dstChan)
 		addr := mustGetAddress(src)
 		out.Src = append(out.Src,
 			src.Path().ChanInit(dst.Path(), addr),
 		)
 	// Handshake has started on dst (1 step done), relay `chanOpenTry` and `updateClient` to src
 	case srcChan.Channel.State == chantypes.UNINITIALIZED && dstChan.Channel.State == chantypes.INIT:
-		logChannelStates(src, dst, srcChan, dstChan)
+		logChannelStates(ctx, src, dst, srcChan, dstChan)
 		addr := mustGetAddress(src)
 		if len(dstUpdateHeaders) > 0 {
 			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
@@ -196,7 +193,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 		out.Src = append(out.Src, src.Path().ChanTry(dst.Path(), dstChan, addr))
 	// Handshake has started on src (1 step done), relay `chanOpenTry` and `updateClient` to dst
 	case srcChan.Channel.State == chantypes.INIT && dstChan.Channel.State == chantypes.UNINITIALIZED:
-		logChannelStates(dst, src, dstChan, srcChan)
+		logChannelStates(ctx, dst, src, dstChan, srcChan)
 		addr := mustGetAddress(dst)
 		if len(srcUpdateHeaders) > 0 {
 			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
@@ -205,7 +202,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 
 	// Handshake has started on src (2 steps done), relay `chanOpenAck` and `updateClient` to dst
 	case srcChan.Channel.State == chantypes.TRYOPEN && dstChan.Channel.State == chantypes.INIT:
-		logChannelStates(dst, src, dstChan, srcChan)
+		logChannelStates(ctx, dst, src, dstChan, srcChan)
 		addr := mustGetAddress(dst)
 		if len(srcUpdateHeaders) > 0 {
 			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
@@ -214,7 +211,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 
 	// Handshake has started on dst (2 steps done), relay `chanOpenAck` and `updateClient` to src
 	case srcChan.Channel.State == chantypes.INIT && dstChan.Channel.State == chantypes.TRYOPEN:
-		logChannelStates(src, dst, srcChan, dstChan)
+		logChannelStates(ctx, src, dst, srcChan, dstChan)
 		addr := mustGetAddress(src)
 		if len(dstUpdateHeaders) > 0 {
 			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
@@ -223,7 +220,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 
 	// Handshake has confirmed on dst (3 steps done), relay `chanOpenConfirm` and `updateClient` to src
 	case srcChan.Channel.State == chantypes.TRYOPEN && dstChan.Channel.State == chantypes.OPEN:
-		logChannelStates(src, dst, srcChan, dstChan)
+		logChannelStates(ctx, src, dst, srcChan, dstChan)
 		addr := mustGetAddress(src)
 		if len(dstUpdateHeaders) > 0 {
 			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
@@ -233,7 +230,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 
 	// Handshake has confirmed on src (3 steps done), relay `chanOpenConfirm` and `updateClient` to dst
 	case srcChan.Channel.State == chantypes.OPEN && dstChan.Channel.State == chantypes.TRYOPEN:
-		logChannelStates(dst, src, dstChan, srcChan)
+		logChannelStates(ctx, dst, src, dstChan, srcChan)
 		addr := mustGetAddress(dst)
 		if len(srcUpdateHeaders) > 0 {
 			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
@@ -246,9 +243,9 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	return out, nil
 }
 
-func logChannelStates(src, dst *ProvableChain, srcChan, dstChan *chantypes.QueryChannelResponse) {
+func logChannelStates(ctx context.Context, src, dst *ProvableChain, srcChan, dstChan *chantypes.QueryChannelResponse) {
 	logger := GetChannelPairLogger(src, dst)
-	logger.Info(
+	logger.InfoContext(ctx,
 		"channel states",
 		slog.Group("src",
 			slog.Uint64("proof_height", mustGetHeight(srcChan.ProofHeight)),
@@ -277,19 +274,19 @@ func querySettledChannelPair(
 
 	srcChan, dstChan, err := QueryChannelPair(srcCtx, dstCtx, src, dst, prove)
 	if err != nil {
-		logger.Error("failed to query channel pair at the latest finalized height", err)
+		logger.ErrorContext(srcCtx.Context(), "failed to query channel pair at the latest finalized height", err)
 		return nil, nil, false, err
 	}
 
 	var srcLatestCtx, dstLatestCtx QueryContext
 	if h, err := src.LatestHeight(srcCtx.Context()); err != nil {
-		logger.Error("failed to get the latest height of the src chain", err)
+		logger.ErrorContext(srcCtx.Context(), "failed to get the latest height of the src chain", err)
 		return nil, nil, false, err
 	} else {
 		srcLatestCtx = NewQueryContext(srcCtx.Context(), h)
 	}
 	if h, err := dst.LatestHeight(dstCtx.Context()); err != nil {
-		logger.Error("failed to get the latest height of the dst chain", err)
+		logger.ErrorContext(dstCtx.Context(), "failed to get the latest height of the dst chain", err)
 		return nil, nil, false, err
 	} else {
 		dstLatestCtx = NewQueryContext(dstCtx.Context(), h)
@@ -297,19 +294,19 @@ func querySettledChannelPair(
 
 	srcLatestChan, dstLatestChan, err := QueryChannelPair(srcLatestCtx, dstLatestCtx, src, dst, false)
 	if err != nil {
-		logger.Error("failed to query channel pair at the latest height", err)
+		logger.ErrorContext(srcCtx.Context(), "failed to query channel pair at the latest height", err)
 		return nil, nil, false, err
 	}
 
 	if srcChan.Channel.String() != srcLatestChan.Channel.String() {
-		logger.Debug("src channel end in transition",
+		logger.DebugContext(srcCtx.Context(), "src channel end in transition",
 			"from", srcChan.Channel.String(),
 			"to", srcLatestChan.Channel.String(),
 		)
 		return srcChan, dstChan, false, nil
 	}
 	if dstChan.Channel.String() != dstLatestChan.Channel.String() {
-		logger.Debug("dst channel end in transition",
+		logger.DebugContext(dstCtx.Context(), "dst channel end in transition",
 			"from", dstChan.Channel.String(),
 			"to", dstLatestChan.Channel.String(),
 		)

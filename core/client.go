@@ -57,7 +57,7 @@ func checkCreateClientsReady(ctx context.Context, src, dst *ProvableChain, logge
 	}
 
 	if srcState != nil && dstState != nil {
-		logger.Warn("clients are already created", "src_client_id", srcID, "dst_client_id", dstID)
+		logger.WarnContext(ctx, "clients are already created", "src_client_id", srcID, "dst_client_id", dstID)
 		return false, nil
 	} else {
 		return true, nil
@@ -68,7 +68,7 @@ func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain
 	ctx, span := tracer.Start(ctx, "CreateClients", WithChainPairAttributes(src, dst))
 	defer span.End()
 	logger := GetChainPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "CreateClients")
+	defer logger.TimeTrackContext(ctx, time.Now(), "CreateClients")
 
 	if cont, err := checkCreateClientsReady(ctx, src, dst, logger); err != nil {
 		span.SetStatus(codes.Error, err.Error())
@@ -84,17 +84,14 @@ func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain
 	if src.Chain.Path().ClientID == "" {
 		srcAddr, err := src.GetAddress()
 		if err != nil {
-			logger.Error(
-				"failed to get address for create client",
-				err,
-			)
+			logger.ErrorContext(ctx, "failed to get address for create client", err)
 			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 
 		cs, cons, err := dst.CreateInitialLightClientState(ctx, dstHeight)
 		if err != nil {
-			logger.Error("failed to create initial light client state", err)
+			logger.ErrorContext(ctx, "failed to create initial light client state", err)
 			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
@@ -110,23 +107,20 @@ func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain
 	if dst.Chain.Path().ClientID == "" {
 		dstAddr, err := dst.GetAddress()
 		if err != nil {
-			logger.Error(
-				"failed to get address for create client",
-				err,
-			)
+			logger.ErrorContext(ctx, "failed to get address for create client", err)
 			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 
 		cs, cons, err := src.CreateInitialLightClientState(ctx, srcHeight)
 		if err != nil {
-			logger.Error("failed to create initial light client state", err)
+			logger.ErrorContext(ctx, "failed to create initial light client state", err)
 			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 		msg, err := clienttypes.NewMsgCreateClient(cs, cons, dstAddr.String())
 		if err != nil {
-			logger.Error("failed to create MsgCreateClient: %v", err)
+			logger.ErrorContext(ctx, "failed to create MsgCreateClient: %v", err)
 			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
@@ -138,9 +132,7 @@ func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain
 		// TODO: Add retry here for out of gas or other errors
 		clients.Send(ctx, src, dst)
 		if clients.Success() {
-			logger.Info(
-				"★ Clients created",
-			)
+			logger.InfoContext(ctx, "★ Clients created")
 			if err := SyncChainConfigsFromEvents(ctx, pathName, clients.SrcMsgIDs, clients.DstMsgIDs, src, dst); err != nil {
 				span.SetStatus(codes.Error, err.Error())
 				return err
@@ -154,26 +146,20 @@ func UpdateClients(ctx context.Context, src, dst *ProvableChain) error {
 	ctx, span := tracer.Start(ctx, "UpdateClients", WithChainPairAttributes(src, dst))
 	defer span.End()
 	logger := GetClientPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "UpdateClients")
+	defer logger.TimeTrackContext(ctx, time.Now(), "UpdateClients")
 	var (
 		clients = &RelayMsgs{Src: []sdk.Msg{}, Dst: []sdk.Msg{}}
 	)
 	// First, update the light clients to the latest header and return the header
 	sh, err := NewSyncHeaders(ctx, src, dst)
 	if err != nil {
-		logger.Error(
-			"failed to create sync headers for update client",
-			err,
-		)
+		logger.ErrorContext(ctx, "failed to create sync headers for update client", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(ctx, src, dst)
 	if err != nil {
-		logger.Error(
-			"failed to setup both headers for update client",
-			err,
-		)
+		logger.ErrorContext(ctx, "failed to setup both headers for update client", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
@@ -186,9 +172,7 @@ func UpdateClients(ctx context.Context, src, dst *ProvableChain) error {
 	// Send msgs to both chains
 	if clients.Ready() {
 		if clients.Send(ctx, src, dst); clients.Success() {
-			logger.Info(
-				"★ Clients updated",
-			)
+			logger.InfoContext(ctx, "★ Clients updated")
 		}
 	}
 	return nil

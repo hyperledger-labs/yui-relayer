@@ -1,6 +1,7 @@
 package tendermint
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -9,36 +10,36 @@ import (
 )
 
 // LogFailedTx takes the transaction and the messages to create it and logs the appropriate data
-func (c *Chain) LogFailedTx(res *sdk.TxResponse, err error, msgs []sdk.Msg) {
+func (c *Chain) LogFailedTx(ctx context.Context, res *sdk.TxResponse, err error, msgs []sdk.Msg) {
 	logger := GetChainLogger()
 	if c.debug {
-		logger.Info("sending-tx", "chain-id", c.ChainID())
+		logger.InfoContext(ctx, "sending-tx", "chain-id", c.ChainID())
 		for _, msg := range msgs {
 			c.Print(msg, false, false)
 		}
 	}
 
 	if err != nil {
-		logger.Error("failed-tx", err, "chain-id", c.ChainID())
+		logger.ErrorContext(ctx, "failed-tx", err, "chain-id", c.ChainID())
 		if res == nil {
 			return
 		}
 	}
 
 	if res.Code != 0 && res.Codespace != "" {
-		logger.Info("res", "chain-id", c.ChainID(), "height", res.Height, "action", getMsgAction(msgs), "codespace", res.Codespace, "code", res.Code, "raw-log", res.RawLog)
+		logger.InfoContext(ctx, "res", "chain-id", c.ChainID(), "height", res.Height, "action", getMsgAction(msgs), "codespace", res.Codespace, "code", res.Code, "raw-log", res.RawLog)
 	}
 
 	if c.debug && !res.Empty() {
-		logger.Info("tx-response", "chain-id", c.ChainID(), "res", res)
+		logger.InfoContext(ctx, "tx-response", "chain-id", c.ChainID(), "res", res)
 		c.Print(res, false, false)
 	}
 }
 
 // LogSuccessTx take the transaction and the messages to create it and logs the appropriate data
-func (c *Chain) LogSuccessTx(res *sdk.TxResponse, msgs []sdk.Msg) {
+func (c *Chain) LogSuccessTx(ctx context.Context, res *sdk.TxResponse, msgs []sdk.Msg) {
 	logger := GetChainLogger()
-	logger.Info("success-tx", "chain-id", c.ChainID(), "height", res.Height, "hash", res.TxHash)
+	logger.InfoContext(ctx, "success-tx", "chain-id", c.ChainID(), "height", res.Height, "hash", res.TxHash)
 }
 
 // Print fmt.Printlns the json or yaml representation of whatever is passed in

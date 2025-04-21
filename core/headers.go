@@ -57,14 +57,14 @@ var _ SyncHeaders = (*syncHeaders)(nil)
 func NewSyncHeaders(ctx context.Context, src, dst ChainInfoLightClient) (SyncHeaders, error) {
 	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
-		logger.Error("error ensuring different chains", err)
+		logger.ErrorContext(ctx, "error ensuring different chains", err)
 		return nil, err
 	}
 	sh := &syncHeaders{
 		latestFinalizedHeaders: map[string]Header{src.ChainID(): nil, dst.ChainID(): nil},
 	}
 	if err := sh.Updates(ctx, src, dst); err != nil {
-		logger.Error("error updating headers", err)
+		logger.ErrorContext(ctx, "error updating headers", err)
 		return nil, err
 	}
 	return sh, nil
@@ -76,20 +76,20 @@ func (sh *syncHeaders) Updates(ctx context.Context, src, dst ChainInfoLightClien
 	defer span.End()
 	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
-		logger.Error("error ensuring different chains", err)
+		logger.ErrorContext(ctx, "error ensuring different chains", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
 	srcHeader, err := src.GetLatestFinalizedHeader(ctx)
 	if err != nil {
-		logger.Error("error getting latest finalized header of src", err)
+		logger.ErrorContext(ctx, "error getting latest finalized header of src", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	dstHeader, err := dst.GetLatestFinalizedHeader(ctx)
 	if err != nil {
-		logger.Error("error getting latest finalized header of dst", err)
+		logger.ErrorContext(ctx, "error getting latest finalized header of dst", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
@@ -132,7 +132,7 @@ func (sh syncHeaders) GetQueryContext(ctx context.Context, chainID string) Query
 func (sh syncHeaders) SetupHeadersForUpdate(ctx context.Context, src, dst ChainLightClient) ([]Header, error) {
 	logger := GetChainPairLogger(src, dst)
 	if err := ensureDifferentChains(src, dst); err != nil {
-		logger.Error("error ensuring different chains", err)
+		logger.ErrorContext(ctx, "error ensuring different chains", err)
 		return nil, err
 	}
 	return src.SetupHeadersForUpdate(ctx, dst, sh.GetLatestFinalizedHeader(src.ChainID()))
@@ -143,12 +143,12 @@ func (sh syncHeaders) SetupBothHeadersForUpdate(ctx context.Context, src, dst Ch
 	logger := GetChainPairLogger(src, dst)
 	srcHs, err := sh.SetupHeadersForUpdate(ctx, src, dst)
 	if err != nil {
-		logger.Error("error setting up headers for update on src", err)
+		logger.ErrorContext(ctx, "error setting up headers for update on src", err)
 		return nil, nil, err
 	}
 	dstHs, err := sh.SetupHeadersForUpdate(ctx, dst, src)
 	if err != nil {
-		logger.Error("error setting up headers for update on dst", err)
+		logger.ErrorContext(ctx, "error setting up headers for update on dst", err)
 		return nil, nil, err
 	}
 	return srcHs, dstHs, nil

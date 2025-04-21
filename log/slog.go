@@ -86,14 +86,13 @@ func InitLoggerWithWriter(logLevel, format string, writer io.Writer, enableTelem
 	return nil
 }
 
-func (rl *RelayLogger) log(logLevel slog.Level, skipCallDepth int, msg string, args ...any) {
-	ctx := context.Background();
+func (rl *RelayLogger) log(ctx context.Context, logLevel slog.Level, skipCallDepth int, msg string, args ...any) {
 	if !rl.Logger.Enabled(ctx, logLevel) {
 		return
 	}
 
 	var pcs [1]uintptr
-	runtime.Callers(2 + skipCallDepth, pcs[:]) // skip [Callers, this func, ...]
+	runtime.Callers(2+skipCallDepth, pcs[:]) // skip [Callers, this func, ...]
 
 	record := slog.NewRecord(time.Now(), logLevel, msg, pcs[0])
 	record.Add(args...)
@@ -102,22 +101,26 @@ func (rl *RelayLogger) log(logLevel slog.Level, skipCallDepth int, msg string, a
 	_ = rl.Logger.Handler().Handle(ctx, record)
 }
 
-func (rl *RelayLogger) error(skipCallDepth int, msg string, err error, otherArgs ...any) {
-	err = withstack.WithStackDepth(err, 1 + skipCallDepth)
+func (rl *RelayLogger) error(ctx context.Context, skipCallDepth int, msg string, err error, otherArgs ...any) {
+	err = withstack.WithStackDepth(err, 1+skipCallDepth)
 	var args []any
 	args = append(args, "error", err)
 	args = append(args, "stack", fmt.Sprintf("%+v", err))
 	args = append(args, otherArgs...)
 
-	rl.log(slog.LevelError, 1 + skipCallDepth, msg, args...)
+	rl.log(ctx, slog.LevelError, 1+skipCallDepth, msg, args...)
 }
 
 func (rl *RelayLogger) Error(msg string, err error, otherArgs ...any) {
-	rl.error(1, msg, err, otherArgs...)
+	rl.error(context.Background(), 1, msg, err, otherArgs...)
+}
+
+func (rl *RelayLogger) ErrorContext(ctx context.Context, msg string, err error, otherArgs ...any) {
+	rl.error(ctx, 1, msg, err, otherArgs...)
 }
 
 func (rl *RelayLogger) Fatal(msg string, err error, otherArgs ...any) {
-	rl.error(1, msg, err, otherArgs...)
+	rl.error(context.Background(), 1, msg, err, otherArgs...)
 	panic(msg)
 }
 
@@ -234,5 +237,11 @@ func (rl *RelayLogger) WithModule(
 func (rl *RelayLogger) TimeTrack(start time.Time, name string, otherArgs ...any) {
 	elapsed := time.Since(start)
 	allArgs := append([]any{"name", name, "elapsed", elapsed.Nanoseconds()}, otherArgs...)
-	rl.log(slog.LevelInfo, 1, "time track", allArgs...)
+	rl.log(context.Background(), slog.LevelInfo, 1, "time track", allArgs...)
+}
+
+func (rl *RelayLogger) TimeTrackContext(ctx context.Context, start time.Time, name string, otherArgs ...any) {
+	elapsed := time.Since(start)
+	allArgs := append([]any{"name", name, "elapsed", elapsed.Nanoseconds()}, otherArgs...)
+	rl.log(ctx, slog.LevelInfo, 1, "time track", allArgs...)
 }
