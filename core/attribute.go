@@ -14,7 +14,6 @@ const (
 	AttributeKeyPath                 = attribute.Key("path")
 	AttributeKeyHeightRevisionNumber = attribute.Key("height.revision_number")
 	AttributeKeyHeightRevisionHeight = attribute.Key("height.revision_height")
-	AttributeKeyPackage              = attribute.Key("package")
 	AttributeKeyTxHash               = attribute.Key("tx_hash")
 )
 

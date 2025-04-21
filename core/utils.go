@@ -165,9 +165,7 @@ func FindPacketAcknowledgementFromEventsBySequence(events []abci.Event, seq uint
 // In the following example, AsChain sets a struct value in the Chain field to the chain variable:
 //
 //	var chain *module.Chain
-//	if ok := core.AsChain(provableChain, &chain); !ok {
-//	        return errors.New("chain is not a *module.Chain")
-//	}
+//	err := core.AsChain(provableChain, &chain)
 func AsChain(v any, target any) error {
 	return as(v, target, "Chain")
 }
@@ -178,9 +176,7 @@ func AsChain(v any, target any) error {
 // In the following example, AsProver sets a struct value in the Prover field to the prover variable:
 //
 //	var prover *module.Prover
-//	if ok := core.AsProver(provableChain, &prover); !ok {
-//	        return errors.New("prover is not a *module.Prover")
-//	}
+//	err := core.AsProver(provableChain, &prover)
 func AsProver(v any, target any) error {
 	return as(v, target, "Prover")
 }
