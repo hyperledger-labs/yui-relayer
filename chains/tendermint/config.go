@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/hyperledger-labs/yui-relayer/core"
 )
 
@@ -23,11 +24,24 @@ func (c ChainConfig) Validate() error {
 	}
 
 	var errs []error
+	switch c.KeyringBackend {
+	case keyring.BackendFile:
+	case keyring.BackendOS:
+	case keyring.BackendKWallet:
+	case keyring.BackendPass:
+	case keyring.BackendTest:
+	case keyring.BackendMemory:
+	default:
+		errs = append(errs, fmt.Errorf("config attribute \"keyring_backend\" is unexpected: %s", c.KeyringBackend))
+	}
 	if isEmpty(c.Key) {
 		errs = append(errs, fmt.Errorf("config attribute \"key\" is empty"))
 	}
 	if isEmpty(c.ChainId) {
 		errs = append(errs, fmt.Errorf("config attribute \"chain_id\" is empty"))
+	}
+	if isEmpty(c.TmChainId) {
+		errs = append(errs, fmt.Errorf("config attribute \"tm_chain_id\" is empty"))
 	}
 	if isEmpty(c.RpcAddr) {
 		errs = append(errs, fmt.Errorf("config attribute \"rpc_addr\" is empty"))

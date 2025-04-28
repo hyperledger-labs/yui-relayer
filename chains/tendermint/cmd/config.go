@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/spf13/cobra"
@@ -30,12 +31,14 @@ func generateChainConfigCmd(m codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			// TODO make it configurable
 			c := tendermint.ChainConfig{
-				Key:           "testkey",
-				ChainId:       args[0],
-				RpcAddr:       "http://localhost:26557",
-				AccountPrefix: "cosmos",
-				GasAdjustment: 1.5,
-				GasPrices:     "0.025stake",
+				KeyringBackend: keyring.BackendTest,
+				Key:            "testkey",
+				ChainId:        args[0],
+				TmChainId:      args[0],
+				RpcAddr:        "http://localhost:26557",
+				AccountPrefix:  "cosmos",
+				GasAdjustment:  1.5,
+				GasPrices:      "0.025stake",
 			}
 			p := tendermint.ProverConfig{
 				TrustingPeriod: "336h",

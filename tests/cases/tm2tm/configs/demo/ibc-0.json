@@ -1,8 +1,10 @@
 {
   "chain": {
     "@type": "/relayer.chains.tendermint.config.ChainConfig",
+    "keyring_backend": "test",
     "key": "testkey",
     "chain_id": "ibc0",
+    "tm_chain_id": "ibc0",
     "rpc_addr": "http://localhost:26657",
     "account_prefix": "cosmos",
     "gas_adjustment": 1.5,
