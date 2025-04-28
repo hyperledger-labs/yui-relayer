@@ -85,7 +85,6 @@ func Execute(modules ...config.ModuleI) error {
 		}
 	}
 
-	shutdown := func(_ context.Context) error { return nil }
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		// reads `homeDir/config/config.json` into `var config *Config` before each command
 		homePath := viper.GetString(flags.FlagHome)
@@ -107,20 +106,20 @@ func Execute(modules ...config.ModuleI) error {
 		}
 
 		if viper.GetBool(flagEnableTelemetry) {
-			var err error
-			shutdown, err = telemetry.SetupOTelSDK(cmd.Context())
+			shutdown, err := telemetry.SetupOTelSDK(cmd.Context())
 			if err != nil {
 				return fmt.Errorf("failed to initialize the telemetry: %v", err)
 			}
+
+			// Use cobra.OnFinalize to ensure that telemetry is exported even if the command fails
+			cobra.OnFinalize(func() {
+				if err := shutdown(context.Background()); err != nil {
+					cmd.PrintErrf("failed to shutdown the telemetries: %v", err)
+				}
+			})
 		}
 
 		cmd.SetContext(notifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM))
-		return nil
-	}
-	rootCmd.PersistentPostRunE = func(cmd *cobra.Command, _ []string) error {
-		if err := shutdown(context.Background()); err != nil {
-			return fmt.Errorf("failed to shutdown the telemetries: %v", err)
-		}
 		return nil
 	}
 
