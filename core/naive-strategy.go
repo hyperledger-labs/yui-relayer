@@ -537,7 +537,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 				binary.BigEndian.PutUint64(commitment[0:], nextSequenceRecv)
 			} else {
 				path = host.PacketReceiptPath(p.SourcePort, p.SourceChannel, p.Sequence)
-				commitment = []byte{} //ABSENSE
+				commitment = []byte{} // Represents absence of a commitment in unordered channels
 			}
 			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 			if err != nil {
