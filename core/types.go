@@ -13,6 +13,9 @@ type PacketInfo struct {
 	chantypes.Packet
 	Acknowledgement []byte             `json:"acknowledgement"`
 	EventHeight     clienttypes.Height `json:"event_height"`
+	
+	// TimedOut indicates whether the packet has timed out. This is determined based on
+	// the absence of a corresponding acknowledgment or receipt within the expected timeframe.
 	TimedOut        bool               `json:"timed_out"`
 }
 
