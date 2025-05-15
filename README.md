@@ -106,7 +106,7 @@ You can use it by specifying the package name of the proto definition correspond
 
 ## OpenTelemetry integration
 
-OpenTelemetry integration can be enabled by specifying the `--enable-telemetry` flag or by setting `YLRY_ENABLE_TELEMETRY` environment variable to true.
+OpenTelemetry integration can be enabled by specifying the `--enable-telemetry` flag or by setting `YRLY_ENABLE_TELEMETRY` environment variable to true.
 To see an example setup, refer to [examples/opentelemetry-integration](examples/opentelemetry-integration).
 
 ### Configurations
