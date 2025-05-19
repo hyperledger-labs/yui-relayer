@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"strings"
 
-	"github.com/hyperledger-labs/yui-relayer/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -59,6 +57,9 @@ const (
 // SetupOTelSDK bootstraps the OpenTelemetry pipeline using the environment variables
 // described on https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/.
 // If it does not return an error, make sure to call shutdown for proper cleanup.
+//
+// Although the SDK specification states that an unknown enum value must be ignored with a warning,
+// this function returns an error instead to make such issues more noticeable to users.
 func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, err error) {
 	var shutdownFuncs []func(context.Context) error
 
@@ -75,7 +76,11 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 		err = errors.Join(inErr, shutdown(ctx))
 	}
 
-	prop := newPropagator()
+	prop, err := newPropagator()
+	if err != nil {
+		handleErr(err)
+		return
+	}
 	otel.SetTextMapPropagator(prop)
 
 	tracerProvider, err := newTracerProvider(ctx)
@@ -112,23 +117,19 @@ func getEnv(envName, defaultValue string) string {
 	return defaultValue
 }
 
-func getWriter(envName, defaultValue string) io.Writer {
+func getWriter(envName, defaultValue string) (io.Writer, error) {
 	v := getEnv(envName, defaultValue)
 	switch v {
 	case "stdout":
-		return os.Stdout
+		return os.Stdout, nil
 	case "stderr":
-		return os.Stderr
+		return os.Stderr, nil
 	default:
-		log.GetLogger().Warn(fmt.Sprintf("Unknown writer: %q. Fallback to stdout", v),
-			slog.String("environment_variable", envName),
-			slog.String("value", os.Getenv(envName)),
-		)
-		return os.Stdout
+		return nil, fmt.Errorf("unknown writer: %q from %s=%q", v, envName, os.Getenv(envName))
 	}
 }
 
-func newPropagator() propagation.TextMapPropagator {
+func newPropagator() (propagation.TextMapPropagator, error) {
 	var propagators []propagation.TextMapPropagator
 	for _, propagator := range strings.Split(getEnv(propagatorsKey, defaultPropagators), ",") {
 		switch propagator {
@@ -137,14 +138,11 @@ func newPropagator() propagation.TextMapPropagator {
 		case "baggage":
 			propagators = append(propagators, propagation.Baggage{})
 		default:
-			log.GetLogger().Warn(fmt.Sprintf("Unsupported propagator: %q", propagator),
-				slog.String("environment_variable", propagatorsKey),
-				slog.String("value", os.Getenv(propagatorsKey)),
-			)
+			return nil, fmt.Errorf("unsupported propagator: %q from %s=%q", propagator, propagatorsKey, os.Getenv(propagatorsKey))
 		}
 	}
 
-	return propagation.NewCompositeTextMapPropagator(propagators...)
+	return propagation.NewCompositeTextMapPropagator(propagators...), nil
 }
 
 func newTracerProvider(ctx context.Context) (*sdktrace.TracerProvider, error) {
@@ -158,7 +156,11 @@ func newTracerProvider(ctx context.Context) (*sdktrace.TracerProvider, error) {
 			}
 			opts = append(opts, sdktrace.WithBatcher(exp))
 		case "console":
-			exp, err := stdouttrace.New(stdouttrace.WithWriter(getWriter(consoleTracesWriterKey, defaultConsoleTracesWriter)))
+			writer, err := getWriter(consoleTracesWriterKey, defaultConsoleTracesWriter)
+			if err != nil {
+				return nil, err
+			}
+			exp, err := stdouttrace.New(stdouttrace.WithWriter(writer))
 			if err != nil {
 				return nil, err
 			}
@@ -166,10 +168,7 @@ func newTracerProvider(ctx context.Context) (*sdktrace.TracerProvider, error) {
 		case "none":
 			// Do nothing
 		default:
-			log.GetLogger().Warn(fmt.Sprintf("Unsupported exporter: %q", exporter),
-				slog.String("environment_variable", tracesExporterKey),
-				slog.String("value", os.Getenv(tracesExporterKey)),
-			)
+			return nil, fmt.Errorf("unsupported exporter: %q from %s=%q", exporter, tracesExporterKey, os.Getenv(tracesExporterKey))
 		}
 	}
 
@@ -187,7 +186,11 @@ func newMeterProvider(ctx context.Context) (*sdkmetric.MeterProvider, error) {
 			}
 			opts = append(opts, sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exp)))
 		case "console":
-			exp, err := stdoutmetric.New(stdoutmetric.WithWriter(getWriter(consoleMetricsWriterKey, defaultConsoleMetricsWriter)))
+			writer, err := getWriter(consoleMetricsWriterKey, defaultConsoleMetricsWriter)
+			if err != nil {
+				return nil, err
+			}
+			exp, err := stdoutmetric.New(stdoutmetric.WithWriter(writer))
 			if err != nil {
 				return nil, err
 			}
@@ -202,10 +205,7 @@ func newMeterProvider(ctx context.Context) (*sdkmetric.MeterProvider, error) {
 		case "none":
 			// Do nothing
 		default:
-			log.GetLogger().Warn(fmt.Sprintf("Unsupported exporter: %q", exporter),
-				slog.String("environment_variable", metricsExporterKey),
-				slog.String("value", os.Getenv(metricsExporterKey)),
-			)
+			return nil, fmt.Errorf("unsupported exporter: %q from %s=%q", exporter, metricsExporterKey, os.Getenv(metricsExporterKey))
 		}
 	}
 
@@ -223,7 +223,11 @@ func newLoggerProvider(ctx context.Context) (*sdklog.LoggerProvider, error) {
 			}
 			opts = append(opts, sdklog.WithProcessor(sdklog.NewBatchProcessor(exp)))
 		case "console":
-			exp, err := stdoutlog.New(stdoutlog.WithWriter(getWriter(consoleLogsWriterKey, defaultConsoleLogsWriter)))
+			writer, err := getWriter(consoleLogsWriterKey, defaultConsoleLogsWriter)
+			if err != nil {
+				return nil, err
+			}
+			exp, err := stdoutlog.New(stdoutlog.WithWriter(writer))
 			if err != nil {
 				return nil, err
 			}
@@ -231,10 +235,7 @@ func newLoggerProvider(ctx context.Context) (*sdklog.LoggerProvider, error) {
 		case "none":
 			// Do nothing
 		default:
-			log.GetLogger().Warn(fmt.Sprintf("Unsupported exporter: %q", exporter),
-				slog.String("environment_variable", logsExporterKey),
-				slog.String("value", os.Getenv(logsExporterKey)),
-			)
+			return nil, fmt.Errorf("unsupported exporter: %q from %s=%q", exporter, logsExporterKey, os.Getenv(logsExporterKey))
 		}
 	}
 

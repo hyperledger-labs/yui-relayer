@@ -97,13 +97,6 @@ func Execute(modules ...config.ModuleI) error {
 		if err := initLogger(ctx, viper.GetBool(flagEnableTelemetry)); err != nil {
 			return err
 		}
-		if err := ctx.InitConfig(homePath, viper.GetBool("debug")); err != nil {
-			return fmt.Errorf("failed to initialize the configuration: %v", err)
-		}
-
-		if err := telemetry.InitializeMetrics(); err != nil {
-			return fmt.Errorf("failed to initialize the metrics: %v", err)
-		}
 
 		if viper.GetBool(flagEnableTelemetry) {
 			shutdown, err := telemetry.SetupOTelSDK(cmd.Context())
@@ -117,6 +110,13 @@ func Execute(modules ...config.ModuleI) error {
 					cmd.PrintErrf("failed to shutdown the telemetries: %v", err)
 				}
 			})
+		}
+
+		if err := ctx.InitConfig(homePath, viper.GetBool("debug")); err != nil {
+			return fmt.Errorf("failed to initialize the configuration: %v", err)
+		}
+		if err := telemetry.InitializeMetrics(); err != nil {
+			return fmt.Errorf("failed to initialize the metrics: %v", err)
 		}
 
 		cmd.SetContext(notifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM))
