@@ -13,6 +13,7 @@ import (
 	"cosmossdk.io/errors"
 	"github.com/avast/retry-go"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
 	rpcclient "github.com/cometbft/cometbft/rpc/client"
@@ -184,6 +185,7 @@ func (c *Chain) sendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxResponse, 
 		// CheckTx failed
 		return nil, fmt.Errorf("CheckTx failed: %v", errors.ABCIError(res.Codespace, res.Code, res.RawLog))
 	}
+	trace.SpanFromContext(ctx).SetAttributes(core.AttributeKeyTxHash.String(res.TxHash))
 
 	// wait for tx being committed
 	if resTx, err := c.waitForCommit(ctx, res.TxHash); err != nil {
@@ -205,6 +207,9 @@ func (c *Chain) sendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxResponse, 
 }
 
 func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
+	ctx, span := tracer.Start(ctx, "Chain.rawSendMsgs", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
 	// Instantiate the client context
 	// NOTE: Although cosmos-sdk does not currently use CmdContext in Context.QueryWithData,
 	//   set ctx to clientCtx in case cosmos-sdk uses it in the future.
@@ -214,6 +219,7 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 	// Query account details
 	txf, err := prepareFactory(clientCtx, c.TxFactory(0))
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
@@ -222,6 +228,7 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 	// If users pass gas adjustment, then calculate gas
 	_, adjusted, err := CalculateGas(clientCtx.QueryWithData, txf, msgs...)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
@@ -231,24 +238,28 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 	// Build the transaction builder
 	txb, err := txf.BuildUnsignedTx(msgs...)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
 	// Attach the signature to the transaction
 	err = tx.Sign(ctx, txf, c.config.Key, txb, false)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
 	// Generate the transaction bytes
 	txBytes, err := clientCtx.TxConfig.TxEncoder()(txb.GetTx())
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
 	// Broadcast those bytes
 	res, err := clientCtx.BroadcastTx(txBytes)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
@@ -256,11 +267,12 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 	// NOTE: error is nil, logic should use the returned error to determine if the
 	// transaction was successfully executed.
 	if res.Code != 0 {
+		span.SetStatus(codes.Error, "non-zero response code")
 		c.LogFailedTx(res, err, msgs)
 		return res, false, nil
 	}
 
-	trace.SpanFromContext(ctx).SetAttributes(core.AttributeKeyTxHash.String(res.TxHash))
+	span.SetAttributes(core.AttributeKeyTxHash.String(res.TxHash))
 	c.LogSuccessTx(res, msgs)
 	return res, true, nil
 }
