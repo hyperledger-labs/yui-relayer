@@ -146,7 +146,8 @@ You can use the tracing bridges by returning them in `ChainConfig.Build` and `Pr
 var tracer = otel.Tracer("example.com/my-module")
 
 func (c ChainConfig) Build() (core.Chain, error) {
-	return otelcore.NewChain(&Chain{}, tracer), nil
+	chain := buildChainFromConfig(c)
+	return otelcore.NewChain(chain, tracer), nil
 }
 
 func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
