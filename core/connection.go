@@ -14,6 +14,7 @@ import (
 	conntypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -415,15 +416,15 @@ func GetConnectionPairLogger(src, dst Chain) *log.RelayLogger {
 
 func WithConnectionPairAttributes(src, dst Chain) trace.SpanStartOption {
 	return trace.WithAttributes(slices.Concat(
-		AttributeGroup("src",
-			AttributeKeyChainID.String(src.ChainID()),
-			AttributeKeyClientID.String(src.Path().ClientID),
-			AttributeKeyConnectionID.String(src.Path().ConnectionID),
+		semconv.AttributeGroup("src",
+			semconv.ChainIDKey.String(src.ChainID()),
+			semconv.ClientIDKey.String(src.Path().ClientID),
+			semconv.ConnectionIDKey.String(src.Path().ConnectionID),
 		),
-		AttributeGroup("dst",
-			AttributeKeyChainID.String(dst.ChainID()),
-			AttributeKeyClientID.String(dst.Path().ClientID),
-			AttributeKeyConnectionID.String(dst.Path().ConnectionID),
+		semconv.AttributeGroup("dst",
+			semconv.ChainIDKey.String(dst.ChainID()),
+			semconv.ClientIDKey.String(dst.Path().ClientID),
+			semconv.ConnectionIDKey.String(dst.Path().ConnectionID),
 		),
 	)...)
 }

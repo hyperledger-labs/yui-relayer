@@ -11,6 +11,7 @@ import (
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -108,7 +109,7 @@ func (c *Chain) QueryClientState(ctx core.QueryContext) (*clienttypes.QueryClien
 func (c *Chain) QueryConnection(ctx core.QueryContext, connectionID string) (*conntypes.QueryConnectionResponse, error) {
 	ctx, span := core.StartTraceWithQueryContext(c.tracer, ctx, "Chain.QueryConnection",
 		core.WithClientAttributes(c),
-		trace.WithAttributes(core.AttributeKeyConnectionID.String(connectionID)),
+		trace.WithAttributes(semconv.ConnectionIDKey.String(connectionID)),
 	)
 	defer span.End()
 

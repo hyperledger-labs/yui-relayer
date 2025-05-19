@@ -6,6 +6,7 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -82,7 +83,7 @@ func (p *Prover) CheckRefreshRequired(ctx context.Context, counterparty core.Cha
 func (p *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
 	ctx, span := core.StartTraceWithQueryContext(p.tracer, ctx, "Prover.ProveState",
 		core.WithChainAttributes(p.chainID),
-		trace.WithAttributes(core.AttributeKeyPath.String(path)),
+		trace.WithAttributes(semconv.PathKey.String(path)),
 	)
 	defer span.End()
 

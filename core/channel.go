@@ -11,6 +11,7 @@ import (
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -336,23 +337,23 @@ func GetChannelPairLogger(src, dst Chain) *log.RelayLogger {
 
 func WithChannelAttributes(c Chain) trace.SpanStartOption {
 	return trace.WithAttributes(
-		AttributeKeyChainID.String(c.ChainID()),
-		AttributeKeyPortID.String(c.Path().PortID),
-		AttributeKeyChannelID.String(c.Path().ChannelID),
+		semconv.ChainIDKey.String(c.ChainID()),
+		semconv.PortIDKey.String(c.Path().PortID),
+		semconv.ChannelIDKey.String(c.Path().ChannelID),
 	)
 }
 
 func WithChannelPairAttributes(src, dst Chain) trace.SpanStartOption {
 	return trace.WithAttributes(slices.Concat(
-		AttributeGroup("src",
-			AttributeKeyChainID.String(src.ChainID()),
-			AttributeKeyPortID.String(src.Path().PortID),
-			AttributeKeyChannelID.String(src.Path().ChannelID),
+		semconv.AttributeGroup("src",
+			semconv.ChainIDKey.String(src.ChainID()),
+			semconv.PortIDKey.String(src.Path().PortID),
+			semconv.ChannelIDKey.String(src.Path().ChannelID),
 		),
-		AttributeGroup("dst",
-			AttributeKeyChainID.String(dst.ChainID()),
-			AttributeKeyPortID.String(dst.Path().PortID),
-			AttributeKeyChannelID.String(dst.Path().ChannelID),
+		semconv.AttributeGroup("dst",
+			semconv.ChainIDKey.String(dst.ChainID()),
+			semconv.PortIDKey.String(dst.Path().PortID),
+			semconv.ChannelIDKey.String(dst.Path().ChannelID),
 		),
 	)...)
 }

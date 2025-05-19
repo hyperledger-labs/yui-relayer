@@ -151,7 +151,8 @@ func (c ChainConfig) Build() (core.Chain, error) {
 }
 
 func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
-	return otelcore.NewProver(&Prover{}, chain.ChainID(), tracer), nil
+	prover := buildProverFromConfig(c)
+	return otelcore.NewProver(prover, chain.ChainID(), tracer), nil
 }
 ```
 
@@ -204,7 +205,7 @@ func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult
 	}
 
 	span := trace.SpanFromContext(ctx)
-	span.SetAttributes(core.AttributeKeyTxHash.String(msgID.TxHash))
+	span.SetAttributes(semconv.TxHashKey.String(msgID.TxHash))
 
 	// -- snip --
 }

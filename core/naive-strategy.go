@@ -11,6 +11,7 @@ import (
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	api "go.opentelemetry.io/otel/metric"
@@ -618,12 +619,12 @@ func (st *NaiveStrategy) Send(ctx context.Context, src, dst Chain, msgs *RelayMs
 
 func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, dst ChainInfo, newSrcBacklog, newDstBacklog PacketInfoList) error {
 	srcAttrs := []attribute.KeyValue{
-		AttributeKeyChainID.String(src.ChainID()),
-		AttributeKeyDirection.String("src"),
+		semconv.ChainIDKey.String(src.ChainID()),
+		semconv.DirectionKey.String("src"),
 	}
 	dstAttrs := []attribute.KeyValue{
-		AttributeKeyChainID.String(dst.ChainID()),
-		AttributeKeyDirection.String("dst"),
+		semconv.ChainIDKey.String(dst.ChainID()),
+		semconv.DirectionKey.String("dst"),
 	}
 
 	telemetry.BacklogSizeGauge.Set(int64(len(newSrcBacklog)), srcAttrs...)

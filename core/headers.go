@@ -6,6 +6,7 @@ import (
 
 	"github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/codes"
 )
 
@@ -106,13 +107,13 @@ func (sh *syncHeaders) Updates(ctx context.Context, src, dst ChainInfoLightClien
 func (sh syncHeaders) updateBlockMetrics(src, dst ChainInfo, srcHeader, dstHeader Header) error {
 	telemetry.ProcessedBlockHeightGauge.Set(
 		int64(srcHeader.GetHeight().GetRevisionHeight()),
-		AttributeKeyChainID.String(src.ChainID()),
-		AttributeKeyDirection.String("src"),
+		semconv.ChainIDKey.String(src.ChainID()),
+		semconv.DirectionKey.String("src"),
 	)
 	telemetry.ProcessedBlockHeightGauge.Set(
 		int64(dstHeader.GetHeight().GetRevisionHeight()),
-		AttributeKeyChainID.String(dst.ChainID()),
-		AttributeKeyDirection.String("dst"),
+		semconv.ChainIDKey.String(dst.ChainID()),
+		semconv.DirectionKey.String("dst"),
 	)
 	return nil
 }

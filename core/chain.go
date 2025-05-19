@@ -13,6 +13,7 @@ import (
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -194,13 +195,13 @@ func GetChainPairLogger(src, dst ChainInfo) *log.RelayLogger {
 
 func WithChainAttributes(chainID string) trace.SpanStartOption {
 	return trace.WithAttributes(
-		AttributeKeyChainID.String(chainID),
+		semconv.ChainIDKey.String(chainID),
 	)
 }
 
 func WithChainPairAttributes(src, dst ChainInfoLightClient) trace.SpanStartOption {
 	return trace.WithAttributes(slices.Concat(
-		AttributeGroup("src", AttributeKeyChainID.String(src.ChainID())),
-		AttributeGroup("dst", AttributeKeyChainID.String(dst.ChainID())),
+		semconv.AttributeGroup("src", semconv.ChainIDKey.String(src.ChainID())),
+		semconv.AttributeGroup("dst", semconv.ChainIDKey.String(dst.ChainID())),
 	)...)
 }

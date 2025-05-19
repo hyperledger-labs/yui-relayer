@@ -12,6 +12,7 @@ import (
 
 	"cosmossdk.io/errors"
 	"github.com/avast/retry-go"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -185,7 +186,7 @@ func (c *Chain) sendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxResponse, 
 		// CheckTx failed
 		return nil, fmt.Errorf("CheckTx failed: %v", errors.ABCIError(res.Codespace, res.Code, res.RawLog))
 	}
-	trace.SpanFromContext(ctx).SetAttributes(core.AttributeKeyTxHash.String(res.TxHash))
+	trace.SpanFromContext(ctx).SetAttributes(semconv.TxHashKey.String(res.TxHash))
 
 	// wait for tx being committed
 	if resTx, err := c.waitForCommit(ctx, res.TxHash); err != nil {
@@ -272,7 +273,7 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 		return res, false, nil
 	}
 
-	span.SetAttributes(core.AttributeKeyTxHash.String(res.TxHash))
+	span.SetAttributes(semconv.TxHashKey.String(res.TxHash))
 	c.LogSuccessTx(res, msgs)
 	return res, true, nil
 }
@@ -445,7 +446,7 @@ func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult
 	}
 
 	span := trace.SpanFromContext(ctx)
-	span.SetAttributes(core.AttributeKeyTxHash.String(msgID.TxHash))
+	span.SetAttributes(semconv.TxHashKey.String(msgID.TxHash))
 
 	// find tx
 	resTx, err := c.waitForCommit(ctx, msgID.TxHash)
