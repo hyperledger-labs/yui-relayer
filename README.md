@@ -111,9 +111,9 @@ To see an example setup, refer to [examples/opentelemetry-integration](examples/
 
 ### Configurations
 
-You can configure its behavior using environment variables supported by Go, as listed in the [Compliance of Implementations with Specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/spec-compliance-matrix.md#environment-variables).
+You can configure its behavior using environment variables supported by the Go SDK, as listed in the [Compliance of Implementations with Specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/spec-compliance-matrix.md#environment-variables).
 
-In addition to the environment variables supported by Go, yui-relayer supports the following variables, which are not available in the Go SDK:
+In addition to these environment variables, yui-relayer supports the following variables, which are not available in the Go SDK:
 
 * OTEL_PROPAGATORS
 * OTEL_TRACES_EXPORTER
