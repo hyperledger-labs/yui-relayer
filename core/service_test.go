@@ -314,15 +314,15 @@ func testServe(t *testing.T, tc testCase) {
 	srv := core.NewRelayService(st, src, dst, sh, time.Minute, forever, tc.optimizeCount, forever, tc.optimizeCount)
 
 	srv.Serve(context.TODO())
-	/* for debug
-	fmt.Printf("UnrelayedPackets: %v\n", st.UnrelayedPacketsOut)
-	fmt.Printf("UnrelayedAcknowledgementsOut: %v\n", st.UnrelayedAcknowledgementsOut)
-	fmt.Printf("RelayPacketsOut: %v\n", st.RelayPacketsOut)
-	fmt.Printf("RelayAcknowledgementsOut: %v\n", st.RelayAcknowledgementsOut)
-	fmt.Printf("UpdateClientsOut: %v\n", st.UpdateClientsOut)
-	fmt.Printf("Send.Src: %v\n", st.SendInSrc)
-	fmt.Printf("Send.Dst: %v\n", st.SendInDst)
-	*/
+
+	t.Logf("UnrelayedPackets: %v\n", st.UnrelayedPacketsOut)
+	t.Logf("UnrelayedAcknowledgementsOut: %v\n", st.UnrelayedAcknowledgementsOut)
+	t.Logf("RelayPacketsOut: %v\n", st.RelayPacketsOut)
+	t.Logf("RelayAcknowledgementsOut: %v\n", st.RelayAcknowledgementsOut)
+	t.Logf("UpdateClientsOut: %v\n", st.UpdateClientsOut)
+	t.Logf("Send.Src: %v\n", st.SendInSrc)
+	t.Logf("Send.Dst: %v\n", st.SendInDst)
+
 	assert.Equal(t, tc.ExpectSendSrc, st.SendInSrc, "Send.Src")
 	assert.Equal(t, tc.ExpectSendDst, st.SendInDst, "Send.Dst")
 }

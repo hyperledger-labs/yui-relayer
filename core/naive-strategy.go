@@ -219,36 +219,36 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 	)
 
 	if 0 < len(rp.Src) {
-		if h, err := dst.LatestHeight(context.TODO()); err != nil {
+		if h, err := dst.LatestHeight(ctx); err != nil {
 			logger.Error("fail to get dst.LatestHeight", err)
 			return nil, err
 		} else {
 			dstLatestHeight = h
 		}
 
-		if t, err := dst.Timestamp(context.TODO(), dstLatestHeight); err != nil {
-			logger.Error("fail to get dst.Timestamp", err)
+		if t, err := dst.Timestamp(ctx, dstLatestHeight); err != nil {
+			logger.Error("fail to get dst.Timestamp of latestHeight", err)
 			return nil, err
 		} else {
 			dstLatestTimestamp = uint64(t.UnixNano())
 		}
 
 		dstLatestFinalizedHeight = sh.GetLatestFinalizedHeader(dst.ChainID()).GetHeight()
-		if t, err := dst.Timestamp(context.TODO(), dstLatestFinalizedHeight); err != nil {
-			logger.Error("fail to get dst.Timestamp", err)
+		if t, err := dst.Timestamp(ctx, dstLatestFinalizedHeight); err != nil {
+			logger.Error("fail to get dst.Timestamp of latestFinalizedHeight", err)
 			return nil, err
 		} else {
 			dstLatestFinalizedTimestamp = uint64(t.UnixNano())
 		}
 	}
 	if 0 < len(rp.Dst) {
-		if h, err := src.LatestHeight(context.TODO()); err != nil {
+		if h, err := src.LatestHeight(ctx); err != nil {
 			logger.Error("fail to get src.LatestHeight", err)
 			return nil, err
 		} else {
 			srcLatestHeight = h
 		}
-		if t, err := src.Timestamp(context.TODO(), srcLatestHeight); err != nil {
+		if t, err := src.Timestamp(ctx, srcLatestHeight); err != nil {
 			logger.Error("fail to get src.Timestamp", err)
 			return nil, err
 		} else {
@@ -256,7 +256,7 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 		}
 
 		srcLatestFinalizedHeight = sh.GetLatestFinalizedHeader(src.ChainID()).GetHeight()
-		if t, err := src.Timestamp(context.TODO(), srcLatestFinalizedHeight); err != nil {
+		if t, err := src.Timestamp(ctx, srcLatestFinalizedHeight); err != nil {
 			logger.Error("fail to get src.Timestamp", err)
 			return nil, err
 		} else {
@@ -500,7 +500,6 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst
 	}, nil
 }
 
-// TODO add packet-timeout support
 func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	logger := GetChannelLogger(chain)
 
