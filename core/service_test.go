@@ -44,10 +44,10 @@ func (s *NaiveStrategyWrap) UnrelayedPackets(ctx context.Context, src, dst *core
 	return ret, err
 }
 
-func (s *NaiveStrategyWrap) ProcessTimeoutPackets(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, rp *core.RelayPackets) (*core.RelayPackets, error) {
-	ret, err := s.Inner.ProcessTimeoutPackets(ctx, src, dst, sh, rp)
-	s.ProcessTimeoutPacketsOut = ret
-	return ret, err
+func (s *NaiveStrategyWrap) ProcessTimeoutPackets(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, rp *core.RelayPackets) error {
+	err := s.Inner.ProcessTimeoutPackets(ctx, src, dst, sh, rp)
+	s.ProcessTimeoutPacketsOut = rp
+	return err
 }
 
 func (s *NaiveStrategyWrap) RelayPackets(ctx context.Context, src, dst *core.ProvableChain, rp *core.RelayPackets, sh core.SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*core.RelayMsgs, error) {
