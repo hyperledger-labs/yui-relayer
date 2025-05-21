@@ -277,6 +277,9 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 				//  For ordered channel, a timeout notification will cause the channel to be closed.
 				//  Packets proceeding the timeout packet is relayed first
 				// so that they can be proceeded before the channel is closed.
+				// In ordered channels, only the first timed-out packet is selected because
+				// a timeout notification will close the channel. Subsequent packets cannot
+				// be processed once the channel is closed.
 				if i == 0 {
 					srcTimeoutPacket = p
 				}
