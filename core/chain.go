@@ -55,6 +55,7 @@ func (pc *ProvableChain) SetupForRelay(ctx context.Context) error {
 	return nil
 }
 
+//go:generate mockgen -source=chain.go -destination=mock_chain_test.go -package core
 // Chain represents a chain that supports sending transactions and querying the state
 type Chain interface {
 	// GetAddress returns the address of relayer
@@ -143,6 +144,9 @@ type ICS03Querier interface {
 type ICS04Querier interface {
 	// QueryChannel returns the channel associated with a channelID
 	QueryChannel(ctx QueryContext) (chanRes *chantypes.QueryChannelResponse, err error)
+
+	// QueryNextSequenceReceive returns a info about nextSequence
+	QueryNextSequenceReceive(ctx QueryContext) (res *chantypes.QueryNextSequenceReceiveResponse, err error)
 
 	// QueryUnreceivedPackets returns a list of unrelayed packet commitments
 	QueryUnreceivedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
