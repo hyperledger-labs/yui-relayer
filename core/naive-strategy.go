@@ -203,7 +203,7 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 	}, nil
 }
 
-func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) (*RelayPackets, error) {
+func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) error {
 	logger := GetChannelPairLogger(src, dst)
 	var (
 		srcPackets   PacketInfoList
@@ -221,14 +221,14 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 	if 0 < len(rp.Src) {
 		if h, err := dst.LatestHeight(ctx); err != nil {
 			logger.Error("fail to get dst.LatestHeight", err)
-			return nil, err
+			return err
 		} else {
 			dstLatestHeight = h
 		}
 
 		if t, err := dst.Timestamp(ctx, dstLatestHeight); err != nil {
 			logger.Error("fail to get dst.Timestamp of latestHeight", err)
-			return nil, err
+			return err
 		} else {
 			dstLatestTimestamp = uint64(t.UnixNano())
 		}
@@ -236,7 +236,7 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 		dstLatestFinalizedHeight = sh.GetLatestFinalizedHeader(dst.ChainID()).GetHeight()
 		if t, err := dst.Timestamp(ctx, dstLatestFinalizedHeight); err != nil {
 			logger.Error("fail to get dst.Timestamp of latestFinalizedHeight", err)
-			return nil, err
+			return err
 		} else {
 			dstLatestFinalizedTimestamp = uint64(t.UnixNano())
 		}
@@ -244,13 +244,13 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 	if 0 < len(rp.Dst) {
 		if h, err := src.LatestHeight(ctx); err != nil {
 			logger.Error("fail to get src.LatestHeight", err)
-			return nil, err
+			return err
 		} else {
 			srcLatestHeight = h
 		}
 		if t, err := src.Timestamp(ctx, srcLatestHeight); err != nil {
 			logger.Error("fail to get src.Timestamp", err)
-			return nil, err
+			return err
 		} else {
 			srcLatestTimestamp = uint64(t.UnixNano())
 		}
@@ -258,7 +258,7 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 		srcLatestFinalizedHeight = sh.GetLatestFinalizedHeader(src.ChainID()).GetHeight()
 		if t, err := src.Timestamp(ctx, srcLatestFinalizedHeight); err != nil {
 			logger.Error("fail to get src.Timestamp", err)
-			return nil, err
+			return err
 		} else {
 			srcLatestFinalizedTimestamp = uint64(t.UnixNano())
 		}
@@ -269,16 +269,20 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 			(p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= timestamp)
 	}
 
+	var srcTimeoutPacket, dstTimeoutPacket *PacketInfo
 	for i, p := range rp.Src {
 		if isTimeout(p, dstLatestFinalizedHeight, dstLatestFinalizedTimestamp) {
 			p.TimedOut = true
 			if src.Path().GetOrder() == chantypes.ORDERED {
+				//  For ordered channel, a timeout notification will cause the channel to be closed.
+				//  Packets proceeding the timeout packet is relayed first
+				// so that they can be proceeded before the channel is closed.
 				if i == 0 {
-					dstPackets = append(dstPackets, p)
+					srcTimeoutPacket = p
 				}
 				break
 			} else {
-				dstPackets = append(dstPackets, p)
+				srcTimeoutPacket = p
 			}
 		} else if isTimeout(p, dstLatestHeight, dstLatestTimestamp) {
 			break
@@ -292,11 +296,11 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 			p.TimedOut = true
 			if dst.Path().GetOrder() == chantypes.ORDERED {
 				if i == 0 {
-					srcPackets = append(srcPackets, p)
+					dstTimeoutPacket = p
 				}
 				break
 			} else {
-				srcPackets = append(srcPackets, p)
+				dstTimeoutPacket = p
 			}
 		} else if (isTimeout(p, srcLatestHeight, srcLatestTimestamp)) {
 			break
@@ -305,10 +309,15 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 			dstPackets = append(dstPackets, p)
 		}
 	}
-	return &RelayPackets{
-		Src: srcPackets,
-		Dst: dstPackets,
-	}, nil
+	if srcTimeoutPacket != nil {
+		dstPackets = append(dstPackets, srcTimeoutPacket)
+	}
+	if dstTimeoutPacket != nil {
+		srcPackets = append(dstPackets, dstTimeoutPacket)
+	}
+	rp.Src = srcPackets
+	rp.Dst = dstPackets
+	return nil
 }
 
 func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {

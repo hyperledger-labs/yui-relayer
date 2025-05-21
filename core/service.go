@@ -124,7 +124,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		return err
 	}
 
-	pseqs, err = srv.st.ProcessTimeoutPackets(ctx, srv.src, srv.dst, srv.sh, pseqs)
+	err = srv.st.ProcessTimeoutPackets(ctx, srv.src, srv.dst, srv.sh, pseqs) // update pseqs
 	if err != nil {
 		logger.Error("failed to process timeout packets", err)
 		return err

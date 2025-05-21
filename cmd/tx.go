@@ -457,7 +457,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			sp, err = st.ProcessTimeoutPackets(cmd.Context(), c[src], c[dst], sh, sp)
+			err = st.ProcessTimeoutPackets(cmd.Context(), c[src], c[dst], sh, sp) // update sp
 			if err != nil {
 				return err
 			}
