@@ -311,7 +311,7 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 		dstPackets = append(dstPackets, srcTimeoutPacket)
 	}
 	if dstTimeoutPacket != nil {
-		srcPackets = append(dstPackets, dstTimeoutPacket)
+		srcPackets = append(srcPackets, dstTimeoutPacket)
 	}
 	rp.Src = srcPackets
 	rp.Dst = dstPackets
