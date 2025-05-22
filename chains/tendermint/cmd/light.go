@@ -8,7 +8,7 @@ import (
 	tmclient "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
 	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
 	"github.com/hyperledger-labs/yui-relayer/config"
-	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/coreutil"
 	"github.com/spf13/cobra"
 )
 
@@ -42,12 +42,12 @@ func initLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var chain *tendermint.Chain
-			if err := core.AsChain(c, &chain); err != nil {
+			chain, err := coreutil.UnwrapChain[*tendermint.Chain](c)
+			if err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
 			}
-			var prover *tendermint.Prover
-			if err := core.AsProver(c, &prover); err != nil {
+			prover, err := coreutil.UnwrapProver[*tendermint.Prover](c)
+			if err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
 			}
 
@@ -105,8 +105,8 @@ func updateLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var prover *tendermint.Prover
-			if err := core.AsProver(c, &prover); err != nil {
+			prover, err := coreutil.UnwrapProver[*tendermint.Prover](c)
+			if err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
 			}
 
@@ -142,12 +142,12 @@ func lightHeaderCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var chain *tendermint.Chain
-			if err := core.AsChain(c.Chain, &chain); err != nil {
+			chain, err := coreutil.UnwrapChain[*tendermint.Chain](c)
+			if err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
 			}
-			var prover *tendermint.Prover
-			if err := core.AsProver(c, &prover); err != nil {
+			prover, err := coreutil.UnwrapProver[*tendermint.Prover](c)
+			if err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
 			}
 
@@ -208,8 +208,8 @@ func deleteLightCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			var prover *tendermint.Prover
-			if err := core.AsProver(c, &prover); err != nil {
+			prover, err := coreutil.UnwrapProver[*tendermint.Prover](c)
+			if err != nil {
 				return fmt.Errorf("Chain %q is not a tendermint.Prover", args[0])
 			}
 

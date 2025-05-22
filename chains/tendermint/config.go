@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/coreutil"
 	"github.com/hyperledger-labs/yui-relayer/otelcore"
 )
 
@@ -59,8 +60,8 @@ func (c ChainConfig) Validate() error {
 var _ core.ProverConfig = (*ProverConfig)(nil)
 
 func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
-	var tmChain *Chain
-	if err := core.AsChain(chain, &tmChain); err != nil {
+	tmChain, err := coreutil.UnwrapChain[*Chain](chain)
+	if err != nil {
 		return nil, err
 	}
 	return otelcore.NewProver(NewProver(tmChain, c), chain.ChainID(), tracer), nil

@@ -156,16 +156,14 @@ func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
 }
 ```
 
-If you need to access the original Chain and Prover implementations, you can use `core.AsChain` and `core.AsProver`, similar to how `errors.As` works:
+If you need to access the original Chain and Prover implementations, you can use `coreutil.UnwrapChain` and `coreutil.UnwrapProver`:
 
 ```go
 // The case where a ProvableChain contains a chain struct (module.Chain)
-var chain module.Chain
-err := core.AsChain(provableChain, &chain)
+chain, err := coreutil.UnwrapChain[module.Chain](provableChain)
 
 // The case where a ProvableChain contains a chain struct pointer (*module.Chain)
-var chainPtr *module.Chain
-err := core.AsChain(provableChain, &chainPtr)
+chainPtr, err := coreutil.UnwrapChain[*module.Chain](provableChain)
 ```
 
 Note that, if you call methods defined in your Chain module and Prover module directly, tracing data will not be recorded.
