@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	retry "github.com/avast/retry-go"
@@ -13,6 +14,9 @@ import (
 	conntypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -24,17 +28,20 @@ var (
 
 // CreateConnection sends connection creation messages every interval until a connection is created
 func CreateConnection(ctx context.Context, pathName string, src, dst *ProvableChain, interval time.Duration) error {
+	ctx, span := tracer.Start(ctx, "CreateConnection", WithConnectionPairAttributes(src, dst))
+	defer span.End()
 	logger := GetConnectionPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateConnection")
 
 	if cont, err := checkConnectionCreateReady(ctx, src, dst, logger); err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else if !cont {
 		return nil
 	}
 
 	failed := 0
-	return runUntilComplete(ctx, interval, func() (bool, error) {
+	err := runUntilComplete(ctx, interval, func() (bool, error) {
 		connSteps, err := createConnectionStep(ctx, src, dst)
 		if err != nil {
 			logger.Error(
@@ -82,6 +89,12 @@ func CreateConnection(ctx context.Context, pathName string, src, dst *ProvableCh
 
 		return false, nil
 	})
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func checkConnectionCreateReady(ctx context.Context, src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
@@ -399,4 +412,19 @@ func GetConnectionPairLogger(src, dst Chain) *log.RelayLogger {
 			dst.Path().ConnectionID,
 		).
 		WithModule("core.connection")
+}
+
+func WithConnectionPairAttributes(src, dst Chain) trace.SpanStartOption {
+	return trace.WithAttributes(slices.Concat(
+		semconv.AttributeGroup("src",
+			semconv.ChainIDKey.String(src.ChainID()),
+			semconv.ClientIDKey.String(src.Path().ClientID),
+			semconv.ConnectionIDKey.String(src.Path().ConnectionID),
+		),
+		semconv.AttributeGroup("dst",
+			semconv.ChainIDKey.String(dst.ChainID()),
+			semconv.ClientIDKey.String(dst.Path().ClientID),
+			semconv.ConnectionIDKey.String(dst.Path().ConnectionID),
+		),
+	)...)
 }

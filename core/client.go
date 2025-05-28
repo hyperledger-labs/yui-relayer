@@ -9,6 +9,9 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	"github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func checkCreateClientsReady(ctx context.Context, src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
@@ -62,10 +65,13 @@ func checkCreateClientsReady(ctx context.Context, src, dst *ProvableChain, logge
 }
 
 func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain, srcHeight, dstHeight exported.Height) error {
+	ctx, span := tracer.Start(ctx, "CreateClients", WithChainPairAttributes(src, dst))
+	defer span.End()
 	logger := GetChainPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateClients")
 
 	if cont, err := checkCreateClientsReady(ctx, src, dst, logger); err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else if !cont {
 		return nil
@@ -82,17 +88,21 @@ func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain
 				"failed to get address for create client",
 				err,
 			)
+			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 
 		cs, cons, err := dst.CreateInitialLightClientState(ctx, dstHeight)
 		if err != nil {
 			logger.Error("failed to create initial light client state", err)
+			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 		msg, err := clienttypes.NewMsgCreateClient(cs, cons, srcAddr.String())
 		if err != nil {
-			return fmt.Errorf("failed to create MsgCreateClient: %v", err)
+			err = fmt.Errorf("failed to create MsgCreateClient: %v", err)
+			span.SetStatus(codes.Error, err.Error())
+			return err
 		}
 		clients.Src = append(clients.Src, msg)
 	}
@@ -104,17 +114,20 @@ func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain
 				"failed to get address for create client",
 				err,
 			)
+			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 
 		cs, cons, err := src.CreateInitialLightClientState(ctx, srcHeight)
 		if err != nil {
 			logger.Error("failed to create initial light client state", err)
+			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 		msg, err := clienttypes.NewMsgCreateClient(cs, cons, dstAddr.String())
 		if err != nil {
 			logger.Error("failed to create MsgCreateClient: %v", err)
+			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 		clients.Dst = append(clients.Dst, msg)
@@ -129,6 +142,7 @@ func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain
 				"★ Clients created",
 			)
 			if err := SyncChainConfigsFromEvents(ctx, pathName, clients.SrcMsgIDs, clients.DstMsgIDs, src, dst); err != nil {
+				span.SetStatus(codes.Error, err.Error())
 				return err
 			}
 		}
@@ -137,6 +151,8 @@ func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain
 }
 
 func UpdateClients(ctx context.Context, src, dst *ProvableChain) error {
+	ctx, span := tracer.Start(ctx, "UpdateClients", WithChainPairAttributes(src, dst))
+	defer span.End()
 	logger := GetClientPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "UpdateClients")
 	var (
@@ -149,6 +165,7 @@ func UpdateClients(ctx context.Context, src, dst *ProvableChain) error {
 			"failed to create sync headers for update client",
 			err,
 		)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	srcUpdateHeaders, dstUpdateHeaders, err := sh.SetupBothHeadersForUpdate(ctx, src, dst)
@@ -157,6 +174,7 @@ func UpdateClients(ctx context.Context, src, dst *ProvableChain) error {
 			"failed to setup both headers for update client",
 			err,
 		)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	if len(dstUpdateHeaders) > 0 {
@@ -183,4 +201,11 @@ func GetClientPairLogger(src, dst Chain) *log.RelayLogger {
 			dst.ChainID(), dst.Path().ClientID,
 		).
 		WithModule("core.client")
+}
+
+func WithClientAttributes(c Chain) trace.SpanStartOption {
+	return trace.WithAttributes(
+		semconv.ChainIDKey.String(c.ChainID()),
+		semconv.ClientIDKey.String(c.Path().ClientID),
+	)
 }

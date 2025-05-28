@@ -5,27 +5,34 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // CreateChannel sends channel creation messages every interval until a channel is created
 // TODO: add max retries or something to this function
 func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain, interval time.Duration) error {
+	ctx, span := tracer.Start(ctx, "CreateChannel", WithChannelPairAttributes(src, dst))
+	defer span.End()
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "CreateChannel")
 
 	if cont, err := checkChannelCreateReady(ctx, src, dst, logger); err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else if !cont {
 		return nil
 	}
 
 	failures := 0
-	return runUntilComplete(ctx, interval, func() (bool, error) {
+	err := runUntilComplete(ctx, interval, func() (bool, error) {
 		chanSteps, err := createChannelStep(ctx, src, dst)
 		if err != nil {
 			logger.Error(
@@ -73,6 +80,12 @@ func CreateChannel(ctx context.Context, pathName string, src, dst *ProvableChain
 
 		return false, nil
 	})
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func checkChannelCreateReady(ctx context.Context, src, dst *ProvableChain, logger *log.RelayLogger) (bool, error) {
@@ -320,4 +333,27 @@ func GetChannelPairLogger(src, dst Chain) *log.RelayLogger {
 			dst.ChainID(), dst.Path().PortID, dst.Path().ChannelID,
 		).
 		WithModule("core.channel")
+}
+
+func WithChannelAttributes(c Chain) trace.SpanStartOption {
+	return trace.WithAttributes(
+		semconv.ChainIDKey.String(c.ChainID()),
+		semconv.PortIDKey.String(c.Path().PortID),
+		semconv.ChannelIDKey.String(c.Path().ChannelID),
+	)
+}
+
+func WithChannelPairAttributes(src, dst Chain) trace.SpanStartOption {
+	return trace.WithAttributes(slices.Concat(
+		semconv.AttributeGroup("src",
+			semconv.ChainIDKey.String(src.ChainID()),
+			semconv.PortIDKey.String(src.Path().PortID),
+			semconv.ChannelIDKey.String(src.Path().ChannelID),
+		),
+		semconv.AttributeGroup("dst",
+			semconv.ChainIDKey.String(dst.ChainID()),
+			semconv.PortIDKey.String(dst.Path().PortID),
+			semconv.ChannelIDKey.String(dst.Path().ChannelID),
+		),
+	)...)
 }

@@ -12,6 +12,10 @@ import (
 
 	"cosmossdk.io/errors"
 	"github.com/avast/retry-go"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	rpcclient "github.com/cometbft/cometbft/rpc/client"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
@@ -182,6 +186,7 @@ func (c *Chain) sendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxResponse, 
 		// CheckTx failed
 		return nil, fmt.Errorf("CheckTx failed: %v", errors.ABCIError(res.Codespace, res.Code, res.RawLog))
 	}
+	trace.SpanFromContext(ctx).SetAttributes(semconv.TxHashKey.String(res.TxHash))
 
 	// wait for tx being committed
 	if resTx, err := c.waitForCommit(ctx, res.TxHash); err != nil {
@@ -203,6 +208,9 @@ func (c *Chain) sendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxResponse, 
 }
 
 func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxResponse, bool, error) {
+	ctx, span := tracer.Start(ctx, "Chain.rawSendMsgs", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
 	// Instantiate the client context
 	// NOTE: Although cosmos-sdk does not currently use CmdContext in Context.QueryWithData,
 	//   set ctx to clientCtx in case cosmos-sdk uses it in the future.
@@ -212,6 +220,7 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 	// Query account details
 	txf, err := prepareFactory(clientCtx, c.TxFactory(0))
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
@@ -220,6 +229,7 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 	// If users pass gas adjustment, then calculate gas
 	_, adjusted, err := CalculateGas(clientCtx.QueryWithData, txf, msgs...)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
@@ -229,24 +239,28 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 	// Build the transaction builder
 	txb, err := txf.BuildUnsignedTx(msgs...)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
 	// Attach the signature to the transaction
 	err = tx.Sign(ctx, txf, c.config.Key, txb, false)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
 	// Generate the transaction bytes
 	txBytes, err := clientCtx.TxConfig.TxEncoder()(txb.GetTx())
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
 	// Broadcast those bytes
 	res, err := clientCtx.BroadcastTx(txBytes)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, false, err
 	}
 
@@ -254,10 +268,12 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 	// NOTE: error is nil, logic should use the returned error to determine if the
 	// transaction was successfully executed.
 	if res.Code != 0 {
+		span.SetStatus(codes.Error, "non-zero response code")
 		c.LogFailedTx(res, err, msgs)
 		return res, false, nil
 	}
 
+	span.SetAttributes(semconv.TxHashKey.String(res.TxHash))
 	c.LogSuccessTx(res, msgs)
 	return res, true, nil
 }
@@ -429,6 +445,9 @@ func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult
 		return nil, fmt.Errorf("unexpected message id type: %T", id)
 	}
 
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(semconv.TxHashKey.String(msgID.TxHash))
+
 	// find tx
 	resTx, err := c.waitForCommit(ctx, msgID.TxHash)
 	if err != nil {
@@ -558,6 +577,10 @@ func newRPCClient(addr string, timeout time.Duration) (*rpchttp.HTTP, error) {
 		return nil, err
 	}
 
+	// NOTE: The Cosmos SDK typically does not propagate parent contexts when making JSON-RPC calls,
+	//   so most spans recorded by otelhttp do not have a parent span.
+	//   cf. https://github.com/cosmos/cosmos-sdk/issues/24500
+	httpClient.Transport = otelhttp.NewTransport(httpClient.Transport)
 	httpClient.Timeout = timeout
 	rpcClient, err := rpchttp.NewWithClient(addr, "/websocket", httpClient)
 	if err != nil {

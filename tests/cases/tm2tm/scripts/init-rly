@@ -9,6 +9,8 @@ RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
 RLY="${RLY_BINARY} --debug"
 FIXTURES_DIR=${SCRIPT_DIR}/../fixtures
 
+source ${SCRIPT_DIR}/../../../scripts/set-telemetry-envvars
+
 echo "Generating ${RLY_BINARY} configurations..."
 
 # Ensure ${RLY_BINARY} is installed

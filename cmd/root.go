@@ -12,8 +12,8 @@ import (
 
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
 	"github.com/hyperledger-labs/yui-relayer/log"
-	"github.com/hyperledger-labs/yui-relayer/metrics"
 	"golang.org/x/sys/unix"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -21,11 +21,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	configPath          = "config/config.json"
+	flagEnableTelemetry = "enable-telemetry"
+)
+
 var (
-	homePath    string
-	debug       bool
 	defaultHome = os.ExpandEnv("$HOME/.yui-relayer")
-	configPath  = "config/config.json"
 )
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -42,13 +44,18 @@ func Execute(modules ...config.ModuleI) error {
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
 
-	// Register top level flags --home and --debug
-	rootCmd.PersistentFlags().StringVar(&homePath, flags.FlagHome, defaultHome, "set home directory")
-	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "debug output")
-	if err := viper.BindPFlag(flags.FlagHome, rootCmd.PersistentFlags().Lookup(flags.FlagHome)); err != nil {
+	// Register top level flags
+	rootCmd.PersistentFlags().String(flags.FlagHome, defaultHome, "set home directory")
+	rootCmd.PersistentFlags().BoolP("debug", "d", false, "debug output")
+	rootCmd.PersistentFlags().Bool(flagEnableTelemetry, false, "enable telemetry")
+	if err := viper.BindPFlags(rootCmd.PersistentFlags()); err != nil {
 		return err
 	}
-	if err := viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug")); err != nil {
+
+	// Allow viper.BindEnv("some-flag") to use "YRLY_SOME_FLAG" environment variable
+	viper.SetEnvPrefix("yrly")
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	if err := viper.BindEnv(flagEnableTelemetry); err != nil {
 		return err
 	}
 
@@ -80,28 +87,39 @@ func Execute(modules ...config.ModuleI) error {
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		// reads `homeDir/config/config.json` into `var config *Config` before each command
+		homePath := viper.GetString(flags.FlagHome)
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			return fmt.Errorf("failed to bind the flag set to the configuration: %v", err)
 		}
 		if err := ctx.Config.UnmarshalConfig(homePath, configPath); err != nil {
 			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
-		if err := initLogger(ctx); err != nil {
+		if err := initLogger(ctx, viper.GetBool(flagEnableTelemetry)); err != nil {
 			return err
 		}
-		if err := ctx.InitConfig(homePath, debug); err != nil {
+
+		if viper.GetBool(flagEnableTelemetry) {
+			shutdown, err := telemetry.SetupOTelSDK(cmd.Context())
+			if err != nil {
+				return fmt.Errorf("failed to initialize the telemetry: %v", err)
+			}
+
+			// Use cobra.OnFinalize to ensure that telemetry is exported even if the command fails
+			cobra.OnFinalize(func() {
+				if err := shutdown(context.Background()); err != nil {
+					cmd.PrintErrf("failed to shutdown the telemetries: %v", err)
+				}
+			})
+		}
+
+		if err := ctx.InitConfig(homePath, viper.GetBool("debug")); err != nil {
 			return fmt.Errorf("failed to initialize the configuration: %v", err)
 		}
-		if err := metrics.InitializeMetrics(metrics.ExporterNull{}); err != nil {
+		if err := telemetry.InitializeMetrics(); err != nil {
 			return fmt.Errorf("failed to initialize the metrics: %v", err)
 		}
+
 		cmd.SetContext(notifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM))
-		return nil
-	}
-	rootCmd.PersistentPostRunE = func(cmd *cobra.Command, _ []string) error {
-		if err := metrics.ShutdownMetrics(cmd.Context()); err != nil {
-			return fmt.Errorf("failed to shutdown the metrics subsystem: %v", err)
-		}
 		return nil
 	}
 
@@ -114,9 +132,9 @@ func readStdin() (string, error) {
 	return strings.TrimSpace(str), err
 }
 
-func initLogger(ctx *config.Context) error {
+func initLogger(ctx *config.Context, enableTelemetry bool) error {
 	c := ctx.Config.Global.LoggerConfig
-	return log.InitLogger(c.Level, c.Format, c.Output)
+	return log.InitLogger(c.Level, c.Format, c.Output, enableTelemetry)
 }
 
 func noCommand(cmd *cobra.Command, args []string) error {

@@ -103,3 +103,108 @@ You can use it by specifying the package name of the proto definition correspond
   }
 }
 ```
+
+## OpenTelemetry integration
+
+OpenTelemetry integration can be enabled by specifying the `--enable-telemetry` flag or by setting `YRLY_ENABLE_TELEMETRY` environment variable to true.
+To see an example setup, refer to [examples/opentelemetry-integration](examples/opentelemetry-integration).
+
+### Configurations
+
+You can configure its behavior using environment variables supported by the Go SDK, as listed in the [Compliance of Implementations with Specification](https://github.com/open-telemetry/opentelemetry-specification/blob/main/spec-compliance-matrix.md#environment-variables).
+
+In addition to these environment variables, yui-relayer supports the following variables, which are not available in the Go SDK:
+
+* OTEL_PROPAGATORS
+* OTEL_TRACES_EXPORTER
+    - Note that `"zipkin"` is not supported
+* OTEL_METRICS_EXPORTER
+* OTEL_LOGS_EXPORTER
+* OTEL_EXPORTER_PROMETHEUS_HOST
+* OTEL_EXPORTER_PROMETHEUS_PORT
+* OTEL_EXPORTER_CONSOLE_TRACES_WRITER
+* OTEL_EXPORTER_CONSOLE_LOGS_WRITER
+* OTEL_EXPORTER_CONSOLE_METRICS_WRITER
+
+The `OTEL_EXPORTER_CONSOLE_*_WRITER` variables are specific to yui-relayer and allow you to change the output destination of the standard output exporters. To redirect output to standard error, set the value to `stderr`.
+
+For more information about OpenTelemetry environment variables, refer to the [OpenTelemetry Environment Variable Specification](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables).
+
+
+When OpenTelemetry integration is enabled, the OTLP log exporter is enabled by default and you may want to disable ordinal logs.
+In this case, you can disable them by setting `.global.logger.output` to `"null"` in the yui-relayer configuration file.
+
+### Add spans and span attributes in external modules
+
+#### Using tracing bridges
+
+The Relayer provides OpenTelemetry tracing bridges: `otelcore.Chain` and `otelcore.Prover`.
+These bridges add tracing to the primary methods defined in the Chain and Prover interfaces.
+You can use the tracing bridges by returning them in `ChainConfig.Build` and `ProverConfig.Build`:
+
+```go
+var tracer = otel.Tracer("example.com/my-module")
+
+func (c ChainConfig) Build() (core.Chain, error) {
+	chain := buildChainFromConfig(c)
+	return otelcore.NewChain(chain, tracer), nil
+}
+
+func (c ProverConfig) Build(chain core.Chain) (core.Prover, error) {
+	prover := buildProverFromConfig(c)
+	return otelcore.NewProver(prover, chain.ChainID(), tracer), nil
+}
+```
+
+If you need to access the original Chain and Prover implementations, you can use `coreutil.UnwrapChain` and `coreutil.UnwrapProver`:
+
+```go
+// The case where a ProvableChain contains a chain struct (module.Chain)
+chain, err := coreutil.UnwrapChain[module.Chain](provableChain)
+
+// The case where a ProvableChain contains a chain struct pointer (*module.Chain)
+chainPtr, err := coreutil.UnwrapChain[*module.Chain](provableChain)
+```
+
+Note that, if you call methods defined in your Chain module and Prover module directly, tracing data will not be recorded.
+
+#### Manual tracing
+
+In addition to using the tracing bridges, you can manually create spans when needed:
+
+```go
+var tracer = otel.Tracer("example.com/my-module")
+
+func someFunction(ctx context.Context) {
+	ctx, span := tracer.Start(ctx, "someFunction")
+	defer span.End()
+
+	// -- snip --
+}
+```
+
+If a function or method receives a `core.QueryContext`, you can use `core.StartTraceWithQueryContext` to create a span:
+
+```go
+func (c *Chain) QuerySomething(ctx core.QueryContext) (any, error) {
+	ctx, span := core.StartTraceWithQueryContext(tracer, ctx, "Chain.QuerySomething", core.WithChainAttributes(c.ChainID()))
+	defer span.End()
+
+	// -- snip --
+```
+
+You can also add span attributes as follows:
+
+```go
+func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult, error) {
+	msgID, ok := id.(*MsgID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected message id type: %T", id)
+	}
+
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(semconv.TxHashKey.String(msgID.TxHash))
+
+	// -- snip --
+}
+```

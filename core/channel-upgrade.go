@@ -12,6 +12,7 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"go.opentelemetry.io/otel/codes"
 )
 
 type UpgradeState int
@@ -76,14 +77,18 @@ func (action UpgradeAction) String() string {
 
 // InitChannelUpgrade builds `MsgChannelUpgradeInit` based on the specified UpgradeFields and sends it to the specified chain.
 func InitChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, upgradeFields chantypes.UpgradeFields, permitUnsafe bool) error {
+	ctx, span := tracer.Start(ctx, "InitChannelUpgrade", WithChannelAttributes(chain.Chain))
+	defer span.End()
 	logger := GetChannelLogger(chain.Chain)
 	defer logger.TimeTrack(time.Now(), "InitChannelUpgrade")
 
 	if h, err := chain.LatestHeight(ctx); err != nil {
 		logger.Error("failed to get the latest height", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else if cpH, err := cp.LatestHeight(ctx); err != nil {
 		logger.Error("failed to get the latest height of the counterparty chain", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else if chann, cpChann, err := QueryChannelPair(
 		NewQueryContext(ctx, h),
@@ -93,6 +98,7 @@ func InitChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, upgradeFi
 		false,
 	); err != nil {
 		logger.Error("failed to query for the channel pair", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else if chann.Channel.State != chantypes.OPEN || cpChann.Channel.State != chantypes.OPEN {
 		logger = &log.RelayLogger{Logger: logger.With(
@@ -105,6 +111,7 @@ func InitChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, upgradeFi
 		} else {
 			err := errors.New("unsafe channel upgrade initialization")
 			logger.Error("unsafe channel upgrade is not permitted", err)
+			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 	}
@@ -112,6 +119,7 @@ func InitChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, upgradeFi
 	addr, err := chain.GetAddress()
 	if err != nil {
 		logger.Error("failed to get address", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
@@ -119,6 +127,7 @@ func InitChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, upgradeFi
 
 	if _, err := chain.SendMsgs(ctx, []sdk.Msg{msg}); err != nil {
 		logger.Error("failed to send MsgChannelUpgradeInit", err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else {
 		logger.Info("successfully initialized channel upgrade")
@@ -130,12 +139,14 @@ func InitChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, upgradeFi
 // ExecuteChannelUpgrade carries out channel upgrade handshake until both chains transition to the OPEN state.
 // This function repeatedly checks the states of both chains and decides the next action.
 func ExecuteChannelUpgrade(ctx context.Context, pathName string, src, dst *ProvableChain, interval time.Duration, targetSrcState, targetDstState UpgradeState) error {
+	ctx, span := tracer.Start(ctx, "ExecuteChannelUpgrade", WithChannelPairAttributes(src, dst))
+	defer span.End()
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "ExecuteChannelUpgrade")
 
 	failures := 0
 	firstCall := true
-	return runUntilComplete(ctx, interval, func() (bool, error) {
+	err := runUntilComplete(ctx, interval, func() (bool, error) {
 		steps, err := upgradeChannelStep(ctx, src, dst, targetSrcState, targetDstState, firstCall)
 		if err != nil {
 			logger.Error("failed to create channel upgrade step", err)
@@ -175,15 +186,23 @@ func ExecuteChannelUpgrade(ctx context.Context, pathName string, src, dst *Prova
 
 		return false, nil
 	})
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // CancelChannelUpgrade executes chanUpgradeCancel on `chain`.
 func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlementInterval time.Duration) error {
+	ctx, span := tracer.Start(ctx, "CancelChannelUpgrade", WithChannelPairAttributes(chain, cp))
+	defer span.End()
 	logger := GetChannelPairLogger(chain, cp)
 	defer logger.TimeTrack(time.Now(), "CancelChannelUpgrade")
 
 	// wait for settlement
-	return runUntilComplete(ctx, settlementInterval, func() (bool, error) {
+	err := runUntilComplete(ctx, settlementInterval, func() (bool, error) {
 		sh, err := NewSyncHeaders(ctx, chain, cp)
 		if err != nil {
 			logger.Error("failed to create a SyncHeaders", err)
@@ -259,6 +278,12 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 
 		return true, nil
 	})
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func NewUpgradeState(chanState chantypes.State, upgradeExists bool) (UpgradeState, error) {

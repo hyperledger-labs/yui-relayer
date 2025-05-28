@@ -7,6 +7,8 @@ RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
 RLY="${RLY_BINARY} --debug"
 CONFIG=$HOME/.yui-relayer/config/config.json
 
+source ${SCRIPT_DIR}/../../../scripts/set-telemetry-envvars
+
 cat $CONFIG|jq
 OLD_SRC_CLIENT_ID=$(cat $CONFIG | jq -r '.paths.ibc01.src["client-id"]')
 OLD_DST_CLIENT_ID=$(cat $CONFIG | jq -r '.paths.ibc01.dst["client-id"]')

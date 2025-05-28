@@ -10,8 +10,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
-	"github.com/hyperledger-labs/yui-relayer/metrics"
+	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
+	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	api "go.opentelemetry.io/otel/metric"
 	"golang.org/x/sync/errgroup"
 )
@@ -78,6 +80,8 @@ func getQueryContext(ctx context.Context, chain *ProvableChain, sh SyncHeaders, 
 }
 
 func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
+	ctx, span := tracer.Start(ctx, "NaiveStrategy.UnrelayedPackets", WithChannelPairAttributes(src, dst))
+	defer span.End()
 	logger := GetChannelPairLogger(src, dst)
 	now := time.Now()
 	var (
@@ -88,10 +92,12 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 
 	srcCtx, err := getQueryContext(ctx, src, sh, true)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	dstCtx, err := getQueryContext(ctx, dst, sh, true)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -144,10 +150,12 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 			"error querying packet commitments",
 			err,
 		)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	if err := st.metrics.updateBacklogMetrics(ctx, src, dst, srcPackets, dstPackets); err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -157,10 +165,12 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 	if !includeRelayedButUnfinalized {
 		srcCtx, err := getQueryContext(ctx, src, sh, false)
 		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 		dstCtx, err := getQueryContext(ctx, dst, sh, false)
 		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 
@@ -187,6 +197,7 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 		})
 
 		if err := eg.Wait(); err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	}
@@ -200,6 +211,8 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 }
 
 func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
+	ctx, span := tracer.Start(ctx, "NaiveStrategy.RelayPackets", WithChannelPairAttributes(src, dst))
+	defer span.End()
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayPackets", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
@@ -213,6 +226,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 			"error getting address",
 			err,
 		)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -222,6 +236,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 			"error getting address",
 			err,
 		)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -232,6 +247,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 				"error collecting packets",
 				err,
 			)
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	}
@@ -243,6 +259,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 				"error collecting packets",
 				err,
 			)
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	}
@@ -262,6 +279,8 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 }
 
 func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, includeRelayedButUnfinalized bool) (*RelayPackets, error) {
+	ctx, span := tracer.Start(ctx, "NaiveStrategy.UnrelayedAcknowledgements", WithChannelPairAttributes(src, dst))
+	defer span.End()
 	logger := GetChannelPairLogger(src, dst)
 	now := time.Now()
 	var (
@@ -272,10 +291,12 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst
 
 	srcCtx, err := getQueryContext(ctx, src, sh, true)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	dstCtx, err := getQueryContext(ctx, dst, sh, true)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -334,6 +355,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst
 			"error querying packet commitments",
 			err,
 		)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -343,10 +365,12 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst
 	if !includeRelayedButUnfinalized {
 		srcCtx, err := getQueryContext(ctx, src, sh, false)
 		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 		dstCtx, err := getQueryContext(ctx, dst, sh, false)
 		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 
@@ -377,6 +401,7 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst
 		}
 
 		if err := eg.Wait(); err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	}
@@ -421,6 +446,8 @@ func logPacketsRelayed(src, dst Chain, num int, obj string, dir string) {
 }
 
 func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*RelayMsgs, error) {
+	ctx, span := tracer.Start(ctx, "NaiveStrategy.RelayAcknowledgements", WithChannelPairAttributes(src, dst))
+	defer span.End()
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrack(time.Now(), "RelayAcknowledgements", "num_src", len(rp.Src), "num_dst", len(rp.Dst))
 
@@ -434,6 +461,7 @@ func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *Pr
 			"error getting address",
 			err,
 		)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	dstAddress, err := dst.GetAddress()
@@ -442,18 +470,21 @@ func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *Pr
 			"error getting address",
 			err,
 		)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	if !st.dstNoAck && doExecuteAckDst {
 		msgs.Dst, err = collectAcks(srcCtx, src, rp.Src, dstAddress)
 		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	}
 	if !st.srcNoAck && doExecuteAckSrc {
 		msgs.Src, err = collectAcks(dstCtx, dst, rp.Dst, srcAddress)
 		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
 	}
@@ -496,6 +527,8 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 }
 
 func (st *NaiveStrategy) UpdateClients(ctx context.Context, src, dst *ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error) {
+	ctx, span := tracer.Start(ctx, "NaiveStrategy.UpdateClients", WithChannelPairAttributes(src, dst))
+	defer span.End()
 	logger := GetChannelPairLogger(src, dst)
 
 	msgs := NewRelayMsgs()
@@ -508,25 +541,33 @@ func (st *NaiveStrategy) UpdateClients(ctx context.Context, src, dst *ProvableCh
 		var err error
 		needsUpdateForSrc, err = dst.CheckRefreshRequired(ctx, src)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check if the LC on the src chain needs to be refreshed: %v", err)
+			err = fmt.Errorf("failed to check if the LC on the src chain needs to be refreshed: %v", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
 		}
 	}
 	if !needsUpdateForDst && doRefresh {
 		var err error
 		needsUpdateForDst, err = src.CheckRefreshRequired(ctx, dst)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check if the LC on the dst chain needs to be refreshed: %v", err)
+			err = fmt.Errorf("failed to check if the LC on the dst chain needs to be refreshed: %v", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
 		}
 	}
 
 	if needsUpdateForSrc {
 		srcAddress, err := src.GetAddress()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get relayer address on src chain: %v", err)
+			err = fmt.Errorf("failed to get relayer address on src chain: %v", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
 		}
 		hs, err := sh.SetupHeadersForUpdate(ctx, dst, src)
 		if err != nil {
-			return nil, fmt.Errorf("failed to set up headers for updating client on src chain: %v", err)
+			err = fmt.Errorf("failed to set up headers for updating client on src chain: %v", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
 		}
 		if len(hs) > 0 {
 			msgs.Src = src.Path().UpdateClients(hs, srcAddress)
@@ -536,11 +577,15 @@ func (st *NaiveStrategy) UpdateClients(ctx context.Context, src, dst *ProvableCh
 	if needsUpdateForDst {
 		dstAddress, err := dst.GetAddress()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get relayer address on dst chain: %v", err)
+			err = fmt.Errorf("failed to get relayer address on dst chain: %v", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
 		}
 		hs, err := sh.SetupHeadersForUpdate(ctx, src, dst)
 		if err != nil {
-			return nil, fmt.Errorf("failed to set up headers for updating client on dst chain: %v", err)
+			err = fmt.Errorf("failed to set up headers for updating client on dst chain: %v", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
 		}
 		if len(hs) > 0 {
 			msgs.Dst = dst.Path().UpdateClients(hs, dstAddress)
@@ -558,6 +603,8 @@ func (st *NaiveStrategy) UpdateClients(ctx context.Context, src, dst *ProvableCh
 }
 
 func (st *NaiveStrategy) Send(ctx context.Context, src, dst Chain, msgs *RelayMsgs) {
+	ctx, span := tracer.Start(ctx, "NaiveStrategy.Send", WithChannelPairAttributes(src, dst))
+	defer span.End()
 	logger := GetChannelPairLogger(src, dst)
 
 	msgs.MaxTxSize = st.MaxTxSize
@@ -572,16 +619,16 @@ func (st *NaiveStrategy) Send(ctx context.Context, src, dst Chain, msgs *RelayMs
 
 func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, dst ChainInfo, newSrcBacklog, newDstBacklog PacketInfoList) error {
 	srcAttrs := []attribute.KeyValue{
-		attribute.Key("chain_id").String(src.ChainID()),
-		attribute.Key("direction").String("src"),
+		semconv.ChainIDKey.String(src.ChainID()),
+		semconv.DirectionKey.String("src"),
 	}
 	dstAttrs := []attribute.KeyValue{
-		attribute.Key("chain_id").String(dst.ChainID()),
-		attribute.Key("direction").String("dst"),
+		semconv.ChainIDKey.String(dst.ChainID()),
+		semconv.DirectionKey.String("dst"),
 	}
 
-	metrics.BacklogSizeGauge.Set(int64(len(newSrcBacklog)), srcAttrs...)
-	metrics.BacklogSizeGauge.Set(int64(len(newDstBacklog)), dstAttrs...)
+	telemetry.BacklogSizeGauge.Set(int64(len(newSrcBacklog)), srcAttrs...)
+	telemetry.BacklogSizeGauge.Set(int64(len(newDstBacklog)), dstAttrs...)
 
 	if len(newSrcBacklog) > 0 {
 		oldestHeight := newSrcBacklog[0].EventHeight
@@ -589,9 +636,9 @@ func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, d
 		if err != nil {
 			return fmt.Errorf("failed to get the timestamp of block[%d] on the src chain: %v", oldestHeight, err)
 		}
-		metrics.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), srcAttrs...)
+		telemetry.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), srcAttrs...)
 	} else {
-		metrics.BacklogOldestTimestampGauge.Set(0, srcAttrs...)
+		telemetry.BacklogOldestTimestampGauge.Set(0, srcAttrs...)
 	}
 	if len(newDstBacklog) > 0 {
 		oldestHeight := newDstBacklog[0].EventHeight
@@ -599,17 +646,17 @@ func (st *naiveStrategyMetrics) updateBacklogMetrics(ctx context.Context, src, d
 		if err != nil {
 			return fmt.Errorf("failed to get the timestamp of block[%d] on the dst chain: %v", oldestHeight, err)
 		}
-		metrics.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), dstAttrs...)
+		telemetry.BacklogOldestTimestampGauge.Set(oldestTimestamp.UnixNano(), dstAttrs...)
 	} else {
-		metrics.BacklogOldestTimestampGauge.Set(0, dstAttrs...)
+		telemetry.BacklogOldestTimestampGauge.Set(0, dstAttrs...)
 	}
 
 	srcReceivedPackets := st.srcBacklog.Subtract(newSrcBacklog.ExtractSequenceList())
-	metrics.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(srcReceivedPackets)), api.WithAttributes(srcAttrs...))
+	telemetry.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(srcReceivedPackets)), api.WithAttributes(srcAttrs...))
 	st.srcBacklog = newSrcBacklog
 
 	dstReceivedPackets := st.dstBacklog.Subtract(newDstBacklog.ExtractSequenceList())
-	metrics.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(dstReceivedPackets)), api.WithAttributes(dstAttrs...))
+	telemetry.ReceivePacketsFinalizedCounter.Add(ctx, int64(len(dstReceivedPackets)), api.WithAttributes(dstAttrs...))
 	st.dstBacklog = newDstBacklog
 
 	return nil

@@ -19,6 +19,8 @@ import (
 	dbs "github.com/cometbft/cometbft/light/store/db"
 	tmtypes "github.com/cometbft/cometbft/types"
 	tmclient "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
+	"github.com/hyperledger-labs/yui-relayer/core"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // NOTE: currently we are discarding the very noisy light client logs
@@ -56,6 +58,9 @@ func (pr *Prover) LightHTTP() lightp.Provider {
 }
 
 func (pr *Prover) NewLightDB(ctx context.Context) (db *dbm.GoLevelDB, df func(), err error) {
+	ctx, span := tracer.Start(ctx, "Prover.NewLightDB", core.WithChainAttributes(pr.chain.ChainID()))
+	defer span.End()
+
 	c := pr.chain
 	if err := retry.Do(func() error {
 		db, err = dbm.NewGoLevelDB(c.config.ChainId, lightDir(c.HomePath))
@@ -64,6 +69,7 @@ func (pr *Prover) NewLightDB(ctx context.Context) (db *dbm.GoLevelDB, df func(),
 		}
 		return nil
 	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx)); err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		return nil, nil, err
 	}
 
