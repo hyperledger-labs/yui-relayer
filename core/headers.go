@@ -135,7 +135,11 @@ func (sh syncHeaders) SetupHeadersForUpdate(ctx context.Context, src, dst ChainL
 		logger.ErrorContext(ctx, "error ensuring different chains", err)
 		return nil, err
 	}
-	return src.SetupHeadersForUpdate(ctx, dst, sh.GetLatestFinalizedHeader(src.ChainID()))
+	headersChan, err := src.SetupHeadersForUpdate(ctx, dst, sh.GetLatestFinalizedHeader(src.ChainID()))
+	if err != nil {
+		return nil, err
+	}
+	return DrainHeadersChan(headersChan), nil
 }
 
 // SetupBothHeadersForUpdate returns both `src` and `dst` chain's headers to update the clients on each chain
