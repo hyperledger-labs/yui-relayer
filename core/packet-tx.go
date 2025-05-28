@@ -10,7 +10,7 @@ import (
 
 func SendTransferMsg(ctx context.Context, src, dst *ProvableChain, amount sdk.Coin, dstAddr string, toHeightOffset uint64, toTimeOffset time.Duration) error {
 	logger := GetChannelPairLogger(src, dst)
-	defer logger.TimeTrack(time.Now(), "SendTransferMsg")
+	defer logger.TimeTrackContext(ctx, time.Now(), "SendTransferMsg")
 	var (
 		timeoutHeight    uint64
 		timeoutTimestamp uint64
@@ -37,10 +37,7 @@ func SendTransferMsg(ctx context.Context, src, dst *ProvableChain, amount sdk.Co
 
 	srcAddr, err := src.GetAddress()
 	if err != nil {
-		logger.Error(
-			"failed to get address for send transfer",
-			err,
-		)
+		logger.ErrorContext(ctx, "failed to get address for send transfer", err)
 		return err
 	}
 
@@ -54,7 +51,7 @@ func SendTransferMsg(ctx context.Context, src, dst *ProvableChain, amount sdk.Co
 
 	if txs.Send(ctx, src, dst); !txs.Success() {
 		err := fmt.Errorf("failed to send transfer message")
-		logger.Error(err.Error(), err)
+		logger.ErrorContext(ctx, err.Error(), err)
 		return err
 	}
 	return nil

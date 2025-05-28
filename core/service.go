@@ -86,7 +86,7 @@ func (srv *RelayService) Start(ctx context.Context) error {
 		if err := retry.Do(func() error {
 			return srv.Serve(ctx)
 		}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
-			logger.Info(
+			logger.InfoContext(ctx,
 				"retrying to serve relays",
 				"src", srv.src.ChainID(),
 				"dst", srv.dst.ChainID(),
@@ -111,7 +111,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 
 	// First, update the latest headers for src and dst
 	if err := srv.sh.Updates(ctx, srv.src, srv.dst); err != nil {
-		logger.Error("failed to update headers", err)
+		logger.ErrorContext(ctx, "failed to update headers", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
@@ -119,7 +119,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	// get unrelayed packets
 	pseqs, err := srv.st.UnrelayedPackets(ctx, srv.src, srv.dst, srv.sh, false)
 	if err != nil {
-		logger.Error("failed to get unrelayed packets", err)
+		logger.ErrorContext(ctx, "failed to get unrelayed packets", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
@@ -127,7 +127,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	// get unrelayed acks
 	aseqs, err := srv.st.UnrelayedAcknowledgements(ctx, srv.src, srv.dst, srv.sh, false)
 	if err != nil {
-		logger.Error("failed to get unrelayed acknowledgements", err)
+		logger.ErrorContext(ctx, "failed to get unrelayed acknowledgements", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
@@ -138,7 +138,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	doExecuteAckSrc, doExecuteAckDst := srv.shouldExecuteRelay(ctx, aseqs)
 	// update clients
 	if m, err := srv.st.UpdateClients(ctx, srv.src, srv.dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, srv.sh, true); err != nil {
-		logger.Error("failed to update clients", err)
+		logger.ErrorContext(ctx, "failed to update clients", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else {
@@ -147,7 +147,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 
 	// relay packets if unrelayed seqs exist
 	if m, err := srv.st.RelayPackets(ctx, srv.src, srv.dst, pseqs, srv.sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
-		logger.Error("failed to relay packets", err)
+		logger.ErrorContext(ctx, "failed to relay packets", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else {
@@ -156,7 +156,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 
 	// relay acks if unrelayed seqs exist
 	if m, err := srv.st.RelayAcknowledgements(ctx, srv.src, srv.dst, aseqs, srv.sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
-		logger.Error("failed to relay acknowledgements", err)
+		logger.ErrorContext(ctx, "failed to relay acknowledgements", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	} else {
@@ -206,7 +206,7 @@ func (srv *RelayService) shouldExecuteRelay(ctx context.Context, seqs *RelayPack
 		dstRelay = true
 	}
 
-	logger.Info("shouldExecuteRelay", "srcRelay", srcRelay, "dstRelay", dstRelay)
+	logger.InfoContext(ctx, "shouldExecuteRelay", "srcRelay", srcRelay, "dstRelay", dstRelay)
 
 	return srcRelay, dstRelay
 }

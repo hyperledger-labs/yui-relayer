@@ -65,7 +65,7 @@ func (r *RelayMsgs) Send(ctx context.Context, src, dst Chain) {
 	for _, msg := range r.Src {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
-			logger.Error("failed to marshal msg", err)
+			logger.ErrorContext(ctx, "failed to marshal msg", err)
 			panic(err)
 		}
 
@@ -81,9 +81,9 @@ func (r *RelayMsgs) Send(ctx context.Context, src, dst Chain) {
 			// Submit the transactions to src chain and update its status
 			msgIDs, err := src.SendMsgs(ctx, msgs)
 			if err != nil {
-				logger.Error("failed to send msgs", err)
+				logger.ErrorContext(ctx, "failed to send msgs", err)
 			} else {
-				logger.Info("successfully sent msgs")
+				logger.InfoContext(ctx, "successfully sent msgs")
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
 			if err == nil {
@@ -108,9 +108,9 @@ func (r *RelayMsgs) Send(ctx context.Context, src, dst Chain) {
 
 		msgIDs, err := src.SendMsgs(ctx, msgs)
 		if err != nil {
-			logger.Error("failed to send msgs", err)
+			logger.ErrorContext(ctx, "failed to send msgs", err)
 		} else {
-			logger.Info("successfully sent msgs")
+			logger.InfoContext(ctx, "successfully sent msgs")
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
 		if err == nil {
@@ -128,7 +128,7 @@ func (r *RelayMsgs) Send(ctx context.Context, src, dst Chain) {
 	for _, msg := range r.Dst {
 		bz, err := proto.Marshal(msg)
 		if err != nil {
-			logger.Error("failed to marshal msg", err)
+			logger.ErrorContext(ctx, "failed to marshal msg", err)
 			panic(err)
 		}
 
@@ -144,9 +144,9 @@ func (r *RelayMsgs) Send(ctx context.Context, src, dst Chain) {
 			// Submit the transaction to dst chain and update its status
 			msgIDs, err := dst.SendMsgs(ctx, msgs)
 			if err != nil {
-				logger.Error("failed to send msgs", err)
+				logger.ErrorContext(ctx, "failed to send msgs", err)
 			} else {
-				logger.Info("successfully sent msgs")
+				logger.InfoContext(ctx, "successfully sent msgs")
 			}
 			r.Succeeded = r.Succeeded && (err == nil)
 			if err == nil {
@@ -171,9 +171,9 @@ func (r *RelayMsgs) Send(ctx context.Context, src, dst Chain) {
 
 		msgIDs, err := dst.SendMsgs(ctx, msgs)
 		if err != nil {
-			logger.Error("failed to send msgs", err)
+			logger.ErrorContext(ctx, "failed to send msgs", err)
 		} else {
-			logger.Info("successfully sent msgs")
+			logger.InfoContext(ctx, "successfully sent msgs")
 		}
 		r.Succeeded = r.Succeeded && (err == nil)
 		if err == nil {

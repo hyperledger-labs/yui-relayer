@@ -3,10 +3,11 @@ package log
 import (
 	"testing"
 
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
-	"bytes"
-	"encoding/json"
 	"regexp"
 )
 
@@ -29,14 +30,14 @@ func beforeEach(t *testing.T) *setupType {
 }
 
 type logType struct {
-	Time string
-	Level string
+	Time   string
+	Level  string
 	Source struct {
 		Function string
-		File string
-		Line int
+		File     string
+		Line     int
 	}
-	Msg string
+	Msg   string
 	Stack string
 	Error string
 }
@@ -56,7 +57,7 @@ func parseResult(setup *setupType, t *testing.T) (string, logType) {
 func TestLogLevel(t *testing.T) {
 	setup := beforeEach(t)
 
-	setup.logger.log(slog.LevelDebug, 0, "test")
+	setup.logger.log(context.Background(), slog.LevelDebug, 0, "test")
 	if 0 < setup.buffer.Len() {
 		t.Fatalf("debug log is output: %s", setup.buffer.String())
 	}
@@ -65,7 +66,7 @@ func TestLogLevel(t *testing.T) {
 func TestLogLog(t *testing.T) {
 	setup := beforeEach(t)
 
-	setup.logger.log(slog.LevelInfo, 0, "test")
+	setup.logger.log(context.Background(), slog.LevelInfo, 0, "test")
 	raw, r := parseResult(setup, t)
 
 	if r.Level != "INFO" {

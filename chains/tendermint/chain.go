@@ -199,7 +199,7 @@ func (c *Chain) sendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxResponse, 
 	// call msgEventListener if needed
 	if c.msgEventListener != nil {
 		if err := c.msgEventListener.OnSentMsg(ctx, msgs); err != nil {
-			logger.Error("failed to OnSendMsg call", err)
+			logger.ErrorContext(ctx, "failed to OnSendMsg call", err)
 			return res, nil
 		}
 	}
@@ -269,12 +269,12 @@ func (c *Chain) rawSendMsgs(ctx context.Context, msgs []sdk.Msg) (*sdk.TxRespons
 	// transaction was successfully executed.
 	if res.Code != 0 {
 		span.SetStatus(codes.Error, "non-zero response code")
-		c.LogFailedTx(res, err, msgs)
+		c.LogFailedTx(ctx, res, err, msgs)
 		return res, false, nil
 	}
 
 	span.SetAttributes(semconv.TxHashKey.String(res.TxHash))
-	c.LogSuccessTx(res, msgs)
+	c.LogSuccessTx(ctx, res, msgs)
 	return res, true, nil
 }
 
