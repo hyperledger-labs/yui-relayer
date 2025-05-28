@@ -13,5 +13,6 @@ func MakeHeadersChan(headers ...Header) <-chan Header {
 	for _, h := range headers {
 		ch <- h
 	}
+	close(ch)
 	return ch
 }
