@@ -91,7 +91,7 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height ibce
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) (<-chan core.Header, error) {
+func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) (<-chan *core.HeaderOrError, error) {
 	self := pr.chain
 	// make copy of header stored in mop
 	tmp := latestFinalizedHeader.(*tmclient.Header)
@@ -124,7 +124,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 
 	// inject TrustedValidators into header
 	h.TrustedValidators = valSet
-	return core.MakeHeadersChan(&h), nil
+	return core.MakeHeaderStream(&h), nil
 }
 
 // GetLatestFinalizedHeader returns the latest finalized header

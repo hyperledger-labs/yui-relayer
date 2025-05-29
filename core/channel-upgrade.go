@@ -228,12 +228,16 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 			return false, nil
 		}
 
-		cpHeadersChan, err := cp.SetupHeadersForUpdate(ctx, chain, sh.GetLatestFinalizedHeader(cp.ChainID()))
+		cpHeaderStream, err := cp.SetupHeadersForUpdate(ctx, chain, sh.GetLatestFinalizedHeader(cp.ChainID()))
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to set up headers for LC update", err)
 			return false, err
 		}
-		cpHeaders := DrainHeadersChan(cpHeadersChan)
+		cpHeaders, err := DrainHeaderStream(cpHeaderStream)
+		if err != nil {
+			logger.Error("failed to drain headers", err)
+			return false, err
+		}
 
 		upgErr, err := QueryChannelUpgradeError(cpQueryCtx, cp, true)
 		if err != nil {
