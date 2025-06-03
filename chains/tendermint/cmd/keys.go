@@ -29,7 +29,7 @@ func keysCmd(ctx *config.Context) *cobra.Command {
 	return cmd
 }
 
-// keysAddCmd respresents the `keys add` command
+// keysAddCmd represents the `keys add` command
 func keysAddCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "add [chain-id] [[name]]",
