@@ -22,7 +22,7 @@ fi
 rm -rf ${RELAYER_CONF} &> /dev/null
 
 ${RLY} config init
-${RLY} chains add-dir configs/demo/
+${RLY} chains add-dir ${SCRIPT_DIR}/../configs/demo/
 
 # setup key for tendermint client
 SEED0=$(jq -r '.mnemonic' < ${FIXTURES_DIR}/tendermint/ibc0/key_seed.json)
