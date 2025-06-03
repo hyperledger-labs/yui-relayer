@@ -29,7 +29,7 @@ func keysCmd(ctx *config.Context) *cobra.Command {
 	return cmd
 }
 
-// keysAddCmd respresents the `keys add` command
+// keysAddCmd represents the `keys add` command
 func keysAddCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "add [chain-id] [[name]]",
@@ -44,7 +44,7 @@ func keysAddCmd(ctx *config.Context) *cobra.Command {
 
 			chain, err := coreutil.UnwrapChain[*tendermint.Chain](c)
 			if err != nil {
-				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
+				return fmt.Errorf("Chain %q is not a tendermint.Chain: %v", args[0], err)
 			}
 
 			var keyName string
@@ -108,7 +108,7 @@ func keysRestoreCmd(ctx *config.Context) *cobra.Command {
 
 			chain, err := coreutil.UnwrapChain[*tendermint.Chain](c)
 			if err != nil {
-				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
+				return fmt.Errorf("Chain %q is not a tendermint.Chain: %v", args[0], err)
 			}
 
 			if chain.KeyExists(keyName) {
@@ -148,7 +148,7 @@ func keysShowCmd(ctx *config.Context) *cobra.Command {
 
 			chain, err := coreutil.UnwrapChain[*tendermint.Chain](c)
 			if err != nil {
-				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
+				return fmt.Errorf("Chain %q is not a tendermint.Chain: %v", args[0], err)
 			}
 
 			var keyName string
@@ -193,7 +193,7 @@ func keysListCmd(ctx *config.Context) *cobra.Command {
 
 			chain, err := coreutil.UnwrapChain[*tendermint.Chain](c)
 			if err != nil {
-				return fmt.Errorf("Chain %q is not a tendermint.Chain", args[0])
+				return fmt.Errorf("Chain %q is not a tendermint.Chain: %v", args[0], err)
 			}
 
 			info, err := chain.Keybase.List()
