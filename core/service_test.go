@@ -20,8 +20,8 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/provers/mock"
-	"github.com/hyperledger-labs/yui-relayer/metrics"
 	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
+	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
 )
 
 type NaiveStrategyWrap struct {
@@ -138,7 +138,7 @@ func NewMockProvableChain(
 			height := ctx.Height().(clienttypes.Height)
 			return &chantypes.QueryNextSequenceReceiveResponse{ 1, []byte{}, height }, nil
 		}).AnyTimes()
-	chain.EXPECT().QueryUnfinalizedRelayPackets(gomock.Any(), gomock.Any()).Return(unfinalizedRelayPackets, nil)
+	chain.EXPECT().QueryUnfinalizedRelayPackets(gomock.Any(), gomock.Any()).Return(unfinalizedRelayPackets, nil).AnyTimes()
 	chain.EXPECT().QueryUnreceivedPackets(gomock.Any(), gomock.Any()).Return(unreceivedPackets, nil).AnyTimes()
 	chain.EXPECT().QueryUnreceivedAcknowledgements(gomock.Any(), gomock.Any()).Return([]uint64{}, nil).AnyTimes()
 	chain.EXPECT().QueryUnfinalizedRelayAcknowledgements(gomock.Any(), gomock.Any()).Return([]*core.PacketInfo{}, nil).AnyTimes()
@@ -284,8 +284,8 @@ func TestServe(t *testing.T) {
 }
 
 func testServe(t *testing.T, tc testCase) {
-	log.InitLoggerWithWriter("debug", "text", os.Stdout)
-	metrics.InitializeMetrics(metrics.ExporterNull{})
+	log.InitLoggerWithWriter("debug", "text", os.Stdout, false)
+	telemetry.InitializeMetrics()
 
 	srcLatestHeader := mocktypes.Header{
 		Height: clienttypes.NewHeight(1, 100),
