@@ -19,6 +19,11 @@ jobs:
         with:
           go-version: 1.21
         id: go
+      - name: Verify Go code style and module consistency
+        run: |
+          go mod tidy
+          go fmt ./...
+          git diff --exit-code
       - name: Run Unit test
         run: make test
       - name: Build

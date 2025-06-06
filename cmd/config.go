@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
-	"encoding/json"
 
 	"github.com/hyperledger-labs/yui-relayer/config"
 	"github.com/spf13/cobra"
