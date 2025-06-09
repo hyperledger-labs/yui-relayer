@@ -552,7 +552,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 			}
 			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 			if err != nil {
-				logger.ErrorContext(ctx.Context(), fmt.Printf("failed to ProveState of %v", path), err,
+				logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
 					"height", ctx.Height(),
 					"path", path,
 					"commitment", commitment,
@@ -565,7 +565,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 			commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
 			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 			if err != nil {
-				logger.ErrorContext(ctx.Context(), fmt.Printf("failed to ProveState of %v", path), err,
+				logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
 					"height", ctx.Height(),
 					"path", path,
 					"commitment", commitment,
@@ -649,7 +649,7 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 		path := host.PacketAcknowledgementPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
 		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 		if err != nil {
-			logger.ErrorContext(ctx.Context(), fmt.Printf("failed to ProveState of %v", path), err,
+			logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
 				"height", ctx.Height(),
 				"path", path,
 				"commitment", commitment,
