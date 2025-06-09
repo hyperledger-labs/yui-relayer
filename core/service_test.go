@@ -185,7 +185,7 @@ func TestServe(t *testing.T) {
 			[]string{ },
 			[]string{ },
 		},
-		"single": {
+		"single": { // all src packets are relayed to dst with leading UpdateClient message
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{
@@ -197,7 +197,7 @@ func TestServe(t *testing.T) {
 				"MsgRecvPacket(1)",
 			},
 		},
-		"multi": {
+		"multi": { // same to "single" case.
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{
@@ -213,7 +213,7 @@ func TestServe(t *testing.T) {
 				"MsgRecvPacket(3)",
 			},
 		},
-		"queued": {
+		"queued": { // packets less than optimizeCount are queed and not relayed
 			"ORDERED",
 			9,
 			[]*core.PacketInfo{
@@ -222,7 +222,7 @@ func TestServe(t *testing.T) {
 			[]string{ },
 			[]string{ },
 		},
-		"@not timeout(at border height)": {
+		"not timeout(at border height)": { // An packet which timeouted at 101 are normally relayed at 100th block.
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{
@@ -234,7 +234,7 @@ func TestServe(t *testing.T) {
 				"MsgRecvPacket(1)",
 			},
 		},
-		"timeout": {
+		"timeout": { // timeout. Relay back to src channel as MsgTimeout with UpdateClient.
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{
@@ -243,7 +243,7 @@ func TestServe(t *testing.T) {
 			[]string{ "MsgUpdateClient(srcClient)", "MsgTimeout(1)" },
 			[]string{ },
 		},
-		"timeout at latest block but not at finalized block(at lower border)": {
+		"timeout at latest block but not at finalized block(at lower border)": { // waiting relay in finalized block
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{
@@ -252,7 +252,7 @@ func TestServe(t *testing.T) {
 			[]string{ },
 			[]string{ },
 		},
-		"timeout at latest block but not at finalized block(at heigher border)": {
+		"timeout at latest block but not at finalized block(at heigher border)": { // waiting relay in finalized block
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{
@@ -261,7 +261,7 @@ func TestServe(t *testing.T) {
 			[]string{ },
 			[]string{ },
 		},
-		"only packets precede timeout packet": {
+		"only packets precede timeout packet": { // In ordered channel, only preceding packets before timeout packets are relayed.
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{
@@ -274,6 +274,26 @@ func TestServe(t *testing.T) {
 				"MsgUpdateClient(dstClient)",
 				"MsgRecvPacket(1)",
 				"MsgRecvPacket(2)",
+			},
+		},
+		"multiple timeout packets in unordered channel": { // In unordered channel, all timeout packets are backed and others are relayed.
+			"UNORDERED",
+			1,
+			[]*core.PacketInfo{
+				newPacketInfo(1, 9999),
+				newPacketInfo(2, 9),
+				newPacketInfo(3, 9999),
+				newPacketInfo(4, 9),
+			},
+			[]string{
+				"MsgUpdateClient(srcClient)",
+				"MsgTimeout(2)",
+				"MsgTimeout(4)",
+			},
+			[]string{
+				"MsgUpdateClient(dstClient)",
+				"MsgRecvPacket(1)",
+				"MsgRecvPacket(3)",
 			},
 		},
 	}

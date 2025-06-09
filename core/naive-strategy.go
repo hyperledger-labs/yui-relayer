@@ -269,7 +269,7 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 			(p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= timestamp)
 	}
 
-	var srcTimeoutPacket, dstTimeoutPacket *PacketInfo
+	var srcTimeoutPackets, dstTimeoutPackets []*PacketInfo
 	for i, p := range rp.Src {
 		if isTimeout(p, dstLatestFinalizedHeight, dstLatestFinalizedTimestamp) {
 			p.TimedOut = true
@@ -281,11 +281,11 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 				// a timeout notification will close the channel. Subsequent packets cannot
 				// be processed once the channel is closed.
 				if i == 0 {
-					srcTimeoutPacket = p
+					srcTimeoutPackets = []*PacketInfo{ p }
 				}
 				break
 			} else {
-				srcTimeoutPacket = p
+				srcTimeoutPackets = append(srcTimeoutPackets, p)
 			}
 		} else if isTimeout(p, dstLatestHeight, dstLatestTimestamp) {
 			break
@@ -299,11 +299,11 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 			p.TimedOut = true
 			if dst.Path().GetOrder() == chantypes.ORDERED {
 				if i == 0 {
-					dstTimeoutPacket = p
+					dstTimeoutPackets = []*PacketInfo{ p }
 				}
 				break
 			} else {
-				dstTimeoutPacket = p
+				dstTimeoutPackets = append(dstTimeoutPackets, p)
 			}
 		} else if (isTimeout(p, srcLatestHeight, srcLatestTimestamp)) {
 			break
@@ -312,11 +312,11 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 			dstPackets = append(dstPackets, p)
 		}
 	}
-	if srcTimeoutPacket != nil {
-		dstPackets = append(dstPackets, srcTimeoutPacket)
+	if len(srcTimeoutPackets) > 0 {
+		dstPackets = append(dstPackets, srcTimeoutPackets...)
 	}
-	if dstTimeoutPacket != nil {
-		srcPackets = append(srcPackets, dstTimeoutPacket)
+	if len(dstTimeoutPackets) > 0 {
+		srcPackets = append(srcPackets, dstTimeoutPackets...)
 	}
 	rp.Src = srcPackets
 	rp.Dst = dstPackets
