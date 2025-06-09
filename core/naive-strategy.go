@@ -249,7 +249,7 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 			srcLatestHeight = h
 		}
 		if t, err := src.Timestamp(ctx, srcLatestHeight); err != nil {
-			logger.Error("fail to get src.Timestamp", err)
+			logger.Error("fail to get src.Timestamp of  latestHeight", err)
 			return err
 		} else {
 			srcLatestTimestamp = uint64(t.UnixNano())
@@ -257,7 +257,7 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 
 		srcLatestFinalizedHeight = sh.GetLatestFinalizedHeader(src.ChainID()).GetHeight()
 		if t, err := src.Timestamp(ctx, srcLatestFinalizedHeight); err != nil {
-			logger.Error("fail to get src.Timestamp", err)
+			logger.Error("fail to get src.Timestamp of  latestFinalizedHeight", err)
 			return err
 		} else {
 			srcLatestFinalizedTimestamp = uint64(t.UnixNano())
@@ -335,14 +335,14 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 	srcAddress, err := src.GetAddress()
 	if err != nil {
-		logger.ErrorContext(ctx, "error getting address", err)
+		logger.ErrorContext(ctx, "error getting src address", err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	dstAddress, err := dst.GetAddress()
 	if err != nil {
-		logger.ErrorContext(ctx, "error getting address", err)
+		logger.ErrorContext(ctx, "error getting dst address", err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
@@ -350,7 +350,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 	if doExecuteRelayDst {
 		msgs.Dst, err = collectPackets(srcCtx, src, rp.Src, dstAddress)
 		if err != nil {
-			logger.ErrorContext(ctx, "error collecting packets", err)
+			logger.ErrorContext(ctx, "error collecting src packets", err)
 			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
@@ -359,7 +359,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 	if doExecuteRelaySrc {
 		msgs.Src, err = collectPackets(dstCtx, dst, rp.Dst, srcAddress)
 		if err != nil {
-			logger.ErrorContext(ctx, "error collecting packets", err)
+			logger.ErrorContext(ctx, "error collecting dst packets", err)
 			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
@@ -552,7 +552,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 			}
 			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 			if err != nil {
-				logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
+				logger.ErrorContext(ctx.Context(), fmt.Printf("failed to ProveState of %v", path), err,
 					"height", ctx.Height(),
 					"path", path,
 					"commitment", commitment,
@@ -565,7 +565,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 			commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
 			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 			if err != nil {
-				logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
+				logger.ErrorContext(ctx.Context(), fmt.Printf("failed to ProveState of %v", path), err,
 					"height", ctx.Height(),
 					"path", path,
 					"commitment", commitment,
@@ -600,13 +600,13 @@ func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *Pr
 	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 	srcAddress, err := src.GetAddress()
 	if err != nil {
-		logger.ErrorContext(ctx, "error getting address", err)
+		logger.ErrorContext(ctx, "error getting src address", err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	dstAddress, err := dst.GetAddress()
 	if err != nil {
-		logger.ErrorContext(ctx, "error getting address", err)
+		logger.ErrorContext(ctx, "error getting dst address", err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
@@ -649,7 +649,7 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 		path := host.PacketAcknowledgementPath(p.DestinationPort, p.DestinationChannel, p.Sequence)
 		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 		if err != nil {
-			logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
+			logger.ErrorContext(ctx.Context(), fmt.Printf("failed to ProveState of %v", path), err,
 				"height", ctx.Height(),
 				"path", path,
 				"commitment", commitment,
