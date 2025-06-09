@@ -261,7 +261,22 @@ func TestServe(t *testing.T) {
 			[]string{ },
 			[]string{ },
 		},
-		"only packets precede timeout packet": { // In ordered channel, only preceding packets before timeout packets are relayed.
+		"multiple timeouts packets in ordered channel": { // In ordered channel, later packets from timeouted packets are not relayerd
+			"ORDERED",
+			1,
+			[]*core.PacketInfo{
+				newPacketInfo(1, 9),
+				newPacketInfo(2, 9999),
+				newPacketInfo(3, 9),
+			},
+			[]string{
+				"MsgUpdateClient(srcClient)",
+				"MsgTimeout(1)",
+			},
+			[]string{
+			},
+		},
+		"relay preceding packets before timeouted one": { // In ordered channel, only preceding packets before timeout packets are relayed.
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{
