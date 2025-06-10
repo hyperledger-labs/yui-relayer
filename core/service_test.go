@@ -25,49 +25,49 @@ import (
 )
 
 type NaiveStrategyWrap struct {
-	Inner *core.NaiveStrategy
+	inner *core.NaiveStrategy
 
-	UnrelayedPacketsOut *core.RelayPackets
-	ProcessTimeoutPacketsOut *core.RelayPackets
-	UnrelayedAcknowledgementsOut *core.RelayPackets
-	RelayPacketsOut *core.RelayMsgs
-	RelayAcknowledgementsOut *core.RelayMsgs
-	UpdateClientsOut *core.RelayMsgs
-	SendInSrc []string
-	SendInDst []string
+	unrelayedPacketsOut *core.RelayPackets
+	processTimeoutPacketsOut *core.RelayPackets
+	unrelayedAcknowledgementsOut *core.RelayPackets
+	relayPacketsOut *core.RelayMsgs
+	relayAcknowledgementsOut *core.RelayMsgs
+	updateClientsOut *core.RelayMsgs
+	sendInSrc []string
+	sendInDst []string
 }
-func (s *NaiveStrategyWrap) GetType() string { return s.Inner.GetType() }
-func (s *NaiveStrategyWrap) SetupRelay(ctx context.Context, src, dst *core.ProvableChain) error { return s.Inner.SetupRelay(ctx, src, dst) }
+func (s *NaiveStrategyWrap) GetType() string { return s.inner.GetType() }
+func (s *NaiveStrategyWrap) SetupRelay(ctx context.Context, src, dst *core.ProvableChain) error { return s.inner.SetupRelay(ctx, src, dst) }
 func (s *NaiveStrategyWrap) UnrelayedPackets(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, includeRelayedButUnfinalized bool) (*core.RelayPackets, error) {
-	ret, err := s.Inner.UnrelayedPackets(ctx, src, dst, sh, includeRelayedButUnfinalized)
-	s.UnrelayedPacketsOut = ret
+	ret, err := s.inner.UnrelayedPackets(ctx, src, dst, sh, includeRelayedButUnfinalized)
+	s.unrelayedPacketsOut = ret
 	return ret, err
 }
 
 func (s *NaiveStrategyWrap) ProcessTimeoutPackets(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, rp *core.RelayPackets) error {
-	err := s.Inner.ProcessTimeoutPackets(ctx, src, dst, sh, rp)
-	s.ProcessTimeoutPacketsOut = rp
+	err := s.inner.ProcessTimeoutPackets(ctx, src, dst, sh, rp)
+	s.processTimeoutPacketsOut = rp
 	return err
 }
 
 func (s *NaiveStrategyWrap) RelayPackets(ctx context.Context, src, dst *core.ProvableChain, rp *core.RelayPackets, sh core.SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*core.RelayMsgs, error) {
-	ret, err := s.Inner.RelayPackets(ctx, src, dst, rp, sh, doExecuteRelaySrc, doExecuteRelayDst)
-	s.RelayPacketsOut = ret
+	ret, err := s.inner.RelayPackets(ctx, src, dst, rp, sh, doExecuteRelaySrc, doExecuteRelayDst)
+	s.relayPacketsOut = ret
 	return ret, err
 }
 func (s *NaiveStrategyWrap) UnrelayedAcknowledgements(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, includeRelayedButUnfinalized bool) (*core.RelayPackets, error) {
-	ret, err := s.Inner.UnrelayedAcknowledgements(ctx, src, dst, sh, includeRelayedButUnfinalized)
-	s.UnrelayedAcknowledgementsOut = ret
+	ret, err := s.inner.UnrelayedAcknowledgements(ctx, src, dst, sh, includeRelayedButUnfinalized)
+	s.unrelayedAcknowledgementsOut = ret
 	return ret, err
 }
 func (s *NaiveStrategyWrap) RelayAcknowledgements(ctx context.Context, src, dst *core.ProvableChain, rp *core.RelayPackets, sh core.SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*core.RelayMsgs, error) {
-	ret, err := s.Inner.RelayAcknowledgements(ctx, src, dst, rp, sh, doExecuteAckSrc, doExecuteAckDst)
-	s.RelayAcknowledgementsOut = ret
+	ret, err := s.inner.RelayAcknowledgements(ctx, src, dst, rp, sh, doExecuteAckSrc, doExecuteAckDst)
+	s.relayAcknowledgementsOut = ret
 	return ret, err
 }
 func (s *NaiveStrategyWrap) UpdateClients(ctx context.Context, src, dst *core.ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh core.SyncHeaders, doRefresh bool) (*core.RelayMsgs, error) {
-	ret, err := s.Inner.UpdateClients(ctx, src, dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, doRefresh)
-	s.UpdateClientsOut = ret
+	ret, err := s.inner.UpdateClients(ctx, src, dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, doRefresh)
+	s.updateClientsOut = ret
 	return ret, err
 }
 func (s *NaiveStrategyWrap) Send(ctx context.Context, src, dst core.Chain, msgs *core.RelayMsgs) {
@@ -90,9 +90,9 @@ func (s *NaiveStrategyWrap) Send(ctx context.Context, src, dst core.Chain, msgs 
 		}
 		return ret
 	}
-	s.SendInSrc = format(msgs.Src)
-	s.SendInDst = format(msgs.Dst)
-	s.Inner.Send(ctx, src, dst, msgs)
+	s.sendInSrc = format(msgs.Src)
+	s.sendInDst = format(msgs.Dst)
+	s.inner.Send(ctx, src, dst, msgs)
 }
 
 /**
@@ -149,11 +149,11 @@ func NewMockProvableChain(
 }
 
 type testCase struct {
-	Order string
+	order string
 	optimizeCount uint64
-	UnfinalizedRelayPackets core.PacketInfoList
-	ExpectSendSrc []string
-	ExpectSendDst []string
+	unfinalizedRelayPackets core.PacketInfoList
+	expectSendSrc []string
+	expectSendDst []string
 }
 
 func newPacketInfo(seq uint64, timeoutHeight uint64) (*core.PacketInfo) {
@@ -330,13 +330,13 @@ func testServe(t *testing.T, tc testCase) {
 	ctrl := gomock.NewController(t)
 
 	var unreceivedPackets []uint64
-	for _, p := range tc.UnfinalizedRelayPackets {
+	for _, p := range tc.unfinalizedRelayPackets {
 		unreceivedPackets = append(unreceivedPackets, p.Sequence)
 	}
-	src := NewMockProvableChain(ctrl, "src", tc.Order, srcLatestHeader, tc.UnfinalizedRelayPackets, []uint64{})
-	dst := NewMockProvableChain(ctrl, "dst", tc.Order, dstLatestHeader, []*core.PacketInfo{}, unreceivedPackets)
+	src := NewMockProvableChain(ctrl, "src", tc.order, srcLatestHeader, tc.unfinalizedRelayPackets, []uint64{})
+	dst := NewMockProvableChain(ctrl, "dst", tc.order, dstLatestHeader, []*core.PacketInfo{}, unreceivedPackets)
 
-	st := &NaiveStrategyWrap{ Inner: core.NewNaiveStrategy(false, false) }
+	st := &NaiveStrategyWrap{ inner: core.NewNaiveStrategy(false, false) }
 	sh, err := core.NewSyncHeaders(context.TODO(), src, dst)
 	if err != nil {
 		fmt.Printf("NewSyncHeders: %v\n", err)
@@ -346,14 +346,14 @@ func testServe(t *testing.T, tc testCase) {
 
 	srv.Serve(context.TODO())
 
-	t.Logf("UnrelayedPackets: %v\n", st.UnrelayedPacketsOut)
-	t.Logf("UnrelayedAcknowledgementsOut: %v\n", st.UnrelayedAcknowledgementsOut)
-	t.Logf("RelayPacketsOut: %v\n", st.RelayPacketsOut)
-	t.Logf("RelayAcknowledgementsOut: %v\n", st.RelayAcknowledgementsOut)
-	t.Logf("UpdateClientsOut: %v\n", st.UpdateClientsOut)
-	t.Logf("Send.Src: %v\n", st.SendInSrc)
-	t.Logf("Send.Dst: %v\n", st.SendInDst)
+	t.Logf("UnrelayedPackets: %v\n", st.unrelayedPacketsOut)
+	t.Logf("UnrelayedAcknowledgementsOut: %v\n", st.unrelayedAcknowledgementsOut)
+	t.Logf("RelayPacketsOut: %v\n", st.relayPacketsOut)
+	t.Logf("RelayAcknowledgementsOut: %v\n", st.relayAcknowledgementsOut)
+	t.Logf("UpdateClientsOut: %v\n", st.updateClientsOut)
+	t.Logf("Send.Src: %v\n", st.sendInSrc)
+	t.Logf("Send.Dst: %v\n", st.sendInDst)
 
-	assert.Equal(t, tc.ExpectSendSrc, st.SendInSrc, "Send.Src")
-	assert.Equal(t, tc.ExpectSendDst, st.SendInDst, "Send.Dst")
+	assert.Equal(t, tc.expectSendSrc, st.sendInSrc, "Send.Src")
+	assert.Equal(t, tc.expectSendDst, st.sendInDst, "Send.Dst")
 }
