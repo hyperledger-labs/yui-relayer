@@ -75,20 +75,16 @@ func (s *NaiveStrategyWrap) Send(ctx context.Context, src, dst core.Chain, msgs 
 	format := func(msgs []sdk.Msg) ([]string) {
 		ret := []string{}
 		for _, msg := range msgs {
-			typeof := reflect.TypeOf(msg).Elem().Name()
 			var desc string
-			switch typeof {
-			case "MsgUpdateClient":
-				m := msg.(*clienttypes.MsgUpdateClient)
-				desc = fmt.Sprintf("%s(%s)", typeof, m.ClientId)
-			case "MsgRecvPacket":
-				m := msg.(*chantypes.MsgRecvPacket)
-				desc = fmt.Sprintf("%s(%v)", typeof, m.Packet.GetSequence())
-			case "MsgTimeout":
-				m := msg.(*chantypes.MsgTimeout)
-				desc = fmt.Sprintf("%s(%v)", typeof, m.Packet.GetSequence())
+			switch m := msg.(type) {
+			case *clienttypes.MsgUpdateClient:
+				desc = fmt.Sprintf("MsgUpdateClient(%s)", m.ClientId)
+			case *chantypes.MsgRecvPacket:
+				desc = fmt.Sprintf("MsgRecvPacket(%v)", m.Packet.GetSequence())
+			case *chantypes.MsgTimeout:
+				desc = fmt.Sprintf("MsgTimeout(%v)", m.Packet.GetSequence())
 			default:
-				desc = fmt.Sprintf("%s()", typeof)
+				desc = fmt.Sprintf("%s()", reflect.TypeOf(msg).Elem().Name())
 			}
 			ret = append(ret, desc)
 		}
