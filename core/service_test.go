@@ -151,7 +151,8 @@ func NewMockProvableChain(
 type testCase struct {
 	order string
 	optimizeCount uint64
-	unfinalizedRelayPackets core.PacketInfoList
+	unfinalizedRelayPacketsSrc core.PacketInfoList
+	unfinalizedRelayPacketsDst core.PacketInfoList
 	expectSendSrc []string
 	expectSendDst []string
 }
@@ -178,6 +179,7 @@ func TestServe(t *testing.T) {
 			"ORDERED",
 			1,
 			[]*core.PacketInfo{},
+			[]*core.PacketInfo{},
 			[]string{ },
 			[]string{ },
 		},
@@ -187,6 +189,7 @@ func TestServe(t *testing.T) {
 			[]*core.PacketInfo{
 				newPacketInfo(1, 9999),
 			},
+			[]*core.PacketInfo{},
 			[]string{ },
 			[]string{
 				"MsgUpdateClient(dstClient)",
@@ -201,6 +204,7 @@ func TestServe(t *testing.T) {
 				newPacketInfo(2, 9999),
 				newPacketInfo(3, 9999),
 			},
+			[]*core.PacketInfo{},
 			[]string{ },
 			[]string{
 				"MsgUpdateClient(dstClient)",
@@ -215,6 +219,7 @@ func TestServe(t *testing.T) {
 			[]*core.PacketInfo{
 				newPacketInfo(1, 9999),
 			},
+			[]*core.PacketInfo{},
 			[]string{ },
 			[]string{ },
 		},
@@ -224,6 +229,7 @@ func TestServe(t *testing.T) {
 			[]*core.PacketInfo{
 				newPacketInfo(1, 101),
 			},
+			[]*core.PacketInfo{},
 			[]string{ },
 			[]string{
 				"MsgUpdateClient(dstClient)",
@@ -236,6 +242,7 @@ func TestServe(t *testing.T) {
 			[]*core.PacketInfo{
 				newPacketInfo(1, 90),
 			},
+			[]*core.PacketInfo{},
 			[]string{ "MsgUpdateClient(srcClient)", "MsgTimeout(1)" },
 			[]string{ },
 		},
@@ -245,6 +252,7 @@ func TestServe(t *testing.T) {
 			[]*core.PacketInfo{
 				newPacketInfo(1, 91),
 			},
+			[]*core.PacketInfo{},
 			[]string{ },
 			[]string{ },
 		},
@@ -254,6 +262,7 @@ func TestServe(t *testing.T) {
 			[]*core.PacketInfo{
 				newPacketInfo(1, 100),
 			},
+			[]*core.PacketInfo{},
 			[]string{ },
 			[]string{ },
 		},
@@ -265,6 +274,7 @@ func TestServe(t *testing.T) {
 				newPacketInfo(2, 9999),
 				newPacketInfo(3, 9),
 			},
+			[]*core.PacketInfo{},
 			[]string{
 				"MsgUpdateClient(srcClient)",
 				"MsgTimeout(1)",
@@ -280,11 +290,34 @@ func TestServe(t *testing.T) {
 				newPacketInfo(2, 9999),
 				newPacketInfo(3, 9),
 			},
+			[]*core.PacketInfo{},
 			[]string{ },
 			[]string{
 				"MsgUpdateClient(dstClient)",
 				"MsgRecvPacket(1)",
 				"MsgRecvPacket(2)",
+			},
+		},
+		"multiple timeouts packets in ordered channel(both side)": {
+			"ORDERED",
+			1,
+			[]*core.PacketInfo{
+				newPacketInfo(1, 9),
+				newPacketInfo(2, 9999),
+				newPacketInfo(3, 9),
+			},
+			[]*core.PacketInfo{
+				newPacketInfo(1, 9999),
+				newPacketInfo(2, 9999),
+				newPacketInfo(3, 9),
+			},
+			[]string{
+				"MsgUpdateClient(srcClient)",
+				"MsgRecvPacket(1)",
+				"MsgRecvPacket(2)",
+				"MsgTimeout(1)",
+			},
+			[]string{
 			},
 		},
 		"multiple timeout packets in unordered channel": { // In unordered channel, all timeout packets are backed and others are relayed.
@@ -296,6 +329,7 @@ func TestServe(t *testing.T) {
 				newPacketInfo(3, 9999),
 				newPacketInfo(4, 9),
 			},
+			[]*core.PacketInfo{},
 			[]string{
 				"MsgUpdateClient(srcClient)",
 				"MsgTimeout(2)",
@@ -305,6 +339,36 @@ func TestServe(t *testing.T) {
 				"MsgUpdateClient(dstClient)",
 				"MsgRecvPacket(1)",
 				"MsgRecvPacket(3)",
+			},
+		},
+		"multiple timeout packets in nordered channel(both side)": { // In unordered channel, all timeout packets are backed and others are relayed.
+			"UNORDERED",
+			1,
+			[]*core.PacketInfo{
+				newPacketInfo(1, 9999),
+				newPacketInfo(2, 9),
+				newPacketInfo(3, 9999),
+				newPacketInfo(4, 9),
+			},
+			[]*core.PacketInfo{
+				newPacketInfo(1, 9999),
+				newPacketInfo(2, 9),
+				newPacketInfo(3, 9999),
+				newPacketInfo(4, 9),
+			},
+			[]string{
+				"MsgUpdateClient(srcClient)",
+				"MsgRecvPacket(1)",
+				"MsgRecvPacket(3)",
+				"MsgTimeout(2)",
+				"MsgTimeout(4)",
+			},
+			[]string{
+				"MsgUpdateClient(dstClient)",
+				"MsgRecvPacket(1)",
+				"MsgRecvPacket(3)",
+				"MsgTimeout(2)",
+				"MsgTimeout(4)",
 			},
 		},
 	}
@@ -329,12 +393,15 @@ func testServe(t *testing.T, tc testCase) {
 
 	ctrl := gomock.NewController(t)
 
-	var unreceivedPackets []uint64
-	for _, p := range tc.unfinalizedRelayPackets {
-		unreceivedPackets = append(unreceivedPackets, p.Sequence)
+	var unreceivedPacketsSrc, unreceivedPacketsDst []uint64
+	for _, p := range tc.unfinalizedRelayPacketsSrc {
+		unreceivedPacketsSrc = append(unreceivedPacketsSrc, p.Sequence)
 	}
-	src := NewMockProvableChain(ctrl, "src", tc.order, srcLatestHeader, tc.unfinalizedRelayPackets, []uint64{})
-	dst := NewMockProvableChain(ctrl, "dst", tc.order, dstLatestHeader, []*core.PacketInfo{}, unreceivedPackets)
+	for _, p := range tc.unfinalizedRelayPacketsDst {
+		unreceivedPacketsDst = append(unreceivedPacketsDst, p.Sequence)
+	}
+	src := NewMockProvableChain(ctrl, "src", tc.order, srcLatestHeader, tc.unfinalizedRelayPacketsSrc, unreceivedPacketsDst)
+	dst := NewMockProvableChain(ctrl, "dst", tc.order, dstLatestHeader, tc.unfinalizedRelayPacketsDst, unreceivedPacketsSrc)
 
 	st := &NaiveStrategyWrap{ inner: core.NewNaiveStrategy(false, false) }
 	sh, err := core.NewSyncHeaders(context.TODO(), src, dst)
