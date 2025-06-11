@@ -515,26 +515,6 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst
 func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	logger := GetChannelLogger(chain)
 
-	var nextSequenceRecv uint64
-	if chain.Path().GetOrder() == chantypes.ORDERED {
-		for _, p := range packets {
-			if p.TimedOut {
-				res, err := chain.QueryNextSequenceReceive(ctx)
-				if err != nil {
-					logger.Error("failed to QueryNextSequenceReceive", err,
-						"height", ctx.Height(),
-					)
-					return nil, err
-				}
-				nextSequenceRecv = res.NextSequenceReceive
-				break
-			}
-		}
-	} else {
-		// nextSequenceRecv has no effect in unordered channel but ibc-go expect it is not zero.
-		nextSequenceRecv = 1
-	}
-
 	var msgs []sdk.Msg
 	for _, p := range packets {
 		var msg sdk.Msg
@@ -542,13 +522,16 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 			// make path of original packet's destination port and channel
 			var path string
 			var commitment []byte
+			var nextSequenceRecvOfTimeout uint64
 			if chain.Path().GetOrder() == chantypes.ORDERED {
 				path = host.NextSequenceRecvPath(p.SourcePort, p.SourceChannel)
 				commitment = make([]byte, 8)
-				binary.BigEndian.PutUint64(commitment[0:], nextSequenceRecv)
+				binary.BigEndian.PutUint64(commitment[0:], p.Sequence)
+				nextSequenceRecvOfTimeout = p.Sequence
 			} else {
 				path = host.PacketReceiptPath(p.SourcePort, p.SourceChannel, p.Sequence)
 				commitment = []byte{} // Represents absence of a commitment in unordered channels
+				nextSequenceRecvOfTimeout = 1 // nextSequenceRecv has no effect in unordered channel but ibc-go expect it is not zero.
 			}
 			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
 			if err != nil {
@@ -559,7 +542,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 				)
 				return nil, err
 			}
-			msg = chantypes.NewMsgTimeout(p.Packet, nextSequenceRecv, proof, proofHeight, signer.String())
+			msg = chantypes.NewMsgTimeout(p.Packet, nextSequenceRecvOfTimeout, proof, proofHeight, signer.String())
 		} else {
 			path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
 			commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
