@@ -1,43 +1,46 @@
 package core_test
 
 import (
-	"testing"
-	"go.uber.org/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
+	"testing"
 
-	"time"
 	"context"
-	"os"
 	"fmt"
+	"os"
 	"reflect"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
-	mocktypes "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+	mocktypes "github.com/datachainlab/ibc-mock-client/modules/light-clients/xx-mock/types"
 
+	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/provers/mock"
-	"github.com/hyperledger-labs/yui-relayer/chains/tendermint"
-	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
 )
 
 type NaiveStrategyWrap struct {
 	inner *core.NaiveStrategy
 
-	unrelayedPacketsOut *core.RelayPackets
-	processTimeoutPacketsOut *core.RelayPackets
+	unrelayedPacketsOut          *core.RelayPackets
+	processTimeoutPacketsOut     *core.RelayPackets
 	unrelayedAcknowledgementsOut *core.RelayPackets
-	relayPacketsOut *core.RelayMsgs
-	relayAcknowledgementsOut *core.RelayMsgs
-	updateClientsOut *core.RelayMsgs
-	sendInSrc []string
-	sendInDst []string
+	relayPacketsOut              *core.RelayMsgs
+	relayAcknowledgementsOut     *core.RelayMsgs
+	updateClientsOut             *core.RelayMsgs
+	sendInSrc                    []string
+	sendInDst                    []string
 }
+
 func (s *NaiveStrategyWrap) GetType() string { return s.inner.GetType() }
-func (s *NaiveStrategyWrap) SetupRelay(ctx context.Context, src, dst *core.ProvableChain) error { return s.inner.SetupRelay(ctx, src, dst) }
+func (s *NaiveStrategyWrap) SetupRelay(ctx context.Context, src, dst *core.ProvableChain) error {
+	return s.inner.SetupRelay(ctx, src, dst)
+}
 func (s *NaiveStrategyWrap) UnrelayedPackets(ctx context.Context, src, dst *core.ProvableChain, sh core.SyncHeaders, includeRelayedButUnfinalized bool) (*core.RelayPackets, error) {
 	ret, err := s.inner.UnrelayedPackets(ctx, src, dst, sh, includeRelayedButUnfinalized)
 	s.unrelayedPacketsOut = ret
@@ -72,7 +75,7 @@ func (s *NaiveStrategyWrap) UpdateClients(ctx context.Context, src, dst *core.Pr
 }
 func (s *NaiveStrategyWrap) Send(ctx context.Context, src, dst core.Chain, msgs *core.RelayMsgs) {
 	// format message object as string to be easily comparable
-	format := func(msgs []sdk.Msg) ([]string) {
+	format := func(msgs []sdk.Msg) []string {
 		ret := []string{}
 		for _, msg := range msgs {
 			var desc string
@@ -96,12 +99,12 @@ func (s *NaiveStrategyWrap) Send(ctx context.Context, src, dst core.Chain, msgs 
 }
 
 /**
-  * create mock ProvableChain with our MockProver and gomock's MockChain.
-  * about height:
-  *   LatestHeight: returns header that NewMockProvableChain is given
-  *   LatestFinalizedHeight: LatestHeight - 10
-  *   Timestamp: height + 10000
-  */
+ * create mock ProvableChain with our MockProver and gomock's MockChain.
+ * about height:
+ *   LatestHeight: returns header that NewMockProvableChain is given
+ *   LatestFinalizedHeight: LatestHeight - 10
+ *   Timestamp: height + 10000
+ */
 func NewMockProvableChain(
 	ctrl *gomock.Controller,
 	name, order string,
@@ -110,29 +113,29 @@ func NewMockProvableChain(
 	unreceivedPackets []uint64,
 ) *core.ProvableChain {
 	chain := core.NewMockChain(ctrl)
-	prover := mock.NewProver(chain, mock.ProverConfig{ FinalityDelay: 10 })
+	prover := mock.NewProver(chain, mock.ProverConfig{FinalityDelay: 10})
 
 	chain.EXPECT().ChainID().Return(name + "Chain").AnyTimes()
 	chain.EXPECT().Codec().Return(nil).AnyTimes()
 	chain.EXPECT().GetAddress().Return(sdk.AccAddress{}, nil).AnyTimes()
 	chain.EXPECT().Path().Return(&core.PathEnd{
-		ChainID: name + "Chain",
-		ClientID: name + "Client",
+		ChainID:      name + "Chain",
+		ClientID:     name + "Client",
 		ConnectionID: name + "Conn",
-		ChannelID: name + "Chan",
-		PortID: name + "Port",
-		Order: order,
-		Version: name + "Version",
+		ChannelID:    name + "Chan",
+		PortID:       name + "Port",
+		Order:        order,
+		Version:      name + "Version",
 	}).AnyTimes()
 	chain.EXPECT().LatestHeight(gomock.Any()).Return(header.Height, nil).AnyTimes()
 	chain.EXPECT().Timestamp(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(ctx context.Context, h ibcexported.Height) (time.Time, error) {
-			return time.Unix(0, int64(10000 + h.GetRevisionHeight())), nil
+			return time.Unix(0, int64(10000+h.GetRevisionHeight())), nil
 		}).AnyTimes()
 	chain.EXPECT().QueryNextSequenceReceive(gomock.Any()).DoAndReturn(
 		func(ctx core.QueryContext) (*chantypes.QueryNextSequenceReceiveResponse, error) {
 			height := ctx.Height().(clienttypes.Height)
-			return &chantypes.QueryNextSequenceReceiveResponse{ 1, []byte{}, height }, nil
+			return &chantypes.QueryNextSequenceReceiveResponse{1, []byte{}, height}, nil
 		}).AnyTimes()
 	chain.EXPECT().QueryUnfinalizedRelayPackets(gomock.Any(), gomock.Any()).Return(unfinalizedRelayPackets, nil).AnyTimes()
 	chain.EXPECT().QueryUnreceivedPackets(gomock.Any(), gomock.Any()).Return(unreceivedPackets, nil).AnyTimes()
@@ -141,7 +144,7 @@ func NewMockProvableChain(
 	chain.EXPECT().SendMsgs(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, msgs []sdk.Msg) ([]core.MsgID, error) {
 		var msgIDs []core.MsgID
 		for _, _ = range msgs {
-			msgIDs = append(msgIDs, &tendermint.MsgID{TxHash:"", MsgIndex:0})
+			msgIDs = append(msgIDs, &tendermint.MsgID{TxHash: "", MsgIndex: 0})
 		}
 		return msgIDs, nil
 	}).AnyTimes()
@@ -149,15 +152,15 @@ func NewMockProvableChain(
 }
 
 type testCase struct {
-	order string
-	optimizeCount uint64
+	order                      string
+	optimizeCount              uint64
 	unfinalizedRelayPacketsSrc core.PacketInfoList
 	unfinalizedRelayPacketsDst core.PacketInfoList
-	expectSendSrc []string
-	expectSendDst []string
+	expectSendSrc              []string
+	expectSendDst              []string
 }
 
-func newPacketInfo(seq uint64, timeoutHeight uint64) (*core.PacketInfo) {
+func newPacketInfo(seq uint64, timeoutHeight uint64) *core.PacketInfo {
 	return &core.PacketInfo{
 		Packet: chantypes.NewPacket(
 			[]byte{},
@@ -180,8 +183,8 @@ func TestServe(t *testing.T) {
 			1,
 			[]*core.PacketInfo{},
 			[]*core.PacketInfo{},
-			[]string{ },
-			[]string{ },
+			[]string{},
+			[]string{},
 		},
 		"single": { // all src packets are relayed to dst with leading UpdateClient message
 			"ORDERED",
@@ -190,7 +193,7 @@ func TestServe(t *testing.T) {
 				newPacketInfo(1, 9999),
 			},
 			[]*core.PacketInfo{},
-			[]string{ },
+			[]string{},
 			[]string{
 				"MsgUpdateClient(dstClient)",
 				"MsgRecvPacket(1)",
@@ -205,7 +208,7 @@ func TestServe(t *testing.T) {
 				newPacketInfo(3, 9999),
 			},
 			[]*core.PacketInfo{},
-			[]string{ },
+			[]string{},
 			[]string{
 				"MsgUpdateClient(dstClient)",
 				"MsgRecvPacket(1)",
@@ -220,8 +223,8 @@ func TestServe(t *testing.T) {
 				newPacketInfo(1, 9999),
 			},
 			[]*core.PacketInfo{},
-			[]string{ },
-			[]string{ },
+			[]string{},
+			[]string{},
 		},
 		"not timeout(at border height)": { // An packet which timeouted at 101 are normally relayed at 100th block.
 			"ORDERED",
@@ -230,7 +233,7 @@ func TestServe(t *testing.T) {
 				newPacketInfo(1, 101),
 			},
 			[]*core.PacketInfo{},
-			[]string{ },
+			[]string{},
 			[]string{
 				"MsgUpdateClient(dstClient)",
 				"MsgRecvPacket(1)",
@@ -243,8 +246,8 @@ func TestServe(t *testing.T) {
 				newPacketInfo(1, 90),
 			},
 			[]*core.PacketInfo{},
-			[]string{ "MsgUpdateClient(srcClient)", "MsgTimeout(1)" },
-			[]string{ },
+			[]string{"MsgUpdateClient(srcClient)", "MsgTimeout(1)"},
+			[]string{},
 		},
 		"timeout at latest block but not at finalized block(at lower border)": { // waiting relay in finalized block
 			"ORDERED",
@@ -253,8 +256,8 @@ func TestServe(t *testing.T) {
 				newPacketInfo(1, 91),
 			},
 			[]*core.PacketInfo{},
-			[]string{ },
-			[]string{ },
+			[]string{},
+			[]string{},
 		},
 		"timeout at latest block but not at finalized block(at heigher border)": { // waiting relay in finalized block
 			"ORDERED",
@@ -263,8 +266,8 @@ func TestServe(t *testing.T) {
 				newPacketInfo(1, 100),
 			},
 			[]*core.PacketInfo{},
-			[]string{ },
-			[]string{ },
+			[]string{},
+			[]string{},
 		},
 		"multiple timeouts packets in ordered channel": { // In ordered channel, later packets from timeouted packets are not relayerd
 			"ORDERED",
@@ -279,8 +282,7 @@ func TestServe(t *testing.T) {
 				"MsgUpdateClient(srcClient)",
 				"MsgTimeout(1)",
 			},
-			[]string{
-			},
+			[]string{},
 		},
 		"relay preceding packets before timeouted one": { // In ordered channel, only preceding packets before timeout packets are relayed.
 			"ORDERED",
@@ -291,7 +293,7 @@ func TestServe(t *testing.T) {
 				newPacketInfo(3, 9),
 			},
 			[]*core.PacketInfo{},
-			[]string{ },
+			[]string{},
 			[]string{
 				"MsgUpdateClient(dstClient)",
 				"MsgRecvPacket(1)",
@@ -317,8 +319,7 @@ func TestServe(t *testing.T) {
 				"MsgRecvPacket(2)",
 				"MsgTimeout(1)",
 			},
-			[]string{
-			},
+			[]string{},
 		},
 		"multiple timeout packets in unordered channel": { // In unordered channel, all timeout packets are backed and others are relayed.
 			"UNORDERED",
@@ -373,8 +374,10 @@ func TestServe(t *testing.T) {
 		},
 	}
 	for n, c := range cases {
-		if n[0] == '_' { continue }
-		t.Run(n, func (t2 *testing.T) { testServe(t2, c) })
+		if n[0] == '_' {
+			continue
+		}
+		t.Run(n, func(t2 *testing.T) { testServe(t2, c) })
 	}
 }
 
@@ -383,11 +386,11 @@ func testServe(t *testing.T, tc testCase) {
 	telemetry.InitializeMetrics()
 
 	srcLatestHeader := mocktypes.Header{
-		Height: clienttypes.NewHeight(1, 100),
+		Height:    clienttypes.NewHeight(1, 100),
 		Timestamp: uint64(10100),
 	}
 	dstLatestHeader := mocktypes.Header{
-		Height: clienttypes.NewHeight(1, 100),
+		Height:    clienttypes.NewHeight(1, 100),
 		Timestamp: uint64(10100),
 	}
 
@@ -403,12 +406,12 @@ func testServe(t *testing.T, tc testCase) {
 	src := NewMockProvableChain(ctrl, "src", tc.order, srcLatestHeader, tc.unfinalizedRelayPacketsSrc, unreceivedPacketsDst)
 	dst := NewMockProvableChain(ctrl, "dst", tc.order, dstLatestHeader, tc.unfinalizedRelayPacketsDst, unreceivedPacketsSrc)
 
-	st := &NaiveStrategyWrap{ inner: core.NewNaiveStrategy(false, false) }
+	st := &NaiveStrategyWrap{inner: core.NewNaiveStrategy(false, false)}
 	sh, err := core.NewSyncHeaders(context.TODO(), src, dst)
 	if err != nil {
 		fmt.Printf("NewSyncHeders: %v\n", err)
 	}
-	var forever time.Duration = 1 << 63 - 1
+	var forever time.Duration = 1<<63 - 1
 	srv := core.NewRelayService(st, src, dst, sh, time.Minute, forever, tc.optimizeCount, forever, tc.optimizeCount)
 
 	srv.Serve(context.TODO())

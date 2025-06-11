@@ -2,16 +2,16 @@ package core
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"log/slog"
 	"time"
-	"encoding/binary"
 
 	retry "github.com/avast/retry-go"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
 	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/attribute"
@@ -206,8 +206,8 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) error {
 	logger := GetChannelPairLogger(src, dst)
 	var (
-		srcPackets   PacketInfoList
-		dstPackets   PacketInfoList
+		srcPackets                  PacketInfoList
+		dstPackets                  PacketInfoList
 		srcLatestHeight             ibcexported.Height
 		srcLatestTimestamp          uint64
 		srcLatestFinalizedHeight    ibcexported.Height
@@ -264,7 +264,7 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 		}
 	}
 
-	isTimeout := func(p *PacketInfo, height ibcexported.Height, timestamp uint64) (bool) {
+	isTimeout := func(p *PacketInfo, height ibcexported.Height, timestamp uint64) bool {
 		return (!p.TimeoutHeight.IsZero() && p.TimeoutHeight.LTE(height)) ||
 			(p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= timestamp)
 	}
@@ -281,7 +281,7 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 				// a timeout notification will close the channel. Subsequent packets cannot
 				// be processed once the channel is closed.
 				if i == 0 {
-					srcTimeoutPackets = []*PacketInfo{ p }
+					srcTimeoutPackets = []*PacketInfo{p}
 				}
 				break
 			} else {
@@ -295,17 +295,17 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 		}
 	}
 	for i, p := range rp.Dst {
-		if (isTimeout(p, srcLatestFinalizedHeight, srcLatestFinalizedTimestamp)) {
+		if isTimeout(p, srcLatestFinalizedHeight, srcLatestFinalizedTimestamp) {
 			p.TimedOut = true
 			if dst.Path().GetOrder() == chantypes.ORDERED {
 				if i == 0 {
-					dstTimeoutPackets = []*PacketInfo{ p }
+					dstTimeoutPackets = []*PacketInfo{p}
 				}
 				break
 			} else {
 				dstTimeoutPackets = append(dstTimeoutPackets, p)
 			}
-		} else if (isTimeout(p, srcLatestHeight, srcLatestTimestamp)) {
+		} else if isTimeout(p, srcLatestHeight, srcLatestTimestamp) {
 			break
 		} else {
 			p.TimedOut = false
@@ -530,7 +530,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 				nextSequenceRecvOfTimeout = p.Sequence
 			} else {
 				path = host.PacketReceiptPath(p.SourcePort, p.SourceChannel, p.Sequence)
-				commitment = []byte{} // Represents absence of a commitment in unordered channels
+				commitment = []byte{}         // Represents absence of a commitment in unordered channels
 				nextSequenceRecvOfTimeout = 1 // nextSequenceRecv has no effect in unordered channel but ibc-go expect it is not zero.
 			}
 			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
