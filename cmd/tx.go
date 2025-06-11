@@ -457,6 +457,11 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
+			err = st.ProcessTimeoutPackets(cmd.Context(), c[src], c[dst], sh, sp) // update sp
+			if err != nil {
+				return err
+			}
+
 			msgs := core.NewRelayMsgs()
 
 			doExecuteRelaySrc := len(sp.Dst) > 0
