@@ -24,4 +24,8 @@ proto-update-deps:
 $(TESTMOCKS):
 	go generate ./...
 
-.PHONY: proto-gen proto-update-deps
+pre-commit:
+	go mod tidy
+	go fmt ./...
+
+.PHONY: proto-gen proto-update-deps pre-commit

@@ -281,7 +281,15 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 				// a timeout notification will close the channel. Subsequent packets cannot
 				// be processed once the channel is closed.
 				if i == 0 {
-					srcTimeoutPackets = []*PacketInfo{p}
+					// queue timeout notify packet only if previous packet is finally received on dst chain.
+					res, err := dst.QueryNextSequenceReceive(NewQueryContext(ctx, dstLatestFinalizedHeight))
+					if err != nil {
+						logger.Error("failed to QueryNextSequenceRecv for src timeout", err, "height", dstLatestFinalizedHeight)
+					} else {
+						if res.NextSequenceReceive == p.Sequence {
+							srcTimeoutPackets = []*PacketInfo{p}
+						}
+					}
 				}
 				break
 			} else {
@@ -299,7 +307,14 @@ func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *Pr
 			p.TimedOut = true
 			if dst.Path().GetOrder() == chantypes.ORDERED {
 				if i == 0 {
-					dstTimeoutPackets = []*PacketInfo{p}
+					res, err := src.QueryNextSequenceReceive(NewQueryContext(ctx, srcLatestFinalizedHeight))
+					if err != nil {
+						logger.Error("failed to QueryNextSequenceRecv for dst timeout", err, "height", srcLatestFinalizedHeight)
+					} else {
+						if res.NextSequenceReceive == p.Sequence {
+							dstTimeoutPackets = []*PacketInfo{p}
+						}
+					}
 				}
 				break
 			} else {
