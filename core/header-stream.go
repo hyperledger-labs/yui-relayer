@@ -1,8 +1,17 @@
 package core
 
-func DrainHeaderStream(headers <-chan *HeaderOrError) ([]Header, error) {
+import "context"
+
+func SetupHeadersForUpdateSync(prover LightClient, ctx context.Context, counterparty FinalityAwareChain, latestFinalizedHeader Header) ([]Header, error) {
+	ctxForSHFU, cancel := context.WithCancel(ctx)
+	defer cancel()
+	headerStream, err := prover.SetupHeadersForUpdate(ctxForSHFU, counterparty, latestFinalizedHeader)
+	if err != nil {
+		return nil, err
+	}
+
 	var ret []Header
-	for h := range headers {
+	for h := range headerStream {
 		if h.Error != nil {
 			return nil, h.Error
 		}
