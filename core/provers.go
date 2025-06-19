@@ -49,8 +49,10 @@ type LightClient interface {
 	CreateInitialLightClientState(ctx context.Context, height exported.Height) (exported.ClientState, exported.ConsensusState, error)
 
 	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
-	// The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
-	// if the header slice's length == 0 and err == nil, the relayer should skips the update-client
+	// CONTRACT:
+	// 1. The order of the returned header stream should be as: [<intermediate headers>..., <update header>]
+	// 2. If the header stream's length == 0 and err == nil, the relayer should skips the update-client
+	// 3. Goroutines that create the header stream should check `ctx.Done()` and should terminate processing if `ctx` is cancelled by the caller.
 	SetupHeadersForUpdate(ctx context.Context, counterparty FinalityAwareChain, latestFinalizedHeader Header) (<-chan *HeaderOrError, error)
 
 	// CheckRefreshRequired returns if the on-chain light client needs to be updated.
