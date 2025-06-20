@@ -6,7 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v8/modules/core/exported"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 )
 
 // Prover represents a prover that supports generating a commitment proof
@@ -31,7 +31,7 @@ type StateProver interface {
 
 	// ProveHostConsensusState returns an existence proof of the consensus state at `height`
 	// This proof would be ignored in ibc-go, but it is required to `getSelfConsensusState` of ibc-solidity.
-	ProveHostConsensusState(ctx QueryContext, height exported.Height, consensusState exported.ConsensusState) (proof []byte, err error)
+	ProveHostConsensusState(ctx QueryContext, height ibcexported.Height, consensusState ibcexported.ConsensusState) (proof []byte, err error)
 }
 
 type HeaderOrError struct {
@@ -46,7 +46,7 @@ type LightClient interface {
 	// CreateInitialLightClientState returns a pair of ClientState and ConsensusState based on the state of the self chain at `height`.
 	// These states will be submitted to the counterparty chain as MsgCreateClient.
 	// If `height` is nil, the latest finalized height is selected automatically.
-	CreateInitialLightClientState(ctx context.Context, height exported.Height) (exported.ClientState, exported.ConsensusState, error)
+	CreateInitialLightClientState(ctx context.Context, height ibcexported.Height) (ibcexported.ClientState, ibcexported.ConsensusState, error)
 
 	// SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 	// CONTRACT:
