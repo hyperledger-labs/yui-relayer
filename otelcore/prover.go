@@ -52,7 +52,7 @@ func (p *Prover) CreateInitialLightClientState(ctx context.Context, height ibcex
 	return clientState, consensusState, err
 }
 
-func (p *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
+func (p *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) (<-chan *core.HeaderOrError, error) {
 	ctx, span := p.tracer.Start(ctx, "Prover.SetupHeadersForUpdate",
 		core.WithChainAttributes(p.chainID),
 		trace.WithAttributes(attribute.String("counterparty_chain_id", counterparty.ChainID())),
