@@ -6,6 +6,8 @@ import (
 	"encoding/binary"
 	fmt "fmt"
 	"time"
+	"os"
+	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
@@ -71,9 +73,38 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height expo
 	return clientState, consensusState, nil
 }
 
+func makeHeaderStream(counterparty core.FinalityAwareChain, headers ...core.Header) <-chan *core.HeaderOrError {
+	fmt.Printf("SHFU: chainId=%v\n", counterparty.ChainID())
+	ch := make(chan *core.HeaderOrError, len(headers))
+	//go func() {
+		for _, h := range headers {
+			ch <- &core.HeaderOrError{
+				Header: h,
+				Error:  nil,
+			}
+		}
+		if val, ok := os.LookupEnv("DEBUG_RELAYER_WAIT"); ok {
+			if val == counterparty.ChainID() {
+				wait, _ := os.LookupEnv("DEBUG_RELAYER_WAIT_SEC")
+				t, _ := strconv.Atoi(wait)
+				fmt.Printf(">DEBUG_RELAYER_WAIT_SEC: %v\n", t)
+				time.Sleep(time.Duration(t) * time.Second)
+				fmt.Printf("<DEBUG_RELAYER_WAIT_SEC: %v\n", t)
+			} else {
+				fmt.Printf("DEBUG_RELAYER_WAIT(%v) is not a counterparty(%v)\n", val, counterparty.ChainID())
+			}
+		} else {
+			fmt.Printf("DEBUG_RELAYER_WAIT is not set\n")
+		}
+		close(ch)
+	//}()
+	return ch
+}
+
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterparty chain
 func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) (<-chan *core.HeaderOrError, error) {
-	return core.MakeHeaderStream(latestFinalizedHeader.(*mocktypes.Header)), nil
+	//return core.MakeHeaderStream(latestFinalizedHeader.(*mocktypes.Header)), nil
+	return makeHeaderStream(counterparty, latestFinalizedHeader.(*mocktypes.Header)), nil
 }
 
 func (pr *Prover) createMockHeader(ctx context.Context, height exported.Height) (core.Header, error) {

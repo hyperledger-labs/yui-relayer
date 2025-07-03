@@ -2,13 +2,6 @@ package core
 
 import "context"
 
-import (
-	"os"
-	"strconv"
-	"fmt"
-	"time"
-)
-
 func SetupHeadersForUpdateSync(prover LightClient, ctx context.Context, counterparty FinalityAwareChain, latestFinalizedHeader Header) ([]Header, error) {
 	ctxForSHFU, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -27,7 +20,6 @@ func SetupHeadersForUpdateSync(prover LightClient, ctx context.Context, counterp
 	return ret, nil
 }
 
-/*
 func MakeHeaderStream(headers ...Header) <-chan *HeaderOrError {
 	ch := make(chan *HeaderOrError, len(headers))
 	for _, h := range headers {
@@ -37,27 +29,5 @@ func MakeHeaderStream(headers ...Header) <-chan *HeaderOrError {
 		}
 	}
 	close(ch)
-	return ch
-}
-*/
-func MakeHeaderStream(headers ...Header) <-chan *HeaderOrError {
-	ch := make(chan *HeaderOrError, len(headers))
-	go func() {
-		for _, h := range headers {
-			ch <- &HeaderOrError{
-				Header: h,
-				Error:  nil,
-			}
-		}
-		if val, ok := os.LookupEnv("DEBUG_RELAYER_WAIT"); ok {
-			i, _ := strconv.Atoi(val)
-			fmt.Printf(">DEBUG_RELAYER_WAIT: %v\n", i)
-			time.Sleep(time.Duration(i) * time.Second)
-			fmt.Printf("<DEBUG_RELAYER_WAIT: %v\n", i)
-		} else {
-			fmt.Printf("DEBUG_RELAYER_WAIT is not set\n")
-		}
-		close(ch)
-	}()
 	return ch
 }
