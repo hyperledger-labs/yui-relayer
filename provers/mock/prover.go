@@ -89,7 +89,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 		}
 	}
 
-	return core.MakeHeaderStream(counterparty, latestFinalizedHeader.(*mocktypes.Header)), nil
+	return core.MakeHeaderStream(latestFinalizedHeader.(*mocktypes.Header)), nil
 }
 
 func (pr *Prover) createMockHeader(ctx context.Context, height exported.Height) (core.Header, error) {
