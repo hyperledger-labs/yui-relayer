@@ -160,7 +160,7 @@ func QueryConnection(
 	if err != nil {
 		return nil, err
 	} else if conn.Connection.State == conntypes.UNINITIALIZED {
-		return nil, nil
+		return conn, nil
 	}
 	if prove {
 		path := host.ConnectionPath(chain.Path().ConnectionID)
