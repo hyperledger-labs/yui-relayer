@@ -67,8 +67,8 @@ func QueryClientStatePair(
 	if err := eg.Wait(); err != nil {
 		return nil, nil, err
 	}
-	srcCsRes := <- srcStream
-	dstCsRes := <- dstStream
+	srcCsRes := <-srcStream
+	dstCsRes := <-dstStream
 	return srcCsRes, dstCsRes, nil
 }
 
@@ -135,8 +135,8 @@ func QueryClientConsensusStatePair(
 	if err := eg.Wait(); err != nil {
 		return nil, nil, err
 	}
-	srcCsRes := <- srcStream
-	dstCsRes := <- dstStream
+	srcCsRes := <-srcStream
+	dstCsRes := <-dstStream
 	return srcCsRes, dstCsRes, nil
 }
 
@@ -207,8 +207,8 @@ func QueryConnectionPair(
 	if err := eg.Wait(); err != nil {
 		return nil, nil, err
 	}
-	srcConn := <- srcStream
-	dstConn := <- dstStream
+	srcConn := <-srcStream
+	dstConn := <-dstStream
 	return srcConn, dstConn, nil
 }
 
