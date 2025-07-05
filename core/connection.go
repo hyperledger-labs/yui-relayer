@@ -156,11 +156,8 @@ type queryStateResult struct {
 func	queryState(ctx QueryContext, logger *log.RelayLogger, sh SyncHeaders, prover, counterparty *ProvableChain)  (*queryStateResult, error) {
 	var ret queryStateResult
 	var err error
-fmt.Printf("--->queryState: prover=%v, cp=%v\n", prover.ChainID(), counterparty.ChainID())
 
-fmt.Printf("----->queryState.setupHeaderForUpdate: prover=%v, cp=%v\n", prover.ChainID(), counterparty.ChainID())
 	ret.updateHeaders, err = sh.SetupHeadersForUpdate(ctx.Context(), prover, counterparty)
-fmt.Printf("-----<queryState.setupHeaderForUpdate: prover=%v, cp=%v\n", prover.ChainID(), counterparty.ChainID())
 	if err != nil {
 		logger.ErrorContext(ctx.Context(), "error setting up headers for update", err)
 		return nil, err
@@ -174,7 +171,6 @@ fmt.Printf("-----<queryState.setupHeaderForUpdate: prover=%v, cp=%v\n", prover.C
 	}
 
 	if ret.conn.Connection.State != conntypes.UNINITIALIZED {
-fmt.Printf("----->queryState.getProof: prover=%v, cp=%v\n", prover.ChainID(), counterparty.ChainID())
 		ret.csRes, err = QueryClientState(ctx, prover, true)
 		if err != nil {
 			return nil, err
@@ -192,14 +188,11 @@ fmt.Printf("----->queryState.getProof: prover=%v, cp=%v\n", prover.ChainID(), co
 		if err := prover.Codec().UnpackAny(ret.consRes.ConsensusState, &ret.cons); err != nil {
 			return nil, err
 		}
-fmt.Printf("-----<queryState.getProof: prover=%v, cp=%v\n", prover.ChainID(), counterparty.ChainID())
 	}
-fmt.Printf("---<queryState: prover=%v, cp=%v\n", prover.ChainID(), counterparty.ChainID())
 	return &ret, nil
 }
 
 func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs, error) {
-fmt.Printf("-->createConnectionStep: src=%s, dst=%s\n", src.ChainID(), dst.ChainID())
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
@@ -257,12 +250,11 @@ fmt.Printf("-->createConnectionStep: src=%s, dst=%s\n", src.ChainID(), dst.Chain
 			dstStream <- state
 			return nil
 		})
-fmt.Printf("--->waiting queryState...\n")
+
 		err := eg.Wait() // it wait quering to other chain. it may take more time and my chain's state is deleted.
 		if  err != nil {
 			return nil, err
 		}
-fmt.Printf("---<waiting queryState...\n")
 		srcState, _ = <- srcStream
 		dstState, _ = <- dstStream
 	}
@@ -415,7 +407,6 @@ func querySettledConnection(
 		logger.ErrorContext(queryCtx.Context(), "failed to query connection at the latest finalized height", err)
 		return nil, false, err
 	}
-fmt.Printf("----->querySettledConnection: conn.Connection=%v\n", conn.Connection)
 
 	var latestCtx QueryContext
 	if h, err := chain.LatestHeight(queryCtx.Context()); err != nil {
@@ -430,7 +421,6 @@ fmt.Printf("----->querySettledConnection: conn.Connection=%v\n", conn.Connection
 		logger.ErrorContext(queryCtx.Context(), "failed to query connection pair at the latest height", err)
 		return nil, false, err
 	}
-fmt.Printf("----->querySettledConnection: latestConn.Connection=%v\n", latestConn.Connection)
 
 	if conn.Connection.String() != latestConn.Connection.String() {
 		logger.DebugContext(queryCtx.Context(), "connection end in transition",
