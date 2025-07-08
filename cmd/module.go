@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime/debug"
@@ -32,9 +33,18 @@ func showModulesCmd(ctx *config.Context) *cobra.Command {
 		Short: "Shows a list of modules included in the relayer",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			modules := make([]string, len(ctx.Modules))
-			bi, _ := debug.ReadBuildInfo()
+			bi, ok := debug.ReadBuildInfo()
+			if !ok {
+				return fmt.Errorf("could not read build info")
+			}
+
 			for i, m := range ctx.Modules {
-				modules[i] = m.Name() + " " + retrieveModuleInfo(bi, m)
+				info, err := retrieveModuleInfo(bi, m)
+				if err != nil {
+					return err
+				}
+
+				modules[i] = m.Name() + " " + info
 			}
 			sort.Strings(modules)
 			for _, module := range modules {
@@ -46,22 +56,22 @@ func showModulesCmd(ctx *config.Context) *cobra.Command {
 	return cmd
 }
 
-func retrieveModuleInfo(info *debug.BuildInfo, m config.ModuleI) string {
+func retrieveModuleInfo(info *debug.BuildInfo, m config.ModuleI) (string, error) {
 	if info == nil {
-		return ""
+		return "", errors.New("build info is unavailable")
 	}
 
 	pkgPath := reflect.TypeOf(m).PkgPath()
 	if strings.HasPrefix(pkgPath, info.Main.Path) {
-		return info.Main.Path + " " + info.Main.Version
+		return info.Main.Path + " " + info.Main.Version, nil
 	}
 
 	i := slices.IndexFunc(info.Deps, func(dm *debug.Module) bool {
 		return strings.HasPrefix(pkgPath, dm.Path)
 	})
 	if i == -1 {
-		return ""
+		return "", fmt.Errorf("could not find module info for %s", m.Name())
 	}
 
-	return info.Deps[i].Path + " " + info.Deps[i].Version
+	return info.Deps[i].Path + " " + info.Deps[i].Version, nil
 }
