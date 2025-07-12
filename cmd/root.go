@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime/debug"
+	"slices"
 	"strings"
 	"syscall"
 
@@ -39,6 +41,7 @@ func Execute(modules ...config.ModuleI) error {
 		Short: "This application relays data between configured IBC enabled chains",
 		RunE:  noCommand,
 	}
+	setVersion(rootCmd)
 
 	cobra.EnableCommandSorting = false
 	rootCmd.SilenceUsage = true
@@ -161,4 +164,31 @@ func notifyContext(ctx context.Context, signals ...os.Signal) context.Context {
 	}()
 
 	return ctx
+}
+
+func setVersion(cmd *cobra.Command) {
+	// The BuildInfo version defaults "(devel)" if the version information is unavailable
+	// cf. https://github.com/golang/go/blob/go1.22.0/src/cmd/go/internal/load/pkg.go#L2301
+	const defaultVersion = "(devel)"
+
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		cmd.Version = defaultVersion
+		return
+	}
+
+	// NOTE: If a binary is built outside the yui-relayer repository, the main module is not the yui-relayer module
+	if bi.Main.Path == "github.com/hyperledger-labs/yui-relayer" {
+		cmd.Version = strings.TrimPrefix(bi.Main.Version, "v")
+		return
+	}
+
+	i := slices.IndexFunc(bi.Deps, func(dm *debug.Module) bool {
+		return dm.Path == "github.com/hyperledger-labs/yui-relayer"
+	})
+	if i == -1 {
+		cmd.Version = defaultVersion
+	} else {
+		cmd.Version = strings.TrimPrefix(bi.Deps[i].Version, "v")
+	}
 }
