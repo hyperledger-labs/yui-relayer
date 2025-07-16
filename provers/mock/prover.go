@@ -5,6 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	fmt "fmt"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -73,6 +76,19 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height expo
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterparty chain
 func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) (<-chan *core.HeaderOrError, error) {
+	if val, ok := os.LookupEnv("DEBUG_RELAYER_SHFU_WAIT"); ok {
+		s := strings.Split(val, " ")
+		if s[0] == counterparty.ChainID() {
+			t, _ := strconv.Atoi(s[1])
+			n := t / 60
+			for i := 0; i <= n; i++ {
+				fmt.Printf(">DEBUG_RELAYER_SHFU_WAIT: cp=%s %v/%v\n", s[0], (i+1)*60, t)
+				time.Sleep(time.Duration(60) * time.Second)
+			}
+			fmt.Printf("<DEBUG_RELAYER_SHFU_WAIT: cp=%s %v\n", s[0], t)
+		}
+	}
+
 	return core.MakeHeaderStream(latestFinalizedHeader.(*mocktypes.Header)), nil
 }
 
