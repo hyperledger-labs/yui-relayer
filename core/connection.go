@@ -209,10 +209,6 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		srcHostConsProof, dstHostConsProof []byte
 	)
 
-	if err := EnsureDifferentChains(src, dst); err != nil {
-		return nil, err
-	}
-
 	{
 		var eg = new(errgroup.Group)
 		srcStream := make(chan *queryStateResult, 1)
@@ -256,9 +252,17 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		if err != nil {
 			return nil, err
 		}
-		srcState, _ = <-srcStream
-		dstState, _ = <-dstStream
+		var ok bool
+		srcState, ok = <-srcStream
+		if !ok {
+			return nil, errors.New("srcStream channel closed unexpectedly")
+		}
+		dstState, ok = <-dstStream
+		if !ok {
+			return nil, errors.New("srcStream channel closed unexpectedly")
+		}
 	}
+
 	if !srcState.settled || !dstState.settled {
 		return out, nil
 	}
@@ -417,7 +421,7 @@ func querySettledConnection(
 
 	latestConn, err := QueryConnection(latestCtx, chain, false)
 	if err != nil {
-		logger.ErrorContext(queryCtx.Context(), "failed to query connection pair at the latest height", err)
+		logger.ErrorContext(queryCtx.Context(), "failed to query connection at the latest height", err)
 		return nil, false, err
 	}
 

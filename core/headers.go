@@ -56,7 +56,7 @@ var _ SyncHeaders = (*syncHeaders)(nil)
 // kept "reasonably up to date"
 func NewSyncHeaders(ctx context.Context, src, dst ChainInfoLightClient) (SyncHeaders, error) {
 	logger := GetChainPairLogger(src, dst)
-	if err := EnsureDifferentChains(src, dst); err != nil {
+	if err := ensureDifferentChains(src, dst); err != nil {
 		logger.ErrorContext(ctx, "error ensuring different chains", err)
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (sh *syncHeaders) Updates(ctx context.Context, src, dst ChainInfoLightClien
 	ctx, span := tracer.Start(ctx, "syncHeaders.Updates", WithChainPairAttributes(src, dst))
 	defer span.End()
 	logger := GetChainPairLogger(src, dst)
-	if err := EnsureDifferentChains(src, dst); err != nil {
+	if err := ensureDifferentChains(src, dst); err != nil {
 		logger.ErrorContext(ctx, "error ensuring different chains", err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
@@ -131,7 +131,7 @@ func (sh syncHeaders) GetQueryContext(ctx context.Context, chainID string) Query
 // SetupHeadersForUpdate returns `src` chain's headers to update the client on `dst` chain
 func (sh syncHeaders) SetupHeadersForUpdate(ctx context.Context, src, dst ChainLightClient) ([]Header, error) {
 	logger := GetChainPairLogger(src, dst)
-	if err := EnsureDifferentChains(src, dst); err != nil {
+	if err := ensureDifferentChains(src, dst); err != nil {
 		logger.ErrorContext(ctx, "error ensuring different chains", err)
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (sh syncHeaders) SetupBothHeadersForUpdate(ctx context.Context, src, dst Ch
 	return srcHs, dstHs, nil
 }
 
-func EnsureDifferentChains(src, dst ChainInfo) error {
+func ensureDifferentChains(src, dst ChainInfo) error {
 	if src.ChainID() == dst.ChainID() {
 		return fmt.Errorf("the two chains are probably the same.: src=%v dst=%v", src.ChainID(), dst.ChainID())
 	} else {

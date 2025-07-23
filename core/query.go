@@ -42,34 +42,16 @@ func QueryClientStatePair(
 	},
 	prove bool,
 ) (*clienttypes.QueryClientStateResponse, *clienttypes.QueryClientStateResponse, error) {
-	srcStream := make(chan *clienttypes.QueryClientStateResponse, 1)
-	dstStream := make(chan *clienttypes.QueryClientStateResponse, 1)
-	defer close(srcStream)
-	defer close(dstStream)
-
-	var eg = new(errgroup.Group)
-	eg.Go(func() error {
-		csRes, err := QueryClientState(srcCtx, src, prove)
-		if err != nil {
-			return err
-		}
-		srcStream <- csRes
-		return nil
-	})
-	eg.Go(func() error {
-		csRes, err := QueryClientState(dstCtx, dst, prove)
-		if err != nil {
-			return err
-		}
-		dstStream <- csRes
-		return nil
-	})
-	if err := eg.Wait(); err != nil {
+	srcDsRes, err := QueryClientState(srcCtx, src, prove)
+	if err != nil {
 		return nil, nil, err
 	}
-	srcCsRes := <-srcStream
-	dstCsRes := <-dstStream
-	return srcCsRes, dstCsRes, nil
+
+	dstDsRes, err := QueryClientState(dstCtx, dst, prove)
+	if err != nil {
+		return nil, nil, err
+	}
+	return srcDsRes, dstDsRes, nil
 }
 
 func QueryClientConsensusState(
@@ -110,33 +92,14 @@ func QueryClientConsensusStatePair(
 	dstClientConsH ibcexported.Height,
 	prove bool,
 ) (*clienttypes.QueryConsensusStateResponse, *clienttypes.QueryConsensusStateResponse, error) {
-	srcStream := make(chan *clienttypes.QueryConsensusStateResponse, 1)
-	dstStream := make(chan *clienttypes.QueryConsensusStateResponse, 1)
-	defer close(srcStream)
-	defer close(dstStream)
-
-	var eg = new(errgroup.Group)
-	eg.Go(func() error {
-		csRes, err := QueryClientConsensusState(srcCtx, src, srcClientConsH, prove)
-		if err != nil {
-			return err
-		}
-		srcStream <- csRes
-		return nil
-	})
-	eg.Go(func() error {
-		csRes, err := QueryClientConsensusState(dstCtx, dst, dstClientConsH, prove)
-		if err != nil {
-			return err
-		}
-		dstStream <- csRes
-		return nil
-	})
-	if err := eg.Wait(); err != nil {
+	srcCsRes, err := QueryClientConsensusState(srcCtx, src, srcClientConsH, prove)
+	if err != nil {
 		return nil, nil, err
 	}
-	srcCsRes := <-srcStream
-	dstCsRes := <-dstStream
+	dstCsRes, err := QueryClientConsensusState(dstCtx, dst, dstClientConsH, prove)
+	if err != nil {
+		return nil, nil, err
+	}
 	return srcCsRes, dstCsRes, nil
 }
 
@@ -182,34 +145,15 @@ func QueryConnectionPair(
 	},
 	prove bool,
 ) (*conntypes.QueryConnectionResponse, *conntypes.QueryConnectionResponse, error) {
-	srcStream := make(chan *conntypes.QueryConnectionResponse, 1)
-	dstStream := make(chan *conntypes.QueryConnectionResponse, 1)
-	defer close(srcStream)
-	defer close(dstStream)
-
-	var eg = new(errgroup.Group)
-	eg.Go(func() error {
-		connRes, err := QueryConnection(srcCtx, src, prove)
-		if err != nil {
-			return err
-		}
-		srcStream <- connRes
-		return nil
-	})
-	eg.Go(func() error {
-		connRes, err := QueryConnection(dstCtx, dst, prove)
-		if err != nil {
-			return err
-		}
-		dstStream <- connRes
-		return nil
-	})
-	if err := eg.Wait(); err != nil {
+	srcConnRes, err := QueryConnection(srcCtx, src, prove)
+	if err != nil {
 		return nil, nil, err
 	}
-	srcConn := <-srcStream
-	dstConn := <-dstStream
-	return srcConn, dstConn, nil
+	dstConnRes, err := QueryConnection(dstCtx, dst, prove)
+	if err != nil {
+		return nil, nil, err
+	}
+	return srcConnRes, dstConnRes, nil
 }
 
 // QueryChannelPair returns a pair of channel responses

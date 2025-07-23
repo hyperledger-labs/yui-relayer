@@ -77,15 +77,26 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height expo
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterparty chain
 func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) (<-chan *core.HeaderOrError, error) {
 	if val, ok := os.LookupEnv("DEBUG_RELAYER_SHFU_WAIT"); ok {
+		logger := log.GetLogger()
 		s := strings.Split(val, " ")
+		if len(s) != 2 {
+			return nil, fmt.Errorf("malformed DEBUG_RELAYER_SHFU_WAIT: it should be '<counterparty chainid> <space> <wait seconds>'")
+		}
 		if s[0] == counterparty.ChainID() {
-			t, _ := strconv.Atoi(s[1])
-			n := t / 60
-			for i := 0; i <= n; i++ {
-				fmt.Printf(">DEBUG_RELAYER_SHFU_WAIT: cp=%s %v/%v\n", s[0], (i+1)*60, t)
-				time.Sleep(time.Duration(60) * time.Second)
+			t, err := strconv.Atoi(s[1])
+			if err != nil {
+				return nil, err
 			}
-			fmt.Printf("<DEBUG_RELAYER_SHFU_WAIT: cp=%s %v\n", s[0], t)
+			interval := 30 // default interval in seconds
+			if customInterval, err := strconv.Atoi(os.Getenv("DEBUG_RELAYER_SHFU_INTERVAL")); err == nil {
+				interval = customInterval
+			}
+			n := t / interval
+			for i := 0; i <= n; i++ {
+				logger.DebugContext(ctx, ">DEBUG_RELAYER_SHFU_WAIT", "cp", s[0], "progress", fmt.Sprintf("%v/%v", (i+1)*interval, t))
+				time.Sleep(time.Duration(interval) * time.Second)
+			}
+			logger.DebugContext(ctx, "<DEBUG_RELAYER_SHFU_WAIT", "cp", s[0])
 		}
 	}
 
