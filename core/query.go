@@ -30,6 +30,9 @@ func QueryClientState(
 			return nil, err
 		}
 		csRes.Proof, csRes.ProofHeight, err = chain.ProveState(ctx, path, value)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return csRes, nil
 }
@@ -125,6 +128,7 @@ func QueryConnection(
 	} else if conn.Connection.State == conntypes.UNINITIALIZED {
 		return conn, nil
 	}
+
 	if prove {
 		path := host.ConnectionPath(chain.Path().ConnectionID)
 		value, err := chain.Codec().Marshal(conn.Connection)
@@ -156,68 +160,59 @@ func QueryConnectionPair(
 	return srcConnRes, dstConnRes, nil
 }
 
-// QueryChannelPair returns a pair of channel responses
-func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
+func QueryChannel(queryCtx QueryContext, chain interface {
 	Chain
 	StateProver
-}, prove bool) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
-	var eg = new(errgroup.Group)
-	eg.Go(func() error {
-		if src.Path().ChannelID == "" {
-			srcChan = &chantypes.QueryChannelResponse{
-				Channel: &chantypes.Channel{
-					State: chantypes.UNINITIALIZED,
-				},
-			}
-			return nil
+}, prove bool) (*chantypes.QueryChannelResponse, error) {
+	if chain.Path().ChannelID == "" {
+		ch := &chantypes.QueryChannelResponse{
+			Channel: &chantypes.Channel{
+				State: chantypes.UNINITIALIZED,
+			},
 		}
-		var err error
-		srcChan, err = src.QueryChannel(srcCtx)
+		return ch, nil
+	}
+
+	ch, err := chain.QueryChannel(queryCtx)
+	if err != nil {
+		return nil, err
+	} else if ch.Channel.State == chantypes.UNINITIALIZED {
+		return ch, nil
+	}
+
+	if prove {
+		path := host.ChannelPath(chain.Path().PortID, chain.Path().ChannelID)
+		var value []byte
+		value, err = chain.Codec().Marshal(ch.Channel)
 		if err != nil {
-			return err
-		} else if srcChan.Channel.State == chantypes.UNINITIALIZED {
-			return nil
+			return nil, err
 		}
-		if prove {
-			path := host.ChannelPath(src.Path().PortID, src.Path().ChannelID)
-			var value []byte
-			value, err = src.Codec().Marshal(srcChan.Channel)
-			if err != nil {
-				return err
-			}
-			srcChan.Proof, srcChan.ProofHeight, err = src.ProveState(srcCtx, path, value)
-		}
-		return err
-	})
-	eg.Go(func() error {
-		if dst.Path().ChannelID == "" {
-			dstChan = &chantypes.QueryChannelResponse{
-				Channel: &chantypes.Channel{
-					State: chantypes.UNINITIALIZED,
-				},
-			}
-			return nil
-		}
-		var err error
-		dstChan, err = dst.QueryChannel(dstCtx)
+		ch.Proof, ch.ProofHeight, err = chain.ProveState(queryCtx, path, value)
 		if err != nil {
-			return err
-		} else if dstChan.Channel.State == chantypes.UNINITIALIZED {
-			return nil
+			return nil, err
 		}
-		if prove {
-			path := host.ChannelPath(dst.Path().PortID, dst.Path().ChannelID)
-			var value []byte
-			value, err = dst.Codec().Marshal(dstChan.Channel)
-			if err != nil {
-				return err
-			}
-			dstChan.Proof, dstChan.ProofHeight, err = dst.ProveState(dstCtx, path, value)
-		}
-		return err
-	})
-	err = eg.Wait()
-	return
+	}
+	return ch, nil
+}
+
+// QueryChannelPair returns a pair of connection responses
+func QueryChannelPair(
+	srcCtx, dstCtx QueryContext,
+	src, dst interface {
+		Chain
+		StateProver
+	},
+	prove bool,
+) (*chantypes.QueryChannelResponse, *chantypes.QueryChannelResponse, error) {
+	srcChanRes, err := QueryChannel(srcCtx, src, prove)
+	if err != nil {
+		return nil, nil, err
+	}
+	dstChanRes, err := QueryChannel(dstCtx, dst, prove)
+	if err != nil {
+		return nil, nil, err
+	}
+	return srcChanRes, dstChanRes, nil
 }
 
 func QueryChannelUpgradePair(srcCtx, dstCtx QueryContext, src, dst interface {

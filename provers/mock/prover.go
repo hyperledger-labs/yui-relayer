@@ -91,8 +91,8 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 			if customInterval, err := strconv.Atoi(os.Getenv("DEBUG_RELAYER_SHFU_INTERVAL")); err == nil {
 				interval = customInterval
 			}
-			n := t / interval
-			for i := 0; i <= n; i++ {
+			n := (t + interval - 1) / interval
+			for i := 0; i < n; i++ {
 				logger.DebugContext(ctx, ">DEBUG_RELAYER_SHFU_WAIT", "cp", s[0], "progress", fmt.Sprintf("%v/%v", (i+1)*interval, t))
 				time.Sleep(time.Duration(interval) * time.Second)
 			}
