@@ -17,6 +17,7 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -142,6 +143,56 @@ func checkConnectionCreateReady(ctx context.Context, src, dst *ProvableChain, lo
 	return true, nil
 }
 
+type queryStateResult struct {
+	updateHeaders []Header
+	conn          *conntypes.QueryConnectionResponse
+	settled       bool
+	csRes         *clienttypes.QueryClientStateResponse
+	cs            ibcexported.ClientState
+	consRes       *clienttypes.QueryConsensusStateResponse
+	cons          ibcexported.ConsensusState
+	consH         ibcexported.Height
+}
+
+func queryState(ctx QueryContext, logger *log.RelayLogger, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryStateResult, error) {
+	var ret queryStateResult
+	var err error
+
+	ret.updateHeaders, err = sh.SetupHeadersForUpdate(ctx.Context(), prover, counterparty)
+	if err != nil {
+		logger.ErrorContext(ctx.Context(), "error setting up headers for update", err)
+		return nil, err
+	}
+
+	ret.conn, ret.settled, err = querySettledConnection(ctx, logger, prover, true)
+	if err != nil {
+		return nil, err
+	} else if !ret.settled {
+		return &ret, nil
+	}
+
+	if ret.conn.Connection.State != conntypes.UNINITIALIZED {
+		ret.csRes, err = QueryClientState(ctx, prover, true)
+		if err != nil {
+			return nil, err
+		}
+		if err := prover.Codec().UnpackAny(ret.csRes.ClientState, &ret.cs); err != nil {
+			return nil, err
+		}
+
+		// Store the heights
+		ret.consH = ret.cs.GetLatestHeight()
+		ret.consRes, err = QueryClientConsensusState(ctx, prover, ret.consH, true)
+		if err != nil {
+			return nil, err
+		}
+		if err := prover.Codec().UnpackAny(ret.consRes.ConsensusState, &ret.cons); err != nil {
+			return nil, err
+		}
+	}
+	return &ret, nil
+}
+
 func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs, error) {
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
@@ -154,72 +205,77 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 	}
 	// Query a number of things all at once
 	var (
-		srcUpdateHeaders, dstUpdateHeaders []Header
-		srcCsRes, dstCsRes                 *clienttypes.QueryClientStateResponse
-		srcCS, dstCS                       ibcexported.ClientState
-		srcConsRes, dstConsRes             *clienttypes.QueryConsensusStateResponse
-		srcCons, dstCons                   ibcexported.ConsensusState
-		srcConsH, dstConsH                 ibcexported.Height
+		srcState, dstState                 *queryStateResult
 		srcHostConsProof, dstHostConsProof []byte
 	)
-	err = retry.Do(func() error {
-		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(ctx, src, dst)
-		return err
-	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
-		// logRetryUpdateHeaders(src, dst, n, err)
-		if err := sh.Updates(ctx, src, dst); err != nil {
-			panic(err)
+
+	{
+		var eg = new(errgroup.Group)
+		srcStream := make(chan *queryStateResult, 1)
+		dstStream := make(chan *queryStateResult, 1)
+		defer close(srcStream)
+		defer close(dstStream)
+
+		srcHeight := sh.GetQueryContext(ctx, src.ChainID()).Height()
+		dstHeight := sh.GetQueryContext(ctx, dst.ChainID()).Height()
+
+		eg.Go(func() error {
+			logger := &log.RelayLogger{Logger: GetConnectionPairLogger(src, dst).With(
+				"side", "src",
+				"src_height", srcHeight.String(),
+				"dst_height", dstHeight.String(),
+			)}
+			queryCtx := sh.GetQueryContext(ctx, src.ChainID())
+			state, err := queryState(queryCtx, logger, sh, src, dst) //, doGetProof)
+			if err != nil {
+				return err
+			}
+			srcStream <- state
+			return nil
+		})
+		eg.Go(func() error {
+			logger := &log.RelayLogger{Logger: GetConnectionPairLogger(src, dst).With(
+				"side", "dst",
+				"src_height", srcHeight.String(),
+				"dst_height", dstHeight.String(),
+			)}
+			queryCtx := sh.GetQueryContext(ctx, dst.ChainID())
+			state, err := queryState(queryCtx, logger, sh, dst, src) //, doGetProof)
+			if err != nil {
+				return err
+			}
+			dstStream <- state
+			return nil
+		})
+
+		err := eg.Wait() // it wait quering to other chain. it may take more time and my chain's state is deleted.
+		if err != nil {
+			return nil, err
 		}
-	}))
-	if err != nil {
-		return nil, err
+		var ok bool
+		srcState, ok = <-srcStream
+		if !ok {
+			return nil, errors.New("srcStream channel closed unexpectedly")
+		}
+		dstState, ok = <-dstStream
+		if !ok {
+			return nil, errors.New("srcStream channel closed unexpectedly")
+		}
 	}
 
-	srcConn, dstConn, settled, err := querySettledConnectionPair(
-		sh.GetQueryContext(ctx, src.ChainID()),
-		sh.GetQueryContext(ctx, dst.ChainID()),
-		src,
-		dst,
-		true,
-	)
-	if err != nil {
-		return nil, err
-	} else if !settled {
+	if !srcState.settled || !dstState.settled {
 		return out, nil
 	}
 
-	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
-		// Query client state from each chain's client
-		srcCsRes, dstCsRes, err = QueryClientStatePair(sh.GetQueryContext(ctx, src.ChainID()), sh.GetQueryContext(ctx, dst.ChainID()), src, dst, true)
+	if srcState.conn.Connection.State != conntypes.UNINITIALIZED {
+		// note that ProveHostConsensusState does not query to its chain.
+		dstHostConsProof, err = dst.ProveHostConsensusState(sh.GetQueryContext(ctx, dst.ChainID()), srcState.cs.GetLatestHeight(), srcState.cons)
 		if err != nil {
 			return nil, err
 		}
-		if err := src.Codec().UnpackAny(srcCsRes.ClientState, &srcCS); err != nil {
-			return nil, err
-		}
-		if err := dst.Codec().UnpackAny(dstCsRes.ClientState, &dstCS); err != nil {
-			return nil, err
-		}
-
-		// Store the heights
-		srcConsH, dstConsH = srcCS.GetLatestHeight(), dstCS.GetLatestHeight()
-		srcConsRes, dstConsRes, err = QueryClientConsensusStatePair(
-			sh.GetQueryContext(ctx, src.ChainID()), sh.GetQueryContext(ctx, dst.ChainID()),
-			src, dst, srcConsH, dstConsH, true)
-		if err != nil {
-			return nil, err
-		}
-		if err := src.Codec().UnpackAny(srcConsRes.ConsensusState, &srcCons); err != nil {
-			return nil, err
-		}
-		if err := dst.Codec().UnpackAny(dstConsRes.ConsensusState, &dstCons); err != nil {
-			return nil, err
-		}
-		srcHostConsProof, err = src.ProveHostConsensusState(sh.GetQueryContext(ctx, src.ChainID()), dstCS.GetLatestHeight(), dstCons)
-		if err != nil {
-			return nil, err
-		}
-		dstHostConsProof, err = dst.ProveHostConsensusState(sh.GetQueryContext(ctx, dst.ChainID()), srcCS.GetLatestHeight(), srcCons)
+	}
+	if dstState.conn.Connection.State != conntypes.UNINITIALIZED {
+		srcHostConsProof, err = src.ProveHostConsensusState(sh.GetQueryContext(ctx, src.ChainID()), dstState.cs.GetLatestHeight(), dstState.cons)
 		if err != nil {
 			return nil, err
 		}
@@ -227,70 +283,70 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 
 	switch {
 	// Handshake hasn't been started on src or dst, relay `connOpenInit` to src
-	case srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED:
-		logConnectionStates(ctx, src, dst, srcConn, dstConn)
+	case srcState.conn.Connection.State == conntypes.UNINITIALIZED && dstState.conn.Connection.State == conntypes.UNINITIALIZED:
+		logConnectionStates(ctx, src, dst, srcState.conn, dstState.conn)
 		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
+		if len(dstState.updateHeaders) > 0 {
+			out.Src = append(out.Src, src.Path().UpdateClients(dstState.updateHeaders, addr)...)
 		}
 		out.Src = append(out.Src, src.Path().ConnInit(dst.Path(), addr))
-		// Handshake has started on dst (1 step done), relay `connOpenTry` and `updateClient` on src
-	case srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.INIT:
-		logConnectionStates(ctx, src, dst, srcConn, dstConn)
+	// Handshake has started on dst (1 step done), relay `connOpenTry` and `updateClient` on src
+	case srcState.conn.Connection.State == conntypes.UNINITIALIZED && dstState.conn.Connection.State == conntypes.INIT:
+		logConnectionStates(ctx, src, dst, srcState.conn, dstState.conn)
 		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
+		if len(dstState.updateHeaders) > 0 {
+			out.Src = append(out.Src, src.Path().UpdateClients(dstState.updateHeaders, addr)...)
 		}
-		out.Src = append(out.Src, src.Path().ConnTry(dst.Path(), dstCsRes, dstConn, dstConsRes, srcHostConsProof, addr))
+		out.Src = append(out.Src, src.Path().ConnTry(dst.Path(), dstState.csRes, dstState.conn, dstState.consRes, srcHostConsProof, addr))
 	// Handshake has started on src (1 step done), relay `connOpenTry` and `updateClient` on dst
-	case srcConn.Connection.State == conntypes.INIT && dstConn.Connection.State == conntypes.UNINITIALIZED:
-		logConnectionStates(ctx, dst, src, dstConn, srcConn)
+	case srcState.conn.Connection.State == conntypes.INIT && dstState.conn.Connection.State == conntypes.UNINITIALIZED:
+		logConnectionStates(ctx, dst, src, dstState.conn, srcState.conn)
 		addr := mustGetAddress(dst)
-		if len(srcUpdateHeaders) > 0 {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
+		if len(srcState.updateHeaders) > 0 {
+			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcState.updateHeaders, addr)...)
 		}
-		out.Dst = append(out.Dst, dst.Path().ConnTry(src.Path(), srcCsRes, srcConn, srcConsRes, dstHostConsProof, addr))
+		out.Dst = append(out.Dst, dst.Path().ConnTry(src.Path(), srcState.csRes, srcState.conn, srcState.consRes, dstHostConsProof, addr))
 
 	// Handshake has started on src end (2 steps done), relay `connOpenAck` and `updateClient` to dst end
-	case srcConn.Connection.State == conntypes.TRYOPEN && dstConn.Connection.State == conntypes.INIT:
-		logConnectionStates(ctx, dst, src, dstConn, srcConn)
+	case srcState.conn.Connection.State == conntypes.TRYOPEN && dstState.conn.Connection.State == conntypes.INIT:
+		logConnectionStates(ctx, dst, src, dstState.conn, srcState.conn)
 		addr := mustGetAddress(dst)
-		if len(srcUpdateHeaders) > 0 {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
+		if len(srcState.updateHeaders) > 0 {
+			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcState.updateHeaders, addr)...)
 		}
-		out.Dst = append(out.Dst, dst.Path().ConnAck(src.Path(), srcCsRes, srcConn, srcConsRes, dstHostConsProof, addr))
+		out.Dst = append(out.Dst, dst.Path().ConnAck(src.Path(), srcState.csRes, srcState.conn, srcState.consRes, dstHostConsProof, addr))
 
 	// Handshake has started on dst end (2 steps done), relay `connOpenAck` and `updateClient` to src end
-	case srcConn.Connection.State == conntypes.INIT && dstConn.Connection.State == conntypes.TRYOPEN:
-		logConnectionStates(ctx, src, dst, srcConn, dstConn)
+	case srcState.conn.Connection.State == conntypes.INIT && dstState.conn.Connection.State == conntypes.TRYOPEN:
+		logConnectionStates(ctx, src, dst, srcState.conn, dstState.conn)
 		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
+		if len(dstState.updateHeaders) > 0 {
+			out.Src = append(out.Src, src.Path().UpdateClients(dstState.updateHeaders, addr)...)
 		}
-		out.Src = append(out.Src, src.Path().ConnAck(dst.Path(), dstCsRes, dstConn, dstConsRes, srcHostConsProof, addr))
+		out.Src = append(out.Src, src.Path().ConnAck(dst.Path(), dstState.csRes, dstState.conn, dstState.consRes, srcHostConsProof, addr))
 
 	// Handshake has confirmed on dst (3 steps done), relay `connOpenConfirm` and `updateClient` to src end
-	case srcConn.Connection.State == conntypes.TRYOPEN && dstConn.Connection.State == conntypes.OPEN:
-		logConnectionStates(ctx, src, dst, srcConn, dstConn)
+	case srcState.conn.Connection.State == conntypes.TRYOPEN && dstState.conn.Connection.State == conntypes.OPEN:
+		logConnectionStates(ctx, src, dst, srcState.conn, dstState.conn)
 		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
+		if len(dstState.updateHeaders) > 0 {
+			out.Src = append(out.Src, src.Path().UpdateClients(dstState.updateHeaders, addr)...)
 		}
-		out.Src = append(out.Src, src.Path().ConnConfirm(dstConn, addr))
+		out.Src = append(out.Src, src.Path().ConnConfirm(dstState.conn, addr))
 		out.Last = true
 
 	// Handshake has confirmed on src (3 steps done), relay `connOpenConfirm` and `updateClient` to dst end
-	case srcConn.Connection.State == conntypes.OPEN && dstConn.Connection.State == conntypes.TRYOPEN:
-		logConnectionStates(ctx, dst, src, dstConn, srcConn)
+	case srcState.conn.Connection.State == conntypes.OPEN && dstState.conn.Connection.State == conntypes.TRYOPEN:
+		logConnectionStates(ctx, dst, src, dstState.conn, srcState.conn)
 		addr := mustGetAddress(dst)
-		if len(srcUpdateHeaders) > 0 {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
+		if len(srcState.updateHeaders) > 0 {
+			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcState.updateHeaders, addr)...)
 		}
-		out.Dst = append(out.Dst, dst.Path().ConnConfirm(srcConn, addr))
+		out.Dst = append(out.Dst, dst.Path().ConnConfirm(srcState.conn, addr))
 		out.Last = true
 
 	default:
-		panic(fmt.Sprintf("not implemented error: %v %v", srcConn.Connection.State, dstConn.Connection.State))
+		panic(fmt.Sprintf("not implemented error: %v %v", srcState.conn.Connection.State, dstState.conn.Connection.State))
 	}
 
 	return out, nil
@@ -338,6 +394,45 @@ func mustGetAddress(chain interface {
 		panic(err)
 	}
 	return addr
+}
+
+func querySettledConnection(
+	queryCtx QueryContext,
+	logger *log.RelayLogger,
+	chain interface {
+		Chain
+		StateProver
+	},
+	prove bool,
+) (*conntypes.QueryConnectionResponse, bool, error) {
+	conn, err := QueryConnection(queryCtx, chain, prove)
+	if err != nil {
+		logger.ErrorContext(queryCtx.Context(), "failed to query connection at the latest finalized height", err)
+		return nil, false, err
+	}
+
+	var latestCtx QueryContext
+	if h, err := chain.LatestHeight(queryCtx.Context()); err != nil {
+		logger.ErrorContext(queryCtx.Context(), "failed to get the latest height", err)
+		return nil, false, err
+	} else {
+		latestCtx = NewQueryContext(queryCtx.Context(), h)
+	}
+
+	latestConn, err := QueryConnection(latestCtx, chain, false)
+	if err != nil {
+		logger.ErrorContext(queryCtx.Context(), "failed to query connection at the latest height", err)
+		return nil, false, err
+	}
+
+	if conn.Connection.String() != latestConn.Connection.String() {
+		logger.DebugContext(queryCtx.Context(), "connection end in transition",
+			"from", conn.Connection.String(),
+			"to", latestConn.Connection.String(),
+		)
+		return conn, false, nil
+	}
+	return conn, true, nil
 }
 
 func querySettledConnectionPair(
