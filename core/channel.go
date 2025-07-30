@@ -139,6 +139,7 @@ type queryCreateChannelStateResult struct {
 	channel       *chantypes.QueryChannelResponse
 	settled       bool
 }
+
 func queryCreateChannelState(queryCtx QueryContext, logger *log.RelayLogger, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryCreateChannelStateResult, error) {
 	var ret queryCreateChannelStateResult
 	err := retry.Do(func() error {
