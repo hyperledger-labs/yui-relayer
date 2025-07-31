@@ -106,7 +106,6 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 		if s[0] == pr.chain.ChainID() {
 			t, _ := strconv.Atoi(s[1])
 
-			// join
 			{
 				var items []*core.HeaderOrError
 				for i := range headerStream {
