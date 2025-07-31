@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"log/slog"
 	"time"
@@ -10,6 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
 	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/attribute"
@@ -201,6 +203,141 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 	}, nil
 }
 
+func (st *NaiveStrategy) ProcessTimeoutPackets(ctx context.Context, src, dst *ProvableChain, sh SyncHeaders, rp *RelayPackets) error {
+	logger := GetChannelPairLogger(src, dst)
+	var (
+		srcPackets                  PacketInfoList
+		dstPackets                  PacketInfoList
+		srcLatestHeight             ibcexported.Height
+		srcLatestTimestamp          uint64
+		srcLatestFinalizedHeight    ibcexported.Height
+		srcLatestFinalizedTimestamp uint64
+		dstLatestHeight             ibcexported.Height
+		dstLatestTimestamp          uint64
+		dstLatestFinalizedHeight    ibcexported.Height
+		dstLatestFinalizedTimestamp uint64
+	)
+
+	if 0 < len(rp.Src) {
+		if h, err := dst.LatestHeight(ctx); err != nil {
+			logger.Error("fail to get dst.LatestHeight", err)
+			return err
+		} else {
+			dstLatestHeight = h
+		}
+
+		if t, err := dst.Timestamp(ctx, dstLatestHeight); err != nil {
+			logger.Error("fail to get dst.Timestamp of latestHeight", err)
+			return err
+		} else {
+			dstLatestTimestamp = uint64(t.UnixNano())
+		}
+
+		dstLatestFinalizedHeight = sh.GetLatestFinalizedHeader(dst.ChainID()).GetHeight()
+		if t, err := dst.Timestamp(ctx, dstLatestFinalizedHeight); err != nil {
+			logger.Error("fail to get dst.Timestamp of latestFinalizedHeight", err)
+			return err
+		} else {
+			dstLatestFinalizedTimestamp = uint64(t.UnixNano())
+		}
+	}
+	if 0 < len(rp.Dst) {
+		if h, err := src.LatestHeight(ctx); err != nil {
+			logger.Error("fail to get src.LatestHeight", err)
+			return err
+		} else {
+			srcLatestHeight = h
+		}
+		if t, err := src.Timestamp(ctx, srcLatestHeight); err != nil {
+			logger.Error("fail to get src.Timestamp of  latestHeight", err)
+			return err
+		} else {
+			srcLatestTimestamp = uint64(t.UnixNano())
+		}
+
+		srcLatestFinalizedHeight = sh.GetLatestFinalizedHeader(src.ChainID()).GetHeight()
+		if t, err := src.Timestamp(ctx, srcLatestFinalizedHeight); err != nil {
+			logger.Error("fail to get src.Timestamp of  latestFinalizedHeight", err)
+			return err
+		} else {
+			srcLatestFinalizedTimestamp = uint64(t.UnixNano())
+		}
+	}
+
+	isTimeout := func(p *PacketInfo, height ibcexported.Height, timestamp uint64) bool {
+		return (!p.TimeoutHeight.IsZero() && p.TimeoutHeight.LTE(height)) ||
+			(p.TimeoutTimestamp != 0 && p.TimeoutTimestamp <= timestamp)
+	}
+
+	var srcTimeoutPackets, dstTimeoutPackets []*PacketInfo
+	for i, p := range rp.Src {
+		if isTimeout(p, dstLatestFinalizedHeight, dstLatestFinalizedTimestamp) {
+			p.TimedOut = true
+			if src.Path().GetOrder() == chantypes.ORDERED {
+				//  For ordered channel, a timeout notification will cause the channel to be closed.
+				//  Packets proceeding the timeout packet is relayed first
+				// so that they can be proceeded before the channel is closed.
+				// In ordered channels, only the first timed-out packet is selected because
+				// a timeout notification will close the channel. Subsequent packets cannot
+				// be processed once the channel is closed.
+				if i == 0 {
+					// queue timeout notify packet only if previous packet is finally received on dst chain.
+					res, err := dst.QueryNextSequenceReceive(NewQueryContext(ctx, dstLatestFinalizedHeight))
+					if err != nil {
+						logger.Error("failed to QueryNextSequenceRecv for src timeout", err, "height", dstLatestFinalizedHeight)
+					} else {
+						if res.NextSequenceReceive == p.Sequence {
+							srcTimeoutPackets = []*PacketInfo{p}
+						}
+					}
+				}
+				break
+			} else {
+				srcTimeoutPackets = append(srcTimeoutPackets, p)
+			}
+		} else if isTimeout(p, dstLatestHeight, dstLatestTimestamp) {
+			break
+		} else {
+			p.TimedOut = false
+			srcPackets = append(srcPackets, p)
+		}
+	}
+	for i, p := range rp.Dst {
+		if isTimeout(p, srcLatestFinalizedHeight, srcLatestFinalizedTimestamp) {
+			p.TimedOut = true
+			if dst.Path().GetOrder() == chantypes.ORDERED {
+				if i == 0 {
+					res, err := src.QueryNextSequenceReceive(NewQueryContext(ctx, srcLatestFinalizedHeight))
+					if err != nil {
+						logger.Error("failed to QueryNextSequenceRecv for dst timeout", err, "height", srcLatestFinalizedHeight)
+					} else {
+						if res.NextSequenceReceive == p.Sequence {
+							dstTimeoutPackets = []*PacketInfo{p}
+						}
+					}
+				}
+				break
+			} else {
+				dstTimeoutPackets = append(dstTimeoutPackets, p)
+			}
+		} else if isTimeout(p, srcLatestHeight, srcLatestTimestamp) {
+			break
+		} else {
+			p.TimedOut = false
+			dstPackets = append(dstPackets, p)
+		}
+	}
+	if len(srcTimeoutPackets) > 0 {
+		dstPackets = append(dstPackets, srcTimeoutPackets...)
+	}
+	if len(dstTimeoutPackets) > 0 {
+		srcPackets = append(srcPackets, dstTimeoutPackets...)
+	}
+	rp.Src = srcPackets
+	rp.Dst = dstPackets
+	return nil
+}
+
 func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
 	ctx, span := tracer.Start(ctx, "NaiveStrategy.RelayPackets", WithChannelPairAttributes(src, dst))
 	defer span.End()
@@ -213,14 +350,14 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 	srcAddress, err := src.GetAddress()
 	if err != nil {
-		logger.ErrorContext(ctx, "error getting address", err)
+		logger.ErrorContext(ctx, "error getting src address", err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
 	dstAddress, err := dst.GetAddress()
 	if err != nil {
-		logger.ErrorContext(ctx, "error getting address", err)
+		logger.ErrorContext(ctx, "error getting dst address", err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
@@ -228,7 +365,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 	if doExecuteRelayDst {
 		msgs.Dst, err = collectPackets(srcCtx, src, rp.Src, dstAddress)
 		if err != nil {
-			logger.ErrorContext(ctx, "error collecting packets", err)
+			logger.ErrorContext(ctx, "error collecting src packets", err)
 			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
@@ -237,7 +374,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 	if doExecuteRelaySrc {
 		msgs.Src, err = collectPackets(dstCtx, dst, rp.Dst, srcAddress)
 		if err != nil {
-			logger.ErrorContext(ctx, "error collecting packets", err)
+			logger.ErrorContext(ctx, "error collecting dst packets", err)
 			span.SetStatus(codes.Error, err.Error())
 			return nil, err
 		}
@@ -390,23 +527,51 @@ func (st *NaiveStrategy) UnrelayedAcknowledgements(ctx context.Context, src, dst
 	}, nil
 }
 
-// TODO add packet-timeout support
 func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	logger := GetChannelLogger(chain)
+
 	var msgs []sdk.Msg
 	for _, p := range packets {
-		commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
-		path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
-		proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
-		if err != nil {
-			logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
-				"height", ctx.Height(),
-				"path", path,
-				"commitment", commitment,
-			)
-			return nil, err
+		var msg sdk.Msg
+		if p.TimedOut {
+			// make path of original packet's destination port and channel
+			var path string
+			var commitment []byte
+			var nextSequenceRecvOfTimeout uint64
+			if chain.Path().GetOrder() == chantypes.ORDERED {
+				path = host.NextSequenceRecvPath(p.SourcePort, p.SourceChannel)
+				commitment = make([]byte, 8)
+				binary.BigEndian.PutUint64(commitment[0:], p.Sequence)
+				nextSequenceRecvOfTimeout = p.Sequence
+			} else {
+				path = host.PacketReceiptPath(p.SourcePort, p.SourceChannel, p.Sequence)
+				commitment = []byte{}         // Represents absence of a commitment in unordered channels
+				nextSequenceRecvOfTimeout = 1 // nextSequenceRecv has no effect in unordered channel but ibc-go expect it is not zero.
+			}
+			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
+			if err != nil {
+				logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
+					"height", ctx.Height(),
+					"path", path,
+					"commitment", commitment,
+				)
+				return nil, err
+			}
+			msg = chantypes.NewMsgTimeout(p.Packet, nextSequenceRecvOfTimeout, proof, proofHeight, signer.String())
+		} else {
+			path := host.PacketCommitmentPath(p.SourcePort, p.SourceChannel, p.Sequence)
+			commitment := chantypes.CommitPacket(chain.Codec(), &p.Packet)
+			proof, proofHeight, err := chain.ProveState(ctx, path, commitment)
+			if err != nil {
+				logger.ErrorContext(ctx.Context(), "failed to ProveState", err,
+					"height", ctx.Height(),
+					"path", path,
+					"commitment", commitment,
+				)
+				return nil, err
+			}
+			msg = chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
 		}
-		msg := chantypes.NewMsgRecvPacket(p.Packet, proof, proofHeight, signer.String())
 		msgs = append(msgs, msg)
 	}
 	return msgs, nil
@@ -433,13 +598,13 @@ func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *Pr
 	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 	srcAddress, err := src.GetAddress()
 	if err != nil {
-		logger.ErrorContext(ctx, "error getting address", err)
+		logger.ErrorContext(ctx, "error getting src address", err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 	dstAddress, err := dst.GetAddress()
 	if err != nil {
-		logger.ErrorContext(ctx, "error getting address", err)
+		logger.ErrorContext(ctx, "error getting dst address", err)
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
