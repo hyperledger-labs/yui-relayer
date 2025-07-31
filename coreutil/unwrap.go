@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
+	debugprover "github.com/hyperledger-labs/yui-relayer/provers/debug"
 	"github.com/hyperledger-labs/yui-relayer/otelcore"
 )
 
@@ -40,6 +41,8 @@ func UnwrapProver[P core.Prover](p core.Prover) (P, error) {
 	prover := p
 	for {
 		switch unwrapped := prover.(type) {
+		case *debugprover.Prover:
+			return UnwrapProver[P](unwrapped.OriginProver())
 		case *core.ProvableChain:
 			prover = unwrapped.Prover
 		case *otelcore.Prover:
