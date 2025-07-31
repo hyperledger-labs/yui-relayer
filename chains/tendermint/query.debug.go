@@ -40,7 +40,7 @@ func debugFakeLost(ctx context.Context, chain *Chain, queryHeight ibcexported.He
 	if val, ok := os.LookupEnv("DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT"); ok {
 		s := strings.Split(val, " ")
 		if len(s) != 2 {
-			fmt.Printf("malformed DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT: <chainid> <space> <height threshold>'\n")
+			fmt.Printf("malformed DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT: <chainid> <space> <height threshold>\n")
 			return nil
 		}
 		if s[0] == chain.ChainID() {

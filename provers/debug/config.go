@@ -30,7 +30,7 @@ func (pc ProverConfig) Build(chain core.Chain) (core.Prover, error) {
 		return nil, fmt.Errorf("OriginProver must set")
 	}
 	if pc.OriginProver.GetCachedValue() == nil {
-		return nil, fmt.Errorf("OriginProver.GetCachedValue() must set")
+		return nil, fmt.Errorf("OriginProver.GetCachedValue() must be set")
 	}
 	originProver, err := pc.OriginProver.GetCachedValue().(core.ProverConfig).Build(chain)
 	if err != nil {

@@ -247,7 +247,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		}
 		dstState, ok = <-dstStream
 		if !ok {
-			return nil, errors.New("srcStream channel closed unexpectedly")
+			return nil, errors.New("dstStream channel closed unexpectedly")
 		}
 	}
 
