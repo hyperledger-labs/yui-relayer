@@ -1,4 +1,4 @@
-//go:build !yrly_debug
+//go:build yrly_debug
 package tendermint
 
 import (
@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"os"
+	"strconv"
 
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	ctypes "github.com/cometbft/cometbft/rpc/core/types"
@@ -32,6 +34,35 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func debugFakeLost(ctx context.Context, chain *Chain, queryHeight ibcexported.Height) error {
+	if val, ok := os.LookupEnv("DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT"); ok {
+		s := strings.Split(val, " ")
+		if len(s) != 2 {
+			fmt.Printf("malformed DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT: <chainid> <space> <height threshold>'\n")
+			return nil
+		}
+		if s[0] == chain.ChainID() {
+			threshold, err := strconv.Atoi(s[1])
+			if err != nil {
+				fmt.Printf("malformed DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT: %v\n", err)
+				return nil
+			}
+
+			qh := int64(queryHeight.GetRevisionHeight())
+			latestHeight, err := chain.LatestHeight(ctx)
+			if err != nil {
+				return err
+			}
+
+			lh := int64(latestHeight.GetRevisionHeight())
+			if qh + int64(threshold) < lh {
+				return fmt.Errorf("fake missing trie node: %v + %v < %v", qh, threshold, lh)
+			}
+		}
+	}
+	return nil
+}
 
 // QueryClientState retrevies the latest consensus state for a client in state at a given height
 func (c *Chain) QueryClientState(ctx core.QueryContext) (*clienttypes.QueryClientStateResponse, error) {
@@ -60,6 +91,9 @@ var emptyConnRes = conntypes.NewQueryConnectionResponse(
 
 // QueryConnection returns the remote end of a given connection
 func (c *Chain) QueryConnection(ctx core.QueryContext, connectionID string) (*conntypes.QueryConnectionResponse, error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return nil, err
+	}
 	return c.queryConnection(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), connectionID, false)
 }
 
@@ -90,6 +124,9 @@ var emptyChannelRes = chantypes.NewQueryChannelResponse(
 
 // QueryChannel returns the channel associated with a channelID
 func (c *Chain) QueryChannel(ctx core.QueryContext) (chanRes *chantypes.QueryChannelResponse, err error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return nil, err
+	}
 	return c.queryChannel(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), false)
 }
 
@@ -106,6 +143,9 @@ func (c *Chain) queryChannel(ctx context.Context, height int64, prove bool) (cha
 // QueryClientConsensusState retrieves the latest consensus state for a client in state at a given height
 func (c *Chain) QueryClientConsensusState(
 	ctx core.QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return nil, err
+	}
 	return c.queryClientConsensusState(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), dstClientConsHeight, false)
 }
 
@@ -139,6 +179,9 @@ func (c *Chain) QueryBalance(ctx core.QueryContext, addr sdk.AccAddress) (sdk.Co
 
 // QueryDenomTraces returns all the denom traces from a given chain
 func (c *Chain) QueryDenomTraces(ctx core.QueryContext, offset, limit uint64) (*transfertypes.QueryDenomTracesResponse, error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return nil, err
+	}
 	return transfertypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight())).WithCmdContext(ctx.Context())).DenomTraces(ctx.Context(), &transfertypes.QueryDenomTracesRequest{
 		Pagination: &querytypes.PageRequest{
 			Key:        []byte(""),
@@ -197,6 +240,9 @@ func (c *Chain) queryPacketAcknowledgementCommitments(ctx core.QueryContext, off
 
 // QueryUnreceivedPackets returns a list of unrelayed packet commitments
 func (c *Chain) QueryUnreceivedPackets(ctx core.QueryContext, seqs []uint64) ([]uint64, error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return nil, err
+	}
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight())).WithCmdContext(ctx.Context()))
 	res, err := qc.UnreceivedPackets(ctx.Context(), &chantypes.QueryUnreceivedPacketsRequest{
 		PortId:                    c.PathEnd.PortID,
@@ -210,6 +256,9 @@ func (c *Chain) QueryUnreceivedPackets(ctx core.QueryContext, seqs []uint64) ([]
 }
 
 func (c *Chain) QueryUnfinalizedRelayPackets(ctx core.QueryContext, counterparty core.LightClientICS04Querier) (core.PacketInfoList, error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return nil, err
+	}
 	res, err := c.queryPacketCommitments(ctx, 0, 1000)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query packet commitments: error=%w height=%v", err, ctx.Height())
@@ -246,6 +295,9 @@ func (c *Chain) QueryUnfinalizedRelayPackets(ctx core.QueryContext, counterparty
 
 // QueryUnreceivedAcknowledgements returns a list of unrelayed packet acks
 func (c *Chain) QueryUnreceivedAcknowledgements(ctx core.QueryContext, seqs []uint64) ([]uint64, error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return nil, err
+	}
 	qc := chantypes.NewQueryClient(c.CLIContext(int64(ctx.Height().GetRevisionHeight())).WithCmdContext(ctx.Context()))
 	res, err := qc.UnreceivedAcks(ctx.Context(), &chantypes.QueryUnreceivedAcksRequest{
 		PortId:             c.PathEnd.PortID,
@@ -259,6 +311,9 @@ func (c *Chain) QueryUnreceivedAcknowledgements(ctx core.QueryContext, seqs []ui
 }
 
 func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, counterparty core.LightClientICS04Querier) (core.PacketInfoList, error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return nil, err
+	}
 	res, err := c.queryPacketAcknowledgementCommitments(ctx, 0, 1000)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query packet acknowledgement commitments: error=%w height=%v", err, ctx.Height())
@@ -430,6 +485,9 @@ func (c *Chain) QueryTxs(ctx context.Context, maxHeight int64, page, limit int, 
 }
 
 func (c *Chain) QueryChannelUpgrade(ctx core.QueryContext) (*chantypes.QueryUpgradeResponse, error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return nil, err
+	}
 	return c.queryChannelUpgrade(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), false)
 }
 
@@ -451,6 +509,9 @@ func (c *Chain) queryChannelUpgrade(ctx context.Context, height int64, prove boo
 }
 
 func (c *Chain) QueryChannelUpgradeError(ctx core.QueryContext) (*chantypes.QueryUpgradeErrorResponse, error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return nil, err
+	}
 	return c.queryChannelUpgradeError(ctx.Context(), int64(ctx.Height().GetRevisionHeight()), false)
 }
 
@@ -472,6 +533,9 @@ func (c *Chain) queryChannelUpgradeError(ctx context.Context, height int64, prov
 }
 
 func (c *Chain) QueryCanTransitionToFlushComplete(ctx core.QueryContext) (bool, error) {
+	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
+		return false, err
+	}
 	return c.queryCanTransitionToFlushComplete(ctx.Context(), int64(ctx.Height().GetRevisionHeight()))
 }
 
@@ -494,6 +558,9 @@ func (c *Chain) queryCanTransitionToFlushComplete(ctx context.Context, height in
 
 // QueryHistoricalInfo returns historical header data
 func (c *Chain) QueryHistoricalInfo(ctx context.Context, height clienttypes.Height) (*stakingtypes.QueryHistoricalInfoResponse, error) {
+	if err := debugFakeLost(ctx, c, height); err != nil {
+		return nil, err
+	}
 	ctx, span := tracer.Start(ctx, "Chain.QueryHistoricalInfo", core.WithChainAttributes(c.ChainID()))
 	defer span.End()
 
@@ -511,6 +578,9 @@ func (c *Chain) QueryHistoricalInfo(ctx context.Context, height clienttypes.Heig
 
 // QueryValsetAtHeight returns the validator set at a given height
 func (c *Chain) QueryValsetAtHeight(ctx context.Context, height clienttypes.Height) (*tmproto.ValidatorSet, error) {
+	if err := debugFakeLost(ctx, c, height); err != nil {
+		return nil, err
+	}
 	ctx, span := tracer.Start(ctx, "Chain.QueryValsetAtHeight", core.WithChainAttributes(c.ChainID()))
 	defer span.End()
 

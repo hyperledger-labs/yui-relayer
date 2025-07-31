@@ -76,30 +76,6 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height expo
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterparty chain
 func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) (<-chan *core.HeaderOrError, error) {
-	if val, ok := os.LookupEnv("DEBUG_RELAYER_SHFU_WAIT"); ok {
-		logger := log.GetLogger()
-		s := strings.Split(val, " ")
-		if len(s) != 2 {
-			return nil, fmt.Errorf("malformed DEBUG_RELAYER_SHFU_WAIT: it should be '<counterparty chainid> <space> <wait seconds>'")
-		}
-		if s[0] == counterparty.ChainID() {
-			t, err := strconv.Atoi(s[1])
-			if err != nil {
-				return nil, err
-			}
-			interval := 30 // default interval in seconds
-			if customInterval, err := strconv.Atoi(os.Getenv("DEBUG_RELAYER_SHFU_INTERVAL")); err == nil {
-				interval = customInterval
-			}
-			n := (t + interval - 1) / interval
-			for i := 0; i < n; i++ {
-				logger.DebugContext(ctx, ">DEBUG_RELAYER_SHFU_WAIT", "cp", s[0], "progress", fmt.Sprintf("%v/%v", (i+1)*interval, t))
-				time.Sleep(time.Duration(interval) * time.Second)
-			}
-			logger.DebugContext(ctx, "<DEBUG_RELAYER_SHFU_WAIT", "cp", s[0])
-		}
-	}
-
 	return core.MakeHeaderStream(latestFinalizedHeader.(*mocktypes.Header)), nil
 }
 
