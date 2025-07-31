@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/hyperledger-labs/yui-relayer/core"
-	debugprover "github.com/hyperledger-labs/yui-relayer/provers/debug"
 	"github.com/hyperledger-labs/yui-relayer/otelcore"
+	debugprover "github.com/hyperledger-labs/yui-relayer/provers/debug"
 )
 
 // UnwrapChain finds the first struct value in the Chain field that matches the specified
