@@ -109,13 +109,13 @@ type ICS04Querier interface {
 	// QueryUnreceivedPackets returns a list of unrelayed packet commitments
 	QueryUnreceivedPackets(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
-	// QueryUnfinalizedRelayedPackets returns packets and heights that are sent but not received at the latest finalized block on the counterparty chain
+	// QueryUnfinalizedRelayPackets returns packets and heights that are sent but not received at the latest finalized block on the counterparty chain
 	QueryUnfinalizedRelayPackets(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error)
 
 	// QueryUnreceivedAcknowledgements returns a list of unrelayed packet acks
 	QueryUnreceivedAcknowledgements(ctx QueryContext, seqs []uint64) ([]uint64, error)
 
-	// QueryUnfinalizedRelayedAcknowledgements returns acks and heights that are sent but not received at the latest finalized block on the counterpartychain
+	// QueryUnfinalizedRelayAcknowledgements returns acks and heights that are sent but not received at the latest finalized block on the counterpartychain
 	QueryUnfinalizedRelayAcknowledgements(ctx QueryContext, counterparty LightClientICS04Querier) (PacketInfoList, error)
 
 	// QueryChannelUpgrade returns the channel upgrade associated with a channelID
