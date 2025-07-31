@@ -450,19 +450,6 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		return out, nil
 	}
 
-	/*
-		// determine upgrade states
-		srcState, err := NewUpgradeState(srcResult.channel.Channel.State, srcResult.chanUpg != nil)
-		if err != nil {
-			logger.ErrorContext(ctx, "failed to create UpgradeState of the src chain", err)
-			return nil, err
-		}
-		dstState, err := NewUpgradeState(dstResult.channel.Channel.State, dstResult.chanUpg != nil)
-		if err != nil {
-			logger.ErrorContext(ctx, "failed to create UpgradeState of the dst chain", err)
-			return nil, err
-		}
-	*/
 	srcState := srcResult.upgradeState
 	dstState := dstResult.upgradeState
 
