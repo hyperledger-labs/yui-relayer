@@ -284,7 +284,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 		out.Dst = append(out.Dst, dst.Path().ChanConfirm(srcState.channel, addr))
 		out.Last = true
 	default:
-		panic(fmt.Sprintf("not implemented error: %v <=> %v", srcState.channel.Channel.State.String(), dstState.channel.Channel.State.String()))
+		panic(fmt.Sprintf("not implemented: %v <=> %v", srcState.channel.Channel.State.String(), dstState.channel.Channel.State.String()))
 	}
 	return out, nil
 }

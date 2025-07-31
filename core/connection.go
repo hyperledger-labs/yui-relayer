@@ -236,7 +236,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 			return nil
 		})
 
-		err := eg.Wait() // it wait quering to other chain. it may take more time and my chain's state is deleted.
+		err := eg.Wait() // it waits querying to other chain. it may take more time and my chain's state is deleted.
 		if err != nil {
 			return nil, err
 		}
