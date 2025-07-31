@@ -486,7 +486,7 @@ func (c *Chain) QueryTxs(ctx context.Context, maxHeight int64, page, limit int, 
 }
 
 func (c *Chain) QueryChannelUpgrade(ctx core.QueryContext) (*chantypes.QueryUpgradeResponse, error) {
-	if  0 < ctx.Height().GetRevisionHeight() {
+	if 0 < ctx.Height().GetRevisionHeight() {
 		if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
 			return nil, err
 		}

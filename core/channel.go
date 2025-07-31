@@ -170,7 +170,6 @@ func queryCreateChannelState(queryCtx QueryContext, sh SyncHeaders, prover, coun
 }
 
 func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs, error) {
-	fmt.Printf("-->createChannelStep: src=%s, dst=%s\n", src.ChainID(), dst.ChainID())
 	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err

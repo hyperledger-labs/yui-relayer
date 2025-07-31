@@ -84,7 +84,7 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 
 // GetChainID returns the chain ID
 func (pr *Prover) GetChainID() string {
-	return pr.GetChainID()
+	return pr.originProver.GetChainID()
 }
 
 /* LightClient implementation */
