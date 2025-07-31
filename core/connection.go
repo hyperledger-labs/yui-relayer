@@ -154,9 +154,10 @@ type queryCreateConnectionStateResult struct {
 	consH         ibcexported.Height
 }
 
-func queryCreateConnectionState(ctx QueryContext, logger *log.RelayLogger, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryCreateConnectionStateResult, error) {
+func queryCreateConnectionState(ctx QueryContext, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryCreateConnectionStateResult, error) {
 	var ret queryCreateConnectionStateResult
 	var err error
+	logger := GetConnectionPairLoggerRelative(prover, counterparty)
 
 	ret.updateHeaders, err = sh.SetupHeadersForUpdate(ctx.Context(), prover, counterparty)
 	if err != nil {
@@ -216,17 +217,9 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		defer close(srcStream)
 		defer close(dstStream)
 
-		srcHeight := sh.GetQueryContext(ctx, src.ChainID()).Height()
-		dstHeight := sh.GetQueryContext(ctx, dst.ChainID()).Height()
-
 		eg.Go(func() error {
-			logger := &log.RelayLogger{Logger: GetConnectionPairLogger(src, dst).With(
-				"side", "src",
-				"src_height", srcHeight.String(),
-				"dst_height", dstHeight.String(),
-			)}
 			queryCtx := sh.GetQueryContext(ctx, src.ChainID())
-			state, err := queryCreateConnectionState(queryCtx, logger, sh, src, dst)
+			state, err := queryCreateConnectionState(queryCtx, sh, src, dst)
 			if err != nil {
 				return err
 			}
@@ -234,13 +227,8 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 			return nil
 		})
 		eg.Go(func() error {
-			logger := &log.RelayLogger{Logger: GetConnectionPairLogger(src, dst).With(
-				"side", "dst",
-				"src_height", srcHeight.String(),
-				"dst_height", dstHeight.String(),
-			)}
 			queryCtx := sh.GetQueryContext(ctx, dst.ChainID())
-			state, err := queryCreateConnectionState(queryCtx, logger, sh, dst, src)
+			state, err := queryCreateConnectionState(queryCtx, sh, dst, src)
 			if err != nil {
 				return err
 			}
@@ -444,6 +432,19 @@ func GetConnectionPairLogger(src, dst Chain) *log.RelayLogger {
 			dst.ChainID(),
 			dst.Path().ClientID,
 			dst.Path().ConnectionID,
+		).
+		WithModule("core.connection")
+}
+
+func GetConnectionPairLoggerRelative(me, cp Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithConnectionPair(
+			me.ChainID(),
+			me.Path().ClientID,
+			me.Path().ConnectionID,
+			cp.ChainID(),
+			cp.Path().ClientID,
+			cp.Path().ConnectionID,
 		).
 		WithModule("core.connection")
 }

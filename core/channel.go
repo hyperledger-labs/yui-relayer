@@ -140,8 +140,10 @@ type queryCreateChannelStateResult struct {
 	settled       bool
 }
 
-func queryCreateChannelState(queryCtx QueryContext, logger *log.RelayLogger, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryCreateChannelStateResult, error) {
+func queryCreateChannelState(queryCtx QueryContext, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryCreateChannelStateResult, error) {
 	var ret queryCreateChannelStateResult
+	logger := GetChannelPairLoggerRelative(prover, counterparty)
+
 	err := retry.Do(func() error {
 		var err error
 		ret.updateHeaders, err = sh.SetupHeadersForUpdate(queryCtx.Context(), prover, counterparty)
@@ -194,12 +196,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 		srcCtx := sh.GetQueryContext(ctx, src.ChainID())
 		dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 		eg.Go(func() error {
-			logger := &log.RelayLogger{Logger: GetChannelPairLogger(src, dst).With(
-				"side", "src",
-				"src_height", srcCtx.Height().String(),
-				"dst_height", dstCtx.Height().String(),
-			)}
-			state, err := queryCreateChannelState(srcCtx, logger, sh, src, dst)
+			state, err := queryCreateChannelState(srcCtx, sh, src, dst)
 			if err != nil {
 				return err
 			}
@@ -207,12 +204,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 			return nil
 		})
 		eg.Go(func() error {
-			logger := &log.RelayLogger{Logger: GetChannelPairLogger(src, dst).With(
-				"side", "dst",
-				"src_height", srcCtx.Height().String(),
-				"dst_height", dstCtx.Height().String(),
-			)}
-			state, err := queryCreateChannelState(dstCtx, logger, sh, dst, src)
+			state, err := queryCreateChannelState(dstCtx, sh, dst, src)
 			if err != nil {
 				return err
 			}
@@ -389,6 +381,15 @@ func GetChannelPairLogger(src, dst Chain) *log.RelayLogger {
 		WithChannelPair(
 			src.ChainID(), src.Path().PortID, src.Path().ChannelID,
 			dst.ChainID(), dst.Path().PortID, dst.Path().ChannelID,
+		).
+		WithModule("core.channel")
+}
+
+func GetChannelPairLoggerRelative(me, cp Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithChannelPairRelative(
+			me.ChainID(), me.Path().PortID, me.Path().ChannelID,
+			cp.ChainID(), cp.Path().PortID, cp.Path().ChannelID,
 		).
 		WithModule("core.channel")
 }
