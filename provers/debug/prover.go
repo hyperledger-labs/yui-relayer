@@ -38,7 +38,7 @@ func debugFakeLost(ctx context.Context, chain core.Chain, queryHeight exported.H
 			}
 
 			lh := int64(latestHeight.GetRevisionHeight())
-			if qh + int64(threshold) < lh {
+			if qh+int64(threshold) < lh {
 				return fmt.Errorf("fake missing trie node: %v + %v < %v", qh, threshold, lh)
 			}
 		}
@@ -47,8 +47,8 @@ func debugFakeLost(ctx context.Context, chain core.Chain, queryHeight exported.H
 }
 
 type Prover struct {
-	config ProverConfig
-	chain  core.Chain
+	config       ProverConfig
+	chain        core.Chain
 	originProver core.Prover
 
 	path             *core.PathEnd

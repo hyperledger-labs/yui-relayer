@@ -1,4 +1,5 @@
 //go:build !yrly_debug
+
 package tendermint
 
 import (

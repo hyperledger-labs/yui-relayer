@@ -1,15 +1,16 @@
 //go:build yrly_debug
+
 package tendermint
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
-	"os"
-	"strconv"
 
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	ctypes "github.com/cometbft/cometbft/rpc/core/types"
@@ -56,7 +57,7 @@ func debugFakeLost(ctx context.Context, chain *Chain, queryHeight ibcexported.He
 			}
 
 			lh := int64(latestHeight.GetRevisionHeight())
-			if qh + int64(threshold) < lh {
+			if qh+int64(threshold) < lh {
 				return fmt.Errorf("fake missing trie node: %v + %v < %v", qh, threshold, lh)
 			}
 		}
