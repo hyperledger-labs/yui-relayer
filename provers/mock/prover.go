@@ -5,9 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	fmt "fmt"
-	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
