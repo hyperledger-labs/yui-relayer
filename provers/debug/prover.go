@@ -18,16 +18,16 @@ import (
 )
 
 func debugFakeLost(ctx context.Context, chain core.Chain, queryHeight exported.Height) error {
-	if val, ok := os.LookupEnv("DEBUG_RELAYER_PROVER_MISSING_TRIE_NODE_HEIGHT"); ok {
+	if val, ok := os.LookupEnv("DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_PROVER"); ok {
 		s := strings.Split(val, " ")
 		if len(s) != 2 {
-			fmt.Printf("malformed DEBUG_RELAYER_PROVER_MISSING_TRIE_NODE_HEIGHT: <chainid> <space> <height threshold>'\n")
+			fmt.Printf("malformed DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_PROVER: <chainid> <space> <height threshold>'\n")
 			return nil
 		}
 		if s[0] == chain.ChainID() {
 			threshold, err := strconv.Atoi(s[1])
 			if err != nil {
-				fmt.Printf("malformed DEBUG_RELAYER_PROVER_MISSING_TRIE_NODE_HEIGHT: %v\n", err)
+				fmt.Printf("malformed DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_PROVER: %v\n", err)
 				return nil
 			}
 
@@ -59,6 +59,10 @@ var _ core.Prover = (*Prover)(nil)
 
 func NewProver(chain core.Chain, config ProverConfig, originProver core.Prover) *Prover {
 	return &Prover{config: config, originProver: originProver, chain: chain}
+}
+
+func (pr *Prover) OriginProver() core.Prover {
+	return pr.originProver
 }
 
 func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
