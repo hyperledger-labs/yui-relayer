@@ -382,9 +382,12 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 	)}
 
 	// check if both chains have reached the target states or UNINIT states
-	if !firstCall && srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT ||
-		srcState != UPGRADE_STATE_UNINIT && dstState != UPGRADE_STATE_UNINIT && srcState == targetSrcState && dstState == targetDstState {
-		logger.InfoContext(ctx, "both chains have reached the target states")
+	if srcState == targetSrcState && dstState == targetDstState {
+		if firstCall && srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT {
+			logger.InfoContext(ctx, "both chains have already reached the target states, or the channel upgrade has not been initialized")
+		} else {
+			logger.InfoContext(ctx, "both chains have reached the target states")
+		}
 		out.Last = true
 		return out, nil
 	}
@@ -394,7 +397,7 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 	dstAction := UPGRADE_ACTION_NONE
 	switch {
 	case srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT:
-		return nil, errors.New("channel upgrade is not initialized")
+		return nil, errors.New("channel upgrade has not been initialized; it will never reach the target states")
 	case srcState == UPGRADE_STATE_INIT && dstState == UPGRADE_STATE_UNINIT:
 		if dstChan.Channel.UpgradeSequence >= srcChan.Channel.UpgradeSequence {
 			srcAction = UPGRADE_ACTION_CANCEL

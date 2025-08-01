@@ -140,3 +140,17 @@ $RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHING --target-dst-s
 sleep 20                              # Both chains exceed upgrade.timeout.timestamp
 $RLY tx channel-upgrade execute ibc01 # ibc0,ibc1 <= chanUpgradeTimeout
 checkResult orig
+
+echo '##### case 10 #####'
+# Both chains have already reached the target states, or the channel upgrade has not been initialized
+$RLY tx channel-upgrade execute ibc01
+checkResult orig
+
+echo '##### case 11 #####'
+# The target states will never be reached
+if $RLY tx channel-upgrade execute ibc01 --target-src-state INIT --target-dst-state FLUSHING
+then
+    echo 'channel-upgrade completed with exit code 0, but non-zero code was expected' >&2
+    exit 1
+fi
+checkResult orig
