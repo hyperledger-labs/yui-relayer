@@ -53,21 +53,21 @@ checkResult() {
 
     if [ "$expectedSide" = orig ]
     then
-	if [ "$srcConnectionId" != "$srcOrigConnectionId" -o "$dstConnectionId" != "$dstOrigConnectionId" -o "$srcVersion" != "$srcOrigVersion" -o "$dstVersion" != "$dstOrigVersion" -o "$srcOrder" != "$srcOrigOrder" -o "$dstOrder" != "$dstOrigOrder" ]
-	then
-	    echo "path config is not equal to the original one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
-	    exit 1
-	fi
+        if [ "$srcConnectionId" != "$srcOrigConnectionId" -o "$dstConnectionId" != "$dstOrigConnectionId" -o "$srcVersion" != "$srcOrigVersion" -o "$dstVersion" != "$dstOrigVersion" -o "$srcOrder" != "$srcOrigOrder" -o "$dstOrder" != "$dstOrigOrder" ]
+        then
+            echo "path config is not equal to the original one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
+            exit 1
+        fi
     elif [ "$expectedSide" = alt ]
     then
-	if [ "$srcConnectionId" != "$srcAltConnectionId" -o "$dstConnectionId" != "$dstAltConnectionId" -o "$srcVersion" != "$srcAltVersion" -o "$dstVersion" != "$dstAltVersion" -o "$srcOrder" != "$srcAltOrder" -o "$dstOrder" != "$dstAltOrder" ]
-	then
-	    echo "path config is not equal to the alternative one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
-	    exit 1
-	fi
+        if [ "$srcConnectionId" != "$srcAltConnectionId" -o "$dstConnectionId" != "$dstAltConnectionId" -o "$srcVersion" != "$srcAltVersion" -o "$dstVersion" != "$dstAltVersion" -o "$srcOrder" != "$srcAltOrder" -o "$dstOrder" != "$dstAltOrder" ]
+        then
+            echo "path config is not equal to the alternative one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
+            exit 1
+        fi
     else
-	echo "expectedSide is invalid value: $expectedSide"
-	exit 1
+        echo "expectedSide is invalid value: $expectedSide"
+        exit 1
     fi
 }
 
