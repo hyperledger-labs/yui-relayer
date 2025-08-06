@@ -314,29 +314,32 @@ type queryUpgradeChannelStateResult struct {
 	upgErr               *chantypes.QueryUpgradeErrorResponse
 }
 
-func queryUpgradeChannelState(queryCtx QueryContext, logger *log.RelayLogger, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryUpgradeChannelStateResult, error) {
+func queryUpgradeChannelState(ctx context.Context, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryUpgradeChannelStateResult, error) {
 	var ret queryUpgradeChannelStateResult
+	logger := GetChannelPairLoggerRelative(prover, counterparty)
+	queryCtx := sh.GetQueryContext(ctx, prover.ChainID())
+
 	err := retry.Do(func() error {
 		var err error
-		ret.updateHeaders, err = sh.SetupHeadersForUpdate(queryCtx.Context(), prover, counterparty)
+		ret.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, prover, counterparty)
 		if err != nil {
 			return err
 		}
 		return nil
-	}, rtyAtt, rtyDel, rtyErr, retry.Context(queryCtx.Context()), retry.OnRetry(func(n uint, err error) {
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
 		// logRetryUpdateHeaders(src, dst, n, err)
-		if err := sh.Updates(queryCtx.Context(), prover, counterparty); err != nil {
+		if err := sh.Updates(ctx, prover, counterparty); err != nil {
 			panic(err)
 		}
 	}))
 	if err != nil {
-		logger.ErrorContext(queryCtx.Context(), "failed to set up headers for LC update on both chains", err)
+		logger.ErrorContext(ctx, "failed to set up headers for LC update on both chains", err)
 		return nil, err
 	}
 
 	ret.channel, ret.settled, err = querySettledChannel(queryCtx, logger, prover, true)
 	if err != nil {
-		logger.ErrorContext(queryCtx.Context(), "failed to query the channel with proofs", err)
+		logger.ErrorContext(ctx, "failed to query the channel with proofs", err)
 		return nil, err
 	} else if !ret.settled {
 		return &ret, nil
@@ -344,7 +347,7 @@ func queryUpgradeChannelState(queryCtx QueryContext, logger *log.RelayLogger, sh
 
 	ret.chanUpg, ret.settled, err = querySettledChannelUpgrade(queryCtx, logger, prover, true)
 	if err != nil {
-		logger.ErrorContext(queryCtx.Context(), "failed to query the channel upgrade pair with proofs", err)
+		logger.ErrorContext(ctx, "failed to query the channel upgrade pair with proofs", err)
 		return nil, err
 	} else if !ret.settled {
 		return &ret, nil
@@ -352,7 +355,7 @@ func queryUpgradeChannelState(queryCtx QueryContext, logger *log.RelayLogger, sh
 
 	ret.upgradeState, err = NewUpgradeState(ret.channel.Channel.State, ret.chanUpg != nil)
 	if err != nil {
-		logger.ErrorContext(queryCtx.Context(), "failed to create UpgradeState", err)
+		logger.ErrorContext(ctx, "failed to create UpgradeState", err)
 		return nil, err
 	}
 
@@ -401,50 +404,30 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		return nil, err
 	}
 
-	srcCtx := sh.GetQueryContext(ctx, src.ChainID())
-	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
-
 	// Query a number of things all at once
 	var srcResult, dstResult *queryUpgradeChannelStateResult
 	{
 		var eg = new(errgroup.Group)
-		srcStream := make(chan *queryUpgradeChannelStateResult, 1)
-		dstStream := make(chan *queryUpgradeChannelStateResult, 1)
-		defer close(srcStream)
-		defer close(dstStream)
 
 		eg.Go(func() error {
-			logger := &log.RelayLogger{Logger: GetChannelPairLogger(src, dst).With(
-				"side", "src",
-				"src_height", srcCtx.Height().String(),
-				"dst_height", dstCtx.Height().String(),
-			)}
-			state, err := queryUpgradeChannelState(srcCtx, logger, sh, src, dst)
+			state, err := queryUpgradeChannelState(ctx, sh, src, dst)
 			if err != nil {
 				return err
 			}
-			srcStream <- state
+			srcResult = state
 			return nil
 		})
 		eg.Go(func() error {
-			logger := &log.RelayLogger{Logger: GetChannelPairLogger(src, dst).With(
-				"side", "dst",
-				"src_height", srcCtx.Height().String(),
-				"dst_height", dstCtx.Height().String(),
-			)}
-			state, err := queryUpgradeChannelState(dstCtx, logger, sh, dst, src)
+			state, err := queryUpgradeChannelState(ctx, sh, dst, src)
 			if err != nil {
 				return err
 			}
-			dstStream <- state
+			dstResult = state
 			return nil
 		})
-		var err error
 		if err = eg.Wait(); err != nil {
 			return nil, err
 		}
-		srcResult = <-srcStream
-		dstResult = <-dstStream
 	}
 	if !srcResult.settled || !dstResult.settled {
 		return out, nil
@@ -459,6 +442,9 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 			"dst", dstState.String(),
 		),
 	)}
+
+	srcCtx := sh.GetQueryContext(ctx, src.ChainID())
+	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 
 	// check if both chains have reached the target states or UNINIT states
 	if !firstCall && srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT ||
