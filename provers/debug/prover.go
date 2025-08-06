@@ -128,7 +128,7 @@ func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (core.Header, er
 	return pr.OriginProver.GetLatestFinalizedHeader(ctx)
 }
 
-// CheckRefreshRequired always returns false because mock clients don't need refresh.
+// CheckRefreshRequired returns if the on-chain light client needs to be updated.
 func (pr *Prover) CheckRefreshRequired(ctx context.Context, dst core.ChainInfoICS02Querier) (bool, error) {
 	return pr.OriginProver.CheckRefreshRequired(ctx, dst)
 }
