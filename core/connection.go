@@ -241,7 +241,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 	}
 
 	if srcState.conn.Connection.State != conntypes.UNINITIALIZED {
-		// note that ProveHostConsensusState does not query to its chain.
+		// Note that ProveHostConsensusState does not query to its chain.
 		dstHostConsProof, err = dst.ProveHostConsensusState(sh.GetQueryContext(ctx, dst.ChainID()), srcState.cs.GetLatestHeight(), srcState.cons)
 		if err != nil {
 			return nil, err
