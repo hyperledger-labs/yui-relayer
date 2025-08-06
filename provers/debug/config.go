@@ -27,7 +27,7 @@ func (pc ProverConfig) Build(chain core.Chain) (core.Prover, error) {
 	}
 
 	if pc.OriginProver == nil {
-		return nil, fmt.Errorf("OriginProver must set")
+		return nil, fmt.Errorf("OriginProver must be set")
 	}
 	if pc.OriginProver.GetCachedValue() == nil {
 		return nil, fmt.Errorf("OriginProver.GetCachedValue() must be set")

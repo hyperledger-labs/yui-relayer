@@ -46,7 +46,6 @@ func QueryClientStatePair(
 	prove bool,
 ) (srcCsRes, dstCsRes *clienttypes.QueryClientStateResponse, err error) {
 	var eg = new(errgroup.Group)
-
 	eg.Go(func() error {
 		var err error
 		srcCsRes, err = QueryClientState(srcCtx, src, prove)
@@ -57,7 +56,6 @@ func QueryClientStatePair(
 		dstCsRes, err = QueryClientState(dstCtx, dst, prove)
 		return err
 	})
-
 	err = eg.Wait()
 	return
 }
@@ -101,7 +99,6 @@ func QueryClientConsensusStatePair(
 	prove bool,
 ) (srcCsRes, dstCsRes *clienttypes.QueryConsensusStateResponse, err error) {
 	var eg = new(errgroup.Group)
-
 	eg.Go(func() error {
 		var err error
 		srcCsRes, err = QueryClientConsensusState(srcCtx, src, srcClientConsH, prove)
@@ -112,7 +109,6 @@ func QueryClientConsensusStatePair(
 		dstCsRes, err = QueryClientConsensusState(dstCtx, dst, dstClientConsH, prove)
 		return err
 	})
-
 	err = eg.Wait()
 	return
 }
@@ -159,20 +155,18 @@ func QueryConnectionPair(
 		StateProver
 	},
 	prove bool,
-) (srcConnRes, dstConnRes *conntypes.QueryConnectionResponse, err error) {
+) (srcConn, dstConn *conntypes.QueryConnectionResponse, err error) {
 	var eg = new(errgroup.Group)
-
 	eg.Go(func() error {
 		var err error
-		srcConnRes, err = QueryConnection(srcCtx, src, prove)
+		srcConn, err = QueryConnection(srcCtx, src, prove)
 		return err
 	})
 	eg.Go(func() error {
 		var err error
-		dstConnRes, err = QueryConnection(dstCtx, dst, prove)
+		dstConn, err = QueryConnection(dstCtx, dst, prove)
 		return err
 	})
-
 	err = eg.Wait()
 	return
 }
@@ -233,7 +227,6 @@ func QueryChannelPair(
 		dstChanRes, err = QueryChannel(dstCtx, dst, prove)
 		return err
 	})
-
 	err = eg.Wait()
 	return
 }
