@@ -187,10 +187,6 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 
 	{
 		var eg = new(errgroup.Group)
-		srcStream := make(chan *queryCreateChannelStateResult, 1)
-		dstStream := make(chan *queryCreateChannelStateResult, 1)
-		defer close(srcStream)
-		defer close(dstStream)
 
 		srcCtx := sh.GetQueryContext(ctx, src.ChainID())
 		dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
@@ -199,7 +195,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 			if err != nil {
 				return err
 			}
-			srcStream <- state
+			srcState = state
 			return nil
 		})
 		eg.Go(func() error {
@@ -207,15 +203,13 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 			if err != nil {
 				return err
 			}
-			dstStream <- state
+			dstState = state
 			return nil
 		})
 		var err error
 		if err = eg.Wait(); err != nil {
 			return nil, err
 		}
-		srcState = <-srcStream
-		dstState = <-dstStream
 	}
 	if !srcState.settled || !dstState.settled {
 		return out, nil

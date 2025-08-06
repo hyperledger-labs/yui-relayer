@@ -212,10 +212,6 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 
 	{
 		var eg = new(errgroup.Group)
-		srcStream := make(chan *queryCreateConnectionStateResult, 1)
-		dstStream := make(chan *queryCreateConnectionStateResult, 1)
-		defer close(srcStream)
-		defer close(dstStream)
 
 		eg.Go(func() error {
 			queryCtx := sh.GetQueryContext(ctx, src.ChainID())
@@ -223,7 +219,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 			if err != nil {
 				return err
 			}
-			srcStream <- state
+			srcState = state
 			return nil
 		})
 		eg.Go(func() error {
@@ -232,22 +228,13 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 			if err != nil {
 				return err
 			}
-			dstStream <- state
+			dstState = state
 			return nil
 		})
 
-		err := eg.Wait() // it waits querying to other chain. it may take more time and my chain's state is deleted.
+		err := eg.Wait()
 		if err != nil {
 			return nil, err
-		}
-		var ok bool
-		srcState, ok = <-srcStream
-		if !ok {
-			return nil, errors.New("srcStream channel closed unexpectedly")
-		}
-		dstState, ok = <-dstStream
-		if !ok {
-			return nil, errors.New("dstStream channel closed unexpectedly")
 		}
 	}
 
@@ -438,7 +425,7 @@ func GetConnectionPairLogger(src, dst Chain) *log.RelayLogger {
 
 func GetConnectionPairLoggerRelative(me, cp Chain) *log.RelayLogger {
 	return log.GetLogger().
-		WithConnectionPair(
+		WithConnectionPairRelative(
 			me.ChainID(),
 			me.Path().ClientID,
 			me.Path().ConnectionID,
