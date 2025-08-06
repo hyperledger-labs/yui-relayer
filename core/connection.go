@@ -154,18 +154,19 @@ type queryCreateConnectionStateResult struct {
 	consH         ibcexported.Height
 }
 
-func queryCreateConnectionState(ctx QueryContext, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryCreateConnectionStateResult, error) {
+func queryCreateConnectionState(ctx context.Context, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryCreateConnectionStateResult, error) {
 	var ret queryCreateConnectionStateResult
 	var err error
 	logger := GetConnectionPairLoggerRelative(prover, counterparty)
 
-	ret.updateHeaders, err = sh.SetupHeadersForUpdate(ctx.Context(), prover, counterparty)
+	queryCtx := sh.GetQueryContext(ctx, prover.ChainID())
+	ret.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, prover, counterparty)
 	if err != nil {
-		logger.ErrorContext(ctx.Context(), "error setting up headers for update", err)
+		logger.ErrorContext(ctx, "error setting up headers for update", err)
 		return nil, err
 	}
 
-	ret.conn, ret.settled, err = querySettledConnection(ctx, logger, prover, true)
+	ret.conn, ret.settled, err = querySettledConnection(queryCtx, logger, prover, true)
 	if err != nil {
 		return nil, err
 	} else if !ret.settled {
@@ -173,7 +174,7 @@ func queryCreateConnectionState(ctx QueryContext, sh SyncHeaders, prover, counte
 	}
 
 	if ret.conn.Connection.State != conntypes.UNINITIALIZED {
-		ret.csRes, err = QueryClientState(ctx, prover, true)
+		ret.csRes, err = QueryClientState(queryCtx, prover, true)
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +184,7 @@ func queryCreateConnectionState(ctx QueryContext, sh SyncHeaders, prover, counte
 
 		// Store the heights
 		ret.consH = ret.cs.GetLatestHeight()
-		ret.consRes, err = QueryClientConsensusState(ctx, prover, ret.consH, true)
+		ret.consRes, err = QueryClientConsensusState(queryCtx, prover, ret.consH, true)
 		if err != nil {
 			return nil, err
 		}
@@ -214,8 +215,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		var eg = new(errgroup.Group)
 
 		eg.Go(func() error {
-			queryCtx := sh.GetQueryContext(ctx, src.ChainID())
-			state, err := queryCreateConnectionState(queryCtx, sh, src, dst)
+			state, err := queryCreateConnectionState(ctx, sh, src, dst)
 			if err != nil {
 				return err
 			}
@@ -223,8 +223,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 			return nil
 		})
 		eg.Go(func() error {
-			queryCtx := sh.GetQueryContext(ctx, dst.ChainID())
-			state, err := queryCreateConnectionState(queryCtx, sh, dst, src)
+			state, err := queryCreateConnectionState(ctx, sh, dst, src)
 			if err != nil {
 				return err
 			}
@@ -232,8 +231,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 			return nil
 		})
 
-		err := eg.Wait()
-		if err != nil {
+		if err := eg.Wait(); err != nil {
 			return nil, err
 		}
 	}

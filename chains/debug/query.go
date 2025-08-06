@@ -99,11 +99,7 @@ func (c *Chain) QueryUnreceivedAcknowledgements(ctx core.QueryContext, seqs []ui
 func (c *Chain) QueryUnfinalizedRelayAcknowledgements(ctx core.QueryContext, counterparty core.LightClientICS04Querier) (core.PacketInfoList, error) {
 	return c.OriginChain.QueryUnfinalizedRelayAcknowledgements(ctx, counterparty)
 }
-/*
-func (c *Chain) QueryTxs(ctx context.Context, maxHeight int64, page, limit int, events []string) ([]*ctypes.ResultTx, error) {
-	return c.OriginChain.QueryTxs(ctx, maxHeight, page, limit, events)
-}
-*/
+
 func (c *Chain) QueryChannelUpgrade(ctx core.QueryContext) (*chantypes.QueryUpgradeResponse, error) {
 	if err := debugFakeLost(ctx.Context(), c, ctx.Height()); err != nil {
 		return nil, err
@@ -122,17 +118,3 @@ func (c *Chain) QueryCanTransitionToFlushComplete(ctx core.QueryContext) (bool, 
 	return c.OriginChain.QueryCanTransitionToFlushComplete(ctx)
 }
 
-/*
-func (c *Chain) QueryHistoricalInfo(ctx context.Context, height clienttypes.Height) (*stakingtypes.QueryHistoricalInfoResponse, error) {
-	return c.OriginChain.QueryHistricalInfo(ctx, height)
-}
-
-func (c *Chain) QueryValsetAtHeight(ctx context.Context, height clienttypes.Height) (*tmproto.ValidatorSet, error) {
-	return c.OriginChain.QueryValsetAtHeight(ctx, height)
-}
-
-func (c *Chain) QueryUnbondingPeriod(ctx context.Context) (time.Duration, error) {
-	return c.QueryUnboundingPeriod(ctx)
-}
-
-*/

@@ -23,8 +23,8 @@ func debugFakeLost(ctx context.Context, chain core.Chain, queryHeight exported.H
 
 		threshold, err := strconv.Atoi(val)
 		if err != nil {
-			fmt.Printf("malformed %s: Expected format: <chainid> <height threshold>\n", env)
-			return nil
+			fmt.Printf("malformed %s\n", env)
+			return err
 		}
 
 		qh := int64(queryHeight.GetRevisionHeight())
@@ -91,7 +91,11 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 
 	if val, ok := os.LookupEnv(env); ok {
 		fmt.Printf(">%s: chain=%s, cp=%s: '%s'\n", env, pr.chain.ChainID(), counterparty.ChainID(), val)
-		t, _ := strconv.Atoi(val)
+		t, err := strconv.Atoi(val)
+		if err != nil {
+			fmt.Printf("malformed %s\n", env)
+			return err
+		}
 
 		{
 			var items []*core.HeaderOrError

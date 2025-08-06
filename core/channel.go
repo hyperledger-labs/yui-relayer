@@ -140,23 +140,14 @@ type queryCreateChannelStateResult struct {
 	settled       bool
 }
 
-func queryCreateChannelState(queryCtx QueryContext, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryCreateChannelStateResult, error) {
+func queryCreateChannelState(ctx context.Context, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryCreateChannelStateResult, error) {
 	var ret queryCreateChannelStateResult
 	logger := GetChannelPairLoggerRelative(prover, counterparty)
 
-	err := retry.Do(func() error {
-		var err error
-		ret.updateHeaders, err = sh.SetupHeadersForUpdate(queryCtx.Context(), prover, counterparty)
-		if err != nil {
-			return err
-		}
-		return nil
-	}, rtyAtt, rtyDel, rtyErr, retry.Context(queryCtx.Context()), retry.OnRetry(func(n uint, err error) {
-		// logRetryUpdateHeaders(src, dst, n, err)
-		if err := sh.Updates(queryCtx.Context(), prover, counterparty); err != nil {
-			panic(err)
-		}
-	}))
+	var err error
+	queryCtx := sh.GetQueryContext(ctx, prover.ChainID())
+	ret.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, prover, counterparty)
+
 	if err != nil {
 		return nil, err
 	}
@@ -185,32 +176,38 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 		return nil, err
 	}
 
-	{
+	retry.Do(func() error {
 		var eg = new(errgroup.Group)
 
-		srcCtx := sh.GetQueryContext(ctx, src.ChainID())
-		dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 		eg.Go(func() error {
-			state, err := queryCreateChannelState(srcCtx, sh, src, dst)
+			state, err := queryCreateChannelState(ctx, sh, src, dst)
 			if err != nil {
 				return err
 			}
 			srcState = state
 			return nil
 		})
+
 		eg.Go(func() error {
-			state, err := queryCreateChannelState(dstCtx, sh, dst, src)
+			state, err := queryCreateChannelState(ctx, sh, dst, src)
 			if err != nil {
 				return err
 			}
 			dstState = state
 			return nil
 		})
-		var err error
-		if err = eg.Wait(); err != nil {
-			return nil, err
+
+		if err := eg.Wait(); err != nil {
+			return err
 		}
-	}
+		return nil
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
+		// logRetryUpdateHeaders(src, dst, n, err)
+		if err := sh.Updates(ctx, src, dst); err != nil {
+			panic(err)
+		}
+	}))
+
 	if !srcState.settled || !dstState.settled {
 		return out, nil
 	}

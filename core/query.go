@@ -44,17 +44,22 @@ func QueryClientStatePair(
 		StateProver
 	},
 	prove bool,
-) (*clienttypes.QueryClientStateResponse, *clienttypes.QueryClientStateResponse, error) {
-	srcDsRes, err := QueryClientState(srcCtx, src, prove)
-	if err != nil {
-		return nil, nil, err
-	}
+) (srcCsRes, dstCsRes *clienttypes.QueryClientStateResponse, err error) {
+	var eg = new(errgroup.Group)
 
-	dstDsRes, err := QueryClientState(dstCtx, dst, prove)
-	if err != nil {
-		return nil, nil, err
-	}
-	return srcDsRes, dstDsRes, nil
+	eg.Go(func() error {
+		var err error
+		srcCsRes, err = QueryClientState(srcCtx, src, prove)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		dstCsRes, err = QueryClientState(dstCtx, dst, prove)
+		return err
+	})
+
+	err = eg.Wait()
+	return
 }
 
 func QueryClientConsensusState(
@@ -94,16 +99,22 @@ func QueryClientConsensusStatePair(
 	srcClientConsH,
 	dstClientConsH ibcexported.Height,
 	prove bool,
-) (*clienttypes.QueryConsensusStateResponse, *clienttypes.QueryConsensusStateResponse, error) {
-	srcCsRes, err := QueryClientConsensusState(srcCtx, src, srcClientConsH, prove)
-	if err != nil {
-		return nil, nil, err
-	}
-	dstCsRes, err := QueryClientConsensusState(dstCtx, dst, dstClientConsH, prove)
-	if err != nil {
-		return nil, nil, err
-	}
-	return srcCsRes, dstCsRes, nil
+) (srcCsRes, dstCsRes *clienttypes.QueryConsensusStateResponse, err error) {
+	var eg = new(errgroup.Group)
+
+	eg.Go(func() error {
+		var err error
+		srcCsRes, err = QueryClientConsensusState(srcCtx, src, srcClientConsH, prove)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		dstCsRes, err = QueryClientConsensusState(dstCtx, dst, dstClientConsH, prove)
+		return err
+	})
+
+	err = eg.Wait()
+	return
 }
 
 func QueryConnection(
@@ -148,16 +159,22 @@ func QueryConnectionPair(
 		StateProver
 	},
 	prove bool,
-) (*conntypes.QueryConnectionResponse, *conntypes.QueryConnectionResponse, error) {
-	srcConnRes, err := QueryConnection(srcCtx, src, prove)
-	if err != nil {
-		return nil, nil, err
-	}
-	dstConnRes, err := QueryConnection(dstCtx, dst, prove)
-	if err != nil {
-		return nil, nil, err
-	}
-	return srcConnRes, dstConnRes, nil
+) (srcConnRes, dstConnRes *conntypes.QueryConnectionResponse, err error) {
+	var eg = new(errgroup.Group)
+
+	eg.Go(func() error {
+		var err error
+		srcConnRes, err = QueryConnection(srcCtx, src, prove)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		dstConnRes, err = QueryConnection(dstCtx, dst, prove)
+		return err
+	})
+
+	err = eg.Wait()
+	return
 }
 
 func QueryChannel(queryCtx QueryContext, chain interface {
@@ -203,16 +220,22 @@ func QueryChannelPair(
 		StateProver
 	},
 	prove bool,
-) (*chantypes.QueryChannelResponse, *chantypes.QueryChannelResponse, error) {
-	srcChanRes, err := QueryChannel(srcCtx, src, prove)
-	if err != nil {
-		return nil, nil, err
-	}
-	dstChanRes, err := QueryChannel(dstCtx, dst, prove)
-	if err != nil {
-		return nil, nil, err
-	}
-	return srcChanRes, dstChanRes, nil
+) (srcChanRes, dstChanRes *chantypes.QueryChannelResponse, err error) {
+	var eg = new(errgroup.Group)
+
+	eg.Go(func() error {
+		var err error
+		srcChanRes, err = QueryChannel(srcCtx, src, prove)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		dstChanRes, err = QueryChannel(dstCtx, dst, prove)
+		return err
+	})
+
+	err = eg.Wait()
+	return
 }
 
 func QueryChannelUpgradePair(srcCtx, dstCtx QueryContext, src, dst interface {
