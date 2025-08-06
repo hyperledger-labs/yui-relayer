@@ -76,6 +76,10 @@ origDstOpts="--ordering $dstOrigOrder --connection-hops $dstOrigConnectionId --v
 altSrcOpts="--ordering $srcAltOrder --connection-hops $srcAltConnectionId --version $srcAltVersion"
 altDstOpts="--ordering $dstAltOrder --connection-hops $dstAltConnectionId --version $dstAltVersion"
 
+export DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_ibc0="10"
+export DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_PROVER_ibc0="10"
+export DEBUG_RELAYER_SHFU_WAIT_ibc1="20"
+
 echo '##### case 1 #####'
 $RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
 $RLY tx channel-upgrade init ibc01 ibc1 $altDstOpts
