@@ -12,7 +12,7 @@ import (
 )
 
 type Chain struct {
-	config ChainConfig
+	config      ChainConfig
 	OriginChain core.Chain
 }
 
@@ -75,4 +75,3 @@ func (c *Chain) SendMsgs(ctx context.Context, msgs []sdk.Msg) ([]core.MsgID, err
 func (c *Chain) GetMsgResult(ctx context.Context, id core.MsgID) (core.MsgResult, error) {
 	return c.OriginChain.GetMsgResult(ctx, id)
 }
-

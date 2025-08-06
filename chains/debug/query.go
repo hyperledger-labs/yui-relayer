@@ -117,4 +117,3 @@ func (c *Chain) QueryCanTransitionToFlushComplete(ctx core.QueryContext) (bool, 
 	}
 	return c.OriginChain.QueryCanTransitionToFlushComplete(ctx)
 }
-

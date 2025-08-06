@@ -21,7 +21,6 @@ func (cfg *ChainConfig) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error 
 	return nil
 }
 
-
 func (c ChainConfig) Build() (core.Chain, error) {
 	if c.OriginChain == nil {
 		return nil, fmt.Errorf("OriginChain must set")
@@ -35,8 +34,8 @@ func (c ChainConfig) Build() (core.Chain, error) {
 		return nil, err
 	}
 
-	return &Chain {
-		config: c,
+	return &Chain{
+		config:      c,
 		OriginChain: originChain,
 	}, nil
 }

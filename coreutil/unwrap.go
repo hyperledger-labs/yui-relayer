@@ -3,9 +3,9 @@ package coreutil
 import (
 	"fmt"
 
+	debugchain "github.com/hyperledger-labs/yui-relayer/chains/debug"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/otelcore"
-	debugchain "github.com/hyperledger-labs/yui-relayer/chains/debug"
 	debugprover "github.com/hyperledger-labs/yui-relayer/provers/debug"
 )
 

@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	tendermint "github.com/hyperledger-labs/yui-relayer/chains/tendermint/module"
 	debug_chain "github.com/hyperledger-labs/yui-relayer/chains/debug/module"
+	tendermint "github.com/hyperledger-labs/yui-relayer/chains/tendermint/module"
 	"github.com/hyperledger-labs/yui-relayer/cmd"
-	mock "github.com/hyperledger-labs/yui-relayer/provers/mock/module"
 	debug_prover "github.com/hyperledger-labs/yui-relayer/provers/debug/module"
+	mock "github.com/hyperledger-labs/yui-relayer/provers/mock/module"
 )
 
 func main() {
