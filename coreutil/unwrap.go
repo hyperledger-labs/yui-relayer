@@ -5,6 +5,7 @@ import (
 
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/otelcore"
+	debugchain "github.com/hyperledger-labs/yui-relayer/chains/debug"
 	debugprover "github.com/hyperledger-labs/yui-relayer/provers/debug"
 )
 
@@ -18,6 +19,8 @@ func UnwrapChain[C core.Chain](c core.Chain) (C, error) {
 	chain := c
 	for {
 		switch unwrapped := chain.(type) {
+		case *debugchain.Chain:
+			return UnwrapChain[C](unwrapped.OriginChain)
 		case *core.ProvableChain:
 			chain = unwrapped.Chain
 		case *otelcore.Chain:
@@ -42,7 +45,7 @@ func UnwrapProver[P core.Prover](p core.Prover) (P, error) {
 	for {
 		switch unwrapped := prover.(type) {
 		case *debugprover.Prover:
-			return UnwrapProver[P](unwrapped.OriginProver())
+			return UnwrapProver[P](unwrapped.OriginProver)
 		case *core.ProvableChain:
 			prover = unwrapped.Prover
 		case *otelcore.Prover:
