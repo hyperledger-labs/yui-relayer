@@ -111,13 +111,14 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 			headerStream = ch
 		}
 
-		n := t / secondsPerMinute
+		lap := 60
+		n := t / lap
 		for i := 0; i < n; i++ {
-			logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "lap", fmt.Sprintf("%v/%v", (i+1)*secondsPerMinute, t))
-			time.Sleep(time.Duration(secondsPerMinute) * time.Second)
+			logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "lap", fmt.Sprintf("%v/%v", (i+1)*lap, t))
+			time.Sleep(time.Duration(lap) * time.Second)
 		}
-		logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "lap", fmt.Sprintf("%v/%v", t-n*secondsPerMinute, t))
-		time.Sleep(time.Duration(t-n*secondsPerMinute) * time.Second)
+		logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "lap", fmt.Sprintf("%v/%v", t-n*lap, t))
+		time.Sleep(time.Duration(t-n*lap) * time.Second)
 		logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "done", t)
 	}
 	return headerStream, nil
