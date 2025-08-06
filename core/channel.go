@@ -176,7 +176,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 		return nil, err
 	}
 
-	retry.Do(func() error {
+	if err := retry.Do(func() error {
 		var eg = new(errgroup.Group)
 
 		eg.Go(func() error {
@@ -206,7 +206,9 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 		if err := sh.Updates(ctx, src, dst); err != nil {
 			panic(err)
 		}
-	}))
+	})); err != nil {
+		return nil, err
+	}
 
 	if !srcState.settled || !dstState.settled {
 		return out, nil

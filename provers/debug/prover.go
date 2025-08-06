@@ -16,13 +16,14 @@ import (
 )
 
 func debugFakeLost(ctx context.Context, chain core.Chain, queryHeight exported.Height) error {
+	logger := log.GetLogger()
 	env := fmt.Sprintf("DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_PROVER_%s", chain.ChainID())
 	if val, ok := os.LookupEnv(env); ok {
-		fmt.Printf(">%s: chain=%s: '%v'\n", env, chain.ChainID(), val)
+		logger.Info(fmt.Sprintf(">%s: chain=%s: '%v'", env, chain.ChainID(), val))
 
 		threshold, err := strconv.Atoi(val)
 		if err != nil {
-			fmt.Printf("malformed %s\n", env)
+			logger.ErrorContext(ctx, "malformed value", err, "value", val)
 			return err
 		}
 
@@ -48,7 +49,7 @@ type Prover struct {
 
 var _ core.Prover = (*Prover)(nil)
 
-func NewProver(chain core.Chain, config ProverConfig, originProver core.Prover) *Prover {
+func NewProver(chain core.Chain, originProver core.Prover) *Prover {
 	return &Prover{OriginProver: originProver, chain: chain}
 }
 
@@ -81,6 +82,7 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height expo
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterparty chain
 func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) (<-chan *core.HeaderOrError, error) {
+	logger := log.GetLogger()
 	headerStream, err := pr.OriginProver.SetupHeadersForUpdate(ctx, counterparty, latestFinalizedHeader)
 	if err != nil {
 		return headerStream, err
@@ -89,11 +91,11 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 	env := fmt.Sprintf("DEBUG_RELAYER_SHFU_WAIT_%s", pr.chain.ChainID())
 
 	if val, ok := os.LookupEnv(env); ok {
-		fmt.Printf(">%s: chain=%s, cp=%s: '%s'\n", env, pr.chain.ChainID(), counterparty.ChainID(), val)
+		logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "value", val)
 		t, err := strconv.Atoi(val)
 		if err != nil {
-			fmt.Printf("malformed %s\n", env)
-			return err
+			logger.ErrorContext(ctx, "malformed value", err, "value", val)
+			return nil, err
 		}
 
 		{
@@ -111,12 +113,12 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 
 		n := t / 60
 		for i := 0; i < n; i++ {
-			fmt.Printf(" %s: chain=%s, cp=%s, %v/%v\n", env, pr.chain.ChainID(), counterparty.ChainID(), (i+1)*60, t)
+			logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "lap", fmt.Sprintf("%v/%v", (i+1)*60, t))
 			time.Sleep(time.Duration(60) * time.Second)
 		}
-		fmt.Printf(" %s: chain=%s, cp=%s, %v/%v\n", env, pr.chain.ChainID(), counterparty.ChainID(), t-n*60, t)
+		logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "lap", fmt.Sprintf("%v/%v", t-n*60, t))
 		time.Sleep(time.Duration(t-n*60) * time.Second)
-		fmt.Printf("<%s: chain=%s, cp=%s, %v\n", env, pr.chain.ChainID(), counterparty.ChainID(), t)
+		logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "done", t)
 	}
 	return headerStream, nil
 }

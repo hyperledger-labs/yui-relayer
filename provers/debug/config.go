@@ -36,7 +36,7 @@ func (pc ProverConfig) Build(chain core.Chain) (core.Prover, error) {
 	if err != nil {
 		return nil, err
 	}
-	prover := NewProver(chain, pc, originProver)
+	prover := NewProver(chain, originProver)
 	return prover, nil
 }
 

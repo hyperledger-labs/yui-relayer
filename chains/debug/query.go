@@ -13,16 +13,18 @@ import (
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 func debugFakeLost(ctx context.Context, chain *Chain, queryHeight ibcexported.Height) error {
+	logger := log.GetLogger()
 	env := fmt.Sprintf("DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_%s", chain.ChainID())
 	if val, ok := os.LookupEnv(env); ok {
-		fmt.Printf(">%s: chain=%s: '%s'\n", env, chain.ChainID(), val)
+		logger.Debug(env, "chain", chain.ChainID(), "value", val)
 
 		threshold, err := strconv.Atoi(val)
 		if err != nil {
-			fmt.Printf("malformed %s: %v\n", env, err)
+			logger.ErrorContext(ctx, "malformed value", err, "value", val)
 			return nil
 		}
 
