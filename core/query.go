@@ -6,6 +6,7 @@ import (
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+ 	"golang.org/x/sync/errgroup"
 )
 
 // QueryClientStatePair returns a pair of connection responses
@@ -261,15 +262,25 @@ func QueryChannelUpgradePair(srcCtx, dstCtx QueryContext, src, dst interface {
 	Chain
 	StateProver
 }, prove bool) (srcChanUpg, dstChanUpg *chantypes.QueryUpgradeResponse, err error) {
-	srcChanUpg, err = QueryChannelUpgrade(srcCtx, src, prove)
-	if err != nil {
-		return nil, nil, err
-	}
-	dstChanUpg, err = QueryChannelUpgrade(dstCtx, dst, prove)
-	if err != nil {
-		return nil, nil, err
-	}
-	return srcChanUpg, dstChanUpg, nil
+	eg := new(errgroup.Group)
+
+	eg.Go(func() error {
+		var err error
+		srcChanUpg, err = QueryChannelUpgrade(srcCtx, src, prove)
+		if err != nil {
+			return err
+		}
+		return err
+	})
+	eg.Go(func() error {
+		dstChanUpg, err = QueryChannelUpgrade(dstCtx, dst, prove)
+		if err != nil {
+			return err
+		}
+		return err
+	})
+	err = eg.Wait()
+	return
 }
 
 func QueryChannelUpgradeError(ctx QueryContext, chain interface {
