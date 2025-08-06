@@ -201,6 +201,7 @@ func (st *NaiveStrategy) UnrelayedPackets(ctx context.Context, src, dst *Provabl
 	}, nil
 }
 
+/*
 func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteRelaySrc, doExecuteRelayDst bool) (*RelayMsgs, error) {
 	ctx, span := tracer.Start(ctx, "NaiveStrategy.RelayPackets", WithChannelPairAttributes(src, dst))
 	defer span.End()
@@ -251,6 +252,52 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 		}
 		if num := len(msgs.Src); num > 0 {
 			logPacketsRelayed(ctx, src, dst, num, "Packets", "dst->src")
+		}
+	}
+
+	return msgs, nil
+}
+*/
+
+func (st *NaiveStrategy) RelayPackets(dir string, ctx context.Context, relayFrom, relayTo *ProvableChain, packets PacketInfoList, sh SyncHeaders, doExecuteRelay bool) ([]sdk.Msg, error) {
+/*
+	noAck := st.srcNoAck
+	if dir == "dst" {
+		noAck = st.dstNoAck
+	}
+*/
+	ctx, span := tracer.Start(ctx, "NaiveStrategy.RelayPackets", WithChannelPairAttributesAndKey("from", relayFrom, "to", relayTo))
+	defer span.End()
+	logger := GetChannelPairLoggerRelative(relayFrom, relayTo)
+	defer logger.TimeTrackContext(ctx, time.Now(), "RelayPackets", "num_from", len(packets))
+
+	var msgs []sdk.Msg
+
+	queryCtx := sh.GetQueryContext(ctx, relayFrom.ChainID())
+
+	toAddress, err := relayTo.GetAddress()
+	if err != nil {
+		logger.ErrorContext(ctx, "error getting address", err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	if doExecuteRelay {
+		msgs, err = collectPackets(queryCtx, relayFrom, packets, toAddress)
+		if err != nil {
+			logger.ErrorContext(ctx, "error collecting packets", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+	}
+
+	{ // log
+		num := len(msgs)
+		dir := fmt.Sprintf("%s -> %s", relayFrom.ChainID(), relayTo.ChainID())
+		if num == 0 {
+			logger.InfoContext(ctx, fmt.Sprintf("no packates to relay: %s", dir))
+		} else {
+			logPacketsRelayed(ctx, relayFrom, relayTo, num, "Packets", dir)
 		}
 	}
 
@@ -421,6 +468,7 @@ func logPacketsRelayed(ctx context.Context, src, dst Chain, num int, obj, dir st
 	)
 }
 
+/*
 func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *ProvableChain, rp *RelayPackets, sh SyncHeaders, doExecuteAckSrc, doExecuteAckDst bool) (*RelayMsgs, error) {
 	ctx, span := tracer.Start(ctx, "NaiveStrategy.RelayAcknowledgements", WithChannelPairAttributes(src, dst))
 	defer span.End()
@@ -472,6 +520,50 @@ func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *Pr
 
 	return msgs, nil
 }
+*/
+
+func (st *NaiveStrategy) RelayAcknowledgements(dir string, ctx context.Context, relayFrom, relayTo *ProvableChain, packets PacketInfoList, sh SyncHeaders, doExecuteAck bool) ([]sdk.Msg, error) {
+	noAck := st.srcNoAck
+	if dir == "dst" {
+		noAck = st.dstNoAck
+	}
+
+	ctx, span := tracer.Start(ctx, "NaiveStrategy.RelayAcknowledgements", WithChannelPairAttributesAndKey("from", relayFrom, "to", relayTo))
+	defer span.End()
+	logger := GetChannelPairLoggerRelative(relayFrom, relayTo)
+	defer logger.TimeTrackContext(ctx, time.Now(), "RelayAcknowledgements", "num_from", len(packets))
+
+	var msgs []sdk.Msg
+
+	queryCtx := sh.GetQueryContext(ctx, relayFrom.ChainID())
+
+	toAddress, err := relayTo.GetAddress()
+	if err != nil {
+		logger.ErrorContext(ctx, "error getting address", err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	if !noAck && doExecuteAck {
+		msgs, err = collectAcks(queryCtx, relayFrom, packets, toAddress)
+		if err != nil {
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+	}
+
+	{ // log
+		num := len(msgs)
+		dir := fmt.Sprintf("%s -> %s", relayFrom.ChainID(), relayTo.ChainID())
+		if num == 0 {
+			logger.InfoContext(ctx, fmt.Sprintf("no acknowledgements to relay: %s", dir))
+		} else {
+			logPacketsRelayed(ctx, relayFrom, relayTo, num, "Acknowledgements", dir)
+		}
+	}
+
+	return msgs, nil
+}
 
 func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList, signer sdk.AccAddress) ([]sdk.Msg, error) {
 	logger := GetChannelLogger(chain)
@@ -496,6 +588,7 @@ func collectAcks(ctx QueryContext, chain *ProvableChain, packets PacketInfoList,
 	return msgs, nil
 }
 
+/*
 func (st *NaiveStrategy) UpdateClients(ctx context.Context, src, dst *ProvableChain, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst bool, sh SyncHeaders, doRefresh bool) (*RelayMsgs, error) {
 	ctx, span := tracer.Start(ctx, "NaiveStrategy.UpdateClients", WithChannelPairAttributes(src, dst))
 	defer span.End()
@@ -567,6 +660,56 @@ func (st *NaiveStrategy) UpdateClients(ctx context.Context, src, dst *ProvableCh
 	}
 	if len(msgs.Dst) > 0 {
 		logger.InfoContext(ctx, "client on dst chain was scheduled for update", "num_sent_msgs", len(msgs.Dst))
+	}
+
+	return msgs, nil
+}
+*/
+
+func (st *NaiveStrategy) UpdateClients(dir string, ctx context.Context, relayFrom, relayTo *ProvableChain, doExecuteRelay, doExecuteAck bool, sh SyncHeaders, doRefresh bool) ([]sdk.Msg, error) {
+	noAck := st.srcNoAck
+	if dir == "dst" {
+		noAck = st.dstNoAck
+	}
+	ctx, span := tracer.Start(ctx, "NaiveStrategy.UpdateClients", WithChannelPairAttributesAndKey("from", relayFrom, "to", relayTo))
+	defer span.End()
+	logger := GetChannelPairLoggerRelative(relayFrom, relayTo)
+
+	var msgs []sdk.Msg
+
+	needsUpdate := doExecuteRelay || (doExecuteAck && !noAck)
+
+	// check if LC refresh is needed
+	if !needsUpdate && doRefresh {
+		var err error
+		needsUpdate, err = relayFrom.CheckRefreshRequired(ctx, relayTo)
+		if err != nil {
+			err = fmt.Errorf("failed to check if the LC on the relayTo chain needs to be refreshed: %v", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+	}
+
+	if needsUpdate {
+		toAddress, err := relayTo.GetAddress()
+		if err != nil {
+			err = fmt.Errorf("failed to get relayer address on relayTo chain: %v", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+		hs, err := sh.SetupHeadersForUpdate(ctx, relayFrom, relayTo)
+		if err != nil {
+			err = fmt.Errorf("failed to set up headers for updating client on relayTo chain: %v", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		}
+		if len(hs) > 0 {
+			msgs = relayTo.Path().UpdateClients(hs, toAddress)
+		}
+	}
+
+	if len(msgs) > 0 {
+		logger.InfoContext(ctx, "client on relayTo chain was scheduled for update", "num_sent_msgs", len(msgs))
 	}
 
 	return msgs, nil

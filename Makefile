@@ -6,7 +6,7 @@ protoImage=$(DOCKER) run --user 0 --rm -v $(CURDIR):/workspace --workdir /worksp
 
 .PHONY: build
 build:
-	go build -o ./build/yrly .
+	go build -o ./build/yrly -tags yrly_debug .
 
 .PHONY: test
 test:

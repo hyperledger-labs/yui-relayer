@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"context"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"golang.org/x/sync/errgroup"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
@@ -456,7 +459,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			if err = tryFilterRelayPackets(sp, srcSeq, dstSeq); err != nil {
 				return err
 			}
-
+/*
 			msgs := core.NewRelayMsgs()
 
 			doExecuteRelaySrc := len(sp.Dst) > 0
@@ -474,6 +477,56 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			} else {
 				msgs.Merge(m)
+			}
+*/
+			relay := func(dir string, ctx context.Context, relayFrom, relayTo *core.ProvableChain, packets core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
+				msgs := make([]sdk.Msg, 0, len(packets) + 1)
+
+				if m, err := st.UpdateClients(dir, ctx, relayFrom, relayTo, doExecuteRelay, doExecuteAck, sh, true); err != nil {
+					return nil, err
+				} else {
+					msgs = append(msgs, m...)
+				}
+
+				if m, err := st.RelayPackets(dir, ctx, relayFrom, relayTo, packets, sh, doExecuteRelay); err != nil {
+					return nil, err
+				} else {
+					msgs = append(msgs, m...)
+				}
+				return msgs, nil
+			}
+
+			msgs := core.NewRelayMsgs()
+			{
+				var eg = new(errgroup.Group)
+
+				doExecuteRelaySrc := len(sp.Dst) > 0
+				doExecuteRelayDst := len(sp.Src) > 0
+				doExecuteAckSrc := false
+				doExecuteAckDst := false
+				doRefresh := viper.GetBool(flagDoRefresh)
+
+				eg.Go(func() error {
+					m, err := relay("dst", cmd.Context(), c[src], c[dst], sp.Src, sh, doExecuteRelayDst, doExecuteAckDst, doRefresh)
+					if err != nil {
+						return err
+					}
+					msgs.Src = m
+					return nil
+				})
+				eg.Go(func() error {
+					m, err := relay("src", cmd.Context(), c[dst], c[src], sp.Dst, sh, doExecuteRelaySrc, doExecuteAckSrc, doRefresh)
+					if err != nil {
+						return err
+					}
+					msgs.Dst = m
+					return nil
+				})
+
+				err := eg.Wait()
+				if err != nil {
+					return err
+				}
 			}
 
 			st.Send(cmd.Context(), c[src], c[dst], msgs)
@@ -531,7 +584,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			if err = tryFilterRelayPackets(sp, srcSeq, dstSeq); err != nil {
 				return err
 			}
-
+/*
 			msgs := core.NewRelayMsgs()
 
 			doExecuteRelaySrc := false
@@ -549,6 +602,56 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 				return err
 			} else {
 				msgs.Merge(m)
+			}
+*/
+			relay := func(dir string, ctx context.Context, relayFrom, relayTo *core.ProvableChain, acks core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
+				msgs := make([]sdk.Msg, 0, len(acks) + 1)
+
+				if m, err := st.UpdateClients(dir, ctx, relayFrom, relayTo, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
+					return nil, err
+				} else {
+					msgs = append(msgs, m...)
+				}
+
+				if m, err := st.RelayAcknowledgements(dir, ctx, relayFrom, relayTo, acks, sh, doExecuteAck); err != nil {
+					return nil, err
+				} else {
+					msgs = append(msgs, m...)
+				}
+				return msgs, nil
+			}
+
+			msgs := core.NewRelayMsgs()
+			{
+				var eg = new(errgroup.Group)
+
+				doExecuteRelaySrc := false
+				doExecuteRelayDst := false
+				doExecuteAckSrc := len(sp.Dst) > 0
+				doExecuteAckDst := len(sp.Src) > 0
+				doRefresh := viper.GetBool(flagDoRefresh)
+
+				eg.Go(func() error {
+					m, err := relay("dst", cmd.Context(), c[src], c[dst], sp.Src, sh, doExecuteRelayDst, doExecuteAckDst, doRefresh)
+					if err != nil {
+						return err
+					}
+					msgs.Dst = m
+					return nil
+				})
+				eg.Go(func() error {
+					m, err := relay("dst", cmd.Context(), c[src], c[dst], sp.Dst, sh, doExecuteRelaySrc, doExecuteAckSrc, doRefresh)
+					if err != nil {
+						return err
+					}
+					msgs.Src = m
+					return nil
+				})
+
+				err := eg.Wait()
+				if err != nil {
+					return err
+				}
 			}
 
 			st.Send(cmd.Context(), c[src], c[dst], msgs)
