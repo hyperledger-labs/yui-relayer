@@ -319,19 +319,8 @@ func queryUpgradeChannelState(ctx context.Context, sh SyncHeaders, prover, count
 	logger := GetChannelPairLoggerRelative(prover, counterparty)
 	queryCtx := sh.GetQueryContext(ctx, prover.ChainID())
 
-	err := retry.Do(func() error {
-		var err error
-		ret.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, prover, counterparty)
-		if err != nil {
-			return err
-		}
-		return nil
-	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
-		// logRetryUpdateHeaders(src, dst, n, err)
-		if err := sh.Updates(ctx, prover, counterparty); err != nil {
-			panic(err)
-		}
-	}))
+	var err error
+	ret.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, prover, counterparty)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to set up headers for LC update on both chains", err)
 		return nil, err
@@ -406,7 +395,7 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 
 	// Query a number of things all at once
 	var srcResult, dstResult *queryUpgradeChannelStateResult
-	{
+	if err := retry.Do(func() error {
 		var eg = new(errgroup.Group)
 
 		eg.Go(func() error {
@@ -426,9 +415,19 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 			return nil
 		})
 		if err = eg.Wait(); err != nil {
-			return nil, err
+			return err
 		}
+		return nil
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
+		// logRetryUpdateHeaders(src, dst, n, err)
+		if err := sh.Updates(ctx, src, dst); err != nil {
+			panic(err)
+		}
+	})); err != nil {
+		return nil, err
 	}
+
+
 	if !srcResult.settled || !dstResult.settled {
 		return out, nil
 	}
