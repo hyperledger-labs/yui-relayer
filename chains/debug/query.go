@@ -25,7 +25,7 @@ func debugFakeLost(ctx context.Context, chain *Chain, queryHeight ibcexported.He
 		threshold, err := strconv.Atoi(val)
 		if err != nil {
 			logger.ErrorContext(ctx, "malformed value", err, "value", val)
-			return nil
+			return err
 		}
 
 		qh := int64(queryHeight.GetRevisionHeight())

@@ -138,7 +138,6 @@ func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) (
 	if err := debugFakeLost(ctx.Context(), pr.chain, ctx.Height()); err != nil {
 		return nil, clienttypes.Height{}, err
 	}
-	//height := ctx.Height().(clienttypes.Height)
 	return pr.OriginProver.ProveState(ctx, path, value)
 }
 

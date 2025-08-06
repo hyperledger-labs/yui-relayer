@@ -23,7 +23,7 @@ func (cfg *ChainConfig) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error 
 
 func (c ChainConfig) Build() (core.Chain, error) {
 	if c.OriginChain == nil {
-		return nil, fmt.Errorf("OriginChain must set")
+		return nil, fmt.Errorf("OriginChain must be set")
 	}
 	if c.OriginChain.GetCachedValue() == nil {
 		return nil, fmt.Errorf("OriginChain.GetCachedValue() must be set")
