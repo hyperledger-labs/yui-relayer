@@ -133,7 +133,7 @@ checkResult orig
 echo '##### case 8 #####'
 $RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
 $RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHCOMPLETE --target-dst-state FLUSHING
-sleep 20                              # ibc1 exceeds upgrade.timeout.timestamp
+sleep 100                              # ibc1 exceeds upgrade.timeout.timestamp
 $RLY tx channel-upgrade execute ibc01 # ibc0 <= chanUpgradeTimeout, ibc1 <= chanUpgradeCancel
 checkResult orig
 
@@ -141,6 +141,6 @@ echo '##### case 9 #####'
 $RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
 $RLY tx channel-upgrade init ibc01 ibc1 $altDstOpts
 $RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHING --target-dst-state FLUSHING
-sleep 20                              # Both chains exceed upgrade.timeout.timestamp
+sleep 100                              # Both chains exceed upgrade.timeout.timestamp
 $RLY tx channel-upgrade execute ibc01 # ibc0,ibc1 <= chanUpgradeTimeout
 checkResult orig

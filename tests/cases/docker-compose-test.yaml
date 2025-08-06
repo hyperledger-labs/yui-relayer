@@ -21,7 +21,8 @@ services:
     networks:
       - *network-common
     environment:
-      IBC_CHANNEL_UPGRADE_TIMEOUT: 20000000000
+      #IBC_CHANNEL_UPGRADE_TIMEOUT: 20000000000 # 20sec
+      IBC_CHANNEL_UPGRADE_TIMEOUT: 100000000000 # 100sec
   tendermint-chain1: &tendermint-chain1
     container_name: tendermint-chain1
     image: tendermint-chain1:${TAG}
@@ -38,7 +39,8 @@ services:
     networks:
       - *network-common
     environment:
-      IBC_CHANNEL_UPGRADE_TIMEOUT: 20000000000
+      #IBC_CHANNEL_UPGRADE_TIMEOUT: 20000000000
+      IBC_CHANNEL_UPGRADE_TIMEOUT: 100000000000
   tendermint-chain0-mock:
     <<: *tendermint-chain0
     container_name: tendermint-chain0-mock
