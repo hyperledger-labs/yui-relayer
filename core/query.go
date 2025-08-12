@@ -6,7 +6,7 @@ import (
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
- 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/errgroup"
 )
 
 // QueryClientStatePair returns a pair of connection responses

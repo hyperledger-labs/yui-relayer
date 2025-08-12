@@ -427,7 +427,6 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		return nil, err
 	}
 
-
 	if !srcResult.settled || !dstResult.settled {
 		return out, nil
 	}
