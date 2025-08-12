@@ -5,8 +5,8 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
-	"go.opentelemetry.io/otel/codes"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"go.opentelemetry.io/otel/codes"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -135,7 +135,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	}
 
 	relay := func(dir string, ctx context.Context, relayFrom, relayTo *ProvableChain, packets, acks PacketInfoList, sh SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
-		msgs := make([]sdk.Msg, 0, len(packets) + len(acks) + 1)
+		msgs := make([]sdk.Msg, 0, len(packets)+len(acks)+1)
 
 		// update clients
 		if m, err := srv.st.UpdateClients(dir, ctx, relayFrom, relayTo, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
@@ -186,7 +186,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			msgs.Src  = m
+			msgs.Src = m
 			return nil
 		})
 

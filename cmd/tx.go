@@ -1,15 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
-	"context"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"golang.org/x/sync/errgroup"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/cosmos/ibc-go/v8/modules/core/exported"
@@ -18,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"golang.org/x/sync/errgroup"
 )
 
 // transactionCmd represents the tx command
@@ -461,7 +461,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			relay := func(dir string, ctx context.Context, fromChain, toChain *core.ProvableChain, packets core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
-				msgs := make([]sdk.Msg, 0, len(packets) + 1)
+				msgs := make([]sdk.Msg, 0, len(packets)+1)
 
 				if m, err := st.UpdateClients(dir, ctx, fromChain, toChain, doExecuteRelay, doExecuteAck, sh, true); err != nil {
 					return nil, err
@@ -566,7 +566,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			}
 
 			relay := func(dir string, ctx context.Context, fromChain, toChain *core.ProvableChain, acks core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
-				msgs := make([]sdk.Msg, 0, len(acks) + 1)
+				msgs := make([]sdk.Msg, 0, len(acks)+1)
 
 				if m, err := st.UpdateClients(dir, ctx, fromChain, toChain, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
 					return nil, err
