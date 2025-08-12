@@ -1,0 +1,79 @@
+#!/bin/bash
+
+: <<'END_COMMENT'
+* relay-interval = 20s
+* src-relay-optimize-interval = 30s
+* src-relay-optimize-count = 3
+* dst-relay-optimize-interval = 30s
+* dst-relay-optimize-count = 3
+END_COMMENT
+
+set -eux
+
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
+RLY="${RLY_BINARY} --debug"
+
+source ${SCRIPT_DIR}/../../../scripts/set-telemetry-envvars
+source ${SCRIPT_DIR}/utils
+
+TM_ADDRESS0=$(${RLY} tendermint keys show ibc0 testkey)
+TM_ADDRESS1=$(${RLY} tendermint keys show ibc1 testkey)
+
+export DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_ibc0="10"
+export DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_PROVER_ibc0="10"
+export DEBUG_RELAYER_SHFU_WAIT_ibc1="20"
+
+SECONDS=0
+${RLY} service start ibc01 --relay-interval 20s --src-relay-optimize-interval 30s --src-relay-optimize-count 3 --dst-relay-optimize-interval 30s --dst-relay-optimize-count 3 &
+RLY_PID=$!
+
+sleep 3
+echo " yyyyyyyy Start yrly service. Call current time as 0s"
+expectUnrelayedCount "unrelayed-packets" "src" 0
+expectUnrelayedCount "unrelayed-packets" "dst" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "src" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
+
+docker exec tendermint-chain0 sh -c "simd --home /root/data/ibc0 tx --keyring-backend=test --from ${TM_ADDRESS0} --chain-id ibc0 mockapp send mockapp channel-0 'mock packet data' --yes"
+docker exec tendermint-chain1 sh -c "simd --home /root/data/ibc1 tx --keyring-backend=test --from ${TM_ADDRESS1} --chain-id ibc1 mockapp send mockapp channel-0 'mock packet data' --yes"
+
+sleep 3
+echo " yyyyyyyy Now is 3s. Packets are added 3s before."
+expectUnrelayedCount "unrelayed-packets" "src" 1
+expectUnrelayedCount "unrelayed-packets" "dst" 1
+expectUnrelayedCount "unrelayed-acknowledgements" "src" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
+
+
+sleep 43
+echo " yyyyyyyy Now is 46s. At 30s+, src->dst and dst->src relays are started and it taks 20s for waiting SHFU on dst and joinning. Expect src=(1,0), dst=(1,0)"
+expectUnrelayedCount "unrelayed-packets" "src" 1
+expectUnrelayedCount "unrelayed-packets" "dst" 1
+expectUnrelayedCount "unrelayed-acknowledgements" "src" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
+
+sleep 13
+echo " yyyyyyyy Now is 59s. At 50s+ src->dst and dst->src relays are completed. Expect src=(0,1), dst=(0,1)"
+expectUnrelayedCount "unrelayed-packets" "src" 0
+expectUnrelayedCount "unrelayed-packets" "dst" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "src" 1
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 1
+
+sleep 30
+echo " yyyyyyyy Now is 89s. At 80s+ dst->src and src->dst ack relays are started and not yet completed. Expect src=(0,1), dst=(0,1)"
+expectUnrelayedCount "unrelayed-packets" "src" 0
+expectUnrelayedCount "unrelayed-packets" "dst" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "src" 1
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 1
+
+sleep 23
+echo " yyyyyyyy Now is 112s. At 100s+ dst->src and dst->src ack relays are completed. Expect src=(0,0), dst=(0,0)"
+expectUnrelayedCount "unrelayed-packets" "src" 0
+expectUnrelayedCount "unrelayed-packets" "dst" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "src" 0
+expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
+
+echo "Finished"
+
+kill $RLY_PID
