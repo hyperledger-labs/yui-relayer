@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"time"
-	"fmt"
 
 	retry "github.com/avast/retry-go"
 	"go.opentelemetry.io/otel/codes"
@@ -171,80 +170,33 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 	msgs := NewRelayMsgs()
 	{
 		var eg = new(errgroup.Group)
-		srcStream := make(chan []sdk.Msg, 1)
-		dstStream := make(chan []sdk.Msg, 1)
-		defer close(srcStream)
-		defer close(dstStream)
 
 		doExecuteRelaySrc, doExecuteRelayDst := srv.shouldExecuteRelay(ctx, pseqs)
 		doExecuteAckSrc, doExecuteAckDst := srv.shouldExecuteRelay(ctx, aseqs)
 		eg.Go(func() error {
-			msgs, err := relay("dst", ctx, srv.src, srv.dst, pseqs.Src, aseqs.Src, srv.sh, doExecuteRelayDst, doExecuteAckDst, true)
+			m, err := relay("dst", ctx, srv.src, srv.dst, pseqs.Src, aseqs.Src, srv.sh, doExecuteRelayDst, doExecuteAckDst, true)
 			if err != nil {
 				return err
 			}
-			dstStream <- msgs
+			msgs.Dst = m
 			return nil
 		})
 		eg.Go(func() error {
-			msgs, err := relay("src", ctx, srv.dst, srv.src, pseqs.Dst, aseqs.Dst, srv.sh, doExecuteRelaySrc, doExecuteAckSrc, true)
+			m, err := relay("src", ctx, srv.dst, srv.src, pseqs.Dst, aseqs.Dst, srv.sh, doExecuteRelaySrc, doExecuteAckSrc, true)
 			if err != nil {
 				return err
 			}
-			srcStream <- msgs
+			msgs.Src  = m
 			return nil
 		})
 
-		err := eg.Wait() // it waits querying to other chain. it may take more time and my chain's state is deleted.
-		if err != nil {
+		if err := eg.Wait(); err != nil {
 			return err
 		}
-		var ok bool
-		msgs.Dst, ok = <-dstStream
-		if !ok {
-			return fmt.Errorf("dstStream channel closed unexpectedly")
-		}
-		msgs.Src, ok = <-srcStream
-		if !ok {
-			return fmt.Errorf("srcStream channel closed unexpectedly")
-		}
 	}
 
-/*
-	msgs := NewRelayMsgs()
-
-	doExecuteRelaySrc, doExecuteRelayDst := srv.shouldExecuteRelay(ctx, pseqs)
-	doExecuteAckSrc, doExecuteAckDst := srv.shouldExecuteRelay(ctx, aseqs)
-	// update clients
-	if m, err := srv.st.UpdateClients(ctx, srv.src, srv.dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, srv.sh, true); err != nil {
-		logger.ErrorContext(ctx, "failed to update clients", err)
-		span.SetStatus(codes.Error, err.Error())
-		return err
-	} else {
-		msgs.Merge(m)
-	}
-
-	// relay packets if unrelayed seqs exist
-	if m, err := srv.st.RelayPackets(ctx, srv.src, srv.dst, pseqs, srv.sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
-		logger.ErrorContext(ctx, "failed to relay packets", err)
-		span.SetStatus(codes.Error, err.Error())
-		return err
-	} else {
-		msgs.Merge(m)
-	}
-
-	// relay acks if unrelayed seqs exist
-	if m, err := srv.st.RelayAcknowledgements(ctx, srv.src, srv.dst, aseqs, srv.sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
-		logger.ErrorContext(ctx, "failed to relay acknowledgements", err)
-		span.SetStatus(codes.Error, err.Error())
-		return err
-	} else {
-		msgs.Merge(m)
-	}
-*/
 	// send all msgs to src/dst chains
 	srv.st.Send(ctx, srv.src, srv.dst, msgs)
-
 	return nil
 }
 

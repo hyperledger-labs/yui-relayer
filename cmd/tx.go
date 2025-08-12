@@ -459,36 +459,17 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			if err = tryFilterRelayPackets(sp, srcSeq, dstSeq); err != nil {
 				return err
 			}
-/*
-			msgs := core.NewRelayMsgs()
 
-			doExecuteRelaySrc := len(sp.Dst) > 0
-			doExecuteRelayDst := len(sp.Src) > 0
-			doExecuteAckSrc := false
-			doExecuteAckDst := false
-
-			if m, err := st.UpdateClients(cmd.Context(), c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
-				return err
-			} else {
-				msgs.Merge(m)
-			}
-
-			if m, err := st.RelayPackets(cmd.Context(), c[src], c[dst], sp, sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
-				return err
-			} else {
-				msgs.Merge(m)
-			}
-*/
-			relay := func(dir string, ctx context.Context, relayFrom, relayTo *core.ProvableChain, packets core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
+			relay := func(dir string, ctx context.Context, fromChain, toChain *core.ProvableChain, packets core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
 				msgs := make([]sdk.Msg, 0, len(packets) + 1)
 
-				if m, err := st.UpdateClients(dir, ctx, relayFrom, relayTo, doExecuteRelay, doExecuteAck, sh, true); err != nil {
+				if m, err := st.UpdateClients(dir, ctx, fromChain, toChain, doExecuteRelay, doExecuteAck, sh, true); err != nil {
 					return nil, err
 				} else {
 					msgs = append(msgs, m...)
 				}
 
-				if m, err := st.RelayPackets(dir, ctx, relayFrom, relayTo, packets, sh, doExecuteRelay); err != nil {
+				if m, err := st.RelayPackets(dir, ctx, fromChain, toChain, packets, sh, doExecuteRelay); err != nil {
 					return nil, err
 				} else {
 					msgs = append(msgs, m...)
@@ -511,7 +492,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 					if err != nil {
 						return err
 					}
-					msgs.Src = m
+					msgs.Dst = m
 					return nil
 				})
 				eg.Go(func() error {
@@ -519,12 +500,11 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 					if err != nil {
 						return err
 					}
-					msgs.Dst = m
+					msgs.Src = m
 					return nil
 				})
 
-				err := eg.Wait()
-				if err != nil {
+				if err := eg.Wait(); err != nil {
 					return err
 				}
 			}
@@ -584,36 +564,17 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 			if err = tryFilterRelayPackets(sp, srcSeq, dstSeq); err != nil {
 				return err
 			}
-/*
-			msgs := core.NewRelayMsgs()
 
-			doExecuteRelaySrc := false
-			doExecuteRelayDst := false
-			doExecuteAckSrc := len(sp.Dst) > 0
-			doExecuteAckDst := len(sp.Src) > 0
-
-			if m, err := st.UpdateClients(cmd.Context(), c[src], c[dst], doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, sh, viper.GetBool(flagDoRefresh)); err != nil {
-				return err
-			} else {
-				msgs.Merge(m)
-			}
-
-			if m, err := st.RelayAcknowledgements(cmd.Context(), c[src], c[dst], sp, sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
-				return err
-			} else {
-				msgs.Merge(m)
-			}
-*/
-			relay := func(dir string, ctx context.Context, relayFrom, relayTo *core.ProvableChain, acks core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
+			relay := func(dir string, ctx context.Context, fromChain, toChain *core.ProvableChain, acks core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
 				msgs := make([]sdk.Msg, 0, len(acks) + 1)
 
-				if m, err := st.UpdateClients(dir, ctx, relayFrom, relayTo, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
+				if m, err := st.UpdateClients(dir, ctx, fromChain, toChain, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
 					return nil, err
 				} else {
 					msgs = append(msgs, m...)
 				}
 
-				if m, err := st.RelayAcknowledgements(dir, ctx, relayFrom, relayTo, acks, sh, doExecuteAck); err != nil {
+				if m, err := st.RelayAcknowledgements(dir, ctx, fromChain, toChain, acks, sh, doExecuteAck); err != nil {
 					return nil, err
 				} else {
 					msgs = append(msgs, m...)
@@ -640,7 +601,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 					return nil
 				})
 				eg.Go(func() error {
-					m, err := relay("dst", cmd.Context(), c[src], c[dst], sp.Dst, sh, doExecuteRelaySrc, doExecuteAckSrc, doRefresh)
+					m, err := relay("src", cmd.Context(), c[dst], c[src], sp.Dst, sh, doExecuteRelaySrc, doExecuteAckSrc, doRefresh)
 					if err != nil {
 						return err
 					}
@@ -648,8 +609,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 					return nil
 				})
 
-				err := eg.Wait()
-				if err != nil {
+				if err := eg.Wait(); err != nil {
 					return err
 				}
 			}
