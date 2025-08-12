@@ -211,7 +211,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		srcHostConsProof, dstHostConsProof []byte
 	)
 
-	{
+	if err := retry.Do(func() error {
 		var eg = new(errgroup.Group)
 
 		eg.Go(func() error {
@@ -232,8 +232,16 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		})
 
 		if err := eg.Wait(); err != nil {
-			return nil, err
+			return err
 		}
+		return nil
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
+		// logRetryUpdateHeaders(src, dst, n, err)
+		if err := sh.Updates(ctx, src, dst); err != nil {
+			panic(err)
+		}
+	})); err != nil {
+		return nil, err
 	}
 
 	if !srcState.settled || !dstState.settled {

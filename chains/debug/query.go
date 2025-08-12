@@ -18,7 +18,7 @@ import (
 
 func debugFakeLost(ctx context.Context, chain *Chain, queryHeight ibcexported.Height) error {
 	logger := log.GetLogger()
-	env := fmt.Sprintf("DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_%s", chain.ChainID())
+	env := fmt.Sprintf("DEBUG_RELAYER_PRUNE_AFTER_BLOCKS_CHAIN_%s", chain.ChainID())
 	if val, ok := os.LookupEnv(env); ok {
 		logger.Debug(env, "chain", chain.ChainID(), "value", val)
 

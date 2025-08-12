@@ -17,7 +17,7 @@ import (
 
 func debugFakeLost(ctx context.Context, chain core.Chain, queryHeight exported.Height) error {
 	logger := log.GetLogger()
-	env := fmt.Sprintf("DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_PROVER_%s", chain.ChainID())
+	env := fmt.Sprintf("DEBUG_RELAYER_PRUNE_AFTER_BLOCKS_PROVER_%s", chain.ChainID())
 	if val, ok := os.LookupEnv(env); ok {
 		logger.Info(fmt.Sprintf(">%s: chain=%s: '%v'", env, chain.ChainID(), val))
 
@@ -68,11 +68,6 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 	return pr.OriginProver.SetupForRelay(ctx)
 }
 
-// GetChainID returns the chain ID
-func (pr *Prover) GetChainID() string {
-	return pr.chain.ChainID()
-}
-
 /* LightClient implementation */
 
 // CreateInitialLightClientState creates a pair of ClientState and ConsensusState for building MsgCreateClient submitted to the counterparty chain
@@ -97,7 +92,6 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 			logger.ErrorContext(ctx, "malformed value", err, "value", val)
 			return nil, err
 		}
-
 		{
 			var items []*core.HeaderOrError
 			for i := range headerStream {
@@ -110,6 +104,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 			close(ch)
 			headerStream = ch
 		}
+
 
 		lap := 60
 		n := t / lap

@@ -28,8 +28,8 @@ retry 5 $RLY tendermint light init $CHAINID_TWO -f
 # add a path between chain0 and chain1
 $RLY paths add $CHAINID_ONE $CHAINID_TWO $PATH_NAME --file=./configs/path.json
 
-export DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_ibc0="10"
-export DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_PROVER_ibc0="10"
+export DEBUG_RELAYER_PRUNE_AFTER_BLOCKS_CHAIN_ibc0="10"
+export DEBUG_RELAYER_PRUNE_AFTER_BLOCKS_PROVER_ibc0="10"
 export DEBUG_RELAYER_SHFU_WAIT_ibc1="20"
 
 retry 5 $RLY tx clients --src-height 2 $PATH_NAME
