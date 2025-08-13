@@ -92,19 +92,6 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 			logger.ErrorContext(ctx, "malformed value", err, "value", val)
 			return nil, err
 		}
-		{
-			var items []*core.HeaderOrError
-			for i := range headerStream {
-				items = append(items, i)
-			}
-			ch := make(chan *core.HeaderOrError, len(items))
-			for _, i := range items {
-				ch <- i
-			}
-			close(ch)
-			headerStream = ch
-		}
-
 
 		lap := 60
 		n := t / lap
