@@ -1,0 +1,12 @@
+syntax = "proto3";
+package relayer.provers.debug.config;
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+
+option go_package = "github.com/hyperledger-labs/yui-relayer/provers/debug";
+option (gogoproto.goproto_getters_all) = false;
+
+message ProverConfig {
+    google.protobuf.Any origin_prover = 1;
+}

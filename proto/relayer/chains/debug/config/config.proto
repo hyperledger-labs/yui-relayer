@@ -1,0 +1,13 @@
+syntax = "proto3";
+package relayer.chains.debug.config;
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+
+option go_package = "github.com/hyperledger-labs/yui-relayer/chains/debug";
+option (gogoproto.goproto_getters_all) = false;
+
+message ChainConfig {
+  google.protobuf.Any origin_chain = 1;
+}
+
