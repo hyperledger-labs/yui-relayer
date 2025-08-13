@@ -47,7 +47,7 @@ expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
 
 
 sleep 43
-echo " yyyyyyyy Now is 46s. At 30s+, src->dst and dst->src relays are started and it taks 20s for waiting SHFU on dst and joinning. Expect src=(1,0), dst=(1,0)"
+echo " yyyyyyyy Now is 46s. At 30s+, src->dst and dst->src relays are started and it takes 20s for waiting SHFU on dst and joining. Expect src=(1,0), dst=(1,0)"
 expectUnrelayedCount "unrelayed-packets" "src" 1
 expectUnrelayedCount "unrelayed-packets" "dst" 1
 expectUnrelayedCount "unrelayed-acknowledgements" "src" 0
