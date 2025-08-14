@@ -21,8 +21,8 @@ test:
 	./scripts/test-create-channel-fail-already-created
 	./scripts/test-create-channel-fail-unexist
 	./scripts/test-tx
+	./scripts/test-tx-fakelost 2
 	./scripts/test-service
-	./scripts/test-tx-fakelost
 	./scripts/test-service-fakelost
 
 .PHONY: network-down

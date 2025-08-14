@@ -2,6 +2,11 @@
 
 set -eux
 
+SEQID=1
+if [ ! -z "$1" ]; then
+  SEQID=$1
+fi
+
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
 RLY_BINARY=${SCRIPT_DIR}/../../../../build/yrly
 RLY="${RLY_BINARY} --debug"
@@ -22,6 +27,6 @@ export DEBUG_RELAYER_SHFU_WAIT_ibc1="20"
 docker exec tendermint-chain0 sh -c "simd --home /root/data/ibc0 tx --keyring-backend=test --from ${TM_ADDRESS0} --chain-id ibc0 mockapp send mockapp channel-0 'mock packet data' --yes"
 docker exec tendermint-chain1 sh -c "simd --home /root/data/ibc1 tx --keyring-backend=test --from ${TM_ADDRESS1} --chain-id ibc1 mockapp send mockapp channel-0 'mock packet data' --yes"
 sleep ${TX_INTERNAL}
-${RLY} tx relay --do-refresh ibc01 --src-seqs 1 --dst-seqs 1
+${RLY} tx relay --do-refresh ibc01 --src-seqs $SEQID --dst-seqs $SEQID
 sleep ${TX_INTERNAL}
-${RLY} tx acks --do-refresh ibc01 --src-seqs 1 --dst-seqs 1
+${RLY} tx acks --do-refresh ibc01 --src-seqs $SEQID --dst-seqs $SEQID

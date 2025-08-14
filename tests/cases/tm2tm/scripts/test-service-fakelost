@@ -25,11 +25,12 @@ export DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_PROVER_ibc0="10"
 export DEBUG_RELAYER_SHFU_WAIT_ibc1="20"
 
 SECONDS=0
+date; echo " yyyyyyyy Start yrly service. Call now as @0"
 ${RLY} service start ibc01 --relay-interval 20s --src-relay-optimize-interval 30s --src-relay-optimize-count 3 --dst-relay-optimize-interval 30s --dst-relay-optimize-count 3 &
 RLY_PID=$!
 
 sleep 3
-echo " yyyyyyyy Start yrly service. Call current time as 0s"
+date; echo " yyyyyyyy Now is @3. Check there are not packets and then send packets. They are ready to be relayed after optimize-interval(30s) at @33"
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-packets" "dst" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "src" 0
@@ -39,36 +40,41 @@ docker exec tendermint-chain0 sh -c "simd --home /root/data/ibc0 tx --keyring-ba
 docker exec tendermint-chain1 sh -c "simd --home /root/data/ibc1 tx --keyring-backend=test --from ${TM_ADDRESS1} --chain-id ibc1 mockapp send mockapp channel-0 'mock packet data' --yes"
 
 sleep 3
-echo " yyyyyyyy Now is 3s. Packets are added 3s before."
+date; echo " yyyyyyyy Now is @6. Check there are 1 packet on both chain"
 expectUnrelayedCount "unrelayed-packets" "src" 1
 expectUnrelayedCount "unrelayed-packets" "dst" 1
 expectUnrelayedCount "unrelayed-acknowledgements" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
 
+sleep 30
+date; echo " yyyyyyyy Now is @36. At @30, packets can be relayed and they will be processed in next relayer srv loop at @40"
 
-sleep 43
-echo " yyyyyyyy Now is 46s. At 30s+, src->dst and dst->src relays are started and it takes 20s for waiting SHFU on dst and joining. Expect src=(1,0), dst=(1,0)"
+sleep 7
+date; echo " yyyyyyyy Now is @43. At @40, relayer runs srv loop and process packets. Note that dst->src relay takes SHFU_WAIT time(20s)"
 expectUnrelayedCount "unrelayed-packets" "src" 1
 expectUnrelayedCount "unrelayed-packets" "dst" 1
 expectUnrelayedCount "unrelayed-acknowledgements" "src" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 0
 
-sleep 13
-echo " yyyyyyyy Now is 59s. At 50s+ src->dst and dst->src relays are completed. Expect src=(0,1), dst=(0,1)"
+sleep 27
+date; echo " yyyyyyyy Now is @70. At @60, dst->src wait is end and both packets are sent. Sending will take about 3s for confirmation on each chain. Then relayer sleep until next interval at @86"
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-packets" "dst" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "src" 1
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 1
 
 sleep 30
-echo " yyyyyyyy Now is 89s. At 80s+ dst->src and src->dst ack relays are started and not yet completed. Expect src=(0,1), dst=(0,1)"
+date; echo " yyyyyyyy Now is @100. At @96, ack packets spend optimize-interval(30s) and they can be on target list"
+
+sleep 10
+date; echo " yyyyyyyy Now is @110. At @106, relayer runs srv loop and process packets. Note that dst->src relay takes SHFU_WAIT time(20s)"
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-packets" "dst" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "src" 1
 expectUnrelayedCount "unrelayed-acknowledgements" "dst" 1
 
-sleep 23
-echo " yyyyyyyy Now is 112s. At 100s+ dst->src and dst->src ack relays are completed. Expect src=(0,0), dst=(0,0)"
+sleep 30
+date; echo " yyyyyyyy Now is @140. At @126, dst->src wait is end and both packets are sent. Being confirmed at @132."
 expectUnrelayedCount "unrelayed-packets" "src" 0
 expectUnrelayedCount "unrelayed-packets" "dst" 0
 expectUnrelayedCount "unrelayed-acknowledgements" "src" 0
