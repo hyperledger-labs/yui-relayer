@@ -270,14 +270,14 @@ func QueryChannelUpgradePair(srcCtx, dstCtx QueryContext, src, dst interface {
 		if err != nil {
 			return err
 		}
-		return err
+		return nil
 	})
 	eg.Go(func() error {
 		dstChanUpg, err = QueryChannelUpgrade(dstCtx, dst, prove)
 		if err != nil {
 			return err
 		}
-		return err
+		return nil
 	})
 	err = eg.Wait()
 	return

@@ -807,7 +807,6 @@ func upgradeAlreadyTimedOut(
 	if err != nil {
 		return false, err
 	}
-
 	return cpChanUpg.Upgrade.Timeout.Elapsed(height, uint64(timestamp.UnixNano())), nil
 }
 
