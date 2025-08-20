@@ -322,13 +322,13 @@ func queryUpgradeChannelState(ctx context.Context, sh SyncHeaders, prover, count
 	var err error
 	ret.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, prover, counterparty)
 	if err != nil {
-		logger.ErrorContext(ctx, "failed to set up headers for LC update on both chains", err)
+		logger.ErrorContext(ctx, "failed to set up headers for LC update", err)
 		return nil, err
 	}
 
 	ret.channel, ret.settled, err = querySettledChannel(queryCtx, logger, prover, true)
 	if err != nil {
-		logger.ErrorContext(ctx, "failed to query the channel with proofs", err)
+		logger.ErrorContext(ctx, "failed to query the channel with proof", err)
 		return nil, err
 	} else if !ret.settled {
 		return &ret, nil
@@ -336,7 +336,7 @@ func queryUpgradeChannelState(ctx context.Context, sh SyncHeaders, prover, count
 
 	ret.chanUpg, ret.settled, err = querySettledChannelUpgrade(queryCtx, logger, prover, true)
 	if err != nil {
-		logger.ErrorContext(ctx, "failed to query the channel upgrade pair with proofs", err)
+		logger.ErrorContext(ctx, "failed to query the channel upgrade with proof", err)
 		return nil, err
 	} else if !ret.settled {
 		return &ret, nil
@@ -419,7 +419,6 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		}
 		return nil
 	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
-		// logRetryUpdateHeaders(src, dst, n, err)
 		if err := sh.Updates(ctx, src, dst); err != nil {
 			panic(err)
 		}
@@ -708,14 +707,14 @@ func queryCanTransitionToFlushComplete(ctx context.Context, chain interface {
 
 func querySettledChannelUpgrade(
 	queryCtx QueryContext,
-	logger_ *log.RelayLogger,
+	logger *log.RelayLogger,
 	chain interface {
 		Chain
 		StateProver
 	},
 	prove bool,
 ) (*chantypes.QueryUpgradeResponse, bool, error) {
-	logger := &log.RelayLogger{Logger: logger_.With(
+	logger = &log.RelayLogger{Logger: logger.With(
 		"prove", prove,
 	)}
 
