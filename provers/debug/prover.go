@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"runtime/debug"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
@@ -36,6 +37,7 @@ func debugFakeLost(ctx context.Context, chain core.Chain, queryHeight exported.H
 		lh := int64(latestHeight.GetRevisionHeight())
 
 		if qh+int64(threshold) < lh {
+			debug.PrintStack()
 			return fmt.Errorf("fake missing trie node: %v + %v < %v", qh, threshold, lh)
 		}
 	}

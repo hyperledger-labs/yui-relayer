@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"runtime/debug"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
@@ -37,6 +38,7 @@ func debugFakeLost(ctx context.Context, chain *Chain, queryHeight ibcexported.He
 		lh := int64(latestHeight.GetRevisionHeight())
 
 		if qh+int64(threshold) < lh {
+			debug.PrintStack()
 			return fmt.Errorf("fake missing trie node: %v + %v < %v", qh, threshold, lh)
 		}
 	}
