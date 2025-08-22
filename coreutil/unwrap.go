@@ -3,8 +3,10 @@ package coreutil
 import (
 	"fmt"
 
+	debugchain "github.com/hyperledger-labs/yui-relayer/chains/debug"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/otelcore"
+	debugprover "github.com/hyperledger-labs/yui-relayer/provers/debug"
 )
 
 // UnwrapChain finds the first struct value in the Chain field that matches the specified
@@ -17,6 +19,8 @@ func UnwrapChain[C core.Chain](c core.Chain) (C, error) {
 	chain := c
 	for {
 		switch unwrapped := chain.(type) {
+		case *debugchain.Chain:
+			return UnwrapChain[C](unwrapped.OriginChain)
 		case *core.ProvableChain:
 			chain = unwrapped.Chain
 		case *otelcore.Chain:
@@ -40,6 +44,8 @@ func UnwrapProver[P core.Prover](p core.Prover) (P, error) {
 	prover := p
 	for {
 		switch unwrapped := prover.(type) {
+		case *debugprover.Prover:
+			return UnwrapProver[P](unwrapped.OriginProver)
 		case *core.ProvableChain:
 			prover = unwrapped.Prover
 		case *otelcore.Prover:
