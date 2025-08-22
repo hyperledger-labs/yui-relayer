@@ -11,6 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"go.opentelemetry.io/otel/codes"
 	"golang.org/x/sync/errgroup"
@@ -235,7 +236,7 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 			return false, err
 		}
 
-		upgErr, err := QueryChannelUpgradeError(cpQueryCtx, cp, true)
+		upgErr, err := QueryChannelUpgradeError(cpQueryCtx, cp, true, nil)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to query the channel upgrade error receipt", err)
 			return false, err
@@ -311,7 +312,7 @@ type queryUpgradeChannelStateResult struct {
 	settled              bool
 	upgradeState         UpgradeState
 	proposedConnectionID string
-	upgErr               *chantypes.QueryUpgradeErrorResponse
+	defaultUpgErr    chantypes.QueryUpgradeErrorResponse
 }
 
 func queryUpgradeChannelState(ctx context.Context, sh SyncHeaders, prover, counterparty *ProvableChain) (*queryUpgradeChannelStateResult, error) {
@@ -366,10 +367,15 @@ func queryUpgradeChannelState(ctx context.Context, sh SyncHeaders, prover, count
 	 * - my upgradeState is UPGRADE_STATE_UNINIT or UPGRADE_STATE_INIT
 	 */
 	if ret.upgradeState == UPGRADE_STATE_UNINIT || ret.upgradeState == UPGRADE_STATE_INIT {
-		ret.upgErr, err = QueryChannelUpgradeError(queryCtx, prover, true)
+		path := host.ChannelUpgradeErrorPath(prover.Path().PortID, prover.Path().ChannelID)
+		value := []byte{}
+		proof, proofHeight, err := prover.ProveState(queryCtx, path, value)
 		if err != nil {
 			return nil, err
 		}
+		ret.defaultUpgErr.Proof = proof
+		ret.defaultUpgErr.ProofHeight = proofHeight
+		ret.defaultUpgErr.ErrorReceipt = TODO;
 	}
 
 	return &ret, nil
@@ -642,7 +648,7 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 			dstResult.channel,
 			dstResult.chanUpg,
 			dstResult.proposedConnectionID,
-			dstResult.upgErr,
+			&dstResult.defaultUpgErr,
 		)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to build Msg for the src chain", err)
@@ -669,7 +675,7 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 			srcResult.channel,
 			srcResult.chanUpg,
 			srcResult.proposedConnectionID,
-			srcResult.upgErr,
+			&srcResult.defaultUpgErr,
 		)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to build Msg for the dst chain", err)
@@ -821,7 +827,7 @@ func buildActionMsg(
 	cpChan *chantypes.QueryChannelResponse,
 	cpUpg *chantypes.QueryUpgradeResponse,
 	proposedConnectionID string,
-	upgErr *chantypes.QueryUpgradeErrorResponse,
+	cpDefaultUpgErr *chantypes.QueryUpgradeErrorResponse,
 ) (sdk.Msg, error) {
 	pathEnd := chain.Path()
 
@@ -835,7 +841,10 @@ func buildActionMsg(
 	case UPGRADE_ACTION_OPEN:
 		return pathEnd.ChanUpgradeOpen(cpChan, addr), nil
 	case UPGRADE_ACTION_CANCEL:
-		if upgErr == nil {
+		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true, cpDefaultUpgErr)
+		if err != nil {
+			return nil, err
+		} else if upgErr == nil {
 			// NOTE: Even if an error receipt is not found, anyway try to execute ChanUpgradeCancel.
 			// If the sender is authority and the channel state is anything other than FLUSHCOMPLETE,
 			// the cancellation will be successful.
@@ -843,7 +852,10 @@ func buildActionMsg(
 		}
 		return pathEnd.ChanUpgradeCancel(upgErr, addr), nil
 	case UPGRADE_ACTION_CANCEL_FLUSHCOMPLETE:
-		if upgErr == nil {
+		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true, cpDefaultUpgErr)
+		if err != nil {
+			return nil, err
+		} else if upgErr == nil {
 			return nil, fmt.Errorf("upgrade error receipt not found")
 		} else if upgErr.ErrorReceipt.Sequence != selfChan.Channel.UpgradeSequence {
 			return nil, fmt.Errorf(
