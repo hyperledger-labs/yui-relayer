@@ -22,10 +22,6 @@ func (c *Chain) ChainID() string {
 	return c.OriginChain.ChainID()
 }
 
-func (c *Chain) Config() ChainConfig {
-	return c.config
-}
-
 func (c *Chain) Codec() codec.ProtoCodecMarshaler {
 	return c.OriginChain.Codec()
 }

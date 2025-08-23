@@ -20,7 +20,7 @@ func debugFakeLost(ctx context.Context, chain *Chain, queryHeight ibcexported.He
 	logger := log.GetLogger()
 	env := fmt.Sprintf("DEBUG_RELAYER_PRUNE_AFTER_BLOCKS_CHAIN_%s", chain.ChainID())
 	if val, ok := os.LookupEnv(env); ok {
-		logger.Debug(env, "chain", chain.ChainID(), "value", val)
+		logger.DebugContext(ctx, env, "chain", chain.ChainID(), "value", val)
 
 		threshold, err := strconv.Atoi(val)
 		if err != nil {

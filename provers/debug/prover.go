@@ -19,7 +19,7 @@ func debugFakeLost(ctx context.Context, chain core.Chain, queryHeight exported.H
 	logger := log.GetLogger()
 	env := fmt.Sprintf("DEBUG_RELAYER_PRUNE_AFTER_BLOCKS_PROVER_%s", chain.ChainID())
 	if val, ok := os.LookupEnv(env); ok {
-		logger.Info(fmt.Sprintf(">%s: chain=%s: '%v'", env, chain.ChainID(), val))
+		logger.DebugContext(ctx, fmt.Sprintf(">%s: chain=%s: '%v'", env, chain.ChainID(), val))
 
 		threshold, err := strconv.Atoi(val)
 		if err != nil {
@@ -86,7 +86,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 	env := fmt.Sprintf("DEBUG_RELAYER_SHFU_WAIT_%s", pr.chain.ChainID())
 
 	if val, ok := os.LookupEnv(env); ok {
-		logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "value", val)
+		logger.DebugContext(ctx, env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "value", val)
 		t, err := strconv.Atoi(val)
 		if err != nil {
 			logger.ErrorContext(ctx, "malformed value", err, "value", val)
@@ -96,12 +96,12 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 		lap := 60
 		n := t / lap
 		for i := 0; i < n; i++ {
-			logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "lap", fmt.Sprintf("%v/%v", (i+1)*lap, t))
+			logger.DebugContext(ctx, env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "lap", fmt.Sprintf("%v/%v", (i+1)*lap, t))
 			time.Sleep(time.Duration(lap) * time.Second)
 		}
-		logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "lap", fmt.Sprintf("%v/%v", t-n*lap, t))
+		logger.DebugContext(ctx, env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "lap", fmt.Sprintf("%v/%v", t-n*lap, t))
 		time.Sleep(time.Duration(t-n*lap) * time.Second)
-		logger.Debug(env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "done", t)
+		logger.DebugContext(ctx, env, "chain", pr.chain.ChainID(), "cp", counterparty.ChainID(), "done", t)
 	}
 	return headerStream, nil
 }
