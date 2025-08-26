@@ -17,6 +17,7 @@ import (
 	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -142,8 +143,132 @@ func checkConnectionCreateReady(ctx context.Context, src, dst *ProvableChain, lo
 	return true, nil
 }
 
+type createConnectionFutureProofs struct {
+	updateHeaders []Header
+	connRes       *conntypes.QueryConnectionResponse
+	csRes         *clienttypes.QueryClientStateResponse
+	consRes       *clienttypes.QueryConsensusStateResponse
+	hostConsState []byte
+}
+
+type createConnectionFutureMsg = func(proofs *createConnectionFutureProofs) (msg sdk.Msg, last bool)
+
+func proveCreateConnection(
+	ctx context.Context,
+	sh SyncHeaders,
+	from, to *ProvableChain,
+	fromConsH, toConsH ibcexported.Height,
+	toCons ibcexported.ConsensusState,
+	proofs *createConnectionFutureProofs,
+) error {
+	logger := GetConnectionPairLoggerRelative(from, to)
+	queryCtx := sh.GetQueryContext(ctx, from.ChainID())
+	var err error
+
+	proofs.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, from, to)
+	if err != nil {
+		logger.ErrorContext(ctx, "error setting up headers for update", err)
+		return err
+	}
+
+	if proofs.connRes != nil {
+		err = ProveConnection(queryCtx, from, proofs.connRes)
+		if err != nil {
+			return err
+		}
+	}
+	if proofs.csRes != nil {
+		err = ProveClientState(queryCtx, from, proofs.csRes)
+		if err != nil {
+			return err
+		}
+	}
+	if proofs.consRes != nil {
+		err = ProveClientConsensusState(queryCtx, from, fromConsH, proofs.consRes)
+		if err != nil {
+			return err
+		}
+
+		proofs.hostConsState, err = from.ProveHostConsensusState(queryCtx, toConsH, toCons)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+
+type createConnectionFutureMsgs struct {
+	Src, Dst []createConnectionFutureMsg
+}
+
+
+func resolveCreateConnectionFuture(
+	ctx context.Context,
+	sh SyncHeaders,
+	fmsgs *createConnectionFutureMsgs,
+	src, dst *ProvableChain,
+	srcCS, dstCS       ibcexported.ClientState,
+	srcConsH, dstConsH ibcexported.Height,
+	srcCons, dstCons   ibcexported.ConsensusState,
+	srcProofs, dstProofs *createConnectionFutureProofs,
+) (*RelayMsgs, error) {
+	ret := NewRelayMsgs()
+
+	srcAddr := mustGetAddress(src)
+	dstAddr := mustGetAddress(dst)
+
+	err := retry.Do(func() error {
+		var eg = new(errgroup.Group)
+
+		if len(fmsgs.Src) > 0 {
+			eg.Go(func() error {
+				err := proveCreateConnection(ctx, sh, src, dst, srcConsH, dstConsH, dstCons, srcProofs)
+				if err != nil {
+					return err
+				}
+
+				for _, fm := range fmsgs.Src {
+					msg, last := fm(srcProofs)
+					ret.Src = append(ret.Src, msg)
+					ret.Last = ret.Last || last
+				}
+				return nil
+			})
+		}
+		if len(fmsgs.Dst) > 0 {
+			eg.Go(func() error {
+				err := proveCreateConnection(ctx, sh, dst, src, dstConsH, srcConsH, srcCons, dstProofs)
+				if err != nil {
+					return err
+				}
+
+				for _, fm := range fmsgs.Dst {
+					msg, last := fm(dstProofs)
+					ret.Dst = append(ret.Src, msg)
+					ret.Last = ret.Last || last
+				}
+				return nil
+			})
+		}
+		return eg.Wait()
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(dstProofs.updateHeaders) > 0 {
+		ret.Src = append(src.Path().UpdateClients(dstProofs.updateHeaders, srcAddr), ret.Src...)
+	}
+	if len(srcProofs.updateHeaders) > 0 {
+		ret.Dst = append(dst.Path().UpdateClients(srcProofs.updateHeaders, dstAddr), ret.Dst...)
+	}
+
+	return ret, nil
+}
+
 func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs, error) {
-	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
 	}
@@ -152,6 +277,16 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 	if err != nil {
 		return nil, err
 	}
+
+	fmsgs := createConnectionFutureMsgs{}
+	var (
+		srcProofs, dstProofs createConnectionFutureProofs
+		srcCS, dstCS                       ibcexported.ClientState
+		srcConsH, dstConsH                 ibcexported.Height
+		srcCons, dstCons                   ibcexported.ConsensusState
+	)
+
+/*
 	// Query a number of things all at once
 	var (
 		srcUpdateHeaders, dstUpdateHeaders []Header
@@ -162,6 +297,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		srcConsH, dstConsH                 ibcexported.Height
 		srcHostConsProof, dstHostConsProof []byte
 	)
+
 	err = retry.Do(func() error {
 		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(ctx, src, dst)
 		return err
@@ -174,47 +310,49 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 	if err != nil {
 		return nil, err
 	}
-
-	srcConn, dstConn, settled, err := querySettledConnectionPair(
+*/
+	var settled bool
+	srcProofs.connRes, dstProofs.connRes, settled, err = querySettledConnectionPair(
 		sh.GetQueryContext(ctx, src.ChainID()),
 		sh.GetQueryContext(ctx, dst.ChainID()),
 		src,
 		dst,
-		true,
+		false,
 	)
 	if err != nil {
 		return nil, err
 	} else if !settled {
-		return out, nil
+		return NewRelayMsgs(), nil
 	}
 
-	if !(srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED) {
+	if !(srcProofs.connRes.Connection.State == conntypes.UNINITIALIZED && dstProofs.connRes.Connection.State == conntypes.UNINITIALIZED) {
 		// Query client state from each chain's client
-		srcCsRes, dstCsRes, err = QueryClientStatePair(sh.GetQueryContext(ctx, src.ChainID()), sh.GetQueryContext(ctx, dst.ChainID()), src, dst, true)
+		srcProofs.csRes, dstProofs.csRes, err = QueryClientStatePair(sh.GetQueryContext(ctx, src.ChainID()), sh.GetQueryContext(ctx, dst.ChainID()), src, dst, false)
 		if err != nil {
 			return nil, err
 		}
-		if err := src.Codec().UnpackAny(srcCsRes.ClientState, &srcCS); err != nil {
+		if err := src.Codec().UnpackAny(srcProofs.csRes.ClientState, &srcCS); err != nil {
 			return nil, err
 		}
-		if err := dst.Codec().UnpackAny(dstCsRes.ClientState, &dstCS); err != nil {
+		if err := dst.Codec().UnpackAny(dstProofs.csRes.ClientState, &dstCS); err != nil {
 			return nil, err
 		}
 
 		// Store the heights
 		srcConsH, dstConsH = srcCS.GetLatestHeight(), dstCS.GetLatestHeight()
-		srcConsRes, dstConsRes, err = QueryClientConsensusStatePair(
+		srcProofs.consRes, dstProofs.consRes, err = QueryClientConsensusStatePair(
 			sh.GetQueryContext(ctx, src.ChainID()), sh.GetQueryContext(ctx, dst.ChainID()),
-			src, dst, srcConsH, dstConsH, true)
+			src, dst, srcConsH, dstConsH, false)
 		if err != nil {
 			return nil, err
 		}
-		if err := src.Codec().UnpackAny(srcConsRes.ConsensusState, &srcCons); err != nil {
+		if err := src.Codec().UnpackAny(srcProofs.consRes.ConsensusState, &srcCons); err != nil {
 			return nil, err
 		}
-		if err := dst.Codec().UnpackAny(dstConsRes.ConsensusState, &dstCons); err != nil {
+		if err := dst.Codec().UnpackAny(dstProofs.consRes.ConsensusState, &dstCons); err != nil {
 			return nil, err
 		}
+/*
 		srcHostConsProof, err = src.ProveHostConsensusState(sh.GetQueryContext(ctx, src.ChainID()), dstCS.GetLatestHeight(), dstCons)
 		if err != nil {
 			return nil, err
@@ -223,76 +361,84 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		if err != nil {
 			return nil, err
 		}
+*/
 	}
 
+	// That future functions below run concurrently on src and dst side and update it's proof value.
+	// Note that althouth these future functions may often refer counterparty's data, conflicts are not occured
+	// because they only refers constant non-proof values.
 	switch {
 	// Handshake hasn't been started on src or dst, relay `connOpenInit` to src
-	case srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.UNINITIALIZED:
-		logConnectionStates(ctx, src, dst, srcConn, dstConn)
-		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
-		}
-		out.Src = append(out.Src, src.Path().ConnInit(dst.Path(), addr))
-		// Handshake has started on dst (1 step done), relay `connOpenTry` and `updateClient` on src
-	case srcConn.Connection.State == conntypes.UNINITIALIZED && dstConn.Connection.State == conntypes.INIT:
-		logConnectionStates(ctx, src, dst, srcConn, dstConn)
-		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
-		}
-		out.Src = append(out.Src, src.Path().ConnTry(dst.Path(), dstCsRes, dstConn, dstConsRes, srcHostConsProof, addr))
+	case srcProofs.connRes.Connection.State == conntypes.UNINITIALIZED && dstProofs.connRes.Connection.State == conntypes.UNINITIALIZED:
+		fmsgs.Src = append(fmsgs.Src, func(proofs *createConnectionFutureProofs) (sdk.Msg, bool) {
+			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
+			addr := mustGetAddress(src)
+			msg := src.Path().ConnInit(dst.Path(), addr)
+			return msg, false
+		})
+
+	// Handshake has started on dst (1 step done), relay `connOpenTry` and `updateClient` on src
+	case srcProofs.connRes.Connection.State == conntypes.UNINITIALIZED && dstProofs.connRes.Connection.State == conntypes.INIT:
+		fmsgs.Src = append(fmsgs.Src, func(proofs *createConnectionFutureProofs) (sdk.Msg, bool) {
+			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
+			addr := mustGetAddress(src)
+			msg := src.Path().ConnTry(dst.Path(), dstProofs.csRes, dstProofs.connRes, dstProofs.consRes, proofs.hostConsState, addr)
+			return msg, false
+		})
+
 	// Handshake has started on src (1 step done), relay `connOpenTry` and `updateClient` on dst
-	case srcConn.Connection.State == conntypes.INIT && dstConn.Connection.State == conntypes.UNINITIALIZED:
-		logConnectionStates(ctx, dst, src, dstConn, srcConn)
-		addr := mustGetAddress(dst)
-		if len(srcUpdateHeaders) > 0 {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
-		}
-		out.Dst = append(out.Dst, dst.Path().ConnTry(src.Path(), srcCsRes, srcConn, srcConsRes, dstHostConsProof, addr))
+	case srcProofs.connRes.Connection.State == conntypes.INIT && dstProofs.connRes.Connection.State == conntypes.UNINITIALIZED:
+		fmsgs.Dst = append(fmsgs.Dst, func(proofs *createConnectionFutureProofs) (sdk.Msg, bool) {
+			logConnectionStates(ctx, dst, src, dstProofs.connRes, srcProofs.connRes)
+			addr := mustGetAddress(dst)
+			msg := dst.Path().ConnTry(src.Path(), srcProofs.csRes, srcProofs.connRes, srcProofs.consRes, dstProofs.hostConsState, addr)
+			return msg, false
+		})
 
 	// Handshake has started on src end (2 steps done), relay `connOpenAck` and `updateClient` to dst end
-	case srcConn.Connection.State == conntypes.TRYOPEN && dstConn.Connection.State == conntypes.INIT:
-		logConnectionStates(ctx, dst, src, dstConn, srcConn)
-		addr := mustGetAddress(dst)
-		if len(srcUpdateHeaders) > 0 {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
-		}
-		out.Dst = append(out.Dst, dst.Path().ConnAck(src.Path(), srcCsRes, srcConn, srcConsRes, dstHostConsProof, addr))
+	case srcProofs.connRes.Connection.State == conntypes.TRYOPEN && dstProofs.connRes.Connection.State == conntypes.INIT:
+		fmsgs.Dst = append(fmsgs.Dst, func(proofs *createConnectionFutureProofs) (sdk.Msg, bool) {
+			logConnectionStates(ctx, dst, src, dstProofs.connRes, srcProofs.connRes)
+			addr := mustGetAddress(dst)
+			msg := dst.Path().ConnAck(src.Path(), srcProofs.csRes, srcProofs.connRes, srcProofs.consRes, dstProofs.hostConsState, addr)
+			return msg, false
+		})
 
 	// Handshake has started on dst end (2 steps done), relay `connOpenAck` and `updateClient` to src end
-	case srcConn.Connection.State == conntypes.INIT && dstConn.Connection.State == conntypes.TRYOPEN:
-		logConnectionStates(ctx, src, dst, srcConn, dstConn)
-		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
-		}
-		out.Src = append(out.Src, src.Path().ConnAck(dst.Path(), dstCsRes, dstConn, dstConsRes, srcHostConsProof, addr))
+	case srcProofs.connRes.Connection.State == conntypes.INIT && dstProofs.connRes.Connection.State == conntypes.TRYOPEN:
+		fmsgs.Src = append(fmsgs.Src, func(proofs *createConnectionFutureProofs) (sdk.Msg, bool) {
+			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
+			addr := mustGetAddress(src)
+			msg := src.Path().ConnAck(dst.Path(), dstProofs.csRes, dstProofs.connRes, dstProofs.consRes, srcProofs.hostConsState, addr)
+			return msg, false
+		})
 
 	// Handshake has confirmed on dst (3 steps done), relay `connOpenConfirm` and `updateClient` to src end
-	case srcConn.Connection.State == conntypes.TRYOPEN && dstConn.Connection.State == conntypes.OPEN:
-		logConnectionStates(ctx, src, dst, srcConn, dstConn)
-		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
-		}
-		out.Src = append(out.Src, src.Path().ConnConfirm(dstConn, addr))
-		out.Last = true
+	case srcProofs.connRes.Connection.State == conntypes.TRYOPEN && dstProofs.connRes.Connection.State == conntypes.OPEN:
+		fmsgs.Src = append(fmsgs.Src, func(proofs *createConnectionFutureProofs) (sdk.Msg, bool) {
+			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
+			addr := mustGetAddress(src)
+			msg := src.Path().ConnConfirm(dstProofs.connRes, addr)
+			return msg, true
+		})
 
 	// Handshake has confirmed on src (3 steps done), relay `connOpenConfirm` and `updateClient` to dst end
-	case srcConn.Connection.State == conntypes.OPEN && dstConn.Connection.State == conntypes.TRYOPEN:
-		logConnectionStates(ctx, dst, src, dstConn, srcConn)
-		addr := mustGetAddress(dst)
-		if len(srcUpdateHeaders) > 0 {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
-		}
-		out.Dst = append(out.Dst, dst.Path().ConnConfirm(srcConn, addr))
-		out.Last = true
+	case srcProofs.connRes.Connection.State == conntypes.OPEN && dstProofs.connRes.Connection.State == conntypes.TRYOPEN:
+		fmsgs.Dst = append(fmsgs.Dst, func(proofs *createConnectionFutureProofs) (sdk.Msg, bool) {
+			logConnectionStates(ctx, dst, src, dstProofs.connRes, srcProofs.connRes)
+			addr := mustGetAddress(dst)
+			msg := dst.Path().ConnConfirm(srcProofs.connRes, addr)
+			return msg, true
+		})
 
 	default:
-		panic(fmt.Sprintf("not implemented error: %v %v", srcConn.Connection.State, dstConn.Connection.State))
+		panic(fmt.Sprintf("not implemented error: %v %v", srcProofs.connRes.Connection.State, dstProofs.connRes.Connection.State))
 	}
 
+	out, err := resolveCreateConnectionFuture(ctx, sh, &fmsgs, src, dst, srcCS, dstCS, srcConsH, dstConsH, srcCons, dstCons, &srcProofs, &dstProofs)
+	if err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -407,6 +553,19 @@ func GetConnectionPairLogger(src, dst Chain) *log.RelayLogger {
 			dst.ChainID(),
 			dst.Path().ClientID,
 			dst.Path().ConnectionID,
+		).
+		WithModule("core.connection")
+}
+
+func GetConnectionPairLoggerRelative(me, cp Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithConnectionPairRelative(
+			me.ChainID(),
+			me.Path().ClientID,
+			me.Path().ConnectionID,
+			cp.ChainID(),
+			cp.Path().ClientID,
+			cp.Path().ConnectionID,
 		).
 		WithModule("core.connection")
 }
