@@ -55,7 +55,7 @@ func NewProver(chain core.Chain, originProver core.Prover) *Prover {
 
 func (pr *Prover) Init(homePath string, timeout time.Duration, codec codec.ProtoCodecMarshaler, debug bool) error {
 	logger := log.GetLogger()
-	logger.Info("debug prover is initialized.")
+	logger.Debug("debug prover is initialized.")
 	return pr.OriginProver.Init(homePath, timeout, codec, debug)
 }
 
