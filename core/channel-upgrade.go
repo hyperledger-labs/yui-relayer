@@ -144,6 +144,11 @@ func ExecuteChannelUpgrade(ctx context.Context, pathName string, src, dst *Prova
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrackContext(ctx, time.Now(), "ExecuteChannelUpgrade")
 
+	if (targetSrcState == UPGRADE_STATE_UNINIT && targetDstState == UPGRADE_STATE_INIT) ||
+		(targetSrcState == UPGRADE_STATE_INIT && targetDstState == UPGRADE_STATE_UNINIT) {
+		return fmt.Errorf("unreachable target state pair: (%s, %s)", targetSrcState, targetDstState)
+	}
+
 	failures := 0
 	firstCall := true
 	err := runUntilComplete(ctx, interval, func() (bool, error) {
@@ -381,12 +386,15 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		),
 	)}
 
-	// check if both chains have reached the target states or UNINIT states
-	if srcState == targetSrcState && dstState == targetDstState {
-		if firstCall && srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT {
-			logger.InfoContext(ctx, "both chains have already reached the target states, or the channel upgrade has not been initialized")
+	if hasReachedOrPassedTargetState(srcState, targetSrcState, dstState) && hasReachedOrPassedTargetState(dstState, targetDstState, srcState) {
+		if firstCall {
+			if srcState == UPGRADE_STATE_UNINIT && targetSrcState == UPGRADE_STATE_UNINIT {
+				logger.InfoContext(ctx, "both chains have already reached or passed the target states, or the channel upgrade has not been initialized")
+			} else {
+				logger.InfoContext(ctx, "both chains have already reached or passed the target states")
+			}
 		} else {
-			logger.InfoContext(ctx, "both chains have reached the target states")
+			logger.InfoContext(ctx, "both chains have reached or passed the target states")
 		}
 		out.Last = true
 		return out, nil
@@ -397,7 +405,8 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 	dstAction := UPGRADE_ACTION_NONE
 	switch {
 	case srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT:
-		return nil, errors.New("channel upgrade has not been initialized; it will never reach the target states")
+		// This line should never be reached because the channel upgrade is considered completed
+		return nil, errors.New("unexpected transition")
 	case srcState == UPGRADE_STATE_INIT && dstState == UPGRADE_STATE_UNINIT:
 		if dstChan.Channel.UpgradeSequence >= srcChan.Channel.UpgradeSequence {
 			srcAction = UPGRADE_ACTION_CANCEL
@@ -791,5 +800,33 @@ func buildActionMsg(
 		return pathEnd.ChanUpgradeTimeout(cpChan, addr), nil
 	default:
 		panic(fmt.Errorf("unexpected action: %s", action))
+	}
+}
+
+// hasReachedOrPassedTargetState checks if the current state has reached or passed the target state,
+// including cases where the target state is skipped.
+func hasReachedOrPassedTargetState(currentState, targetState, counterpartyCurrentState UpgradeState) bool {
+	return currentState == targetState || hasPassedTargetState(currentState, targetState, counterpartyCurrentState)
+}
+
+// hasPassedTargetState checks if the current state has passed the target state,
+// including cases where the target state is skipped.
+func hasPassedTargetState(currentState, targetState, counterpartyCurrentState UpgradeState) bool {
+	// Check if the current state has passed the target state.
+	// For simplicity, we consider that any state that can be reached after the target state has passed the target state.
+	// NOTE: Each chain can cancel the upgrade and initialize another upgrade at any time. This means that the state
+	// can transition to UNINIT from any state except the case where the counterparty is in INIT state.
+
+	isUninitReachable := counterpartyCurrentState != UPGRADE_STATE_INIT
+	switch targetState {
+	case UPGRADE_STATE_INIT:
+		return currentState == UPGRADE_STATE_FLUSHING || currentState == UPGRADE_STATE_FLUSHCOMPLETE ||
+			(isUninitReachable && currentState == UPGRADE_STATE_UNINIT)
+	case UPGRADE_STATE_FLUSHING:
+		return currentState == UPGRADE_STATE_FLUSHCOMPLETE || (isUninitReachable && currentState == UPGRADE_STATE_UNINIT)
+	case UPGRADE_STATE_FLUSHCOMPLETE:
+		return isUninitReachable && currentState == UPGRADE_STATE_UNINIT
+	default:
+		return false
 	}
 }

@@ -147,10 +147,18 @@ $RLY tx channel-upgrade execute ibc01
 checkResult orig
 
 echo '##### case 11 #####'
-# The target states will never be reached
-if $RLY tx channel-upgrade execute ibc01 --target-src-state INIT --target-dst-state FLUSHING
+$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
+$RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHING --target-dst-state FLUSHING
+# Both chains have already passed the target states
+$RLY tx channel-upgrade execute ibc01 --target-src-state INIT --target-dst-state INIT
+$RLY tx channel-upgrade execute ibc01
+checkResult alt
+
+echo '##### case 12 #####'
+# Unreachable target pair (INIT, UNINIT)
+if $RLY tx channel-upgrade execute ibc01 --target-src-state INIT
 then
-    echo 'channel-upgrade completed with exit code 0, but non-zero code was expected' >&2
+    echo 'channel-upgrade finished with exit code 0, but non-zero code was expected' >&2
     exit 1
 fi
-checkResult orig
+checkResult alt
