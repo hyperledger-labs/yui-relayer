@@ -466,13 +466,17 @@ func WithChannelAttributes(c Chain) trace.SpanStartOption {
 }
 
 func WithChannelPairAttributes(src, dst Chain) trace.SpanStartOption {
+	return WithChannelPairAttributesAndKey("src", src, "dst", dst)
+}
+
+func WithChannelPairAttributesAndKey(srcKey string, src Chain, dstKey string, dst Chain) trace.SpanStartOption {
 	return trace.WithAttributes(slices.Concat(
-		semconv.AttributeGroup("src",
+		semconv.AttributeGroup(srcKey,
 			semconv.ChainIDKey.String(src.ChainID()),
 			semconv.PortIDKey.String(src.Path().PortID),
 			semconv.ChannelIDKey.String(src.Path().ChannelID),
 		),
-		semconv.AttributeGroup("dst",
+		semconv.AttributeGroup(dstKey,
 			semconv.ChainIDKey.String(dst.ChainID()),
 			semconv.PortIDKey.String(dst.Path().PortID),
 			semconv.ChannelIDKey.String(dst.Path().ChannelID),

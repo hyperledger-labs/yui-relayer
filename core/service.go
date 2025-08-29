@@ -5,7 +5,9 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"go.opentelemetry.io/otel/codes"
+	"golang.org/x/sync/errgroup"
 )
 
 // StartService starts a relay service
@@ -132,40 +134,71 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		return err
 	}
 
+	relay := func(ctx context.Context, isSrcToDst bool, packets, acks PacketInfoList, sh SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
+		msgs := make([]sdk.Msg, 0, len(packets)+len(acks)+1)
+
+		// update clients
+		if m, err := srv.st.UpdateClients(ctx, srv.src, srv.dst, isSrcToDst, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
+			logger.ErrorContext(ctx, "failed to update clients", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		} else {
+			msgs = append(msgs, m...)
+		}
+
+		// relay packets if unrelayed seqs exist
+		if m, err := srv.st.RelayPackets(ctx, srv.src, srv.dst, isSrcToDst, packets, sh, doExecuteRelay); err != nil {
+			logger.ErrorContext(ctx, "failed to relay packets", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		} else {
+			msgs = append(msgs, m...)
+		}
+
+		// relay acks if unrelayed seqs exist
+		if m, err := srv.st.RelayAcknowledgements(ctx, srv.src, srv.dst, isSrcToDst, acks, sh, doExecuteAck); err != nil {
+			logger.ErrorContext(ctx, "failed to relay acknowledgements", err)
+			span.SetStatus(codes.Error, err.Error())
+			return nil, err
+		} else {
+			msgs = append(msgs, m...)
+		}
+
+		return msgs, nil
+	}
+
 	msgs := NewRelayMsgs()
+	{
+		var eg = new(errgroup.Group)
 
-	doExecuteRelaySrc, doExecuteRelayDst := srv.shouldExecuteRelay(ctx, pseqs)
-	doExecuteAckSrc, doExecuteAckDst := srv.shouldExecuteRelay(ctx, aseqs)
-	// update clients
-	if m, err := srv.st.UpdateClients(ctx, srv.src, srv.dst, doExecuteRelaySrc, doExecuteRelayDst, doExecuteAckSrc, doExecuteAckDst, srv.sh, true); err != nil {
-		logger.ErrorContext(ctx, "failed to update clients", err)
-		span.SetStatus(codes.Error, err.Error())
-		return err
-	} else {
-		msgs.Merge(m)
-	}
+		doExecuteRelaySrc, doExecuteRelayDst := srv.shouldExecuteRelay(ctx, pseqs)
+		doExecuteAckSrc, doExecuteAckDst := srv.shouldExecuteRelay(ctx, aseqs)
+		eg.Go(func() error {
+			isSrcToDst := true
+			m, err := relay(ctx, isSrcToDst, pseqs.Src, aseqs.Src, srv.sh, doExecuteRelayDst, doExecuteAckDst, true)
+			if err != nil {
+				return err
+			}
+			msgs.Dst = m
+			return nil
+		})
+		eg.Go(func() error {
+			isSrcToDst := false
+			m, err := relay(ctx, isSrcToDst, pseqs.Dst, aseqs.Dst, srv.sh, doExecuteRelaySrc, doExecuteAckSrc, true)
+			if err != nil {
+				return err
+			}
+			msgs.Src = m
+			return nil
+		})
 
-	// relay packets if unrelayed seqs exist
-	if m, err := srv.st.RelayPackets(ctx, srv.src, srv.dst, pseqs, srv.sh, doExecuteRelaySrc, doExecuteRelayDst); err != nil {
-		logger.ErrorContext(ctx, "failed to relay packets", err)
-		span.SetStatus(codes.Error, err.Error())
-		return err
-	} else {
-		msgs.Merge(m)
-	}
-
-	// relay acks if unrelayed seqs exist
-	if m, err := srv.st.RelayAcknowledgements(ctx, srv.src, srv.dst, aseqs, srv.sh, doExecuteAckSrc, doExecuteAckDst); err != nil {
-		logger.ErrorContext(ctx, "failed to relay acknowledgements", err)
-		span.SetStatus(codes.Error, err.Error())
-		return err
-	} else {
-		msgs.Merge(m)
+		if err := eg.Wait(); err != nil {
+			return err
+		}
 	}
 
 	// send all msgs to src/dst chains
 	srv.st.Send(ctx, srv.src, srv.dst, msgs)
-
 	return nil
 }
 
