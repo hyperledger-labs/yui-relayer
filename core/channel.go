@@ -9,8 +9,8 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
-	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/codes"
@@ -167,11 +167,9 @@ func resolveCreateChannelFutureProofs(
 	return nil
 }
 
-
 type createChannelFutureMsgs struct {
 	Src, Dst []createChannelFutureMsg
 }
-
 
 func resolveCreateChannelFutureMsgs(
 	ctx context.Context,

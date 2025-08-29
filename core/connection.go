@@ -183,11 +183,9 @@ func resolveCreateConnectionFutureProofs(
 	return nil
 }
 
-
 type createConnectionFutureMsgs struct {
 	Src, Dst []createConnectionFutureMsg
 }
-
 
 func resolveCreateConnectionFutureMsgs(
 	ctx context.Context,
@@ -263,7 +261,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 	}
 
 	var (
-		srcProofs, dstProofs createConnectionFutureProofs
+		srcProofs, dstProofs               createConnectionFutureProofs
 		srcCS, dstCS                       ibcexported.ClientState
 		srcConsH, dstConsH                 ibcexported.Height
 		srcCons, dstCons                   ibcexported.ConsensusState

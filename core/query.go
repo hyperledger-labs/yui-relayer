@@ -58,7 +58,7 @@ func ProveClientState(
 		StateProver
 	},
 	csRes *clienttypes.QueryClientStateResponse,
-) (error) {
+) error {
 	path := host.FullClientStatePath(chain.Path().ClientID)
 
 	value, err := chain.Codec().Marshal(csRes.ClientState)
@@ -124,7 +124,7 @@ func ProveClientConsensusState(
 	},
 	clientConsH ibcexported.Height,
 	csRes *clienttypes.QueryConsensusStateResponse,
-) (error) {
+) error {
 	path := host.FullConsensusStatePath(chain.Path().ClientID, clientConsH)
 	value, err := chain.Codec().Marshal(csRes.ConsensusState)
 	if err != nil {
@@ -206,7 +206,7 @@ func ProveConnection(
 		StateProver
 	},
 	conn *conntypes.QueryConnectionResponse,
-) (error) {
+) error {
 	if conn.Connection.State == conntypes.UNINITIALIZED {
 		return nil
 	}
