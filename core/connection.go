@@ -155,31 +155,47 @@ type createConnectionFutureMsg = func(proofs *createConnectionFutureProofs) (msg
 func resolveCreateConnectionFutureProofs(
 	ctx context.Context,
 	sh SyncHeaders,
-	from, to *ProvableChain,
+	fromChain, toChain *ProvableChain,
 	fromProofs *createConnectionFutureProofs,
 ) error {
-	logger := GetConnectionPairLoggerRelative(from, to)
-	queryCtx := sh.GetQueryContext(ctx, from.ChainID())
+	logger := GetConnectionPairLoggerRelative(fromChain, toChain)
+	queryCtx := sh.GetQueryContext(ctx, fromChain.ChainID())
 	var err error
 
-	fromProofs.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, from, to)
+	fromProofs.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, fromChain, toChain)
 	if err != nil {
 		logger.ErrorContext(ctx, "error setting up headers for update", err)
 		return err
 	}
 
 	if fromProofs.connRes != nil {
-		err = ProveConnection(queryCtx, from, fromProofs.connRes)
+		err = ProveConnection(queryCtx, fromChain, fromProofs.connRes)
 		if err != nil {
 			return err
 		}
 	}
+
 	if fromProofs.csRes != nil {
-		err = ProveClientState(queryCtx, from, fromProofs.csRes)
+		err = ProveClientState(queryCtx, fromChain, fromProofs.csRes)
 		if err != nil {
 			return err
 		}
 	}
+
+	if fromProofs.consRes != nil {
+		if fromProofs.csRes == nil {
+			return fmt.Errorf("ProveClientConseneusState needs ClientState height")
+		}
+		var cs ibcexported.ClientState
+		if err := fromChain.Codec().UnpackAny(fromProofs.csRes.ClientState, &cs); err != nil {
+			return err
+		}
+		err = ProveClientConsensusState(queryCtx, fromChain, cs.GetLatestHeight(), fromProofs.consRes)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
