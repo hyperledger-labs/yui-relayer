@@ -76,6 +76,10 @@ origDstOpts="--ordering $dstOrigOrder --connection-hops $dstOrigConnectionId --v
 altSrcOpts="--ordering $srcAltOrder --connection-hops $srcAltConnectionId --version $srcAltVersion"
 altDstOpts="--ordering $dstAltOrder --connection-hops $dstAltConnectionId --version $dstAltVersion"
 
+export DEBUG_RELAYER_PRUNE_AFTER_BLOCKS_CHAIN_ibc0="8"
+export DEBUG_RELAYER_PRUNE_AFTER_BLOCKS_PROVER_ibc0="8"
+export DEBUG_RELAYER_SHFU_WAIT_ibc1="12"
+
 echo '##### case 1 #####'
 $RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
 $RLY tx channel-upgrade init ibc01 ibc1 $altDstOpts
@@ -129,7 +133,7 @@ checkResult orig
 echo '##### case 8 #####'
 $RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
 $RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHCOMPLETE --target-dst-state FLUSHING
-sleep 20                              # ibc1 exceeds upgrade.timeout.timestamp
+sleep 50                              # ibc1 exceeds upgrade.timeout.timestamp
 $RLY tx channel-upgrade execute ibc01 # ibc0 <= chanUpgradeTimeout, ibc1 <= chanUpgradeCancel
 checkResult orig
 
@@ -137,6 +141,6 @@ echo '##### case 9 #####'
 $RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
 $RLY tx channel-upgrade init ibc01 ibc1 $altDstOpts
 $RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHING --target-dst-state FLUSHING
-sleep 20                              # Both chains exceed upgrade.timeout.timestamp
+sleep 50                              # Both chains exceed upgrade.timeout.timestamp
 $RLY tx channel-upgrade execute ibc01 # ibc0,ibc1 <= chanUpgradeTimeout
 checkResult orig

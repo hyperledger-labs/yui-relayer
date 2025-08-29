@@ -13,6 +13,7 @@ import (
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"go.opentelemetry.io/otel/codes"
+	"golang.org/x/sync/errgroup"
 )
 
 type UpgradeState int
@@ -320,26 +321,11 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		logger.ErrorContext(ctx, "failed to create SyncHeaders", err)
 		return nil, err
 	}
-
-	// Query a number of things all at once
-	var srcUpdateHeaders, dstUpdateHeaders []Header
-	if err := retry.Do(func() error {
-		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(ctx, src, dst)
-		return err
-	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(uint, error) {
-		if err := sh.Updates(ctx, src, dst); err != nil {
-			panic(err)
-		}
-	})); err != nil {
-		logger.ErrorContext(ctx, "failed to set up headers for LC update on both chains", err)
-		return nil, err
-	}
-
 	srcCtx := sh.GetQueryContext(ctx, src.ChainID())
 	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 
 	// query finalized channels with proofs
-	srcChan, dstChan, settled, err := querySettledChannelPair(srcCtx, dstCtx, src, dst, true)
+	srcChan, dstChan, settled, err := querySettledChannelPair(srcCtx, dstCtx, src, dst, false)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to query the channel pair with proofs", err)
 		return nil, err
@@ -353,7 +339,7 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		dstCtx,
 		src,
 		dst,
-		true,
+		false,
 	)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to query the channel upgrade pair with proofs", err)
@@ -563,54 +549,84 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		),
 	)}
 
-	if srcAction != UPGRADE_ACTION_NONE {
-		addr := mustGetAddress(src)
+	if err := retry.Do(func() error {
+		var eg = new(errgroup.Group)
 
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
+		if srcAction != UPGRADE_ACTION_NONE {
+			eg.Go(func() error {
+
+				addr := mustGetAddress(src)
+
+				dstUpdateHeaders, err := sh.SetupHeadersForUpdate(ctx, dst, src)
+				if err != nil {
+					logger.ErrorContext(ctx, "failed to set up headers for LC update on dst chain", err)
+					return err
+				}
+
+				if len(dstUpdateHeaders) > 0 {
+					out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
+				}
+
+				msg, err := buildActionMsg(
+					src,
+					srcAction,
+					srcChan,
+					addr,
+					dstCtx,
+					dst,
+					dstChan,
+					dstChanUpg,
+				)
+				if err != nil {
+					logger.ErrorContext(ctx, "failed to build Msg for the src chain", err)
+					return err
+				}
+
+				out.Src = append(out.Src, msg)
+				return nil
+			})
 		}
 
-		msg, err := buildActionMsg(
-			src,
-			srcAction,
-			srcChan,
-			addr,
-			dstCtx,
-			dst,
-			dstChan,
-			dstChanUpg,
-		)
-		if err != nil {
-			logger.ErrorContext(ctx, "failed to build Msg for the src chain", err)
-			return nil, err
+		if dstAction != UPGRADE_ACTION_NONE {
+			eg.Go(func() error {
+				addr := mustGetAddress(dst)
+
+				srcUpdateHeaders, err := sh.SetupHeadersForUpdate(ctx, src, dst)
+				if err != nil {
+					logger.ErrorContext(ctx, "failed to set up headers for LC update on src chain", err)
+					return err
+				}
+
+				if len(srcUpdateHeaders) > 0 {
+					out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
+				}
+
+				msg, err := buildActionMsg(
+					dst,
+					dstAction,
+					dstChan,
+					addr,
+					srcCtx,
+					src,
+					srcChan,
+					srcChanUpg,
+				)
+				if err != nil {
+					logger.ErrorContext(ctx, "failed to build Msg for the dst chain", err)
+					return err
+				}
+
+				out.Dst = append(out.Dst, msg)
+				return nil
+			})
 		}
-
-		out.Src = append(out.Src, msg)
-	}
-
-	if dstAction != UPGRADE_ACTION_NONE {
-		addr := mustGetAddress(dst)
-
-		if len(srcUpdateHeaders) > 0 {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
+		if err := eg.Wait(); err != nil {
+			return err
 		}
-
-		msg, err := buildActionMsg(
-			dst,
-			dstAction,
-			dstChan,
-			addr,
-			srcCtx,
-			src,
-			srcChan,
-			srcChanUpg,
-		)
-		if err != nil {
-			logger.ErrorContext(ctx, "failed to build Msg for the dst chain", err)
-			return nil, err
-		}
-
-		out.Dst = append(out.Dst, msg)
+		return nil
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
+	})); err != nil {
+		return nil, err
 	}
 
 	logger.InfoContext(ctx, "successfully generates the next step of the channel upgrade")
@@ -750,16 +766,37 @@ func buildActionMsg(
 
 	switch action {
 	case UPGRADE_ACTION_TRY:
+		if err := ProveChannel(cpCtx, cp, cpChan); err != nil {
+			return nil, err
+		}
+		if err := ProveChannelUpgrade(cpCtx, cp, cpUpg); err != nil {
+			return nil, err
+		}
 		proposedConnectionID, err := queryProposedConnectionID(cpCtx, cp, cpUpg)
 		if err != nil {
 			return nil, err
 		}
 		return pathEnd.ChanUpgradeTry(proposedConnectionID, cpChan, cpUpg, addr), nil
 	case UPGRADE_ACTION_ACK:
+		if err := ProveChannel(cpCtx, cp, cpChan); err != nil {
+			return nil, err
+		}
+		if err := ProveChannelUpgrade(cpCtx, cp, cpUpg); err != nil {
+			return nil, err
+		}
 		return pathEnd.ChanUpgradeAck(cpChan, cpUpg, addr), nil
 	case UPGRADE_ACTION_CONFIRM:
+		if err := ProveChannel(cpCtx, cp, cpChan); err != nil {
+			return nil, err
+		}
+		if err := ProveChannelUpgrade(cpCtx, cp, cpUpg); err != nil {
+			return nil, err
+		}
 		return pathEnd.ChanUpgradeConfirm(cpChan, cpUpg, addr), nil
 	case UPGRADE_ACTION_OPEN:
+		if err := ProveChannel(cpCtx, cp, cpChan); err != nil {
+			return nil, err
+		}
 		return pathEnd.ChanUpgradeOpen(cpChan, addr), nil
 	case UPGRADE_ACTION_CANCEL:
 		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true)
@@ -785,6 +822,9 @@ func buildActionMsg(
 		}
 		return pathEnd.ChanUpgradeCancel(upgErr, addr), nil
 	case UPGRADE_ACTION_TIMEOUT:
+		if err := ProveChannel(cpCtx, cp, cpChan); err != nil {
+			return nil, err
+		}
 		return pathEnd.ChanUpgradeTimeout(cpChan, addr), nil
 	default:
 		panic(fmt.Errorf("unexpected action: %s", action))
