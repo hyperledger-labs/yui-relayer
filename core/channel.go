@@ -10,10 +10,12 @@ import (
 
 	retry "github.com/avast/retry-go"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 )
 
 // CreateChannel sends channel creation messages every interval until a channel is created
@@ -133,8 +135,104 @@ func checkChannelCreateReady(ctx context.Context, src, dst *ProvableChain, logge
 	return true, nil
 }
 
+type createChannelFutureProofs struct {
+	updateHeaders []Header
+	chanRes       *chantypes.QueryChannelResponse
+}
+
+type createChannelFutureMsg = func(proofs *createChannelFutureProofs) (msg []sdk.Msg, last bool)
+
+func resolveCreateChannelFutureProofs(
+	ctx context.Context,
+	sh SyncHeaders,
+	from, to *ProvableChain,
+	fromProofs *createChannelFutureProofs,
+) error {
+	logger := GetChannelPairLoggerRelative(from, to)
+	queryCtx := sh.GetQueryContext(ctx, from.ChainID())
+	var err error
+
+	fromProofs.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, from, to)
+	if err != nil {
+		logger.ErrorContext(ctx, "error setting up headers for update", err)
+		return err
+	}
+
+	if fromProofs.chanRes != nil {
+		err = ProveChannel(queryCtx, from, fromProofs.chanRes)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+
+type createChannelFutureMsgs struct {
+	Src, Dst []createChannelFutureMsg
+}
+
+
+func resolveCreateChannelFutureMsgs(
+	ctx context.Context,
+	sh SyncHeaders,
+	fmsgs *createChannelFutureMsgs,
+	src, dst *ProvableChain,
+	srcProofs, dstProofs *createChannelFutureProofs,
+) (*RelayMsgs, error) {
+	ret := NewRelayMsgs()
+
+	err := retry.Do(func() error {
+		var eg = new(errgroup.Group)
+
+		eg.Go(func() error { // send to Dst
+			err := resolveCreateChannelFutureProofs(ctx, sh, src, dst, srcProofs)
+			if err != nil {
+				return err
+			}
+
+			for _, fm := range fmsgs.Dst {
+				msgs, last := fm(srcProofs)
+				ret.Dst = append(ret.Dst, msgs...)
+				ret.Last = ret.Last || last
+			}
+			return nil
+		})
+
+		eg.Go(func() error { // send to Src
+			err := resolveCreateChannelFutureProofs(ctx, sh, dst, src, dstProofs)
+			if err != nil {
+				return err
+			}
+
+			for _, fm := range fmsgs.Src {
+				msgs, last := fm(dstProofs)
+				ret.Src = append(ret.Src, msgs...)
+				ret.Last = ret.Last || last
+			}
+			return nil
+		})
+		return eg.Wait()
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(dstProofs.updateHeaders) > 0 {
+		srcAddr := mustGetAddress(src)
+		ret.Src = append(src.Path().UpdateClients(dstProofs.updateHeaders, srcAddr), ret.Src...)
+	}
+	if len(srcProofs.updateHeaders) > 0 {
+		dstAddr := mustGetAddress(dst)
+		ret.Dst = append(dst.Path().UpdateClients(srcProofs.updateHeaders, dstAddr), ret.Dst...)
+	}
+
+	return ret, nil
+}
+
 func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs, error) {
-	out := NewRelayMsgs()
+	fmsgs := createChannelFutureMsgs{}
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
 	}
@@ -146,99 +244,119 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 
 	// Query a number of things all at once
 	var (
-		srcUpdateHeaders, dstUpdateHeaders []Header
+		srcProofs, dstProofs createChannelFutureProofs
 	)
 
-	err = retry.Do(func() error {
-		srcUpdateHeaders, dstUpdateHeaders, err = sh.SetupBothHeadersForUpdate(ctx, src, dst)
-		return err
-	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
-		// logRetryUpdateHeaders(src, dst, n, err)
-		if err := sh.Updates(ctx, src, dst); err != nil {
-			panic(err)
-		}
-	}))
-	if err != nil {
-		return nil, err
-	}
-
-	srcChan, dstChan, settled, err := querySettledChannelPair(
+	var settled bool
+	srcProofs.chanRes, dstProofs.chanRes, settled, err = querySettledChannelPair(
 		sh.GetQueryContext(ctx, src.ChainID()),
 		sh.GetQueryContext(ctx, dst.ChainID()),
 		src,
 		dst,
-		true,
+		false,
 	)
 	if err != nil {
 		return nil, err
 	} else if !settled {
-		return out, nil
+		return NewRelayMsgs(), nil
 	}
 
 	switch {
 	// Handshake hasn't been started on src or dst, relay `chanOpenInit` to src
-	case srcChan.Channel.State == chantypes.UNINITIALIZED && dstChan.Channel.State == chantypes.UNINITIALIZED:
-		logChannelStates(ctx, src, dst, srcChan, dstChan)
-		addr := mustGetAddress(src)
-		out.Src = append(out.Src,
-			src.Path().ChanInit(dst.Path(), addr),
-		)
+	case srcProofs.chanRes.Channel.State == chantypes.UNINITIALIZED && dstProofs.chanRes.Channel.State == chantypes.UNINITIALIZED:
+		fmt.Printf("zzz- UINIT,UINIT\n")
+		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
+			msgs := make([]sdk.Msg, 0, 2)
+			addr := mustGetAddress(src)
+			msgs = append(msgs, src.Path().ChanInit(dst.Path(), addr))
+			return msgs, false
+		})
 	// Handshake has started on dst (1 step done), relay `chanOpenTry` and `updateClient` to src
-	case srcChan.Channel.State == chantypes.UNINITIALIZED && dstChan.Channel.State == chantypes.INIT:
-		logChannelStates(ctx, src, dst, srcChan, dstChan)
-		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
-		}
-		out.Src = append(out.Src, src.Path().ChanTry(dst.Path(), dstChan, addr))
+	case srcProofs.chanRes.Channel.State == chantypes.UNINITIALIZED && dstProofs.chanRes.Channel.State == chantypes.INIT:
+		fmt.Printf("zzz- UINIT,INIT\n")
+		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
+			msgs := make([]sdk.Msg, 0, 2)
+			addr := mustGetAddress(src)
+			if len(p.updateHeaders) > 0 {
+				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
+			}
+			msgs = append(msgs, src.Path().ChanTry(dst.Path(), p.chanRes, addr))
+			return msgs, false
+		})
 	// Handshake has started on src (1 step done), relay `chanOpenTry` and `updateClient` to dst
-	case srcChan.Channel.State == chantypes.INIT && dstChan.Channel.State == chantypes.UNINITIALIZED:
-		logChannelStates(ctx, dst, src, dstChan, srcChan)
-		addr := mustGetAddress(dst)
-		if len(srcUpdateHeaders) > 0 {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
-		}
-		out.Dst = append(out.Dst, dst.Path().ChanTry(src.Path(), srcChan, addr))
+	case srcProofs.chanRes.Channel.State == chantypes.INIT && dstProofs.chanRes.Channel.State == chantypes.UNINITIALIZED:
+		fmt.Printf("zzz- INIT,UINIT\n")
+		fmsgs.Dst = append(fmsgs.Dst, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+			logChannelStates(ctx, dst, src, dstProofs.chanRes, srcProofs.chanRes)
+			msgs := make([]sdk.Msg, 0, 2)
+			addr := mustGetAddress(dst)
+			if len(p.updateHeaders) > 0 {
+				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
+			}
+			msgs = append(msgs, dst.Path().ChanTry(src.Path(), p.chanRes, addr))
+			return msgs, false
+		})
 
 	// Handshake has started on src (2 steps done), relay `chanOpenAck` and `updateClient` to dst
-	case srcChan.Channel.State == chantypes.TRYOPEN && dstChan.Channel.State == chantypes.INIT:
-		logChannelStates(ctx, dst, src, dstChan, srcChan)
-		addr := mustGetAddress(dst)
-		if len(srcUpdateHeaders) > 0 {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
-		}
-		out.Dst = append(out.Dst, dst.Path().ChanAck(src.Path(), srcChan, addr))
+	case srcProofs.chanRes.Channel.State == chantypes.TRYOPEN && dstProofs.chanRes.Channel.State == chantypes.INIT:
+		fmsgs.Dst = append(fmsgs.Dst, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+			logChannelStates(ctx, dst, src, dstProofs.chanRes, srcProofs.chanRes)
+			msgs := make([]sdk.Msg, 0, 2)
+			addr := mustGetAddress(dst)
+			if len(p.updateHeaders) > 0 {
+				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
+			}
+			msgs = append(msgs, dst.Path().ChanAck(src.Path(), p.chanRes, addr))
+			return msgs, false
+		})
 
 	// Handshake has started on dst (2 steps done), relay `chanOpenAck` and `updateClient` to src
-	case srcChan.Channel.State == chantypes.INIT && dstChan.Channel.State == chantypes.TRYOPEN:
-		logChannelStates(ctx, src, dst, srcChan, dstChan)
-		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
-		}
-		out.Src = append(out.Src, src.Path().ChanAck(dst.Path(), dstChan, addr))
+	case srcProofs.chanRes.Channel.State == chantypes.INIT && dstProofs.chanRes.Channel.State == chantypes.TRYOPEN:
+		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
+			msgs := make([]sdk.Msg, 0, 2)
+			addr := mustGetAddress(src)
+			if len(p.updateHeaders) > 0 {
+				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
+			}
+			msgs = append(msgs, src.Path().ChanAck(dst.Path(), p.chanRes, addr))
+			return msgs, false
+		})
 
 	// Handshake has confirmed on dst (3 steps done), relay `chanOpenConfirm` and `updateClient` to src
-	case srcChan.Channel.State == chantypes.TRYOPEN && dstChan.Channel.State == chantypes.OPEN:
-		logChannelStates(ctx, src, dst, srcChan, dstChan)
-		addr := mustGetAddress(src)
-		if len(dstUpdateHeaders) > 0 {
-			out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
-		}
-		out.Src = append(out.Src, src.Path().ChanConfirm(dstChan, addr))
-		out.Last = true
+	case srcProofs.chanRes.Channel.State == chantypes.TRYOPEN && dstProofs.chanRes.Channel.State == chantypes.OPEN:
+		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
+			msgs := make([]sdk.Msg, 0, 2)
+			addr := mustGetAddress(src)
+			if len(p.updateHeaders) > 0 {
+				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
+			}
+			msgs = append(msgs, src.Path().ChanConfirm(p.chanRes, addr))
+			return msgs, true
+		})
 
 	// Handshake has confirmed on src (3 steps done), relay `chanOpenConfirm` and `updateClient` to dst
-	case srcChan.Channel.State == chantypes.OPEN && dstChan.Channel.State == chantypes.TRYOPEN:
-		logChannelStates(ctx, dst, src, dstChan, srcChan)
-		addr := mustGetAddress(dst)
-		if len(srcUpdateHeaders) > 0 {
-			out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
-		}
-		out.Dst = append(out.Dst, dst.Path().ChanConfirm(srcChan, addr))
-		out.Last = true
+	case srcProofs.chanRes.Channel.State == chantypes.OPEN && dstProofs.chanRes.Channel.State == chantypes.TRYOPEN:
+		fmsgs.Dst = append(fmsgs.Dst, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+			logChannelStates(ctx, dst, src, dstProofs.chanRes, srcProofs.chanRes)
+			msgs := make([]sdk.Msg, 0, 2)
+			addr := mustGetAddress(dst)
+			if len(p.updateHeaders) > 0 {
+				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
+			}
+			msgs = append(msgs, dst.Path().ChanConfirm(p.chanRes, addr))
+			return msgs, true
+		})
 	default:
-		panic(fmt.Sprintf("not implemeneted error: %v <=> %v", srcChan.Channel.State.String(), dstChan.Channel.State.String()))
+		panic(fmt.Sprintf("not implemeneted error: %v <=> %v", srcProofs.chanRes.Channel.State.String(), dstProofs.chanRes.Channel.State.String()))
+	}
+
+	out, err := resolveCreateChannelFutureMsgs(ctx, sh, &fmsgs, src, dst, &srcProofs, &dstProofs)
+	if err != nil {
+		return nil, err
 	}
 	return out, nil
 }
@@ -328,6 +446,15 @@ func GetChannelPairLogger(src, dst Chain) *log.RelayLogger {
 		WithChannelPair(
 			src.ChainID(), src.Path().PortID, src.Path().ChannelID,
 			dst.ChainID(), dst.Path().PortID, dst.Path().ChannelID,
+		).
+		WithModule("core.channel")
+}
+
+func GetChannelPairLoggerRelative(me, cp Chain) *log.RelayLogger {
+	return log.GetLogger().
+		WithChannelPairRelative(
+			me.ChainID(), me.Path().PortID, me.Path().ChannelID,
+			cp.ChainID(), cp.Path().PortID, cp.Path().ChannelID,
 		).
 		WithModule("core.channel")
 }
