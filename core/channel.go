@@ -262,7 +262,6 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	switch {
 	// Handshake hasn't been started on src or dst, relay `chanOpenInit` to src
 	case srcProofs.chanRes.Channel.State == chantypes.UNINITIALIZED && dstProofs.chanRes.Channel.State == chantypes.UNINITIALIZED:
-		fmt.Printf("zzz- UINIT,UINIT\n")
 		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
 			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
 			msgs := make([]sdk.Msg, 0, 2)
@@ -272,7 +271,6 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 		})
 	// Handshake has started on dst (1 step done), relay `chanOpenTry` and `updateClient` to src
 	case srcProofs.chanRes.Channel.State == chantypes.UNINITIALIZED && dstProofs.chanRes.Channel.State == chantypes.INIT:
-		fmt.Printf("zzz- UINIT,INIT\n")
 		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
 			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
 			msgs := make([]sdk.Msg, 0, 2)
@@ -285,7 +283,6 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 		})
 	// Handshake has started on src (1 step done), relay `chanOpenTry` and `updateClient` to dst
 	case srcProofs.chanRes.Channel.State == chantypes.INIT && dstProofs.chanRes.Channel.State == chantypes.UNINITIALIZED:
-		fmt.Printf("zzz- INIT,UINIT\n")
 		fmsgs.Dst = append(fmsgs.Dst, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
 			logChannelStates(ctx, dst, src, dstProofs.chanRes, srcProofs.chanRes)
 			msgs := make([]sdk.Msg, 0, 2)

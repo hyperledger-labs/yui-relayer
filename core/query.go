@@ -217,7 +217,7 @@ func ProveConnection(
 		return err
 	}
 	conn.Proof, conn.ProofHeight, err = chain.ProveState(queryCtx, path, value)
-	return nil
+	return err
 }
 
 // QueryChannelPair returns a pair of channel responses
