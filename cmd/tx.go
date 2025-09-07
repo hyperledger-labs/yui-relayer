@@ -463,7 +463,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 			relay := func(ctx context.Context, isSrcToDst bool, packets core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
 				msgs := make([]sdk.Msg, 0, len(packets)+1)
 
-				if m, err := st.UpdateClients(ctx, c[src], c[dst], isSrcToDst, doExecuteRelay, doExecuteAck, sh, true); err != nil {
+				if m, err := st.UpdateClients(ctx, c[src], c[dst], isSrcToDst, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
 					return nil, err
 				} else {
 					msgs = append(msgs, m...)
