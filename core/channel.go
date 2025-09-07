@@ -183,33 +183,37 @@ func resolveCreateChannelFutureMsgs(
 	err := retry.Do(func() error {
 		var eg = new(errgroup.Group)
 
-		eg.Go(func() error { // send to Dst
-			err := resolveCreateChannelFutureProofs(ctx, sh, src, dst, srcProofs)
-			if err != nil {
-				return err
-			}
+		if len(fmsgs.Dst) > 0 { // send to Dst
+			eg.Go(func() error {
+				err := resolveCreateChannelFutureProofs(ctx, sh, src, dst, srcProofs)
+				if err != nil {
+					return err
+				}
 
-			for _, fm := range fmsgs.Dst {
-				msgs, last := fm(srcProofs)
-				ret.Dst = append(ret.Dst, msgs...)
-				ret.Last = ret.Last || last
-			}
-			return nil
-		})
+				for _, fm := range fmsgs.Dst {
+					msgs, last := fm(srcProofs)
+					ret.Dst = append(ret.Dst, msgs...)
+					ret.Last = ret.Last || last
+				}
+				return nil
+			})
+		}
 
-		eg.Go(func() error { // send to Src
-			err := resolveCreateChannelFutureProofs(ctx, sh, dst, src, dstProofs)
-			if err != nil {
-				return err
-			}
+		if len(fmsgs.Src) > 0 { // send to Src
+			eg.Go(func() error {
+				err := resolveCreateChannelFutureProofs(ctx, sh, dst, src, dstProofs)
+				if err != nil {
+					return err
+				}
 
-			for _, fm := range fmsgs.Src {
-				msgs, last := fm(dstProofs)
-				ret.Src = append(ret.Src, msgs...)
-				ret.Last = ret.Last || last
-			}
-			return nil
-		})
+				for _, fm := range fmsgs.Src {
+					msgs, last := fm(dstProofs)
+					ret.Src = append(ret.Src, msgs...)
+					ret.Last = ret.Last || last
+				}
+				return nil
+			})
+		}
 		return eg.Wait()
 	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
 	}))
