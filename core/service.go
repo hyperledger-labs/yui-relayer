@@ -108,9 +108,15 @@ func (srv *RelayService) Start(ctx context.Context) error {
 func (srv *RelayService) relayMsgs(ctx context.Context, isSrcToDst bool, packets, acks PacketInfoList, sh SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
 	ctx, span := tracer.Start(ctx, "RelayService.relayMsgs", WithChannelPairAttributes(srv.src, srv.dst))
 	defer span.End()
-	logger := GetChannelPairLogger(srv.src, srv.dst)
-	var msgs []sdk.Msg
 
+	var logger *log.RelayLogger
+	if isSrcToDst {
+		logger = GetChannelPairLoggerRelative(srv.src, srv.dst)
+	} else {
+		logger = GetChannelPairLoggerRelative(srv.dst, srv.src)
+	}
+
+	var msgs []sdk.Msg
 	// update clients
 	if m, err := srv.st.UpdateClients(ctx, srv.src, srv.dst, isSrcToDst, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
 		logger.ErrorContext(ctx, "failed to update clients", err)
