@@ -538,7 +538,6 @@ func relayAcks(ctx context.Context, st core.StrategyI, src, dst *core.ProvableCh
 	return msgs, nil
 }
 
-
 func relayAcksCmd(ctx *config.Context) *cobra.Command {
 	const (
 		flagDoRefresh = "do-refresh"
