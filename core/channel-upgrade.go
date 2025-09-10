@@ -624,7 +624,7 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 			return err
 		}
 		return nil
-	})
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx))
 	if err != nil {
 		return nil, err
 	}

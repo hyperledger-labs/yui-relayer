@@ -215,8 +215,7 @@ func resolveCreateChannelFutureMsgs(
 			})
 		}
 		return eg.Wait()
-	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
-	}))
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx))
 	if err != nil {
 		return nil, err
 	}

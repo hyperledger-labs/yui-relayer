@@ -244,8 +244,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 		if num == 0 {
 			logger.InfoContext(ctx, "no packates to relay")
 		} else {
-			dir := fmt.Sprintf("%s->%s", fromChain.ChainID(), toChain.ChainID())
-			logPacketsRelayed(ctx, logger, num, "Packets", dir)
+			logPacketsRelayed(ctx, logger, num, "Packets")
 		}
 	}
 
@@ -407,12 +406,10 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	return msgs, nil
 }
 
-func logPacketsRelayed(ctx context.Context, logger *log.RelayLogger, num int, obj, dir string) {
+func logPacketsRelayed(ctx context.Context, logger *log.RelayLogger, num int, obj string) {
 	logger.InfoContext(ctx,
 		fmt.Sprintf("★ %s are scheduled for relay", obj),
-		"count", num,
-		"direction", dir,
-	)
+		"count", num)
 }
 
 func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *ProvableChain, isSrcToDst bool, packets PacketInfoList, sh SyncHeaders, doExecuteAck bool) ([]sdk.Msg, error) {
@@ -459,8 +456,7 @@ func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *Pr
 		if num == 0 {
 			logger.InfoContext(ctx, "no acknowledgements to relay")
 		} else {
-			dir := fmt.Sprintf("%s->%s", fromChain.ChainID(), toChain.ChainID())
-			logPacketsRelayed(ctx, logger, num, "Acknowledgements", dir)
+			logPacketsRelayed(ctx, logger, num, "Acknowledgements")
 		}
 	}
 
