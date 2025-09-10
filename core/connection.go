@@ -252,16 +252,6 @@ func resolveCreateConnectionFutureMsgs(
 	if err != nil {
 		return nil, err
 	}
-
-	if len(dstProofs.updateHeaders) > 0 {
-		srcAddr := mustGetAddress(src)
-		ret.Src = append(src.Path().UpdateClients(dstProofs.updateHeaders, srcAddr), ret.Src...)
-	}
-	if len(srcProofs.updateHeaders) > 0 {
-		dstAddr := mustGetAddress(dst)
-		ret.Dst = append(dst.Path().UpdateClients(srcProofs.updateHeaders, dstAddr), ret.Dst...)
-	}
-
 	return ret, nil
 }
 
@@ -345,7 +335,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		fmsgs.Src = append(fmsgs.Src, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
 			addr := mustGetAddress(src)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
 			}
@@ -358,7 +348,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		fmsgs.Src = append(fmsgs.Src, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
 			addr := mustGetAddress(src)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
 			}
@@ -371,7 +361,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		fmsgs.Dst = append(fmsgs.Dst, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, dst, src, dstProofs.connRes, srcProofs.connRes)
 			addr := mustGetAddress(dst)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
 			}
@@ -384,7 +374,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		fmsgs.Dst = append(fmsgs.Dst, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, dst, src, dstProofs.connRes, srcProofs.connRes)
 			addr := mustGetAddress(dst)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
 			}
@@ -397,7 +387,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		fmsgs.Src = append(fmsgs.Src, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
 			addr := mustGetAddress(src)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
 			}
@@ -410,7 +400,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		fmsgs.Src = append(fmsgs.Src, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
 			addr := mustGetAddress(src)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
 			}
@@ -423,7 +413,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		fmsgs.Dst = append(fmsgs.Dst, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, dst, src, dstProofs.connRes, srcProofs.connRes)
 			addr := mustGetAddress(dst)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
 			}

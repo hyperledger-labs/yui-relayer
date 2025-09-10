@@ -105,6 +105,42 @@ func (srv *RelayService) Start(ctx context.Context) error {
 	}
 }
 
+func (srv *RelayService) relayMsgs(ctx context.Context, isSrcToDst bool, packets, acks PacketInfoList, sh SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
+	ctx, span := tracer.Start(ctx, "RelayService.relayMsgs", WithChannelPairAttributes(srv.src, srv.dst))
+	defer span.End()
+	logger := GetChannelPairLogger(srv.src, srv.dst)
+	var msgs []sdk.Msg
+
+	// update clients
+	if m, err := srv.st.UpdateClients(ctx, srv.src, srv.dst, isSrcToDst, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
+		logger.ErrorContext(ctx, "failed to update clients", err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	} else {
+		msgs = append(msgs, m...)
+	}
+
+	// relay packets if unrelayed seqs exist
+	if m, err := srv.st.RelayPackets(ctx, srv.src, srv.dst, isSrcToDst, packets, sh, doExecuteRelay); err != nil {
+		logger.ErrorContext(ctx, "failed to relay packets", err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	} else {
+		msgs = append(msgs, m...)
+	}
+
+	// relay acks if unrelayed seqs exist
+	if m, err := srv.st.RelayAcknowledgements(ctx, srv.src, srv.dst, isSrcToDst, acks, sh, doExecuteAck); err != nil {
+		logger.ErrorContext(ctx, "failed to relay acknowledgements", err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	} else {
+		msgs = append(msgs, m...)
+	}
+
+	return msgs, nil
+}
+
 // Serve performs packet-relay
 func (srv *RelayService) Serve(ctx context.Context) error {
 	ctx, span := tracer.Start(ctx, "RelayService.Serve", WithChannelPairAttributes(srv.src, srv.dst))
@@ -134,39 +170,6 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		return err
 	}
 
-	relay := func(ctx context.Context, isSrcToDst bool, packets, acks PacketInfoList, sh SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
-		msgs := make([]sdk.Msg, 0, len(packets)+len(acks)+1)
-
-		// update clients
-		if m, err := srv.st.UpdateClients(ctx, srv.src, srv.dst, isSrcToDst, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
-			logger.ErrorContext(ctx, "failed to update clients", err)
-			span.SetStatus(codes.Error, err.Error())
-			return nil, err
-		} else {
-			msgs = append(msgs, m...)
-		}
-
-		// relay packets if unrelayed seqs exist
-		if m, err := srv.st.RelayPackets(ctx, srv.src, srv.dst, isSrcToDst, packets, sh, doExecuteRelay); err != nil {
-			logger.ErrorContext(ctx, "failed to relay packets", err)
-			span.SetStatus(codes.Error, err.Error())
-			return nil, err
-		} else {
-			msgs = append(msgs, m...)
-		}
-
-		// relay acks if unrelayed seqs exist
-		if m, err := srv.st.RelayAcknowledgements(ctx, srv.src, srv.dst, isSrcToDst, acks, sh, doExecuteAck); err != nil {
-			logger.ErrorContext(ctx, "failed to relay acknowledgements", err)
-			span.SetStatus(codes.Error, err.Error())
-			return nil, err
-		} else {
-			msgs = append(msgs, m...)
-		}
-
-		return msgs, nil
-	}
-
 	msgs := NewRelayMsgs()
 	{
 		var eg = new(errgroup.Group)
@@ -175,7 +178,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		doExecuteAckSrc, doExecuteAckDst := srv.shouldExecuteRelay(ctx, aseqs)
 		eg.Go(func() error {
 			isSrcToDst := true
-			m, err := relay(ctx, isSrcToDst, pseqs.Src, aseqs.Src, srv.sh, doExecuteRelayDst, doExecuteAckDst, true)
+			m, err := srv.relayMsgs(ctx, isSrcToDst, pseqs.Src, aseqs.Src, srv.sh, doExecuteRelayDst, doExecuteAckDst, true)
 			if err != nil {
 				return err
 			}
@@ -184,7 +187,7 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		})
 		eg.Go(func() error {
 			isSrcToDst := false
-			m, err := relay(ctx, isSrcToDst, pseqs.Dst, aseqs.Dst, srv.sh, doExecuteRelaySrc, doExecuteAckSrc, true)
+			m, err := srv.relayMsgs(ctx, isSrcToDst, pseqs.Dst, aseqs.Dst, srv.sh, doExecuteRelaySrc, doExecuteAckSrc, true)
 			if err != nil {
 				return err
 			}

@@ -10,6 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
+	"github.com/hyperledger-labs/yui-relayer/log"
 	"github.com/hyperledger-labs/yui-relayer/internal/telemetry"
 	"github.com/hyperledger-labs/yui-relayer/otelcore/semconv"
 	"go.opentelemetry.io/otel/attribute"
@@ -216,7 +217,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 	ctx, span := tracer.Start(ctx, "NaiveStrategy.RelayPackets", WithChannelPairAttributesAndKey("from", fromChain, "to", toChain))
 	defer span.End()
 	logger := GetChannelPairLoggerRelative(fromChain, toChain)
-	defer logger.TimeTrackContext(ctx, time.Now(), "RelayPackets", "num_from", len(packets))
+	defer logger.TimeTrackContext(ctx, time.Now(), "RelayPackets", "num", len(packets))
 
 	var msgs []sdk.Msg
 
@@ -241,10 +242,10 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 	{ // log
 		num := len(msgs)
 		if num == 0 {
-			logger.InfoContext(ctx, fmt.Sprintf("no packates to relay"))
+			logger.InfoContext(ctx, "no packates to relay")
 		} else {
 			dir := fmt.Sprintf("%s->%s", fromChain.ChainID(), toChain.ChainID())
-			logPacketsRelayed(ctx, src, dst, num, "Packets", dir)
+			logPacketsRelayed(ctx, logger, num, "Packets", dir)
 		}
 	}
 
@@ -406,8 +407,7 @@ func collectPackets(ctx QueryContext, chain *ProvableChain, packets PacketInfoLi
 	return msgs, nil
 }
 
-func logPacketsRelayed(ctx context.Context, src, dst Chain, num int, obj, dir string) {
-	logger := GetChannelPairLogger(src, dst)
+func logPacketsRelayed(ctx context.Context, logger *log.RelayLogger, num int, obj, dir string) {
 	logger.InfoContext(ctx,
 		fmt.Sprintf("★ %s are scheduled for relay", obj),
 		"count", num,
@@ -433,7 +433,7 @@ func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *Pr
 	ctx, span := tracer.Start(ctx, "NaiveStrategy.RelayAcknowledgements", WithChannelPairAttributesAndKey("from", fromChain, "to", toChain))
 	defer span.End()
 	logger := GetChannelPairLoggerRelative(fromChain, toChain)
-	defer logger.TimeTrackContext(ctx, time.Now(), "RelayAcknowledgements", "num_from", len(packets))
+	defer logger.TimeTrackContext(ctx, time.Now(), "RelayAcknowledgements", "num", len(packets))
 
 	var msgs []sdk.Msg
 
@@ -457,10 +457,10 @@ func (st *NaiveStrategy) RelayAcknowledgements(ctx context.Context, src, dst *Pr
 	{ // log
 		num := len(msgs)
 		if num == 0 {
-			logger.InfoContext(ctx, fmt.Sprintf("no acknowledgements to relay: %s->%s", fromChain.ChainID(), toChain.ChainID()))
+			logger.InfoContext(ctx, "no acknowledgements to relay")
 		} else {
 			dir := fmt.Sprintf("%s->%s", fromChain.ChainID(), toChain.ChainID())
-			logPacketsRelayed(ctx, src, dst, num, "Acknowledgements", dir)
+			logPacketsRelayed(ctx, logger, num, "Acknowledgements", dir)
 		}
 	}
 

@@ -31,7 +31,6 @@ type StateProver interface {
 
 	// ProveHostConsensusState returns an existence proof of the consensus state at `height`
 	// This proof would be ignored in ibc-go, but it is required to `getSelfConsensusState` of ibc-solidity.
-	// NOTE: must not query to chain.
 	ProveHostConsensusState(ctx QueryContext, height exported.Height, consensusState exported.ConsensusState) (proof []byte, err error)
 }
 

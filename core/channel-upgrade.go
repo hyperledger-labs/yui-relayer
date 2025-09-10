@@ -549,7 +549,7 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		),
 	)}
 
-	if err := retry.Do(func() error {
+	err = retry.Do(func() error {
 		var eg = new(errgroup.Group)
 
 		if srcAction != UPGRADE_ACTION_NONE {
@@ -624,8 +624,8 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 			return err
 		}
 		return nil
-	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx), retry.OnRetry(func(n uint, err error) {
-	})); err != nil {
+	})
+	if err != nil {
 		return nil, err
 	}
 

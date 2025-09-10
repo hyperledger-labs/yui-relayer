@@ -220,16 +220,6 @@ func resolveCreateChannelFutureMsgs(
 	if err != nil {
 		return nil, err
 	}
-
-	if len(dstProofs.updateHeaders) > 0 {
-		srcAddr := mustGetAddress(src)
-		ret.Src = append(src.Path().UpdateClients(dstProofs.updateHeaders, srcAddr), ret.Src...)
-	}
-	if len(srcProofs.updateHeaders) > 0 {
-		dstAddr := mustGetAddress(dst)
-		ret.Dst = append(dst.Path().UpdateClients(srcProofs.updateHeaders, dstAddr), ret.Dst...)
-	}
-
 	return ret, nil
 }
 
@@ -268,7 +258,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	case srcProofs.chanRes.Channel.State == chantypes.UNINITIALIZED && dstProofs.chanRes.Channel.State == chantypes.UNINITIALIZED:
 		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
 			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			addr := mustGetAddress(src)
 			msgs = append(msgs, src.Path().ChanInit(dst.Path(), addr))
 			return msgs, false
@@ -277,7 +267,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	case srcProofs.chanRes.Channel.State == chantypes.UNINITIALIZED && dstProofs.chanRes.Channel.State == chantypes.INIT:
 		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
 			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			addr := mustGetAddress(src)
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
@@ -289,7 +279,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	case srcProofs.chanRes.Channel.State == chantypes.INIT && dstProofs.chanRes.Channel.State == chantypes.UNINITIALIZED:
 		fmsgs.Dst = append(fmsgs.Dst, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
 			logChannelStates(ctx, dst, src, dstProofs.chanRes, srcProofs.chanRes)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			addr := mustGetAddress(dst)
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
@@ -302,7 +292,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	case srcProofs.chanRes.Channel.State == chantypes.TRYOPEN && dstProofs.chanRes.Channel.State == chantypes.INIT:
 		fmsgs.Dst = append(fmsgs.Dst, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
 			logChannelStates(ctx, dst, src, dstProofs.chanRes, srcProofs.chanRes)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			addr := mustGetAddress(dst)
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
@@ -315,7 +305,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	case srcProofs.chanRes.Channel.State == chantypes.INIT && dstProofs.chanRes.Channel.State == chantypes.TRYOPEN:
 		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
 			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			addr := mustGetAddress(src)
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
@@ -328,7 +318,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	case srcProofs.chanRes.Channel.State == chantypes.TRYOPEN && dstProofs.chanRes.Channel.State == chantypes.OPEN:
 		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
 			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			addr := mustGetAddress(src)
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
@@ -341,7 +331,7 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	case srcProofs.chanRes.Channel.State == chantypes.OPEN && dstProofs.chanRes.Channel.State == chantypes.TRYOPEN:
 		fmsgs.Dst = append(fmsgs.Dst, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
 			logChannelStates(ctx, dst, src, dstProofs.chanRes, srcProofs.chanRes)
-			msgs := make([]sdk.Msg, 0, 2)
+			var msgs []sdk.Msg
 			addr := mustGetAddress(dst)
 			if len(p.updateHeaders) > 0 {
 				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)

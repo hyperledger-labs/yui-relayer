@@ -414,6 +414,23 @@ func channelUpgradeCancelCmd(ctx *config.Context) *cobra.Command {
 	return &cmd
 }
 
+func relayMsgs(ctx context.Context, st core.StrategyI, src, dst *core.ProvableChain, isSrcToDst bool, packets core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
+	var msgs []sdk.Msg
+
+	if m, err := st.UpdateClients(ctx, src, dst, isSrcToDst, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
+		return nil, err
+	} else {
+		msgs = append(msgs, m...)
+	}
+
+	if m, err := st.RelayPackets(ctx, src, dst, isSrcToDst, packets, sh, doExecuteRelay); err != nil {
+		return nil, err
+	} else {
+		msgs = append(msgs, m...)
+	}
+	return msgs, nil
+}
+
 func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 	const (
 		flagDoRefresh = "do-refresh"
@@ -460,23 +477,6 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			relay := func(ctx context.Context, isSrcToDst bool, packets core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
-				msgs := make([]sdk.Msg, 0, len(packets)+1)
-
-				if m, err := st.UpdateClients(ctx, c[src], c[dst], isSrcToDst, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
-					return nil, err
-				} else {
-					msgs = append(msgs, m...)
-				}
-
-				if m, err := st.RelayPackets(ctx, c[src], c[dst], isSrcToDst, packets, sh, doExecuteRelay); err != nil {
-					return nil, err
-				} else {
-					msgs = append(msgs, m...)
-				}
-				return msgs, nil
-			}
-
 			msgs := core.NewRelayMsgs()
 			{
 				var eg = new(errgroup.Group)
@@ -488,7 +488,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				doRefresh := viper.GetBool(flagDoRefresh)
 
 				eg.Go(func() error {
-					m, err := relay(cmd.Context(), true, sp.Src, sh, doExecuteRelayDst, doExecuteAckDst, doRefresh)
+					m, err := relayMsgs(cmd.Context(), st, c[src], c[dst], true, sp.Src, sh, doExecuteRelayDst, doExecuteAckDst, doRefresh)
 					if err != nil {
 						return err
 					}
@@ -496,7 +496,7 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 					return nil
 				})
 				eg.Go(func() error {
-					m, err := relay(cmd.Context(), false, sp.Dst, sh, doExecuteRelaySrc, doExecuteAckSrc, doRefresh)
+					m, err := relayMsgs(cmd.Context(), st, c[src], c[dst], false, sp.Dst, sh, doExecuteRelaySrc, doExecuteAckSrc, doRefresh)
 					if err != nil {
 						return err
 					}
@@ -520,6 +520,24 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 	// TODO add option support for strategy
 	return cmd
 }
+
+func relayAcks(ctx context.Context, st core.StrategyI, src, dst *core.ProvableChain, isSrcToDst bool, acks core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
+	var msgs []sdk.Msg
+
+	if m, err := st.UpdateClients(ctx, src, dst, isSrcToDst, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
+		return nil, err
+	} else {
+		msgs = append(msgs, m...)
+	}
+
+	if m, err := st.RelayAcknowledgements(ctx, src, dst, isSrcToDst, acks, sh, doExecuteAck); err != nil {
+		return nil, err
+	} else {
+		msgs = append(msgs, m...)
+	}
+	return msgs, nil
+}
+
 
 func relayAcksCmd(ctx *config.Context) *cobra.Command {
 	const (
@@ -565,23 +583,6 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 				return err
 			}
 
-			relay := func(ctx context.Context, isSrcToDst bool, acks core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
-				msgs := make([]sdk.Msg, 0, len(acks)+1)
-
-				if m, err := st.UpdateClients(ctx, c[src], c[dst], isSrcToDst, doExecuteRelay, doExecuteAck, sh, doRefresh); err != nil {
-					return nil, err
-				} else {
-					msgs = append(msgs, m...)
-				}
-
-				if m, err := st.RelayAcknowledgements(ctx, c[src], c[dst], isSrcToDst, acks, sh, doExecuteAck); err != nil {
-					return nil, err
-				} else {
-					msgs = append(msgs, m...)
-				}
-				return msgs, nil
-			}
-
 			msgs := core.NewRelayMsgs()
 			{
 				var eg = new(errgroup.Group)
@@ -593,7 +594,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 				doRefresh := viper.GetBool(flagDoRefresh)
 
 				eg.Go(func() error {
-					m, err := relay(cmd.Context(), true, sp.Src, sh, doExecuteRelayDst, doExecuteAckDst, doRefresh)
+					m, err := relayAcks(cmd.Context(), st, c[src], c[dst], true, sp.Src, sh, doExecuteRelayDst, doExecuteAckDst, doRefresh)
 					if err != nil {
 						return err
 					}
@@ -601,7 +602,7 @@ func relayAcksCmd(ctx *config.Context) *cobra.Command {
 					return nil
 				})
 				eg.Go(func() error {
-					m, err := relay(cmd.Context(), false, sp.Dst, sh, doExecuteRelaySrc, doExecuteAckSrc, doRefresh)
+					m, err := relayAcks(cmd.Context(), st, c[src], c[dst], false, sp.Dst, sh, doExecuteRelaySrc, doExecuteAckSrc, doRefresh)
 					if err != nil {
 						return err
 					}

@@ -207,6 +207,7 @@ func ProveConnection(
 	},
 	conn *conntypes.QueryConnectionResponse,
 ) error {
+	// Note that QueryConnectionPair with prove=true skips to prove in this case
 	if conn.Connection.State == conntypes.UNINITIALIZED {
 		return nil
 	}
@@ -216,6 +217,7 @@ func ProveConnection(
 	if err != nil {
 		return err
 	}
+
 	conn.Proof, conn.ProofHeight, err = chain.ProveState(queryCtx, path, value)
 	return err
 }
@@ -286,6 +288,7 @@ func ProveChannel(
 	},
 	ch *chantypes.QueryChannelResponse,
 ) error {
+	// Note that QueryChannelPair with prove=true skips to prove in this case
 	if ch.Channel.State == chantypes.UNINITIALIZED {
 		return nil
 	}
