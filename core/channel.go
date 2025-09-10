@@ -158,7 +158,7 @@ func resolveCreateChannelFutureProofs(
 		return err
 	}
 
-	if fromProofs.chanRes != nil {
+	if fromProofs.chanRes != nil && fromProofs.chanRes.Channel.State != chantypes.UNINITIALIZED {
 		err = ProveChannel(queryCtx, from, fromProofs.chanRes)
 		if err != nil {
 			return err
@@ -244,7 +244,6 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 		sh.GetQueryContext(ctx, dst.ChainID()),
 		src,
 		dst,
-		false,
 	)
 	if err != nil {
 		return nil, err
@@ -369,16 +368,14 @@ func querySettledChannelPair(
 		Chain
 		StateProver
 	},
-	prove bool,
 ) (*chantypes.QueryChannelResponse, *chantypes.QueryChannelResponse, bool, error) {
 	logger := GetChannelPairLogger(src, dst)
 	logger = &log.RelayLogger{Logger: logger.With(
 		"src_height", srcCtx.Height().String(),
 		"dst_height", dstCtx.Height().String(),
-		"prove", prove,
 	)}
 
-	srcChan, dstChan, err := QueryChannelPair(srcCtx, dstCtx, src, dst, prove)
+	srcChan, dstChan, err := QueryChannelPair(srcCtx, dstCtx, src, dst)
 	if err != nil {
 		logger.ErrorContext(srcCtx.Context(), "failed to query channel pair at the latest finalized height", err)
 		return nil, nil, false, err
@@ -398,7 +395,7 @@ func querySettledChannelPair(
 		dstLatestCtx = NewQueryContext(dstCtx.Context(), h)
 	}
 
-	srcLatestChan, dstLatestChan, err := QueryChannelPair(srcLatestCtx, dstLatestCtx, src, dst, false)
+	srcLatestChan, dstLatestChan, err := QueryChannelPair(srcLatestCtx, dstLatestCtx, src, dst)
 	if err != nil {
 		logger.ErrorContext(srcCtx.Context(), "failed to query channel pair at the latest height", err)
 		return nil, nil, false, err

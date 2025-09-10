@@ -96,7 +96,6 @@ func InitChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, upgradeFi
 		NewQueryContext(ctx, cpH),
 		chain,
 		cp,
-		false,
 	); err != nil {
 		logger.ErrorContext(ctx, "failed to query for the channel pair", err)
 		span.SetStatus(codes.Error, err.Error())
@@ -212,7 +211,7 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 		queryCtx := sh.GetQueryContext(ctx, chain.ChainID())
 		cpQueryCtx := sh.GetQueryContext(ctx, cp.ChainID())
 
-		chann, _, settled, err := querySettledChannelPair(queryCtx, cpQueryCtx, chain, cp, false)
+		chann, _, settled, err := querySettledChannelPair(queryCtx, cpQueryCtx, chain, cp)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to query for settled channel pair", err)
 			return false, err
@@ -221,7 +220,7 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 			return false, nil
 		}
 
-		if _, _, settled, err := querySettledChannelUpgradePair(queryCtx, cpQueryCtx, chain, cp, false); err != nil {
+		if _, _, settled, err := querySettledChannelUpgradePair(queryCtx, cpQueryCtx, chain, cp); err != nil {
 			logger.ErrorContext(ctx, "failed to query for settled channel upgrade pair", err)
 			return false, err
 		} else if !settled {
@@ -235,7 +234,7 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 			return false, err
 		}
 
-		upgErr, err := QueryChannelUpgradeError(cpQueryCtx, cp, true)
+		upgErr, err := QueryChannelUpgradeError(cpQueryCtx, cp)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to query the channel upgrade error receipt", err)
 			return false, err
@@ -255,6 +254,8 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 			// If the sender is authority and the channel state is anything other than FLUSHCOMPLETE,
 			// the cancellation will be successful.
 			upgErr = &chantypes.QueryUpgradeErrorResponse{}
+		} else if err = ProveChannelUpgradeError(cpQueryCtx, cp, upgErr); err != nil {
+			return false, err
 		}
 
 		addr, err := chain.GetAddress()
@@ -325,7 +326,7 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 	dstCtx := sh.GetQueryContext(ctx, dst.ChainID())
 
 	// query finalized channels with proofs
-	srcChan, dstChan, settled, err := querySettledChannelPair(srcCtx, dstCtx, src, dst, false)
+	srcChan, dstChan, settled, err := querySettledChannelPair(srcCtx, dstCtx, src, dst)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to query the channel pair with proofs", err)
 		return nil, err
@@ -339,7 +340,6 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		dstCtx,
 		src,
 		dst,
-		false,
 	)
 	if err != nil {
 		logger.ErrorContext(ctx, "failed to query the channel upgrade pair with proofs", err)
@@ -661,17 +661,15 @@ func querySettledChannelUpgradePair(
 		Chain
 		StateProver
 	},
-	prove bool,
 ) (*chantypes.QueryUpgradeResponse, *chantypes.QueryUpgradeResponse, bool, error) {
 	logger := GetChannelPairLogger(src, dst)
 	logger = &log.RelayLogger{Logger: logger.With(
 		"src_height", srcCtx.Height().String(),
 		"dst_height", dstCtx.Height().String(),
-		"prove", prove,
 	)}
 
 	// query channel upgrade pair at latest finalized heights
-	srcChanUpg, dstChanUpg, err := QueryChannelUpgradePair(srcCtx, dstCtx, src, dst, prove)
+	srcChanUpg, dstChanUpg, err := QueryChannelUpgradePair(srcCtx, dstCtx, src, dst)
 	if err != nil {
 		logger.ErrorContext(srcCtx.Context(), "failed to query a channel upgrade pair at the latest finalized heights", err)
 		return nil, nil, false, err
@@ -693,7 +691,7 @@ func querySettledChannelUpgradePair(
 	}
 
 	// query channel upgrade pair at latest heights
-	srcLatestChanUpg, dstLatestChanUpg, err := QueryChannelUpgradePair(srcLatestCtx, dstLatestCtx, src, dst, false)
+	srcLatestChanUpg, dstLatestChanUpg, err := QueryChannelUpgradePair(srcLatestCtx, dstLatestCtx, src, dst)
 	if err != nil {
 		logger.ErrorContext(srcCtx.Context(), "failed to query a channel upgrade pair at the latest heights", err)
 		return nil, nil, false, err
@@ -799,7 +797,7 @@ func buildActionMsg(
 		}
 		return pathEnd.ChanUpgradeOpen(cpChan, addr), nil
 	case UPGRADE_ACTION_CANCEL:
-		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true)
+		upgErr, err := QueryChannelUpgradeError(cpCtx, cp)
 		if err != nil {
 			return nil, err
 		} else if upgErr == nil {
@@ -807,18 +805,25 @@ func buildActionMsg(
 			// If the sender is authority and the channel state is anything other than FLUSHCOMPLETE,
 			// the cancellation will be successful.
 			upgErr = &chantypes.QueryUpgradeErrorResponse{}
+		} else if err := ProveChannelUpgradeError(cpCtx, cp, upgErr); err != nil {
+			return nil, err
 		}
+
 		return pathEnd.ChanUpgradeCancel(upgErr, addr), nil
 	case UPGRADE_ACTION_CANCEL_FLUSHCOMPLETE:
-		upgErr, err := QueryChannelUpgradeError(cpCtx, cp, true)
+		upgErr, err := QueryChannelUpgradeError(cpCtx, cp)
 		if err != nil {
 			return nil, err
 		} else if upgErr == nil {
 			return nil, fmt.Errorf("upgrade error receipt not found")
-		} else if upgErr.ErrorReceipt.Sequence != selfChan.Channel.UpgradeSequence {
+		}
+		if upgErr.ErrorReceipt.Sequence != selfChan.Channel.UpgradeSequence {
 			return nil, fmt.Errorf(
 				"upgrade sequences don't match: channel.upgrade_sequence=%d, error_receipt.sequence=%d",
 				selfChan.Channel.UpgradeSequence, upgErr.ErrorReceipt.Sequence)
+		}
+		if err = ProveChannelUpgradeError(cpCtx, cp, upgErr); err != nil {
+			return nil, err
 		}
 		return pathEnd.ChanUpgradeCancel(upgErr, addr), nil
 	case UPGRADE_ACTION_TIMEOUT:

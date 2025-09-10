@@ -168,7 +168,7 @@ func resolveCreateConnectionFutureProofs(
 		return err
 	}
 
-	if fromProofs.connRes != nil {
+	if fromProofs.connRes != nil && fromProofs.connRes.Connection.State != conntypes.UNINITIALIZED {
 		err = ProveConnection(queryCtx, fromChain, fromProofs.connRes)
 		if err != nil {
 			return err
@@ -279,7 +279,6 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		sh.GetQueryContext(ctx, dst.ChainID()),
 		src,
 		dst,
-		false,
 	)
 	if err != nil {
 		return nil, err
@@ -289,7 +288,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 
 	if !(srcProofs.connRes.Connection.State == conntypes.UNINITIALIZED && dstProofs.connRes.Connection.State == conntypes.UNINITIALIZED) {
 		// Query client state from each chain's client
-		srcProofs.csRes, dstProofs.csRes, err = QueryClientStatePair(sh.GetQueryContext(ctx, src.ChainID()), sh.GetQueryContext(ctx, dst.ChainID()), src, dst, false)
+		srcProofs.csRes, dstProofs.csRes, err = QueryClientStatePair(sh.GetQueryContext(ctx, src.ChainID()), sh.GetQueryContext(ctx, dst.ChainID()), src, dst)
 		if err != nil {
 			return nil, err
 		}
@@ -304,7 +303,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		srcConsH, dstConsH = srcCS.GetLatestHeight(), dstCS.GetLatestHeight()
 		srcProofs.consRes, dstProofs.consRes, err = QueryClientConsensusStatePair(
 			sh.GetQueryContext(ctx, src.ChainID()), sh.GetQueryContext(ctx, dst.ChainID()),
-			src, dst, srcConsH, dstConsH, false)
+			src, dst, srcConsH, dstConsH)
 		if err != nil {
 			return nil, err
 		}
@@ -481,16 +480,14 @@ func querySettledConnectionPair(
 		Chain
 		StateProver
 	},
-	prove bool,
 ) (*conntypes.QueryConnectionResponse, *conntypes.QueryConnectionResponse, bool, error) {
 	logger := GetConnectionPairLogger(src, dst)
 	logger = &log.RelayLogger{Logger: logger.With(
 		"src_height", srcCtx.Height().String(),
 		"dst_height", dstCtx.Height().String(),
-		"prove", prove,
 	)}
 
-	srcConn, dstConn, err := QueryConnectionPair(srcCtx, dstCtx, src, dst, prove)
+	srcConn, dstConn, err := QueryConnectionPair(srcCtx, dstCtx, src, dst)
 	if err != nil {
 		logger.ErrorContext(srcCtx.Context(), "failed to query connection pair at the latest finalized height", err)
 		return nil, nil, false, err
@@ -510,7 +507,7 @@ func querySettledConnectionPair(
 		dstLatestCtx = NewQueryContext(dstCtx.Context(), h)
 	}
 
-	srcLatestConn, dstLatestConn, err := QueryConnectionPair(srcLatestCtx, dstLatestCtx, src, dst, false)
+	srcLatestConn, dstLatestConn, err := QueryConnectionPair(srcLatestCtx, dstLatestCtx, src, dst)
 	if err != nil {
 		logger.ErrorContext(srcCtx.Context(), "failed to query connection pair at the latest height", err)
 		return nil, nil, false, err

@@ -1,6 +1,8 @@
 package core
 
 import (
+	"fmt"
+
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 	chantypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
@@ -16,7 +18,6 @@ func QueryClientStatePair(
 		Chain
 		StateProver
 	},
-	prove bool,
 ) (srcCsRes, dstCsRes *clienttypes.QueryClientStateResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
@@ -25,13 +26,7 @@ func QueryClientStatePair(
 		if err != nil {
 			return err
 		}
-		if prove {
-			err = ProveClientState(srcCtx, src, srcCsRes)
-			if err != nil {
-				return err
-			}
-		}
-		return err
+		return nil
 	})
 	eg.Go(func() error {
 		var err error
@@ -39,13 +34,7 @@ func QueryClientStatePair(
 		if err != nil {
 			return err
 		}
-		if prove {
-			err = ProveClientState(dstCtx, dst, dstCsRes)
-			if err != nil {
-				return err
-			}
-		}
-		return err
+		return nil
 	})
 	err = eg.Wait()
 	return
@@ -81,7 +70,6 @@ func QueryClientConsensusStatePair(
 	},
 	srcClientConsH,
 	dstClientConsH ibcexported.Height,
-	prove bool,
 ) (srcCsRes, dstCsRes *clienttypes.QueryConsensusStateResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
@@ -90,13 +78,7 @@ func QueryClientConsensusStatePair(
 		if err != nil {
 			return err
 		}
-		if prove {
-			err = ProveClientConsensusState(srcCtx, src, srcClientConsH, srcCsRes)
-			if err != nil {
-				return err
-			}
-		}
-		return err
+		return nil
 	})
 	eg.Go(func() error {
 		var err error
@@ -104,13 +86,7 @@ func QueryClientConsensusStatePair(
 		if err != nil {
 			return err
 		}
-		if prove {
-			err = ProveClientConsensusState(dstCtx, dst, dstClientConsH, dstCsRes)
-			if err != nil {
-				return err
-			}
-		}
-		return err
+		return nil
 	})
 	err = eg.Wait()
 	return
@@ -144,7 +120,6 @@ func QueryConnectionPair(
 		Chain
 		StateProver
 	},
-	prove bool,
 ) (srcConn, dstConn *conntypes.QueryConnectionResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
@@ -160,16 +135,8 @@ func QueryConnectionPair(
 		srcConn, err = src.QueryConnection(srcCtx, src.Path().ConnectionID)
 		if err != nil {
 			return err
-		} else if srcConn.Connection.State == conntypes.UNINITIALIZED {
-			return nil
 		}
-		if prove {
-			err := ProveConnection(srcCtx, src, srcConn)
-			if err != nil {
-				return err
-			}
-		}
-		return err
+		return nil
 	})
 	eg.Go(func() error {
 		if dst.Path().ConnectionID == "" {
@@ -184,16 +151,8 @@ func QueryConnectionPair(
 		dstConn, err = dst.QueryConnection(dstCtx, dst.Path().ConnectionID)
 		if err != nil {
 			return err
-		} else if dstConn.Connection.State == conntypes.UNINITIALIZED {
-			return nil
 		}
-		if prove {
-			err := ProveConnection(dstCtx, dst, dstConn)
-			if err != nil {
-				return err
-			}
-		}
-		return err
+		return nil
 	})
 	err = eg.Wait()
 	return
@@ -207,9 +166,8 @@ func ProveConnection(
 	},
 	conn *conntypes.QueryConnectionResponse,
 ) error {
-	// Note that QueryConnectionPair with prove=true skips to prove in this case
 	if conn.Connection.State == conntypes.UNINITIALIZED {
-		return nil
+		return fmt.Errorf("connection state must not be UNINITIALIZED")
 	}
 
 	path := host.ConnectionPath(chain.Path().ConnectionID)
@@ -226,7 +184,7 @@ func ProveConnection(
 func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 	Chain
 	StateProver
-}, prove bool) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
+}) (srcChan, dstChan *chantypes.QueryChannelResponse, err error) {
 	var eg = new(errgroup.Group)
 	eg.Go(func() error {
 		if src.Path().ChannelID == "" {
@@ -241,16 +199,8 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 		srcChan, err = src.QueryChannel(srcCtx)
 		if err != nil {
 			return err
-		} else if srcChan.Channel.State == chantypes.UNINITIALIZED {
-			return nil
 		}
-		if prove {
-			err := ProveChannel(srcCtx, src, srcChan)
-			if err != nil {
-				return err
-			}
-		}
-		return err
+		return nil
 	})
 	eg.Go(func() error {
 		if dst.Path().ChannelID == "" {
@@ -265,16 +215,8 @@ func QueryChannelPair(srcCtx, dstCtx QueryContext, src, dst interface {
 		dstChan, err = dst.QueryChannel(dstCtx)
 		if err != nil {
 			return err
-		} else if dstChan.Channel.State == chantypes.UNINITIALIZED {
-			return nil
 		}
-		if prove {
-			err := ProveChannel(dstCtx, dst, dstChan)
-			if err != nil {
-				return err
-			}
-		}
-		return err
+		return nil
 	})
 	err = eg.Wait()
 	return
@@ -290,7 +232,7 @@ func ProveChannel(
 ) error {
 	// Note that QueryChannelPair with prove=true skips to prove in this case
 	if ch.Channel.State == chantypes.UNINITIALIZED {
-		return nil
+		return fmt.Errorf("channel state must not be UNINITIALIZED")
 	}
 
 	path := host.ChannelPath(chain.Path().PortID, chain.Path().ChannelID)
@@ -308,7 +250,7 @@ func ProveChannel(
 func QueryChannelUpgradePair(srcCtx, dstCtx QueryContext, src, dst interface {
 	Chain
 	StateProver
-}, prove bool) (srcChanUpg, dstChanUpg *chantypes.QueryUpgradeResponse, err error) {
+}) (srcChanUpg, dstChanUpg *chantypes.QueryUpgradeResponse, err error) {
 	eg := new(errgroup.Group)
 
 	// get channel upgrade from src chain
@@ -319,14 +261,6 @@ func QueryChannelUpgradePair(srcCtx, dstCtx QueryContext, src, dst interface {
 			return err
 		} else if srcChanUpg == nil {
 			return nil
-		}
-
-		if !prove {
-			return nil
-		}
-
-		if err := ProveChannelUpgrade(srcCtx, src, srcChanUpg); err != nil {
-			return err
 		}
 		return nil
 	})
@@ -339,14 +273,6 @@ func QueryChannelUpgradePair(srcCtx, dstCtx QueryContext, src, dst interface {
 			return err
 		} else if dstChanUpg == nil {
 			return nil
-		}
-
-		if !prove {
-			return nil
-		}
-
-		if err := ProveChannelUpgrade(dstCtx, dst, dstChanUpg); err != nil {
-			return err
 		}
 		return nil
 	})
@@ -370,18 +296,25 @@ func ProveChannelUpgrade(ctx QueryContext, ch interface {
 func QueryChannelUpgradeError(ctx QueryContext, chain interface {
 	Chain
 	StateProver
-}, prove bool) (*chantypes.QueryUpgradeErrorResponse, error) {
+}) (*chantypes.QueryUpgradeErrorResponse, error) {
 	if chanUpgErr, err := chain.QueryChannelUpgradeError(ctx); err != nil {
 		return nil, err
 	} else if chanUpgErr == nil {
 		return nil, nil
-	} else if !prove {
+	} else {
 		return chanUpgErr, nil
-	} else if value, err := chain.Codec().Marshal(&chanUpgErr.ErrorReceipt); err != nil {
-		return nil, err
+	}
+}
+
+func ProveChannelUpgradeError(ctx QueryContext, chain interface {
+	Chain
+	StateProver
+}, chanUpgErr *chantypes.QueryUpgradeErrorResponse) error {
+	if value, err := chain.Codec().Marshal(&chanUpgErr.ErrorReceipt); err != nil {
+		return err
 	} else {
 		path := host.ChannelUpgradeErrorPath(chain.Path().PortID, chain.Path().ChannelID)
 		chanUpgErr.Proof, chanUpgErr.ProofHeight, err = chain.ProveState(ctx, path, value)
-		return chanUpgErr, err
+		return err
 	}
 }
