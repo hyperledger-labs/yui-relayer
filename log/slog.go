@@ -204,6 +204,26 @@ func (rl *RelayLogger) WithChannelPair(
 	}
 }
 
+func (rl *RelayLogger) WithChannelPairRelative(
+	myChainID, myPortID, myChannelID string,
+	cpChainID, cpPortID, cpChannelID string,
+) *RelayLogger {
+	return &RelayLogger{
+		rl.Logger.With(
+			slog.Group("self",
+				"chain_id", myChainID,
+				"port_id", myPortID,
+				"channel_id", myChannelID,
+			),
+			slog.Group("cp",
+				"chain_id", cpChainID,
+				"port_id", cpPortID,
+				"channel_id", cpChannelID,
+			),
+		),
+	}
+}
+
 func (rl *RelayLogger) WithConnectionPair(
 	srcChainID, srcClientID, srcConnectionID string,
 	dstChainID, dstClientID, dstConnectionID string,
@@ -219,6 +239,26 @@ func (rl *RelayLogger) WithConnectionPair(
 				"chain_id", dstChainID,
 				"client_id", dstClientID,
 				"connection_id", dstConnectionID,
+			),
+		),
+	}
+}
+
+func (rl *RelayLogger) WithConnectionPairRelative(
+	myChainID, myClientID, myConnectionID string,
+	cpChainID, cpClientID, cpConnectionID string,
+) *RelayLogger {
+	return &RelayLogger{
+		rl.Logger.With(
+			slog.Group("self",
+				"chain_id", myChainID,
+				"client_id", myClientID,
+				"connection_id", myConnectionID,
+			),
+			slog.Group("cp",
+				"chain_id", cpChainID,
+				"client_id", cpClientID,
+				"connection_id", cpConnectionID,
 			),
 		),
 	}

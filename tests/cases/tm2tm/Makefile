@@ -8,6 +8,7 @@ network:
 		tendermint-chain0 tendermint-chain1
 
 .PHONY: test
+
 test:
 	./scripts/fixture
 	./scripts/init-rly
@@ -22,6 +23,7 @@ test:
 	./scripts/test-create-channel-fail-unexist
 	./scripts/test-tx
 	./scripts/test-service
+	./scripts/test-service-fakelost
 
 .PHONY: network-down
 network-down:
