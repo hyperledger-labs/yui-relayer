@@ -140,8 +140,6 @@ type createChannelFutureProofs struct {
 	chanRes       *chantypes.QueryChannelResponse
 }
 
-type createChannelFutureMsg = func(proofs *createChannelFutureProofs) (msg []sdk.Msg, last bool)
-
 func resolveCreateChannelFutureProofs(
 	ctx context.Context,
 	sh SyncHeaders,
@@ -167,63 +165,8 @@ func resolveCreateChannelFutureProofs(
 	return nil
 }
 
-type createChannelFutureMsgs struct {
-	Src, Dst []createChannelFutureMsg
-}
-
-func resolveCreateChannelFutureMsgs(
-	ctx context.Context,
-	sh SyncHeaders,
-	fmsgs *createChannelFutureMsgs,
-	src, dst *ProvableChain,
-	srcProofs, dstProofs *createChannelFutureProofs,
-) (*RelayMsgs, error) {
-	ret := NewRelayMsgs()
-
-	err := retry.Do(func() error {
-		var eg = new(errgroup.Group)
-
-		if len(fmsgs.Dst) > 0 { // send to Dst
-			eg.Go(func() error {
-				err := resolveCreateChannelFutureProofs(ctx, sh, src, dst, srcProofs)
-				if err != nil {
-					return err
-				}
-
-				for _, fm := range fmsgs.Dst {
-					msgs, last := fm(srcProofs)
-					ret.Dst = append(ret.Dst, msgs...)
-					ret.Last = ret.Last || last
-				}
-				return nil
-			})
-		}
-
-		if len(fmsgs.Src) > 0 { // send to Src
-			eg.Go(func() error {
-				err := resolveCreateChannelFutureProofs(ctx, sh, dst, src, dstProofs)
-				if err != nil {
-					return err
-				}
-
-				for _, fm := range fmsgs.Src {
-					msgs, last := fm(dstProofs)
-					ret.Src = append(ret.Src, msgs...)
-					ret.Last = ret.Last || last
-				}
-				return nil
-			})
-		}
-		return eg.Wait()
-	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx))
-	if err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
 func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs, error) {
-	fmsgs := createChannelFutureMsgs{}
+	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
 	}
@@ -248,13 +191,14 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 	if err != nil {
 		return nil, err
 	} else if !settled {
-		return NewRelayMsgs(), nil
+		return out, nil
 	}
 
+	var srcFutureMsgs, dstFutureMsgs []func() (msg []sdk.Msg, last bool)
 	switch {
 	// Handshake hasn't been started on src or dst, relay `chanOpenInit` to src
 	case srcProofs.chanRes.Channel.State == chantypes.UNINITIALIZED && dstProofs.chanRes.Channel.State == chantypes.UNINITIALIZED:
-		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+		srcFutureMsgs = append(srcFutureMsgs, func() ([]sdk.Msg, bool) {
 			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
 			var msgs []sdk.Msg
 			addr := mustGetAddress(src)
@@ -263,88 +207,114 @@ func createChannelStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs
 		})
 	// Handshake has started on dst (1 step done), relay `chanOpenTry` and `updateClient` to src
 	case srcProofs.chanRes.Channel.State == chantypes.UNINITIALIZED && dstProofs.chanRes.Channel.State == chantypes.INIT:
-		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+		srcFutureMsgs = append(srcFutureMsgs, func() ([]sdk.Msg, bool) {
 			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
 			var msgs []sdk.Msg
 			addr := mustGetAddress(src)
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(dstProofs.updateHeaders) > 0 {
+				msgs = append(msgs, src.Path().UpdateClients(dstProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, src.Path().ChanTry(dst.Path(), p.chanRes, addr))
+			msgs = append(msgs, src.Path().ChanTry(dst.Path(), dstProofs.chanRes, addr))
 			return msgs, false
 		})
 	// Handshake has started on src (1 step done), relay `chanOpenTry` and `updateClient` to dst
 	case srcProofs.chanRes.Channel.State == chantypes.INIT && dstProofs.chanRes.Channel.State == chantypes.UNINITIALIZED:
-		fmsgs.Dst = append(fmsgs.Dst, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+		dstFutureMsgs = append(dstFutureMsgs, func() ([]sdk.Msg, bool) {
 			logChannelStates(ctx, dst, src, dstProofs.chanRes, srcProofs.chanRes)
 			var msgs []sdk.Msg
 			addr := mustGetAddress(dst)
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(srcProofs.updateHeaders) > 0 {
+				msgs = append(msgs, dst.Path().UpdateClients(srcProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, dst.Path().ChanTry(src.Path(), p.chanRes, addr))
+			msgs = append(msgs, dst.Path().ChanTry(src.Path(), srcProofs.chanRes, addr))
 			return msgs, false
 		})
 
 	// Handshake has started on src (2 steps done), relay `chanOpenAck` and `updateClient` to dst
 	case srcProofs.chanRes.Channel.State == chantypes.TRYOPEN && dstProofs.chanRes.Channel.State == chantypes.INIT:
-		fmsgs.Dst = append(fmsgs.Dst, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+		dstFutureMsgs = append(dstFutureMsgs, func() ([]sdk.Msg, bool) {
 			logChannelStates(ctx, dst, src, dstProofs.chanRes, srcProofs.chanRes)
 			var msgs []sdk.Msg
 			addr := mustGetAddress(dst)
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(srcProofs.updateHeaders) > 0 {
+				msgs = append(msgs, dst.Path().UpdateClients(srcProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, dst.Path().ChanAck(src.Path(), p.chanRes, addr))
+			msgs = append(msgs, dst.Path().ChanAck(src.Path(), srcProofs.chanRes, addr))
 			return msgs, false
 		})
 
 	// Handshake has started on dst (2 steps done), relay `chanOpenAck` and `updateClient` to src
 	case srcProofs.chanRes.Channel.State == chantypes.INIT && dstProofs.chanRes.Channel.State == chantypes.TRYOPEN:
-		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+		srcFutureMsgs = append(srcFutureMsgs, func() ([]sdk.Msg, bool) {
 			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
 			var msgs []sdk.Msg
 			addr := mustGetAddress(src)
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(dstProofs.updateHeaders) > 0 {
+				msgs = append(msgs, src.Path().UpdateClients(dstProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, src.Path().ChanAck(dst.Path(), p.chanRes, addr))
+			msgs = append(msgs, src.Path().ChanAck(dst.Path(), dstProofs.chanRes, addr))
 			return msgs, false
 		})
 
 	// Handshake has confirmed on dst (3 steps done), relay `chanOpenConfirm` and `updateClient` to src
 	case srcProofs.chanRes.Channel.State == chantypes.TRYOPEN && dstProofs.chanRes.Channel.State == chantypes.OPEN:
-		fmsgs.Src = append(fmsgs.Src, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+		srcFutureMsgs = append(srcFutureMsgs, func() ([]sdk.Msg, bool) {
 			logChannelStates(ctx, src, dst, srcProofs.chanRes, dstProofs.chanRes)
 			var msgs []sdk.Msg
 			addr := mustGetAddress(src)
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(dstProofs.updateHeaders) > 0 {
+				msgs = append(msgs, src.Path().UpdateClients(dstProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, src.Path().ChanConfirm(p.chanRes, addr))
+			msgs = append(msgs, src.Path().ChanConfirm(dstProofs.chanRes, addr))
 			return msgs, true
 		})
 
 	// Handshake has confirmed on src (3 steps done), relay `chanOpenConfirm` and `updateClient` to dst
 	case srcProofs.chanRes.Channel.State == chantypes.OPEN && dstProofs.chanRes.Channel.State == chantypes.TRYOPEN:
-		fmsgs.Dst = append(fmsgs.Dst, func(p *createChannelFutureProofs) ([]sdk.Msg, bool) {
+		dstFutureMsgs = append(dstFutureMsgs, func() ([]sdk.Msg, bool) {
 			logChannelStates(ctx, dst, src, dstProofs.chanRes, srcProofs.chanRes)
 			var msgs []sdk.Msg
 			addr := mustGetAddress(dst)
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(srcProofs.updateHeaders) > 0 {
+				msgs = append(msgs, dst.Path().UpdateClients(srcProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, dst.Path().ChanConfirm(p.chanRes, addr))
+			msgs = append(msgs, dst.Path().ChanConfirm(srcProofs.chanRes, addr))
 			return msgs, true
 		})
 	default:
 		panic(fmt.Sprintf("not implemeneted error: %v <=> %v", srcProofs.chanRes.Channel.State.String(), dstProofs.chanRes.Channel.State.String()))
 	}
 
-	out, err := resolveCreateChannelFutureMsgs(ctx, sh, &fmsgs, src, dst, &srcProofs, &dstProofs)
+	err = retry.Do(func() error {
+		var eg = new(errgroup.Group)
+
+		if 0 < len(dstFutureMsgs) {
+			eg.Go(func() error {
+				return resolveCreateChannelFutureProofs(ctx, sh, src, dst, &srcProofs)
+			})
+		}
+		if 0 < len(srcFutureMsgs) {
+			eg.Go(func() error {
+				return resolveCreateChannelFutureProofs(ctx, sh, dst, src, &dstProofs)
+			})
+		}
+		return eg.Wait()
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx))
 	if err != nil {
 		return nil, err
 	}
+
+	for _, f := range dstFutureMsgs {
+		msgs, last := f()
+		out.Dst = append(out.Dst, msgs...)
+		out.Last = out.Last || last
+	}
+	for _, f := range srcFutureMsgs {
+		msgs, last := f()
+		out.Src = append(out.Src, msgs...)
+		out.Last = out.Last || last
+	}
+
 	return out, nil
 }
 

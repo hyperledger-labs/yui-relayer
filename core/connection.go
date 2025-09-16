@@ -150,8 +150,6 @@ type createConnectionFutureProofs struct {
 	consRes       *clienttypes.QueryConsensusStateResponse
 }
 
-type createConnectionFutureMsg = func(proofs *createConnectionFutureProofs) (msg []sdk.Msg, last bool)
-
 func resolveCreateConnectionFutureProofs(
 	ctx context.Context,
 	sh SyncHeaders,
@@ -199,63 +197,8 @@ func resolveCreateConnectionFutureProofs(
 	return nil
 }
 
-type createConnectionFutureMsgs struct {
-	Src, Dst []createConnectionFutureMsg
-}
-
-func resolveCreateConnectionFutureMsgs(
-	ctx context.Context,
-	sh SyncHeaders,
-	fmsgs *createConnectionFutureMsgs,
-	src, dst *ProvableChain,
-	srcProofs, dstProofs *createConnectionFutureProofs,
-) (*RelayMsgs, error) {
-	ret := NewRelayMsgs()
-
-	err := retry.Do(func() error {
-		var eg = new(errgroup.Group)
-
-		if len(fmsgs.Dst) > 0 { // send to Dst
-			eg.Go(func() error {
-				err := resolveCreateConnectionFutureProofs(ctx, sh, src, dst, srcProofs)
-				if err != nil {
-					return err
-				}
-
-				for _, fm := range fmsgs.Dst {
-					msgs, last := fm(srcProofs)
-					ret.Dst = append(ret.Dst, msgs...)
-					ret.Last = ret.Last || last
-				}
-				return nil
-			})
-		}
-
-		if len(fmsgs.Src) > 0 { // send to Src
-			eg.Go(func() error {
-				err := resolveCreateConnectionFutureProofs(ctx, sh, dst, src, dstProofs)
-				if err != nil {
-					return err
-				}
-
-				for _, fm := range fmsgs.Src {
-					msgs, last := fm(dstProofs)
-					ret.Src = append(ret.Src, msgs...)
-					ret.Last = ret.Last || last
-				}
-				return nil
-			})
-		}
-		return eg.Wait()
-	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx))
-	if err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
 func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayMsgs, error) {
-	fmsgs := createConnectionFutureMsgs{}
+	out := NewRelayMsgs()
 	if err := validatePaths(src, dst); err != nil {
 		return nil, err
 	}
@@ -283,7 +226,7 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 	if err != nil {
 		return nil, err
 	} else if !settled {
-		return NewRelayMsgs(), nil
+		return out, nil
 	}
 
 	if !(srcProofs.connRes.Connection.State == conntypes.UNINITIALIZED && dstProofs.connRes.Connection.State == conntypes.UNINITIALIZED) {
@@ -324,18 +267,16 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		}
 	}
 
-	// That future functions below run concurrently on src and dst side and update it's proof value.
-	// Note that althouth these future functions may often refer counterparty's data, conflicts are not occured
-	// because they only refers constant non-proof values.
+	var srcFutureMsgs, dstFutureMsgs []func() (msg []sdk.Msg, last bool)
 	switch {
 	// Handshake hasn't been started on src or dst, relay `connOpenInit` to src
 	case srcProofs.connRes.Connection.State == conntypes.UNINITIALIZED && dstProofs.connRes.Connection.State == conntypes.UNINITIALIZED:
-		fmsgs.Src = append(fmsgs.Src, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
+		srcFutureMsgs = append(srcFutureMsgs, func() ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
 			addr := mustGetAddress(src)
 			var msgs []sdk.Msg
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(dstProofs.updateHeaders) > 0 {
+				msgs = append(msgs, src.Path().UpdateClients(dstProofs.updateHeaders, addr)...)
 			}
 			msgs = append(msgs, src.Path().ConnInit(dst.Path(), addr))
 			return msgs, false
@@ -343,79 +284,79 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 
 	// Handshake has started on dst (1 step done), relay `connOpenTry` and `updateClient` on src
 	case srcProofs.connRes.Connection.State == conntypes.UNINITIALIZED && dstProofs.connRes.Connection.State == conntypes.INIT:
-		fmsgs.Src = append(fmsgs.Src, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
+		srcFutureMsgs = append(srcFutureMsgs, func() ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
 			addr := mustGetAddress(src)
 			var msgs []sdk.Msg
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(dstProofs.updateHeaders) > 0 {
+				msgs = append(msgs, src.Path().UpdateClients(dstProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, src.Path().ConnTry(dst.Path(), p.csRes, p.connRes, p.consRes, srcHostConsProof, addr))
+			msgs = append(msgs, src.Path().ConnTry(dst.Path(), dstProofs.csRes, dstProofs.connRes, dstProofs.consRes, srcHostConsProof, addr))
 			return msgs, false
 		})
 
 	// Handshake has started on src (1 step done), relay `connOpenTry` and `updateClient` on dst
 	case srcProofs.connRes.Connection.State == conntypes.INIT && dstProofs.connRes.Connection.State == conntypes.UNINITIALIZED:
-		fmsgs.Dst = append(fmsgs.Dst, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
+		dstFutureMsgs = append(dstFutureMsgs, func() ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, dst, src, dstProofs.connRes, srcProofs.connRes)
 			addr := mustGetAddress(dst)
 			var msgs []sdk.Msg
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(srcProofs.updateHeaders) > 0 {
+				msgs = append(msgs, dst.Path().UpdateClients(srcProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, dst.Path().ConnTry(src.Path(), p.csRes, p.connRes, p.consRes, dstHostConsProof, addr))
+			msgs = append(msgs, dst.Path().ConnTry(src.Path(), srcProofs.csRes, srcProofs.connRes, srcProofs.consRes, dstHostConsProof, addr))
 			return msgs, false
 		})
 
 	// Handshake has started on src end (2 steps done), relay `connOpenAck` and `updateClient` to dst end
 	case srcProofs.connRes.Connection.State == conntypes.TRYOPEN && dstProofs.connRes.Connection.State == conntypes.INIT:
-		fmsgs.Dst = append(fmsgs.Dst, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
+		dstFutureMsgs = append(dstFutureMsgs, func() ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, dst, src, dstProofs.connRes, srcProofs.connRes)
 			addr := mustGetAddress(dst)
 			var msgs []sdk.Msg
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(srcProofs.updateHeaders) > 0 {
+				msgs = append(msgs, dst.Path().UpdateClients(srcProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, dst.Path().ConnAck(src.Path(), p.csRes, p.connRes, p.consRes, dstHostConsProof, addr))
+			msgs = append(msgs, dst.Path().ConnAck(src.Path(), srcProofs.csRes, srcProofs.connRes, srcProofs.consRes, dstHostConsProof, addr))
 			return msgs, false
 		})
 
 	// Handshake has started on dst end (2 steps done), relay `connOpenAck` and `updateClient` to src end
 	case srcProofs.connRes.Connection.State == conntypes.INIT && dstProofs.connRes.Connection.State == conntypes.TRYOPEN:
-		fmsgs.Src = append(fmsgs.Src, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
+		srcFutureMsgs = append(srcFutureMsgs, func() ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
 			addr := mustGetAddress(src)
 			var msgs []sdk.Msg
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(dstProofs.updateHeaders) > 0 {
+				msgs = append(msgs, src.Path().UpdateClients(dstProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, src.Path().ConnAck(dst.Path(), p.csRes, p.connRes, p.consRes, srcHostConsProof, addr))
+			msgs = append(msgs, src.Path().ConnAck(dst.Path(), dstProofs.csRes, dstProofs.connRes, dstProofs.consRes, srcHostConsProof, addr))
 			return msgs, false
 		})
 
 	// Handshake has confirmed on dst (3 steps done), relay `connOpenConfirm` and `updateClient` to src end
 	case srcProofs.connRes.Connection.State == conntypes.TRYOPEN && dstProofs.connRes.Connection.State == conntypes.OPEN:
-		fmsgs.Src = append(fmsgs.Src, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
+		srcFutureMsgs = append(srcFutureMsgs, func() ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, src, dst, srcProofs.connRes, dstProofs.connRes)
 			addr := mustGetAddress(src)
 			var msgs []sdk.Msg
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, src.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(dstProofs.updateHeaders) > 0 {
+				msgs = append(msgs, src.Path().UpdateClients(dstProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, src.Path().ConnConfirm(p.connRes, addr))
+			msgs = append(msgs, src.Path().ConnConfirm(dstProofs.connRes, addr))
 			return msgs, true
 		})
 
 	// Handshake has confirmed on src (3 steps done), relay `connOpenConfirm` and `updateClient` to dst end
 	case srcProofs.connRes.Connection.State == conntypes.OPEN && dstProofs.connRes.Connection.State == conntypes.TRYOPEN:
-		fmsgs.Dst = append(fmsgs.Dst, func(p *createConnectionFutureProofs) ([]sdk.Msg, bool) {
+		dstFutureMsgs = append(dstFutureMsgs, func() ([]sdk.Msg, bool) {
 			logConnectionStates(ctx, dst, src, dstProofs.connRes, srcProofs.connRes)
 			addr := mustGetAddress(dst)
 			var msgs []sdk.Msg
-			if len(p.updateHeaders) > 0 {
-				msgs = append(msgs, dst.Path().UpdateClients(p.updateHeaders, addr)...)
+			if len(srcProofs.updateHeaders) > 0 {
+				msgs = append(msgs, dst.Path().UpdateClients(srcProofs.updateHeaders, addr)...)
 			}
-			msgs = append(msgs, dst.Path().ConnConfirm(p.connRes, addr))
+			msgs = append(msgs, dst.Path().ConnConfirm(srcProofs.connRes, addr))
 			return msgs, true
 		})
 
@@ -423,10 +364,36 @@ func createConnectionStep(ctx context.Context, src, dst *ProvableChain) (*RelayM
 		panic(fmt.Sprintf("not implemented error: %v %v", srcProofs.connRes.Connection.State, dstProofs.connRes.Connection.State))
 	}
 
-	out, err := resolveCreateConnectionFutureMsgs(ctx, sh, &fmsgs, src, dst, &srcProofs, &dstProofs)
+	err = retry.Do(func() error {
+		var eg = new(errgroup.Group)
+
+		if 0 < len(dstFutureMsgs) {
+			eg.Go(func() error {
+				return resolveCreateConnectionFutureProofs(ctx, sh, src, dst, &srcProofs)
+			})
+		}
+		if 0 < len(srcFutureMsgs) {
+			eg.Go(func() error {
+				return resolveCreateConnectionFutureProofs(ctx, sh, dst, src, &dstProofs)
+			})
+		}
+		return eg.Wait()
+	}, rtyAtt, rtyDel, rtyErr, retry.Context(ctx))
 	if err != nil {
 		return nil, err
 	}
+
+	for _, f := range dstFutureMsgs {
+		msgs, last := f()
+		out.Dst = append(out.Dst, msgs...)
+		out.Last = out.Last || last
+	}
+	for _, f := range srcFutureMsgs {
+		msgs, last := f()
+		out.Src = append(out.Src, msgs...)
+		out.Last = out.Last || last
+	}
+
 	return out, nil
 }
 
