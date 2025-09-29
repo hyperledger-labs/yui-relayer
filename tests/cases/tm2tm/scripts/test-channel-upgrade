@@ -119,6 +119,7 @@ echo '##### case 6 #####'
 $RLY tx channel-upgrade init ibc01 ibc0 $origSrcOpts
 $RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHCOMPLETE --target-dst-state FLUSHING
 $RLY tx channel-upgrade cancel ibc01 ibc1  # ibc1 returns to UNINIT. ibc0 is FLUSHCOMPLETE.
+sleep 10
 $RLY tx channel-upgrade execute ibc01      # ibc0's upgrade (in FLUSHCOMPLETE) should be cancelled.
 checkResult alt
 
