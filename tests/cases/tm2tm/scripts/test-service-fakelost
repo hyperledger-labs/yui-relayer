@@ -20,8 +20,8 @@ source ${SCRIPT_DIR}/utils
 TM_ADDRESS0=$(${RLY} tendermint keys show ibc0 testkey)
 TM_ADDRESS1=$(${RLY} tendermint keys show ibc1 testkey)
 
-export DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_ibc0="10"
-export DEBUG_RELAYER_MISSING_TRIE_NODE_HEIGHT_PROVER_ibc0="10"
+export DEBUG_RELAYER_PRUNE_AFTER_BLOCKS_CHAIN_ibc0="10"
+export DEBUG_RELAYER_PRUNE_AFTER_BLOCKS_PROVER_ibc0="10"
 export DEBUG_RELAYER_SHFU_WAIT_ibc1="20"
 
 SECONDS=0
