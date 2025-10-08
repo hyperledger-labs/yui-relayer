@@ -29,6 +29,9 @@ func debugFakeLost(ctx context.Context, chain *Chain, queryHeight ibcexported.He
 		}
 
 		qh := int64(queryHeight.GetRevisionHeight())
+		if qh == 0 {
+			return nil
+		}
 
 		latestHeight, err := chain.LatestHeight(ctx)
 		if err != nil {
