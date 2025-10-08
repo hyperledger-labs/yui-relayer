@@ -29,7 +29,7 @@ func debugFakeLost(ctx context.Context, chain core.Chain, queryHeight exported.H
 
 		qh := int64(queryHeight.GetRevisionHeight())
 		if qh == 0 {
-			// 0 query height means latest height
+			// 0 means query latest height
 			return nil
 		}
 
