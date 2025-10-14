@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// chainCmd represents the keys command
+// lightCmd represents the keys command
 func lightCmd(ctx *config.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "light",
