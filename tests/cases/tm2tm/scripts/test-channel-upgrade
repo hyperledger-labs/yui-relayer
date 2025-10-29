@@ -149,8 +149,9 @@ checkResult orig
 echo '##### case 11 #####'
 $RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
 $RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHING --target-dst-state FLUSHING
-# Both chains have already passed the target states
+# No action is taken will happen because both chains have already passed the target states (INIT)
 $RLY tx channel-upgrade execute ibc01 --target-src-state INIT --target-dst-state INIT
+checkResult orig
 $RLY tx channel-upgrade execute ibc01
 checkResult alt
 

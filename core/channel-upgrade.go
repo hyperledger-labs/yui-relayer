@@ -812,12 +812,12 @@ func hasReachedOrPassedTargetState(currentState, targetState, counterpartyCurren
 // hasPassedTargetState checks if the current state has passed the target state,
 // including cases where the target state is skipped.
 func hasPassedTargetState(currentState, targetState, counterpartyCurrentState UpgradeState) bool {
+	// Each chain can cancel the upgrade and initialize another upgrade at any time. This means that the state
+	// can transition to UNINIT from any state except the case where the counterparty is in INIT state.
+	isUninitReachable := counterpartyCurrentState != UPGRADE_STATE_INIT
+
 	// Check if the current state has passed the target state.
 	// For simplicity, we consider that any state that can be reached after the target state has passed the target state.
-	// NOTE: Each chain can cancel the upgrade and initialize another upgrade at any time. This means that the state
-	// can transition to UNINIT from any state except the case where the counterparty is in INIT state.
-
-	isUninitReachable := counterpartyCurrentState != UPGRADE_STATE_INIT
 	switch targetState {
 	case UPGRADE_STATE_INIT:
 		return currentState == UPGRADE_STATE_FLUSHING || currentState == UPGRADE_STATE_FLUSHCOMPLETE ||
