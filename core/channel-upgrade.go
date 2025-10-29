@@ -144,6 +144,12 @@ func ExecuteChannelUpgrade(ctx context.Context, pathName string, src, dst *Prova
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrackContext(ctx, time.Now(), "ExecuteChannelUpgrade")
 
+	// Assume the current state pair is (INIT, UNINIT).
+	// The target state pair (INIT, UNINIT) and (UNINIT, INIT) are invalid:
+	// - (INIT, UNINIT) is meaningless as a target since this function won't cause any state change
+	// - (UNINIT, INIT) is unreachable
+	// Therefore, it is unlikely that a user would intentionally set either pair after
+	// initializing an upgrade on only one side, so return an error.
 	if (targetSrcState == UPGRADE_STATE_UNINIT && targetDstState == UPGRADE_STATE_INIT) ||
 		(targetSrcState == UPGRADE_STATE_INIT && targetDstState == UPGRADE_STATE_UNINIT) {
 		return fmt.Errorf("unreachable target state pair: (%s, %s)", targetSrcState, targetDstState)

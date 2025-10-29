@@ -156,6 +156,7 @@ $RLY tx channel-upgrade execute ibc01
 checkResult alt
 
 echo '##### case 12 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $origSrcOpts # (UNINIT, INIT)
 # Unreachable target pair (INIT, UNINIT)
 if $RLY tx channel-upgrade execute ibc01 --target-src-state INIT
 then
@@ -163,3 +164,5 @@ then
     exit 1
 fi
 checkResult alt
+$RLY tx channel-upgrade execute ibc01
+checkResult orig
