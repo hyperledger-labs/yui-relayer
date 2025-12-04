@@ -137,6 +137,10 @@ func CreateClients(ctx context.Context, pathName string, src, dst *ProvableChain
 				span.SetStatus(codes.Error, err.Error())
 				return err
 			}
+		} else {
+			err := fmt.Errorf("failed to send messages to create clients")
+			span.SetStatus(codes.Error, err.Error())
+			return err
 		}
 	}
 	return nil
@@ -171,8 +175,13 @@ func UpdateClients(ctx context.Context, src, dst *ProvableChain) error {
 	}
 	// Send msgs to both chains
 	if clients.Ready() {
-		if clients.Send(ctx, src, dst); clients.Success() {
+		clients.Send(ctx, src, dst)
+		if clients.Success() {
 			logger.InfoContext(ctx, "★ Clients updated")
+		} else {
+			err := fmt.Errorf("failed to send messages to update clients")
+			span.SetStatus(codes.Error, err.Error())
+			return err
 		}
 	}
 	return nil
