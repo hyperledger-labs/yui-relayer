@@ -242,7 +242,7 @@ func (st *NaiveStrategy) RelayPackets(ctx context.Context, src, dst *ProvableCha
 	{ // log
 		num := len(msgs)
 		if num == 0 {
-			logger.InfoContext(ctx, "no packates to relay")
+			logger.InfoContext(ctx, "no packets to relay")
 		} else {
 			logPacketsRelayed(ctx, logger, num, "Packets")
 		}
