@@ -129,7 +129,7 @@ func Execute(modules ...config.ModuleI) error {
 	return rootCmd.Execute()
 }
 
-// readLineFromBuf reads one line from stdin.
+// readStdin reads one line from stdin.
 func readStdin() (string, error) {
 	str, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	return strings.TrimSpace(str), err
