@@ -144,6 +144,10 @@ func ExecuteChannelUpgrade(ctx context.Context, pathName string, src, dst *Prova
 	logger := GetChannelPairLogger(src, dst)
 	defer logger.TimeTrackContext(ctx, time.Now(), "ExecuteChannelUpgrade")
 
+	if err := validateTargetStates(targetSrcState, targetDstState); err != nil {
+		return err
+	}
+
 	failures := 0
 	firstCall := true
 	err := runUntilComplete(ctx, interval, func() (bool, error) {
@@ -156,7 +160,7 @@ func ExecuteChannelUpgrade(ctx context.Context, pathName string, src, dst *Prova
 		firstCall = false
 
 		if steps.Last {
-			logger.InfoContext(ctx, "Channel upgrade completed")
+			logger.InfoContext(ctx, "Channel upgrade steps completed up to the target states. Check the resulting states, as cancellations or timeouts can also lead to this result.")
 			return true, nil
 		}
 
@@ -367,10 +371,16 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		),
 	)}
 
-	// check if both chains have reached the target states or UNINIT states
-	if !firstCall && srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT ||
-		srcState != UPGRADE_STATE_UNINIT && dstState != UPGRADE_STATE_UNINIT && srcState == targetSrcState && dstState == targetDstState {
-		logger.InfoContext(ctx, "both chains have reached the target states")
+	if hasReachedOrPassedTargetState(srcState, targetSrcState, dstState) && hasReachedOrPassedTargetState(dstState, targetDstState, srcState) {
+		if firstCall {
+			if srcState == UPGRADE_STATE_UNINIT && targetSrcState == UPGRADE_STATE_UNINIT {
+				logger.InfoContext(ctx, "both chains have already reached or passed the target states, or the channel upgrade has not been initialized")
+			} else {
+				logger.InfoContext(ctx, "both chains have already reached or passed the target states")
+			}
+		} else {
+			logger.InfoContext(ctx, "both chains have reached or passed the target states")
+		}
 		out.Last = true
 		return out, nil
 	}
@@ -380,7 +390,8 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 	dstAction := UPGRADE_ACTION_NONE
 	switch {
 	case srcState == UPGRADE_STATE_UNINIT && dstState == UPGRADE_STATE_UNINIT:
-		return nil, errors.New("channel upgrade is not initialized")
+		// This line should never be reached because the channel upgrade is considered completed
+		return nil, errors.New("unexpected transition")
 	case srcState == UPGRADE_STATE_INIT && dstState == UPGRADE_STATE_UNINIT:
 		if dstChan.Channel.UpgradeSequence >= srcChan.Channel.UpgradeSequence {
 			srcAction = UPGRADE_ACTION_CANCEL
@@ -833,5 +844,67 @@ func buildActionMsg(
 		return pathEnd.ChanUpgradeTimeout(cpChan, addr), nil
 	default:
 		panic(fmt.Errorf("unexpected action: %s", action))
+	}
+}
+
+// validateTargetStates returns an error if the target state pair is meaningless or unreachable.
+// Assume the current state pair is (INIT, UNINIT).
+//
+//   - The target state pair (INIT, UNINIT) is meaningless as a target
+//     because this function would not cause any state change.
+//   - The target state pair (UNINIT, INIT) is unreachable.
+//
+// Therefore, it is unlikely that a user would intentionally specify either pair
+// after initializing an upgrade on only one side, so we treat them as invalid
+// and return an error.
+//
+// This validation also simplifies the logic of hasPassedTargetState.
+// For example,
+//
+// - target state pair: (UNINIT, INIT)
+// - current state pair: (INIT, UNINIT)
+//
+// In this case, hasPassedTargetState(UNINIT, INIT, INIT) returns false
+// and the upgrade proceeds to the next step, which is unexpected.
+// By rejecting this target state pair, the function does not need to handle this case.
+func validateTargetStates(targetSrcState, targetDstState UpgradeState) error {
+	if (targetSrcState == UPGRADE_STATE_UNINIT && targetDstState == UPGRADE_STATE_INIT) ||
+		(targetSrcState == UPGRADE_STATE_INIT && targetDstState == UPGRADE_STATE_UNINIT) {
+		return fmt.Errorf("unreachable target state pair: (%s, %s)", targetSrcState, targetDstState)
+	}
+
+	return nil
+}
+
+// hasReachedOrPassedTargetState checks if the current state has reached or passed the target state.
+// For more details, see hasPassedTargetState.
+func hasReachedOrPassedTargetState(currentState, targetState, counterpartyCurrentState UpgradeState) bool {
+	return currentState == targetState || hasPassedTargetState(currentState, targetState, counterpartyCurrentState)
+}
+
+// hasPassedTargetState checks if the current state has passed the target state,
+// including cases where the target state is skipped. For example, UPGRADE_STATE_INIT can transition
+// directly to UPGRADE_STATE_FLUSHCOMPLETE, skipping UPGRADE_STATE_FLUSHING.
+func hasPassedTargetState(currentState, targetState, counterpartyCurrentState UpgradeState) bool {
+	// Each chain can cancel the upgrade and initialize another upgrade at any time. This means that the state
+	// can transition to UNINIT from any state.
+	// However, in the case where the counterparty state is INIT, the current state can be UNINIT when the upgrade
+	// has not been initialized. In this case this function should return false,
+	// so we treat UNINIT as unreachable.
+	isUninitReachable := counterpartyCurrentState != UPGRADE_STATE_INIT
+
+	// Check if the current state has passed the target state.
+	// For simplicity, any state reachable after the target state is considered to have passed the target state,
+	// including cases where the upgrade has been cancelled or timed out.
+	switch targetState {
+	case UPGRADE_STATE_INIT:
+		return currentState == UPGRADE_STATE_FLUSHING || currentState == UPGRADE_STATE_FLUSHCOMPLETE ||
+			(isUninitReachable && currentState == UPGRADE_STATE_UNINIT)
+	case UPGRADE_STATE_FLUSHING:
+		return currentState == UPGRADE_STATE_FLUSHCOMPLETE || (isUninitReachable && currentState == UPGRADE_STATE_UNINIT)
+	case UPGRADE_STATE_FLUSHCOMPLETE:
+		return isUninitReachable && currentState == UPGRADE_STATE_UNINIT
+	default:
+		return false
 	}
 }

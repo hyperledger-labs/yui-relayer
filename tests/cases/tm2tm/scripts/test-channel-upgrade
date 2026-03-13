@@ -53,21 +53,21 @@ checkResult() {
 
     if [ "$expectedSide" = orig ]
     then
-	if [ "$srcConnectionId" != "$srcOrigConnectionId" -o "$dstConnectionId" != "$dstOrigConnectionId" -o "$srcVersion" != "$srcOrigVersion" -o "$dstVersion" != "$dstOrigVersion" -o "$srcOrder" != "$srcOrigOrder" -o "$dstOrder" != "$dstOrigOrder" ]
-	then
-	    echo "path config is not equal to the original one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
-	    exit 1
-	fi
+        if [ "$srcConnectionId" != "$srcOrigConnectionId" -o "$dstConnectionId" != "$dstOrigConnectionId" -o "$srcVersion" != "$srcOrigVersion" -o "$dstVersion" != "$dstOrigVersion" -o "$srcOrder" != "$srcOrigOrder" -o "$dstOrder" != "$dstOrigOrder" ]
+        then
+            echo "path config is not equal to the original one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
+            exit 1
+        fi
     elif [ "$expectedSide" = alt ]
     then
-	if [ "$srcConnectionId" != "$srcAltConnectionId" -o "$dstConnectionId" != "$dstAltConnectionId" -o "$srcVersion" != "$srcAltVersion" -o "$dstVersion" != "$dstAltVersion" -o "$srcOrder" != "$srcAltOrder" -o "$dstOrder" != "$dstAltOrder" ]
-	then
-	    echo "path config is not equal to the alternative one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
-	    exit 1
-	fi
+        if [ "$srcConnectionId" != "$srcAltConnectionId" -o "$dstConnectionId" != "$dstAltConnectionId" -o "$srcVersion" != "$srcAltVersion" -o "$dstVersion" != "$dstAltVersion" -o "$srcOrder" != "$srcAltOrder" -o "$dstOrder" != "$dstAltOrder" ]
+        then
+            echo "path config is not equal to the alternative one: $srcConnectionId, $dstConnectionId, $srcVersion, $dstVersion, $srcOrder, $dstOrder"
+            exit 1
+        fi
     else
-	echo "expectedSide is invalid value: $expectedSide"
-	exit 1
+        echo "expectedSide is invalid value: $expectedSide"
+        exit 1
     fi
 }
 
@@ -143,4 +143,30 @@ $RLY tx channel-upgrade init ibc01 ibc1 $altDstOpts
 $RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHING --target-dst-state FLUSHING
 sleep 50                              # Both chains exceed upgrade.timeout.timestamp
 $RLY tx channel-upgrade execute ibc01 # ibc0,ibc1 <= chanUpgradeTimeout
+checkResult orig
+
+echo '##### case 10 #####'
+# Both chains have already reached the target states, or the channel upgrade has not been initialized
+$RLY tx channel-upgrade execute ibc01
+checkResult orig
+
+echo '##### case 11 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $altSrcOpts
+$RLY tx channel-upgrade execute ibc01 --target-src-state FLUSHING --target-dst-state FLUSHING
+# No action is taken will happen because both chains have already passed the target states (INIT)
+$RLY tx channel-upgrade execute ibc01 --target-src-state INIT --target-dst-state INIT
+checkResult orig
+$RLY tx channel-upgrade execute ibc01
+checkResult alt
+
+echo '##### case 12 #####'
+$RLY tx channel-upgrade init ibc01 ibc0 $origSrcOpts # (UNINIT, INIT)
+# Unreachable target pair (INIT, UNINIT)
+if $RLY tx channel-upgrade execute ibc01 --target-src-state INIT
+then
+    echo 'channel-upgrade finished with exit code 0, but non-zero code was expected' >&2
+    exit 1
+fi
+checkResult alt
+$RLY tx channel-upgrade execute ibc01
 checkResult orig
