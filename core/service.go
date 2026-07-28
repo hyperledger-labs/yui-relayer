@@ -117,8 +117,25 @@ func (srv *RelayService) relayMsgs(ctx context.Context, isSrcToDst bool, packets
 		logger = GetChannelPairLoggerRelative(srv.dst, srv.src)
 	}
 
-	var msgs []sdk.Msg
+	// relay packets if unrelayed seqs exist
+	packetMsgs, err := srv.st.RelayPackets(ctx, srv.src, srv.dst, isSrcToDst, packets, sh, doExecuteRelay)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to relay packets", err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
+	// relay acks if unrelayed seqs exist
+	ackMsgs, err := srv.st.RelayAcknowledgements(ctx, srv.src, srv.dst, isSrcToDst, acks, sh, doExecuteAck)
+	if err != nil {
+		logger.ErrorContext(ctx, "failed to relay acknowledgements", err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
+	}
+
 	// update clients
+	// NOTE: this must be called after all proofs are generated, but the resulting msgs must precede them in the tx
+	var msgs []sdk.Msg
 	if m, err := srv.st.UpdateClients(ctx, srv.src, srv.dst, isSrcToDst, doExecuteRelay, doExecuteAck, doExecuteTimeout, sh, doRefresh); err != nil {
 		logger.ErrorContext(ctx, "failed to update clients", err)
 		span.SetStatus(codes.Error, err.Error())
@@ -126,24 +143,8 @@ func (srv *RelayService) relayMsgs(ctx context.Context, isSrcToDst bool, packets
 	} else {
 		msgs = append(msgs, m...)
 	}
-
-	// relay packets if unrelayed seqs exist
-	if m, err := srv.st.RelayPackets(ctx, srv.src, srv.dst, isSrcToDst, packets, sh, doExecuteRelay); err != nil {
-		logger.ErrorContext(ctx, "failed to relay packets", err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
-	} else {
-		msgs = append(msgs, m...)
-	}
-
-	// relay acks if unrelayed seqs exist
-	if m, err := srv.st.RelayAcknowledgements(ctx, srv.src, srv.dst, isSrcToDst, acks, sh, doExecuteAck); err != nil {
-		logger.ErrorContext(ctx, "failed to relay acknowledgements", err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
-	} else {
-		msgs = append(msgs, m...)
-	}
+	msgs = append(msgs, packetMsgs...)
+	msgs = append(msgs, ackMsgs...)
 
 	return msgs, nil
 }
@@ -198,19 +199,20 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		// - MsgTimeout for pseqs.DstTimeout (dst's packets that timed out, sent back to dst)
 		eg.Go(func() error {
 			isSrcToDst := true
+			// Collect timeout messages for dst's packets (DstTimeout → dst chain)
+			var timeoutMsgs []sdk.Msg
+			if doExecuteTimeoutDst {
+				var err error
+				timeoutMsgs, err = srv.st.RelayTimeoutPackets(ctx, srv.dst, srv.src, pseqs.DstTimeout, srv.sh, true)
+				if err != nil {
+					return err
+				}
+			}
 			m, err := srv.relayMsgs(ctx, isSrcToDst, pseqs.Src, aseqs.Src, srv.sh, doExecuteRelayDst, doExecuteAckDst, doExecuteTimeoutDst, true)
 			if err != nil {
 				return err
 			}
-			// Add timeout messages for dst's packets (DstTimeout → dst chain)
-			if doExecuteTimeoutDst {
-				timeoutMsgs, err := srv.st.RelayTimeoutPackets(ctx, srv.dst, srv.src, pseqs.DstTimeout, srv.sh, true)
-				if err != nil {
-					return err
-				}
-				m = append(m, timeoutMsgs...)
-			}
-			msgs.Dst = m
+			msgs.Dst = append(m, timeoutMsgs...)
 			return nil
 		})
 
@@ -219,19 +221,20 @@ func (srv *RelayService) Serve(ctx context.Context) error {
 		// - MsgTimeout for pseqs.SrcTimeout (src's packets that timed out, sent back to src)
 		eg.Go(func() error {
 			isSrcToDst := false
+			// Collect timeout messages for src's packets (SrcTimeout → src chain)
+			var timeoutMsgs []sdk.Msg
+			if doExecuteTimeoutSrc {
+				var err error
+				timeoutMsgs, err = srv.st.RelayTimeoutPackets(ctx, srv.src, srv.dst, pseqs.SrcTimeout, srv.sh, true)
+				if err != nil {
+					return err
+				}
+			}
 			m, err := srv.relayMsgs(ctx, isSrcToDst, pseqs.Dst, aseqs.Dst, srv.sh, doExecuteRelaySrc, doExecuteAckSrc, doExecuteTimeoutSrc, true)
 			if err != nil {
 				return err
 			}
-			// Add timeout messages for src's packets (SrcTimeout → src chain)
-			if doExecuteTimeoutSrc {
-				timeoutMsgs, err := srv.st.RelayTimeoutPackets(ctx, srv.src, srv.dst, pseqs.SrcTimeout, srv.sh, true)
-				if err != nil {
-					return err
-				}
-				m = append(m, timeoutMsgs...)
-			}
-			msgs.Src = m
+			msgs.Src = append(m, timeoutMsgs...)
 			return nil
 		})
 

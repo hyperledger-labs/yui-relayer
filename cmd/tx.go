@@ -415,19 +415,19 @@ func channelUpgradeCancelCmd(ctx *config.Context) *cobra.Command {
 }
 
 func relayMsgs(ctx context.Context, st core.StrategyI, src, dst *core.ProvableChain, isSrcToDst bool, packets core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doExecuteTimeout, doRefresh bool) ([]sdk.Msg, error) {
-	var msgs []sdk.Msg
+	packetMsgs, err := st.RelayPackets(ctx, src, dst, isSrcToDst, packets, sh, doExecuteRelay)
+	if err != nil {
+		return nil, err
+	}
 
+	// updateClients must be called after all proofs are generated, but the resulting msgs must precede them in the tx
+	var msgs []sdk.Msg
 	if m, err := st.UpdateClients(ctx, src, dst, isSrcToDst, doExecuteRelay, doExecuteAck, doExecuteTimeout, sh, doRefresh); err != nil {
 		return nil, err
 	} else {
 		msgs = append(msgs, m...)
 	}
-
-	if m, err := st.RelayPackets(ctx, src, dst, isSrcToDst, packets, sh, doExecuteRelay); err != nil {
-		return nil, err
-	} else {
-		msgs = append(msgs, m...)
-	}
+	msgs = append(msgs, packetMsgs...)
 	return msgs, nil
 }
 
@@ -496,35 +496,37 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 				doRefresh := viper.GetBool(flagDoRefresh)
 
 				eg.Go(func() error {
+					// Collect timeout messages for dst's packets (DstTimeout → dst chain)
+					var timeoutMsgs []sdk.Msg
+					if doExecuteTimeoutDst {
+						var err error
+						timeoutMsgs, err = st.RelayTimeoutPackets(cmd.Context(), c[dst], c[src], sp.DstTimeout, sh, true)
+						if err != nil {
+							return err
+						}
+					}
 					m, err := relayMsgs(cmd.Context(), st, c[src], c[dst], true, sp.Src, sh, doExecuteRelayDst, doExecuteAckDst, doExecuteTimeoutDst, doRefresh)
 					if err != nil {
 						return err
 					}
-					// Add timeout messages for dst's packets (DstTimeout → dst chain)
-					if doExecuteTimeoutDst {
-						timeoutMsgs, err := st.RelayTimeoutPackets(cmd.Context(), c[dst], c[src], sp.DstTimeout, sh, true)
-						if err != nil {
-							return err
-						}
-						m = append(m, timeoutMsgs...)
-					}
-					msgs.Dst = m
+					msgs.Dst = append(m, timeoutMsgs...)
 					return nil
 				})
 				eg.Go(func() error {
+					// Collect timeout messages for src's packets (SrcTimeout → src chain)
+					var timeoutMsgs []sdk.Msg
+					if doExecuteTimeoutSrc {
+						var err error
+						timeoutMsgs, err = st.RelayTimeoutPackets(cmd.Context(), c[src], c[dst], sp.SrcTimeout, sh, true)
+						if err != nil {
+							return err
+						}
+					}
 					m, err := relayMsgs(cmd.Context(), st, c[src], c[dst], false, sp.Dst, sh, doExecuteRelaySrc, doExecuteAckSrc, doExecuteTimeoutSrc, doRefresh)
 					if err != nil {
 						return err
 					}
-					// Add timeout messages for src's packets (SrcTimeout → src chain)
-					if doExecuteTimeoutSrc {
-						timeoutMsgs, err := st.RelayTimeoutPackets(cmd.Context(), c[src], c[dst], sp.SrcTimeout, sh, true)
-						if err != nil {
-							return err
-						}
-						m = append(m, timeoutMsgs...)
-					}
-					msgs.Src = m
+					msgs.Src = append(m, timeoutMsgs...)
 					return nil
 				})
 
@@ -546,20 +548,20 @@ func relayMsgsCmd(ctx *config.Context) *cobra.Command {
 }
 
 func relayAcks(ctx context.Context, st core.StrategyI, src, dst *core.ProvableChain, isSrcToDst bool, acks core.PacketInfoList, sh core.SyncHeaders, doExecuteRelay, doExecuteAck, doRefresh bool) ([]sdk.Msg, error) {
-	var msgs []sdk.Msg
+	ackMsgs, err := st.RelayAcknowledgements(ctx, src, dst, isSrcToDst, acks, sh, doExecuteAck)
+	if err != nil {
+		return nil, err
+	}
 
-	// For ack relay, no timeout execution is needed
+	// For ack relay, no timeout execution is needed.
+	// updateClients must be called after all proofs are generated, but the resulting msgs must precede them in the tx
+	var msgs []sdk.Msg
 	if m, err := st.UpdateClients(ctx, src, dst, isSrcToDst, doExecuteRelay, doExecuteAck, false, sh, doRefresh); err != nil {
 		return nil, err
 	} else {
 		msgs = append(msgs, m...)
 	}
-
-	if m, err := st.RelayAcknowledgements(ctx, src, dst, isSrcToDst, acks, sh, doExecuteAck); err != nil {
-		return nil, err
-	} else {
-		msgs = append(msgs, m...)
-	}
+	msgs = append(msgs, ackMsgs...)
 	return msgs, nil
 }
 

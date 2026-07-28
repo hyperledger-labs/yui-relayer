@@ -228,12 +228,6 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 			return false, nil
 		}
 
-		cpHeaders, err := SetupHeadersForUpdateSync(cp, ctx, chain, sh.GetLatestFinalizedHeader(cp.ChainID()))
-		if err != nil {
-			logger.ErrorContext(ctx, "failed to set up headers for LC update", err)
-			return false, err
-		}
-
 		upgErr, err := QueryChannelUpgradeError(cpQueryCtx, cp)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to query the channel upgrade error receipt", err)
@@ -255,6 +249,12 @@ func CancelChannelUpgrade(ctx context.Context, chain, cp *ProvableChain, settlem
 			// the cancellation will be successful.
 			upgErr = &chantypes.QueryUpgradeErrorResponse{}
 		} else if err = ProveChannelUpgradeError(cpQueryCtx, cp, upgErr); err != nil {
+			return false, err
+		}
+
+		cpHeaders, err := SetupHeadersForUpdateSync(cp, ctx, chain, sh.GetLatestFinalizedHeader(cp.ChainID()))
+		if err != nil {
+			logger.ErrorContext(ctx, "failed to set up headers for LC update", err)
 			return false, err
 		}
 
@@ -557,16 +557,6 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 
 				addr := mustGetAddress(src)
 
-				dstUpdateHeaders, err := sh.SetupHeadersForUpdate(ctx, dst, src)
-				if err != nil {
-					logger.ErrorContext(ctx, "failed to set up headers for LC update on dst chain", err)
-					return err
-				}
-
-				if len(dstUpdateHeaders) > 0 {
-					out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
-				}
-
 				msg, err := buildActionMsg(
 					src,
 					srcAction,
@@ -582,6 +572,16 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 					return err
 				}
 
+				dstUpdateHeaders, err := sh.SetupHeadersForUpdate(ctx, dst, src)
+				if err != nil {
+					logger.ErrorContext(ctx, "failed to set up headers for LC update on dst chain", err)
+					return err
+				}
+
+				if len(dstUpdateHeaders) > 0 {
+					out.Src = append(out.Src, src.Path().UpdateClients(dstUpdateHeaders, addr)...)
+				}
+
 				out.Src = append(out.Src, msg)
 				return nil
 			})
@@ -590,16 +590,6 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 		if dstAction != UPGRADE_ACTION_NONE {
 			eg.Go(func() error {
 				addr := mustGetAddress(dst)
-
-				srcUpdateHeaders, err := sh.SetupHeadersForUpdate(ctx, src, dst)
-				if err != nil {
-					logger.ErrorContext(ctx, "failed to set up headers for LC update on src chain", err)
-					return err
-				}
-
-				if len(srcUpdateHeaders) > 0 {
-					out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
-				}
 
 				msg, err := buildActionMsg(
 					dst,
@@ -614,6 +604,16 @@ func upgradeChannelStep(ctx context.Context, src, dst *ProvableChain, targetSrcS
 				if err != nil {
 					logger.ErrorContext(ctx, "failed to build Msg for the dst chain", err)
 					return err
+				}
+
+				srcUpdateHeaders, err := sh.SetupHeadersForUpdate(ctx, src, dst)
+				if err != nil {
+					logger.ErrorContext(ctx, "failed to set up headers for LC update on src chain", err)
+					return err
+				}
+
+				if len(srcUpdateHeaders) > 0 {
+					out.Dst = append(out.Dst, dst.Path().UpdateClients(srcUpdateHeaders, addr)...)
 				}
 
 				out.Dst = append(out.Dst, msg)

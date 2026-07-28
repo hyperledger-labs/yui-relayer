@@ -150,17 +150,17 @@ func resolveCreateChannelFutureProofs(
 	queryCtx := sh.GetQueryContext(ctx, from.ChainID())
 	var err error
 
-	fromProofs.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, from, to)
-	if err != nil {
-		logger.ErrorContext(ctx, "error setting up headers for update", err)
-		return err
-	}
-
 	if fromProofs.chanRes != nil && fromProofs.chanRes.Channel.State != chantypes.UNINITIALIZED {
 		err = ProveChannel(queryCtx, from, fromProofs.chanRes)
 		if err != nil {
 			return err
 		}
+	}
+
+	fromProofs.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, from, to)
+	if err != nil {
+		logger.ErrorContext(ctx, "error setting up headers for update", err)
+		return err
 	}
 	return nil
 }

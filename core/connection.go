@@ -160,12 +160,6 @@ func resolveCreateConnectionFutureProofs(
 	queryCtx := sh.GetQueryContext(ctx, fromChain.ChainID())
 	var err error
 
-	fromProofs.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, fromChain, toChain)
-	if err != nil {
-		logger.ErrorContext(ctx, "error setting up headers for update", err)
-		return err
-	}
-
 	if fromProofs.connRes != nil && fromProofs.connRes.Connection.State != conntypes.UNINITIALIZED {
 		err = ProveConnection(queryCtx, fromChain, fromProofs.connRes)
 		if err != nil {
@@ -192,6 +186,12 @@ func resolveCreateConnectionFutureProofs(
 		if err != nil {
 			return err
 		}
+	}
+
+	fromProofs.updateHeaders, err = sh.SetupHeadersForUpdate(ctx, fromChain, toChain)
+	if err != nil {
+		logger.ErrorContext(ctx, "error setting up headers for update", err)
+		return err
 	}
 
 	return nil
